@@ -14,9 +14,9 @@ Meanwhile, most CLI/IDE tools converged on Claude Code's hook shape (`session_id
 
 ## Decision
 1. **Capture only through documented, user-facing extension points.** For CLI/IDE tools: prompt-submit hooks in the user's own settings file. For the web (later): the text the user types into a page they enabled. No traffic interception, credentials, private file formats or automation (PLAN §4).
-2. **A source is a YAML spec, not code** (`src/gitprompt/sources/*.yaml`):
+2. **A source is a YAML spec, not code** (`src/gitprompt/sources/bundled/*.yaml`):
    `detect` (paths), `version_cmd`, `install` (target file + JSON to merge, with `{{receiver}}`, `{{source}}`, `{{token}}`), `accept_events`, `map` (field → candidate paths), `policy` (settings files, `block_if`, `warn_if_set`) and `terms` (shown before consent).
-   Shared fallback paths live in `sources/_defaults.yaml`. Specs are re-read on every use; `~/.gitprompt/sources/<name>.yaml` overrides a bundled one.
+   Shared fallback paths live in `sources/bundled/_defaults.yaml`. Specs are re-read on every use; `~/.gitprompt/sources/<name>.yaml` overrides a bundled one.
 3. **One receiver** `POST /ingest/{source}`: token check → mapping → git context → store → live push. It always answers with an empty 2xx, which hook-capable tools treat as "no output" (no blocking, no added context).
 4. **Raw payloads are always stored** next to the mapped fields. `remap` rebuilds fields after a spec change. Events with no prompt are counted per source as a drift signal.
 5. **One generic config installer:** merge into the target JSON, recognise our entries by the receiver URL they contain (no extra keys), parse-or-abort, show the diff, back up, write atomically, keep the file mode; uninstall removes only our entries.

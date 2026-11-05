@@ -22,7 +22,7 @@ Iteration 1 stored the prompt and the `UserPromptSubmit` payload. To decide whic
    - Values from the launch environment and from managed settings take precedence by Claude Code's own rules, so it can't redirect an existing pipeline.
    - Prompt text and raw API bodies are not enabled.
 3. **Events go into one `event` table**, joined to prompts by `prompt_id` and `session_id`. Long strings, such as file contents in tool results, are clipped before storage.
-4. **Everything else is derived on read** (`insights.py`, `git.py`): prompt stats, secret detection, turn summary, usage, session totals, and commits after the prompt. Improving a rule never needs a migration, and old prompts benefit too.
+4. **Everything else is derived on read** (`insights/derivations.py`, `core/git.py`): prompt stats, secret detection, turn summary, usage, session totals, and commits after the prompt. Improving a rule never needs a migration, and old prompts benefit too.
 5. **Plain config values we add are recorded at connect time.** Disconnect removes them only if they are unchanged. List entries such as hooks are still recognised by the receiver URL. A connection made by an older spec is reported as outdated, and updating it replaces our entries instead of duplicating them.
 6. **The user's own notes** (star, rating, tags, note) are stored separately from captured data. Detected secrets can be hidden in place.
 

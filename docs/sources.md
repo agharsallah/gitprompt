@@ -27,7 +27,7 @@ Items marked **?** are open and assigned to Phase 0. When a tool update changes 
 - Settings files are strict JSON (comments are a Settings Error), so the installer refuses to write a file it can't parse.
 
 **Verified 2026-11-03 (D + L, Claude Code 2.1.317), used by iteration 1b:**
-- HTTP hooks run on every event except `SessionStart` and `Setup` ("Only `type: \"command\"` and `type: \"mcp_tool\"` hooks are supported"). The common fields also include `scratchpad_dir`, `effort.level`, `agent_id` and `agent_type`. `Stop` carries `last_assistant_message`, and `PostToolUse` carries `tool_input`, `tool_response`, `tool_use_id` and `duration_ms`. The full per-event list is in `sources/claude-code.yaml` (`documented`).
+- HTTP hooks run on every event except `SessionStart` and `Setup` ("Only `type: \"command\"` and `type: \"mcp_tool\"` hooks are supported"). The common fields also include `scratchpad_dir`, `effort.level`, `agent_id` and `agent_type`. `Stop` carries `last_assistant_message`, and `PostToolUse` carries `tool_input`, `tool_response`, `tool_use_id` and `duration_ms`. The full per-event list is in `src/gitprompt/sources/bundled/claude-code.yaml` (`documented`).
 - `strictPluginOnlyCustomization` (`true` or a list containing `"hooks"`, managed only) also blocks user hooks.
 - OpenTelemetry: `CLAUDE_CODE_ENABLE_TELEMETRY=1` and `OTEL_{LOGS,METRICS}_EXPORTER=otlp` with `OTEL_EXPORTER_OTLP_PROTOCOL=http/json` are accepted in user `settings.json` `env` (and ignored in project settings).
   - Precedence: the launch environment wins over settings files, and a managed endpoint or headers remove developer-set endpoints.

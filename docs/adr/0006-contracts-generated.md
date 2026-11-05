@@ -1,6 +1,6 @@
 # 0006 — Pydantic as single source of truth for contracts
 
-**Status:** deferred to iteration 5 (iteration 1 hand-writes a small `web/src/lib/api.ts`)
+**Status:** deferred to iteration 5 (iteration 1 hand-writes a small `web/src/lib/api/client.ts`)
 
 ## Context
 Three codebases consume the same shapes: the Python daemon, the Svelte dashboard and the browser extension. Hand-maintained duplicate types drift.
