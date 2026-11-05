@@ -1,0 +1,16 @@
+# Architecture Decision Records
+
+Format: [MADR](https://adr.github.io/madr/)-lite: Context · Decision · Consequences · Alternatives considered.
+Status values: `proposed` → `accepted` → (`superseded by NNNN`). 0008 is the v2 decision; see PLAN.md §1 for what changed.
+
+| # | Title | Status |
+|---|---|---|
+| [0001](0001-local-first-daemon-pluggable-storage.md) | Local-first single daemon, SQLite by default, Postgres (local or cloud) optional | accepted (SQLite); Postgres deferred |
+| [0002](0002-hooks-signal-transcripts-truth.md) | Hooks are the signal, transcripts are the truth | amended by 0008 |
+| [0003](0003-raw-event-inbox.md) | Append-only raw event inbox, replayable normalization | amended by 0008 |
+| [0004](0004-single-hook-gateway-dialects.md) | One hook gateway, dialects as data | superseded by 0008 |
+| [0005](0005-generic-readers-thin-connectors.md) | Generic readers, thin declarative connectors | superseded by 0008 |
+| [0006](0006-contracts-generated.md) | Pydantic as single source of truth for contracts | deferred |
+| [0007](0007-browser-site-adapters.md) | Browser capture via one engine + declarative site adapters | superseded by 0008 |
+| [0008](0008-universal-capture-declarative-sources.md) | Universal capture through documented interfaces and declarative source specs | accepted |
+| [0009](0009-metadata-events-telemetry-derived-on-read.md) | Rich metadata: all observational events, opt-in telemetry, derived on read | accepted |
