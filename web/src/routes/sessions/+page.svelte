@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { Search } from '@lucide/svelte';
-	import { refreshAll } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
-	import { sessions } from '#lib/insights/aggregate.ts';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
 	import { rangePhrase } from '#lib/insights/range.ts';
-	import { plural } from '#lib/shared/format.ts';
+	import { SESSION_PAGE, SORTS, type Sort } from '#lib/sessions/load.ts';
 	import SessionCard from '#lib/sessions/SessionCard.svelte';
+	import { folder, plural } from '#lib/shared/format.ts';
+	import Button from '#lib/ui/Button.svelte';
 	import Chip from '#lib/ui/Chip.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
@@ -19,30 +20,20 @@
 	let { data }: PageProps = $props();
 	$effect(() => liveUpdates(refreshAll, 3000));
 
-	const all = $derived(sessions(data.window.prompts));
-	let query = $state('');
-	// Starts from ?project= (links from the Projects page), then is local state.
-	let project = $state<string | null>(page.url.searchParams.get('project'));
-	let sort = $state<'recent' | 'longest' | 'costliest'>('recent');
-
-	const projectNames = $derived(
-		[...new Map(all.map((s) => [s.project.key, s.project.name]))].sort((a, b) =>
-			a[1].localeCompare(b[1])
-		)
-	);
-	const shown = $derived.by(() => {
-		const q = query.trim().toLowerCase();
-		const list = all.filter(
-			(s) =>
-				(!project || s.project.key === project) &&
-				(!q ||
-					s.title?.toLowerCase().includes(q) ||
-					s.prompts.some((p) => p.prompt?.toLowerCase().includes(q)))
-		);
-		if (sort === 'longest') return [...list].sort((a, b) => b.prompts.length - a.prompts.length);
-		if (sort === 'costliest') return [...list].sort((a, b) => b.cost - a.cost);
-		return list;
-	});
+	/** This page's URL with some parameters changed (null removes one). */
+	function url(changes: Record<string, string | null>) {
+		const params = new URLSearchParams(page.url.search);
+		for (const [key, value] of Object.entries(changes)) {
+			if (value === null) params.delete(key);
+			else params.set(key, value);
+		}
+		const query = params.toString();
+		return `${resolve('/sessions')}${query ? `?${query}` : ''}`;
+	}
+	const filtered = $derived(!!(data.q || data.project));
+	const more = $derived(data.sessions.length >= data.limit && data.total > data.limit);
+	const projectName = (key: string) =>
+		data.projects.find((p) => p.key === key)?.detail ?? folder(key) ?? key;
 </script>
 
 <svelte:head><title>Sessions · GitPrompt</title></svelte:head>
@@ -51,57 +42,92 @@
 	title="Sessions"
 	description="Each session is one conversation with the agent: its turns in order, how long each took and how it ended."
 >
-	{#snippet actions()}<RangePicker range={data.range} fallback={data.defaultRange} />{/snippet}
+	{#snippet actions()}<RangePicker
+			range={data.filters.range}
+			fallback={data.defaultRange}
+		/>{/snippet}
 </PageHeader>
 
 <div class="controls">
-	<div class="search">
+	<form
+		class="search"
+		method="GET"
+		action={resolve('/sessions')}
+		data-sveltekit-reset="false"
+		role="search"
+	>
+		{#each ['range', 'project', 'sort'] as key (key)}
+			{#if page.url.searchParams.get(key)}<input
+					type="hidden"
+					name={key}
+					value={page.url.searchParams.get(key)}
+				/>{/if}
+		{/each}
 		<TextField
 			label="Search sessions"
 			hideLabel
 			type="search"
+			name="q"
 			icon={Search}
-			bind:value={query}
+			value={data.q}
 			placeholder="Search what was asked"
 			clearable
 		/>
-	</div>
+	</form>
 	<SegmentedControl
 		label="Sort sessions"
-		bind:value={sort}
-		options={[
-			{ value: 'recent', label: 'Recent' },
-			{ value: 'longest', label: 'Most turns' },
-			{ value: 'costliest', label: 'Costliest' }
-		]}
+		value={data.sort as Sort}
+		options={(Object.keys(SORTS) as Sort[]).map((s) => ({
+			value: s,
+			label: SORTS[s].label,
+			href: url({ sort: s === 'recent' ? null : s, limit: null })
+		}))}
 	/>
 </div>
 
-{#if projectNames.length > 1}
+{#if data.projects.length > 1 || data.project}
 	<div class="projects" role="group" aria-label="Filter by project">
-		{#each projectNames as [key, name] (key)}
-			{#if project === key}
-				<Chip onremove={() => (project = null)} removeLabel="Show all projects">{name}</Chip>
-			{:else}
-				<button class="project" type="button" onclick={() => (project = key)}>{name}</button>
-			{/if}
-		{/each}
+		{#if data.project}
+			<Chip
+				onremove={() => goto(url({ project: null, limit: null }))}
+				removeLabel="Show all projects">{projectName(data.project)}</Chip
+			>
+		{:else}
+			{#each data.projects as p (p.key)}
+				<a class="project" href={url({ project: p.key, limit: null })}
+					>{p.detail ?? folder(p.key) ?? p.key}</a
+				>
+			{/each}
+		{/if}
 	</div>
 {/if}
 
 <p class="summary muted" aria-live="polite">
-	{plural(shown.length, 'session')}{project || query ? ' match' : ''}
-	{rangePhrase(data.range)}
+	{#if data.total > data.sessions.length}
+		Showing {data.sessions.length} of {plural(data.total, 'session')}{filtered ? ' that match' : ''}
+	{:else}
+		{plural(data.total, 'session')}{filtered ? ' match' : ''}
+	{/if}
+	{rangePhrase(data.filters.range)}
 </p>
 
-{#if shown.length}
+{#if data.sessions.length}
 	<div class="list">
-		{#each shown as session (session.id)}<SessionCard {session} />{/each}
+		{#each data.sessions as session (session.id)}<SessionCard {session} />{/each}
 	</div>
-{:else if all.length}
+	{#if more}
+		<nav class="pager" aria-label="More sessions">
+			<Button
+				href={url({ limit: String(data.limit + SESSION_PAGE) })}
+				size="sm"
+				data-sveltekit-noscroll>Show {SESSION_PAGE} more</Button
+			>
+		</nav>
+	{/if}
+{:else if filtered}
 	<EmptyState title="No sessions match">Try other words, or another project.</EmptyState>
 {:else}
-	<EmptyState title="No sessions {rangePhrase(data.range)}">
+	<EmptyState title="No sessions {rangePhrase(data.filters.range)}">
 		Pick a longer range, or <a href={resolve('/sources')}>check that a source is connected</a>.
 	</EmptyState>
 {/if}
@@ -128,6 +154,8 @@
 	}
 
 	.project {
+		display: inline-flex;
+		align-items: center;
 		height: 1.5rem;
 		padding: 0 var(--space-2);
 		border-radius: var(--radius-full);
@@ -135,6 +163,7 @@
 		color: var(--color-text-secondary);
 		font-size: var(--text-xs);
 		font-weight: var(--weight-medium);
+		text-decoration: none;
 	}
 
 	.project:hover {
@@ -150,5 +179,11 @@
 	.list {
 		display: grid;
 		gap: var(--space-3);
+	}
+
+	.pager {
+		display: flex;
+		justify-content: center;
+		margin-top: var(--space-4);
 	}
 </style>

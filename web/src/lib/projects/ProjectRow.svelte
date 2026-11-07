@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { FolderGit2, Folder, GitBranch } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
-	import type { ProjectSummary } from '#lib/insights/aggregate.ts';
+	import type { ProjectSummary } from '#lib/projects/summary.ts';
 	import { KIND_INFO } from '#lib/insights/tools.ts';
 	import { integer, money, plural, relativePath } from '#lib/shared/format.ts';
 	import Badge from '#lib/ui/Badge.svelte';
@@ -13,23 +13,19 @@
 	let { summary, share }: { summary: ProjectSummary; /** of all prompts, 0..1 */ share: number } =
 		$props();
 
-	const p = $derived(summary.project);
+	const p = $derived(summary);
 	const BRANCHES = 3;
 </script>
 
 <article class="project" aria-labelledby="project-{p.key}">
 	<div class="name">
-		{#if p.root}<FolderGit2 size={18} aria-hidden="true" />{:else}<Folder
+		{#if p.git}<FolderGit2 size={18} aria-hidden="true" />{:else}<Folder
 				size={18}
 				aria-hidden="true"
 			/>{/if}
 		<div class="titles">
 			<h2 id="project-{p.key}">
-				{#if p.root}
-					<a href="{resolve('/prompts')}?repo={encodeURIComponent(p.root)}">{p.name}</a>
-				{:else}
-					{p.name}
-				{/if}
+				<a href="{resolve('/prompts')}?repo={encodeURIComponent(p.key)}">{p.name}</a>
 			</h2>
 			<p class="path mono" title={p.key}>{relativePath(p.key)}</p>
 		</div>
@@ -62,7 +58,7 @@
 			</dd>
 		</div>
 		<div>
-			<dt>Files changed</dt>
+			<dt title="Files each turn wrote, summed over turns">Files written</dt>
 			<dd>{integer(summary.filesWritten)}</dd>
 		</div>
 		{#if summary.cost}<div>
@@ -104,7 +100,6 @@
 			{#if summary.failed}<Badge tone="danger" size="sm"
 					>{plural(summary.failed, 'failed turn')}</Badge
 				>{/if}
-			{#if p.host}<Badge size="sm" variant="outline">{p.host}</Badge>{/if}
 		</div>
 	</div>
 </article>

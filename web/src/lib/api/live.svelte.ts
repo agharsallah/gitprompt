@@ -1,5 +1,4 @@
 import { STREAM_URL } from '#lib/api/client.ts';
-import { invalidateRecent } from '#lib/api/recent.ts';
 
 /**
  * The daemon's "something was captured" stream, shared by the whole dashboard: one EventSource,
@@ -24,7 +23,6 @@ class Live {
 		source.onmessage = () => {
 			this.state = 'open';
 			this.lastNotice = Date.now();
-			invalidateRecent();
 			for (const listener of this.#listeners) listener();
 		};
 		this.#source = source;
