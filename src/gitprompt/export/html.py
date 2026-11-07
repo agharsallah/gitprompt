@@ -28,7 +28,8 @@ STYLE = f"""
 html{{-webkit-text-size-adjust:100%}}
 body{{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}}
 main{{max-width:60rem;margin:0 auto;padding:32px 16px 48px}}
-h1{{font-size:1.75rem;line-height:1.2;margin:0 0 6px}}
+h1{{font-size:1.75rem;line-height:1.2;margin:0 0 6px;overflow-wrap:anywhere}}
+h2,h3{{overflow-wrap:anywhere}}
 h2{{font-size:1.2rem;margin:40px 0 12px;padding-top:16px;border-top:1px solid var(--line)}}
 h3{{font-size:1rem;margin:28px 0 4px}}
 .kicker{{color:var(--accent);font-weight:600;font-size:.85rem;margin:0 0 8px}}
@@ -43,6 +44,7 @@ dd{{margin:2px 0 0;font-weight:600;font-variant-numeric:tabular-nums;overflow-wr
 figure{{margin:0;background:var(--surface);border-radius:8px;padding:14px 14px 10px;break-inside:avoid}}
 figcaption{{font-weight:600;font-size:.9rem;margin-bottom:10px}}
 figure svg{{display:block;width:100%;height:auto;overflow:visible}}
+figure svg.gp-columns{{max-height:15rem}}
 details{{margin-top:8px;font-size:.85rem}}
 summary{{color:var(--muted);cursor:pointer}}
 blockquote{{margin:10px 0;padding:8px 12px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 6px 6px 0}}
@@ -56,6 +58,7 @@ table{{border-collapse:collapse;width:100%;font-size:.875rem}}
 th,td{{padding:6px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}}
 th{{color:var(--muted);font-weight:600;white-space:nowrap}}
 tr:last-child td{{border-bottom:0}}
+td:first-child{{white-space:nowrap}}
 td.num,th.num{{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}}
 td.text{{min-width:16rem;white-space:pre-wrap;overflow-wrap:anywhere}}
 footer{{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}}

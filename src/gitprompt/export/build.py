@@ -196,9 +196,9 @@ def session(data: dict[str, Any], options: Options) -> Built:
         outcome_chart(t["outcomes"]),
         bars("tools", "Tool calls by kind", tools.items()),
     ]
-    if env := data.get("environment"):
-        summary.append(Items([f"{k}: {v}" for k, v in sorted(env.items())], mono=True))
     sections = [Section("Summary", summary)]
+    if env := data.get("environment"):
+        sections.append(Section("Environment", [Items([f"{k}: {v}" for k, v in sorted(env.items())], mono=True)], "From telemetry"))
 
     rows: list[dict[str, Any]] = []
     for item in story["items"]:

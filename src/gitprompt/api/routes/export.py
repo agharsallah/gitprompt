@@ -85,7 +85,7 @@ async def _prepare(kind: Kind, q: ExportQuery, filters: PromptFilters, index: An
 
 def _filename(e: export.Export, extension: str) -> str:
     """gitprompt-<kind>[-<title>]-<day>.<ext>: ASCII only, safe in a header."""
-    slug = re.sub(r"[^a-z0-9]+", "-", e.report.title.lower()).strip("-")[:40]
+    slug = re.sub(r"[^a-z0-9]+", "-", e.report.title.lower()).strip("-").removeprefix(e.report.kind + "-")[:40]
     parts = [e.report.kind, *([slug] if slug and slug != e.report.kind else []), datetime.now().strftime("%Y-%m-%d")]
     return "gitprompt-" + "-".join(parts) + extension
 

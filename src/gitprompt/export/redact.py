@@ -31,6 +31,9 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 CUT = re.compile(r"[^\s]{6,}…$")
 # Someone's home folder in an absolute path (macOS, Linux), whoever's it is.
 HOME = re.compile(r"(?<![\w~.-])/(?:Users|home)/[^/\s\"'<>|]+")
+# ...and a home folder written as one path component, as tools name per-project folders
+# (`~/.claude/projects/-Users-sam-code-app`): the whole component goes.
+ENCODED_HOME = re.compile(r"(?<![\w])-(?:Users|home)-[^/\s\"'<>|]+")
 
 
 @dataclass(frozen=True)
@@ -77,7 +80,7 @@ class _Paths:
             self.rules.append((re.compile(escaped + r"(?![\w.-])"), PurePosixPath(root).name or root))
         if home and home != "/":
             self.rules.append((re.compile(re.escape(home.rstrip("/")) + r"(?![\w.-])"), "~"))
-        self.rules.append((HOME, "~"))
+        self.rules += [(HOME, "~"), (ENCODED_HOME, "…")]
 
     def __call__(self, text: str) -> str:
         for pattern, replacement in self.rules:

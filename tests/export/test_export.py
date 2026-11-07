@@ -82,6 +82,7 @@ def test_redact_rules():
         "note": "key=[hidden Anthropic API key]"
     }
     assert redact("other home /home/alex/x and /Users/bo", Options()) == "other home ~/x and ~"
+    assert redact("~/.claude/projects/-Users-bo-code-app/m.md", Options()) == "~/.claude/projects/…/m.md"
     assert redact("starts the key sk-ant-api03-abcd…", Options()) == "starts the key …"  # a cut secret can't be matched
 
 
@@ -118,6 +119,6 @@ def test_a_new_format_needs_no_other_change():
         return "\n".join(s.title for s in e.report.sections)
 
     try:
-        assert export.render(export.prepare("session", data(), Options(), HOME), "txt").startswith("Summary\nPrompt 1")
+        assert export.render(export.prepare("session", data(), Options(), HOME), "txt").startswith("Summary\nEnvironment\nPrompt 1")
     finally:
         FORMATS.pop("txt")

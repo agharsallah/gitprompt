@@ -11,11 +11,11 @@ from html import escape
 from gitprompt.export.formats import Export, register
 from gitprompt.export.report import Chart
 
-BAR_W = 480  # bar charts: drawn narrow, so labels stay readable once scaled to a phone
+BAR_W = 360  # bar charts: drawn about as wide as they show, so labels stay readable on a phone
 ROW_H = 34
-COL_W, COL_H = 640, 200  # column charts
+COL_W, COL_H = 480, 180  # column charts
 FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-LABEL_CHARS = 44
+LABEL_CHARS = 36
 
 # The dashboard's chart slots and neutrals (web/src/lib/design/tokens.css), light then dark.
 PALETTE = {
@@ -62,7 +62,7 @@ def _columns(chart: Chart, top: int) -> tuple[list[str], int, int]:
     step = COL_W / max(len(items), 1)
     width = max(1.0, step * 0.72)
     out = [
-        f'<text class="gp-muted gp-num" x="0" y="{top + 12}" font-size="14">{escape(_peak(items, peak))}</text>',
+        f'<text class="gp-muted gp-num" x="0" y="{top + 12}" font-size="15">{escape(_peak(items, peak))}</text>',
         f'<line class="gp-axis" x1="0" x2="{COL_W}" y1="{base + 0.5}" y2="{base + 0.5}"/>',
     ]
     for i, b in enumerate(items):
@@ -77,7 +77,7 @@ def _columns(chart: Chart, top: int) -> tuple[list[str], int, int]:
         anchor = "start" if i == 0 and len(items) > 1 else "end" if i == len(items) - 1 and len(items) > 1 else "middle"
         x = 0 if anchor == "start" else COL_W if anchor == "end" else left + i * step + step / 2
         out.append(
-            f'<text class="gp-muted" x="{x:.1f}" y="{base + 22}" font-size="14" text-anchor="{anchor}">{escape(items[i].label)}</text>'
+            f'<text class="gp-muted" x="{x:.1f}" y="{base + 22}" font-size="15" text-anchor="{anchor}">{escape(items[i].label)}</text>'
         )
     return out, COL_W, base + 30
 
@@ -105,7 +105,7 @@ def svg(chart: Chart, alone: bool = False) -> str:
     # A file of its own needs the namespace and a size; inline in HTML, neither (no URL in the page).
     size = f' xmlns="http://www.w3.org/2000/svg" width="{width + 2 * pad}" height="{height + 2 * pad}"' if alone else ""
     return (
-        f'<svg viewBox="{-pad} {-pad} {width + 2 * pad} {height + 2 * pad}"{size}'
+        f'<svg class="gp-{chart.kind}" viewBox="{-pad} {-pad} {width + 2 * pad} {height + 2 * pad}"{size}'
         f' role="img" font-family="{FONT}" aria-label="{escape(chart.title)}"><desc>{escape(desc)}</desc>{head}{"".join(marks)}</svg>'
     )
 
