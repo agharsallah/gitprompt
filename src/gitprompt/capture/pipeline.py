@@ -2,6 +2,7 @@
 
     request body --decode (spec.format)--> payloads --map (spec.map)--> prompt or event --> store
 
+Events the spec does not keep (`accept_events`, `drop_events`) are discarded before storage.
 A payload whose event is one of `spec.prompt_events` becomes a prompt, stamped with what GitPrompt
 observes on this machine at that moment (git state, tool version). Every other payload is stored
 as an event and attaches to its prompt by prompt_id / session_id.
@@ -52,7 +53,7 @@ async def capture(spec: Spec, store: Store, body: dict[str, Any]) -> Captured:
     for payload in DECODERS[spec.format](body):
         fields = extract(payload, spec.map)
         event = fields.get("event")
-        if spec.accept_events and event not in spec.accept_events:
+        if not spec.keeps(event):  # accept_events / drop_events in the spec
             continue
         if event in spec.prompt_events:
             context = await asyncio.to_thread(observe, spec, fields.get("cwd"))

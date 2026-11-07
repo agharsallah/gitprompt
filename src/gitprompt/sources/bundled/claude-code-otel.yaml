@@ -72,6 +72,17 @@ documented:
   claude_code.commit.count: [value]
   claude_code.pull_request.count: [value]
 
+# Received but not stored: start-up and housekeeping events, repeated on every session start
+# (about 40% of the database before this list), that no derivation or page reads.
+# Listed on the Fields page. `gitprompt compact` removes rows stored before an event was listed here.
+drop_events:
+  hook_registered: Not stored. One event per configured hook at every start-up; describes your config, not your work.
+  plugin_loaded: Not stored. One event per plugin at every start-up.
+  hook_execution_*: Not stored. Start and end of every hook run, including GitPrompt's own; the hooks source already records each event.
+  mcp_server_connection: Not stored. MCP server connect and disconnect at every start-up.
+  managed_settings_resolved: Not stored. Settings resolution at start-up.
+  retention_sweep: Not stored. Claude Code's own housekeeping run.
+
 not_captured:
   user_prompt text: OTEL_LOG_USER_PROMPTS is left off; the hooks source already captures the prompt.
   api_request_body / api_response_body: OTEL_LOG_RAW_API_BODIES is left off; it holds whole API requests including system prompts.
