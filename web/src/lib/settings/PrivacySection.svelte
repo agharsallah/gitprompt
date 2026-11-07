@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Eye, EyeOff } from '@lucide/svelte';
 	import type { SettingsState } from '#lib/api/settings.ts';
+	import { OPTIONS as EXPORT_OPTIONS, PRIVATE_DEFAULTS } from '#lib/export/export.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
 	import SettingRow from '#lib/settings/SettingRow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
@@ -38,9 +39,29 @@
 		/>
 	</SettingRow>
 
+	<SettingRow
+		label="Exports"
+		description="Every export starts from the most private choice; change it per export in its preview. Nothing is remembered and nothing is uploaded."
+		value="Most private by default"
+	>
+		<ul class="defaults">
+			{#each EXPORT_OPTIONS as o (o.key)}
+				<li>
+					<span class="what">{o.label}</span>
+					<span class="muted">{PRIVATE_DEFAULTS[o.key] ? 'On' : 'Off'}</span>
+				</li>
+			{/each}
+			<li>
+				<span class="what">Hide secrets</span>
+				<span class="muted">Always</span>
+			</li>
+		</ul>
+	</SettingRow>
+
 	<p class="muted note">
-		Export options (removing absolute paths and email addresses from what you share) come with Share
-		and export.
+		Why these defaults, and exactly what each option removes: <span class="mono"
+			>docs/adr/0018-export.md</span
+		> in the GitPrompt repository.
 	</p>
 
 	{#if editor.message}<Callout tone="success" live>{editor.message}</Callout>{/if}
@@ -48,6 +69,22 @@
 </Panel>
 
 <style>
+	.defaults {
+		display: grid;
+		gap: var(--space-1);
+		min-width: 14rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: var(--text-sm);
+	}
+
+	.defaults li {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--space-4);
+	}
+
 	.note {
 		margin-top: var(--space-2);
 		font-size: var(--text-sm);

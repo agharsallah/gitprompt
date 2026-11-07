@@ -28,7 +28,8 @@ def find_secrets(text: str) -> list[str]:
     return [name for name, pattern in SECRETS.items() if pattern.search(text)]
 
 
-def _hide(text: str) -> str:
+def hide(text: str) -> str:
+    """Replace every secret match in a text with the name of its kind."""
     for name, pattern in SECRETS.items():
         text = pattern.sub(f"[hidden {name}]", text)
     return text
@@ -36,4 +37,4 @@ def _hide(text: str) -> str:
 
 def redact(value: Any) -> Any:
     """Replace every secret match in a JSON value, keeping its structure."""
-    return map_strings(value, _hide)
+    return map_strings(value, hide)

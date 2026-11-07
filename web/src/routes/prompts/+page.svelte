@@ -11,6 +11,7 @@
 	import { eventTime } from '#lib/insights/timeline.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
 	import { plural } from '#lib/shared/format.ts';
+	import ExportButton from '#lib/export/ExportButton.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
@@ -110,7 +111,16 @@
 		<PageHeader
 			title="Prompts"
 			description="Everything you asked, newest first. Prompts of one session share a line; select one to see how the turn went."
-		/>
+		>
+			{#snippet actions()}
+				<ExportButton
+					target={{
+						kind: 'prompts',
+						query: { ...data.filters, ...data.lists, origin: data.origins }
+					}}
+				/>
+			{/snippet}
+		</PageHeader>
 		<PromptFilters
 			filters={data.filters}
 			lists={data.lists}

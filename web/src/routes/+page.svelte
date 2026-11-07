@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import type { Capability, PromptQuery } from '#lib/api/types.ts';
+	import ExportButton from '#lib/export/ExportButton.svelte';
 	import FilterBar from '#lib/insights/FilterBar.svelte';
 	import { promptsHref } from '#lib/insights/filters.ts';
 	import { rangePhrase } from '#lib/insights/range.ts';
@@ -54,7 +55,11 @@
 
 <svelte:head><title>Overview · GitPrompt</title></svelte:head>
 
-<PageHeader title="Overview" description={t.prompts ? summary : 'Your prompting, at a glance.'} />
+<PageHeader title="Overview" description={t.prompts ? summary : 'Your prompting, at a glance.'}>
+	{#snippet actions()}
+		{#if t.prompts}<ExportButton target={{ kind: 'overview', query: o.query }} />{/if}
+	{/snippet}
+</PageHeader>
 
 <div class="overview">
 	{#if !hooked || !ever}
