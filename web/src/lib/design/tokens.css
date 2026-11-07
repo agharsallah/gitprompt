@@ -1,0 +1,299 @@
+/*
+ * GitPrompt design tokens.
+ *
+ * Three layers. Components only ever use the last two.
+ *   1. Primitives   raw ramps (--gray-*, --lagoon-*, ...). Never referenced by components.
+ *   2. Semantic     what a color is FOR (--color-text, --color-accent-soft, ...), resolved per theme
+ *                   with light-dark(): one declaration, both themes, no duplicated dark block.
+ *   3. Scales       type, space, radius, motion, elevation, layering, sizing.
+ *
+ * Meaning of color (keep it this way, it is the system):
+ *   lagoon  you: your prompts, your actions, the brand
+ *   iris    the agent: responses, model output
+ *   amber   attention: stars, warnings
+ *   red     failure; green success; blue information
+ * Chart slots (--chart-1..6) are validated as an ordered set (dataviz validator, adjacent pairs, both
+ * themes; the first three also pass all-pairs). Assign them in order and never reuse them for status.
+ *
+ * Theme: follows the OS by default; <html data-theme="light|dark"> pins it (see app.html).
+ */
+
+:root {
+	/* ---------------------------------------------------------------- 1. primitives */
+
+	/* Sage slate: a cool neutral with a trace of the brand hue, so surfaces and accent belong together. */
+	--gray-0: #ffffff;
+	--gray-25: #fcfdfd;
+	--gray-50: #f2f5f4;
+	--gray-75: #edf1f0;
+	--gray-100: #e6ebea;
+	--gray-150: #dae1df;
+	--gray-200: #c9d2d0;
+	--gray-300: #a9b5b3;
+	--gray-400: #7f8c89;
+	--gray-500: #65726f;
+	--gray-600: #4c5856;
+	--gray-700: #37413f;
+	--gray-750: #2a3432;
+	--gray-800: #212a28;
+	--gray-850: #1b2322;
+	--gray-900: #151c1b;
+	--gray-925: #111716;
+	--gray-950: #0e1413;
+
+	--lagoon-50: #e7f6f3;
+	--lagoon-100: #c9ece5;
+	--lagoon-200: #98dbcf;
+	--lagoon-300: #5fc3b3;
+	--lagoon-400: #2ea898;
+	--lagoon-500: #128c7e;
+	--lagoon-600: #0a7468;
+	--lagoon-700: #095e55;
+	--lagoon-800: #0a4a44;
+	--lagoon-900: #0a3834;
+	--lagoon-950: #0f2b28;
+
+	--iris-50: #f1effd;
+	--iris-100: #e2ddfb;
+	--iris-200: #c7bdf6;
+	--iris-300: #a898ef;
+	--iris-400: #8c76e6;
+	--iris-500: #735add;
+	--iris-600: #5e44c6;
+	--iris-700: #4c36a3;
+	--iris-800: #3c2c80;
+	--iris-950: #221c3f;
+
+	--amber-50: #fdf5e1;
+	--amber-100: #fae6b3;
+	--amber-300: #f0bb40;
+	--amber-400: #e5a311;
+	--amber-600: #a26f00;
+	--amber-700: #7d5500;
+	--amber-950: #33260a;
+
+	--red-50: #fdeeed;
+	--red-100: #fad5d3;
+	--red-300: #ec7d77;
+	--red-500: #cc3a35;
+	--red-600: #ad2c28;
+	--red-950: #3a1716;
+
+	--green-50: #e9f7ec;
+	--green-100: #c9ecd2;
+	--green-300: #5fc27c;
+	--green-500: #1f8c45;
+	--green-600: #177337;
+	--green-950: #11301c;
+
+	--blue-50: #eaf2fd;
+	--blue-100: #cfe0fa;
+	--blue-300: #7aa8ef;
+	--blue-500: #2f6fd6;
+	--blue-600: #2559b0;
+	--blue-950: #142441;
+
+	/* ---------------------------------------------------------------- 2. semantic */
+
+	color-scheme: light dark;
+
+	/* Surfaces, back to front. Flat: depth is tone, not shadow. */
+	--color-canvas: light-dark(var(--gray-50), var(--gray-950));
+	--color-surface: light-dark(var(--gray-25), var(--gray-900));
+	--color-surface-raised: light-dark(var(--gray-0), var(--gray-850));
+	--color-surface-sunken: light-dark(var(--gray-75), var(--gray-925));
+	--color-surface-hover: light-dark(var(--gray-100), var(--gray-800));
+	--color-surface-selected: light-dark(var(--lagoon-50), var(--lagoon-950));
+	--color-backdrop: light-dark(rgb(21 28 27 / 0.32), rgb(0 0 0 / 0.56));
+
+	/* Text. Every pair below clears WCAG AA (4.5:1) on canvas, surface and sunken. */
+	--color-text: light-dark(var(--gray-900), #e6ecea);
+	--color-text-secondary: light-dark(var(--gray-600), #b2bdbb);
+	--color-text-muted: light-dark(#5f6c69, #8e9b98);
+	--color-text-disabled: light-dark(var(--gray-300), var(--gray-600));
+	--color-text-inverse: light-dark(var(--gray-25), var(--gray-950));
+	--color-text-on-accent: light-dark(var(--gray-0), var(--gray-950));
+
+	/* Lines. Hairlines are decorative; --color-border-control meets 3:1 for form controls. */
+	--color-border: light-dark(var(--gray-150), var(--gray-750));
+	--color-border-subtle: light-dark(var(--gray-100), var(--gray-800));
+	--color-border-strong: light-dark(var(--gray-200), #3b4745);
+	--color-border-control: light-dark(var(--gray-400), #5f6d6a);
+
+	/* You (brand). */
+	--color-accent: light-dark(var(--lagoon-600), var(--lagoon-400));
+	--color-accent-hover: light-dark(var(--lagoon-700), var(--lagoon-300));
+	--color-accent-active: light-dark(var(--lagoon-800), var(--lagoon-200));
+	--color-accent-text: light-dark(var(--lagoon-700), var(--lagoon-300));
+	--color-accent-soft: light-dark(var(--lagoon-50), var(--lagoon-950));
+	--color-accent-soft-hover: light-dark(var(--lagoon-100), #123a36);
+	--color-accent-border: light-dark(var(--lagoon-200), var(--lagoon-800));
+
+	/* The agent. */
+	--color-agent: light-dark(var(--iris-600), var(--iris-400));
+	--color-agent-text: light-dark(var(--iris-600), var(--iris-300));
+	--color-agent-soft: light-dark(var(--iris-50), var(--iris-950));
+	--color-agent-border: light-dark(var(--iris-200), var(--iris-800));
+
+	/* Status: -text for words and icons, -soft for fills behind them, -solid for small marks. */
+	--color-success-text: light-dark(var(--green-600), var(--green-300));
+	--color-success-soft: light-dark(var(--green-50), var(--green-950));
+	--color-success-border: light-dark(var(--green-100), #1d5030);
+	--color-success-solid: light-dark(var(--green-500), var(--green-300));
+
+	--color-warning-text: light-dark(var(--amber-700), var(--amber-300));
+	--color-warning-soft: light-dark(var(--amber-50), var(--amber-950));
+	--color-warning-border: light-dark(var(--amber-100), #5a4413);
+	--color-warning-solid: light-dark(var(--amber-400), var(--amber-300));
+
+	--color-danger-text: light-dark(var(--red-600), var(--red-300));
+	--color-danger-soft: light-dark(var(--red-50), var(--red-950));
+	--color-danger-border: light-dark(var(--red-100), #66282a);
+	--color-danger-solid: light-dark(var(--red-500), var(--red-300));
+
+	--color-info-text: light-dark(var(--blue-600), var(--blue-300));
+	--color-info-soft: light-dark(var(--blue-50), var(--blue-950));
+	--color-info-border: light-dark(var(--blue-100), #26406e);
+	--color-info-solid: light-dark(var(--blue-500), var(--blue-300));
+
+	/* Stars: amber fill with a darker edge, so the shape reads on light surfaces (fill alone is 2.2:1). */
+	--color-star: var(--amber-400);
+	--color-star-edge: light-dark(var(--amber-600), var(--amber-300));
+
+	/* Focus: two rings, so it is visible on any surface and on the accent itself. */
+	--focus-ring: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent);
+
+	/* Code and diffs. */
+	--color-code-bg: light-dark(var(--gray-75), var(--gray-925));
+	--color-diff-add-bg: light-dark(#e3f4e7, #12301d);
+	--color-diff-add-text: light-dark(#145f2e, #8fdca6);
+	--color-diff-del-bg: light-dark(#fbe7e6, #391918);
+	--color-diff-del-text: light-dark(#8f2522, #f3a5a1);
+
+	/* Charts. Categorical slots, in this order only (validated set). */
+	--chart-1: light-dark(#1a9384, #1f9a8a); /* teal    */
+	--chart-2: light-dark(#7559dc, #8670e6); /* iris    */
+	--chart-3: light-dark(#e06a2c, #d4622b); /* orange  */
+	--chart-4: light-dark(#2f78d6, #3f82e0); /* blue    */
+	--chart-5: light-dark(#cf4f93, #cc4f8f); /* magenta */
+	--chart-6: light-dark(#d9a000, #b98a00); /* yellow: below 3:1 on light, so always labelled */
+	--chart-other: light-dark(var(--gray-300), var(--gray-600));
+	/* Sequential (magnitude): one hue, near-surface to strong. Dark mode climbs toward light. */
+	--chart-seq-0: light-dark(var(--gray-100), var(--gray-850));
+	--chart-seq-1: light-dark(#d3efe9, #133a35);
+	--chart-seq-2: light-dark(#a6ddd2, #155a52);
+	--chart-seq-3: light-dark(#6cc6b6, #17786c);
+	--chart-seq-4: light-dark(#2fa898, #1f9a8a);
+	--chart-seq-5: light-dark(#0f8274, #45bba9);
+	--chart-seq-6: light-dark(#095e55, #86dccd);
+	--chart-grid: light-dark(var(--gray-100), var(--gray-800));
+	--chart-axis: light-dark(var(--gray-200), #3b4745);
+	--chart-dim: light-dark(var(--gray-200), var(--gray-700)); /* de-emphasis in emphasis charts */
+
+	/* ---------------------------------------------------------------- 3. scales */
+
+	/* Type: Instrument Sans for everything; Commit Mono only for code, paths, hashes and field names. */
+	--font-sans:
+		'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: 'Commit Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+	/* A minor-third scale on a 14px UI base; prompt text reads at --text-lg. */
+	--text-2xs: 0.6875rem; /* 11 */
+	--text-xs: 0.75rem; /* 12 */
+	--text-sm: 0.8125rem; /* 13 */
+	--text-md: 0.875rem; /* 14  UI base */
+	--text-lg: 1rem; /* 16  reading */
+	--text-xl: 1.1875rem; /* 19 */
+	--text-2xl: 1.4375rem; /* 23 */
+	--text-3xl: 1.75rem; /* 28 */
+	--text-4xl: 2.125rem; /* 34 */
+	--text-5xl: 3rem; /* 48  the one hero figure per view */
+
+	--leading-none: 1;
+	--leading-tight: 1.2;
+	--leading-snug: 1.35;
+	--leading-normal: 1.5;
+	--leading-relaxed: 1.6;
+
+	--weight-regular: 400;
+	--weight-medium: 500;
+	--weight-semibold: 600;
+	--weight-bold: 700;
+
+	--tracking-tight: -0.02em;
+	--tracking-snug: -0.01em;
+	--tracking-normal: 0;
+
+	/* Instrument Sans has a width axis: headings run slightly condensed, which gives them their voice. */
+	--stretch-heading: 92%;
+	--stretch-normal: 100%;
+
+	/* Space: 4px grid. */
+	--space-0: 0;
+	--space-px: 1px;
+	--space-0_5: 0.125rem; /* 2 */
+	--space-1: 0.25rem; /* 4 */
+	--space-1_5: 0.375rem; /* 6 */
+	--space-2: 0.5rem; /* 8 */
+	--space-2_5: 0.625rem; /* 10 */
+	--space-3: 0.75rem; /* 12 */
+	--space-4: 1rem; /* 16 */
+	--space-5: 1.25rem; /* 20 */
+	--space-6: 1.5rem; /* 24 */
+	--space-8: 2rem; /* 32 */
+	--space-10: 2.5rem; /* 40 */
+	--space-12: 3rem; /* 48 */
+	--space-16: 4rem; /* 64 */
+
+	/* Radius grows with the size of the thing: chips are pills, controls are soft, panels are rounder. */
+	--radius-xs: 3px;
+	--radius-sm: 5px;
+	--radius-md: 7px;
+	--radius-lg: 10px;
+	--radius-xl: 14px;
+	--radius-full: 999px;
+
+	--border-hairline: 1px;
+	--border-thick: 2px;
+
+	/* Elevation: only floating layers (tooltips, menus, sticky bars) cast a shadow. */
+	--shadow-sticky: 0 1px 0 var(--color-border);
+	--shadow-overlay:
+		0 0 0 1px light-dark(rgb(21 28 27 / 0.08), rgb(255 255 255 / 0.08)),
+		0 8px 24px -6px light-dark(rgb(21 28 27 / 0.18), rgb(0 0 0 / 0.5));
+
+	/* Motion: short, and only in answer to an action. Zeroed for prefers-reduced-motion (base.css). */
+	--duration-instant: 80ms;
+	--duration-fast: 140ms;
+	--duration-base: 200ms;
+	--duration-slow: 320ms;
+	--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+	/* Layers. */
+	--z-base: 0;
+	--z-sticky: 10;
+	--z-dropdown: 20;
+	--z-overlay: 30;
+	--z-toast: 40;
+	--z-tooltip: 50;
+
+	/* Sizing. */
+	--control-sm: 1.75rem; /* 28 */
+	--control-md: 2.125rem; /* 34 */
+	--control-lg: 2.5rem; /* 40 */
+	--icon-sm: 14px;
+	--icon-md: 16px;
+	--icon-lg: 20px;
+	--sidebar-width: 15rem;
+	--content-max: 88rem;
+	--reading-max: 72ch;
+}
+
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+}
