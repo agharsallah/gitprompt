@@ -2,60 +2,55 @@
 	import { Plug } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { Source } from '#lib/api/types.ts';
-	import Badge from '#lib/ui/Badge.svelte';
+	import StateRow from '#lib/sources/StateRow.svelte';
+	import { tools } from '#lib/sources/state.ts';
 	import Button from '#lib/ui/Button.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
-	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 
-	/** A summary of each connector; connecting and disconnecting happen on the Sources page. */
+	/** Each tool and the state of its connectors; connecting happens on the Connectors page. */
 	let { sources }: { sources: Source[] } = $props();
 
-	const status = (s: Source) =>
-		s.blocks.length
-			? { label: 'Blocked by policy', tone: 'danger' as const }
-			: s.connected
-				? { label: 'Connected', tone: 'success' as const }
-				: { label: s.detected ? 'Not connected' : 'Not installed', tone: 'neutral' as const };
+	const list = $derived(tools(sources));
 </script>
 
 <Panel
 	title="Connectors"
-	description="The tools GitPrompt captures from. Each change to a tool's settings is reviewed as a diff on the Sources page."
+	description="The tools GitPrompt captures from. Every change to a tool's settings is reviewed as a diff first."
 >
 	{#snippet actions()}
 		<Button href={resolve('/sources')} icon={Plug} size="sm">Manage connectors</Button>
 	{/snippet}
-	<ul class="list">
-		{#each sources as s (s.id)}
-			{@const st = status(s)}
-			<li>
-				<span class="name">{s.name}</span>
-				<Badge size="sm" tone={st.tone} dot>{st.label}</Badge>
-				<span class="muted last">Last event <RelativeTime iso={s.last_at} /></span>
-			</li>
+	<div class="tools">
+		{#each list as tool (tool.id)}
+			<section aria-labelledby="summary-{tool.id}">
+				<h3 id="summary-{tool.id}">
+					<a href="{resolve('/sources')}#tool-{tool.id}">{tool.name}</a>
+				</h3>
+				<ul>
+					{#each tool.layers as layer (layer.id)}<li><StateRow source={layer} /></li>{/each}
+				</ul>
+			</section>
 		{/each}
-	</ul>
+	</div>
 </Panel>
 
 <style>
-	.list {
+	.tools {
+		display: grid;
+		gap: var(--space-4);
+	}
+
+	section {
 		display: grid;
 		gap: var(--space-2);
 	}
 
-	li {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-2) var(--space-3);
+	h3 {
+		font-size: var(--text-md);
 	}
 
-	.name {
-		font-weight: var(--weight-medium);
-	}
-
-	.last {
-		margin-left: auto;
-		font-size: var(--text-sm);
+	ul {
+		display: grid;
+		gap: var(--space-2);
 	}
 </style>

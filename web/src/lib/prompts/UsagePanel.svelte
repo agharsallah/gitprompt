@@ -32,7 +32,7 @@
 {#if !s.api_requests}
 	<Callout tone="info" title="No usage for this prompt">
 		Model, tokens and cost come from Claude Code's telemetry. Connect
-		<a href={resolve('/sources')}>Claude Code telemetry</a> on the Sources page; it applies to sessions
+		<a href={resolve('/sources')}>Claude Code telemetry</a> on the Connectors page; it applies to sessions
 		started afterwards.
 	</Callout>
 {:else}

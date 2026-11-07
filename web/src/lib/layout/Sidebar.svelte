@@ -29,7 +29,7 @@
 		{
 			label: 'Setup',
 			links: [
-				{ route: '/sources', label: 'Sources', icon: Plug },
+				{ route: '/sources', label: 'Connectors', icon: Plug },
 				{ route: '/fields', label: 'Fields', icon: TableProperties },
 				{ route: '/settings', label: 'Settings', icon: Settings },
 				{ route: '/design', label: 'Design system', icon: Palette }

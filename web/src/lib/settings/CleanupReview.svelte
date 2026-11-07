@@ -7,7 +7,7 @@
 
 	/**
 	 * The dry run of a destructive action: what would be deleted, kind by kind, then confirm or
-	 * cancel (the same two steps as Connect on the Sources page).
+	 * cancel (the same two steps as Connect on the Connectors page).
 	 */
 	let {
 		report,
