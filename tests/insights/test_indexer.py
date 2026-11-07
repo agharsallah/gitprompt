@@ -81,6 +81,7 @@ def test_a_hook_model_counts_its_prompt_when_telemetry_reports_none(store, index
     rows = store.db.execute("select id, model, api_requests from prompt_index_model order by id").fetchall()
     assert [tuple(r) for r in rows] == [(hooks_only, "gpt-5-codex", 0), (with_telemetry, "opus", 1)]
 
+
 def test_a_later_event_updates_its_prompt_only_once_read(store, index):
     id = add_prompt(store, "Fix it", "p1")
     other = add_prompt(store, "Other", "p2")
