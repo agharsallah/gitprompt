@@ -80,3 +80,25 @@ def commits(root: str, start: str | None, end: str, since: str) -> dict[str, Any
     items = [dict(zip(("hash", "subject", "author", "time"), line.split(SEP), strict=False)) for line in log.splitlines()]
     stat = _git(root, "diff", "--shortstat", start, end) if start and items else None
     return {k: v for k, v in {"commits": items, "diffstat": stat, "until": end}.items() if v}
+
+
+_SHORTSTAT = {"files": r"(\d+) files? changed", "insertions": r"(\d+) insertions?", "deletions": r"(\d+) deletions?"}
+
+
+def shortstat(line: str) -> dict[str, int]:
+    """{files, insertions, deletions} from a `--shortstat` line (missing parts are 0)."""
+    return {k: int(m[1]) if (m := re.search(pattern, line)) else 0 for k, pattern in _SHORTSTAT.items()}
+
+
+def history(root: str, since: str, until: str) -> list[dict[str, Any]]:
+    """Commits on local branches with a commit time in [since, until], oldest first, each with its
+    diffstat: one git call for a whole story (ADR-0016). [] outside a repository or if git fails."""
+    log = _git(root, "log", "--branches", f"--since={since}", f"--until={until}", f"--format=\x1e%h{SEP}%s{SEP}%an{SEP}%cI", "--shortstat")
+    out = []
+    for record in (log or "").split("\x1e"):
+        header, _, rest = record.strip().partition("\n")
+        if not header:
+            continue
+        commit = dict(zip(("hash", "subject", "author", "time"), header.split(SEP), strict=False))
+        out.append(commit | shortstat(rest))
+    return out[::-1]
