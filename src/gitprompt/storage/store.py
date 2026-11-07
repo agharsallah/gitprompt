@@ -295,6 +295,10 @@ class Store:
         by_id = {r["id"]: _row(r) for r in rows}
         return [by_id[i] for i in ids if i in by_id]
 
+    def outcomes(self, ids: list[int]) -> dict[int, str]:
+        """How each of these prompts' turns ended (OUTCOME), from the prompt index."""
+        return {r["id"]: r["outcome"] for r in self._in(f"select i.id, {OUTCOME} outcome from {INDEXED} where i.id", ids)}
+
     def prompts(self, ids: list[int]) -> list[dict]:
         """Stored prompt rows (without the view's turn and neighbours), by id."""
         return self._in("select * from prompt where id", ids)

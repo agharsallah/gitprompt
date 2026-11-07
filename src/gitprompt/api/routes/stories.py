@@ -10,9 +10,10 @@ from pydantic import BaseModel
 
 from gitprompt.api.deps import IndexDep
 from gitprompt.api.filters import FiltersQuery, Outcome
+from gitprompt.api.routes.prompts import Connector, Facts
 from gitprompt.core.errors import NotFound
 from gitprompt.core.git import history
-from gitprompt.insights import stories
+from gitprompt.insights import facts, stories
 from gitprompt.insights.snippets import Segment, highlight
 from gitprompt.sources.spec import Origin
 from gitprompt.storage import timeline
@@ -74,6 +75,7 @@ class Chapter(BaseModel):
     commits: list[Commit]  # commits made after the prompt (stories.attribute_commits)
     diffstat: Diffstat | None
     retry_of: int | None  # an earlier chapter this one rewords or repeats
+    facts: Facts  # tool, model, tokens... (insights/facts.py)
 
 
 class Marker(BaseModel):
@@ -108,6 +110,8 @@ class SessionStory(BaseModel):
     session: str
     title: str | None
     source: str | None
+    connector: Connector | None  # the tool of the session
+    models: dict[str, int]  # prompts per main model
     project: Project | None
     branches: list[str]
     started_at: str | None
@@ -137,6 +141,7 @@ class Entry(BaseModel):
     git_commits: int
     commits: list[Commit]
     retry_of: int | None
+    facts: Facts
 
 
 class Measures(BaseModel):
@@ -204,6 +209,7 @@ class SearchHit(BaseModel):
     origin: Origin
     outcome: Outcome
     cost_usd: float
+    facts: Facts
     snippet: list[Segment]  # the typed text around the first match; `hit` segments are matches
 
 
@@ -223,7 +229,7 @@ def _log(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 async def session_story(session: str, index: IndexDep) -> SessionStory:
     """A session as chapters (the prompts you typed) with system markers between them."""
     db = index.store.db
-    rows = timeline.prompts(db, session=[session])
+    rows = facts.attach(timeline.prompts(db, session=[session]), index.specs)
     if not rows:
         raise NotFound("session not found")
     user = [p for p in rows if stories.is_user(p)]
@@ -239,7 +245,7 @@ async def project_story(project: str, index: IndexDep) -> ProjectStory:
     """A project's typed prompts in phases, with commits, files, cost and outcomes."""
     db = index.store.db
     repo = stories.project_repo(project)
-    rows = timeline.prompts(db, repo=repo, origin=list(stories.USER_ORIGINS)) if repo else []
+    rows = facts.attach(timeline.prompts(db, repo=repo, origin=list(stories.USER_ORIGINS)), index.specs) if repo else []
     if not repo or not (rows or timeline.count(db, repo=repo)):
         raise NotFound("project not found")
     system = timeline.count(db, repo=repo) - len(rows)
@@ -263,7 +269,7 @@ async def search(index: IndexDep, filters: FiltersQuery, limit: Annotated[int, Q
     snippet around the first match. Takes the prompt filters (project, dates, origin, tags...)."""
     db = index.store.db
     kept = filters.store_filters()
-    rows = timeline.prompts(db, limit=limit, newest_first=True, **kept)
+    rows = facts.attach(timeline.prompts(db, limit=limit, newest_first=True, **kept), index.specs)
     kept.pop("before", None)  # the total covers every page
     hits = [{**p, "project": stories.project_of([p]), "snippet": highlight(p.get("typed_text"), filters.q)} for p in rows]
     return SearchResults(total=timeline.count(db, **kept), hits=hits)

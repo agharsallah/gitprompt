@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from gitprompt.insights import derivations, origin
+from gitprompt.insights import derivations, facts, origin
 from gitprompt.sources.spec import Spec
 from gitprompt.storage import index as storage_index
 from gitprompt.storage.index import USAGE, Entry
@@ -32,7 +32,7 @@ BATCH = 500  # prompts derived per query batch during a rebuild
 def _code_version() -> str:
     """A hash of the modules that compute or store the indexed values (this one included)."""
     digest = hashlib.sha256()
-    for module in (derivations, origin, storage_index, sys.modules[__name__]):
+    for module in (derivations, facts, origin, storage_index, sys.modules[__name__]):
         digest.update(Path(module.__file__ or "").read_bytes())
     return digest.hexdigest()[:16]
 
@@ -117,9 +117,14 @@ def entry(derived: dict[str, Any]) -> Entry:
         "compactions": summary.get("compactions", 0),
         "denials": len(summary.get("permission_denied", [])),
         "rejections": summary.get("tool_rejections", 0),
+        "model": facts.main_model(summary, fields),
+        "permission_mode": fields.get("permission_mode"),
+        "tool_version": context.get("tool_version"),
+        "reasoning_tokens": summary.get("reasoning_tokens", 0),
+        "answered": int(bool(summary.get("response"))),
     }
-    # Models with usage come from telemetry; without it, the model the tool reported with the prompt
-    # (hooks that carry one) still counts the prompt for that model, with no usage.
+    # Models with usage come from model calls; without them, the model the tool reported with the
+    # prompt (hooks that carry one) still counts the prompt for that model, with no usage.
     model_usage = summary.get("model_usage") or ({fields["model"]: {}} if fields.get("model") else {})
     models = [{"model": model, **{k: usage.get(k, 0) for k in USAGE}} for model, usage in model_usage.items()]
     kinds = summary.get("tool_kind_of", {})
@@ -129,6 +134,12 @@ def entry(derived: dict[str, Any]) -> Entry:
         for source, usage in summary.get("work_usage", {}).items()
     ]
     return Entry(row, models, tools, work)
+
+
+def prompt_facts(derived: dict[str, Any], spec: Spec | None, outcome: str | None) -> dict[str, Any]:
+    """A derived prompt's facts (insights/facts.py), from the same projection the index stores."""
+    projected = entry(derived)
+    return facts.facts(projected.row, spec, outcome, [m["model"] for m in projected.models if m["model"]])
 
 
 class Indexer:

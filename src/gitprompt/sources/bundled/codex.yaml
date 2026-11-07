@@ -14,6 +14,7 @@
 # a hash of the hook, which includes the command and so GitPrompt's token: see `after_connect`.
 id: codex
 name: OpenAI Codex CLI
+short_name: Codex
 assistant: Codex
 layer: Hooks
 summary: Your prompts, the model and its tokens, the tools each turn used, subagents and Codex's final answer.
@@ -97,6 +98,7 @@ usage:
     cache_creation_tokens: token_usage.cache_write_input_tokens
     reasoning_tokens: token_usage.reasoning_output_tokens
     error: error
+    status: status  # completed, failed, cancelled: the Usage tab counts each
 
 # What each tool does (insights/derivations.py). Hook payloads name the shell tool `Bash` (the
 # command is `tool_input.command`), file edits `apply_patch` (the patch text is `tool_input.command`),
@@ -163,6 +165,13 @@ documented:
   Interrupt: [turn_id, permission_mode]
   SessionEnd: [reason]
   PostModelRequest: [turn_id, agent_id, agent_type, status, error, token_usage]
+
+# Keys Codex sends that GitPrompt does not use (on top of _defaults.yaml's), and why.
+ignored:
+  token_usage.total_tokens: Input plus output tokens; GitPrompt adds up the kinds itself.
+  agent_transcript_path: >-
+    The subagent's own transcript (SubagentStop). GitPrompt stores transcript paths but never reads
+    transcripts, and Codex's subagent events join no prompt.
 
 not_captured:
   PreToolUse: A decision point (can deny or rewrite a tool call). PostToolUse has the same data.

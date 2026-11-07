@@ -199,6 +199,7 @@ def _chapter(p: dict[str, Any], turn: int, kinds: dict[str, int], files: list[st
         "commits": commits,
         "diffstat": diffstat(commits),
         "retry_of": retry_of,
+        "facts": p.get("facts"),  # insights/facts.py, attached by the caller
     }
 
 
@@ -268,6 +269,8 @@ def session_story(
         "session": session,
         "title": next((p["title"] for p in rows if p.get("title")), None),
         "source": first.get("source"),
+        "connector": (first.get("facts") or {}).get("connector"),
+        "models": dict(Counter(m for p in rows if (m := (p.get("facts") or {}).get("model")))),
         "project": project_of(rows),
         "branches": list(dict.fromkeys(p["branch"] for p in rows if p.get("branch"))),
         "started_at": first.get("received_at"),
@@ -318,6 +321,7 @@ def _entry(p: dict[str, Any], kinds: dict[str, int], commits: list[dict], retry_
         "git_commits": p.get("git_commits") or 0,
         "commits": commits,
         "retry_of": retry_of,
+        "facts": p.get("facts"),  # insights/facts.py, attached by the caller
     }
 
 

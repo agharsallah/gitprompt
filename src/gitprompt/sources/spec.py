@@ -29,7 +29,9 @@ from gitprompt.core.payload import Mapping
 log = logging.getLogger(__name__)
 
 BUNDLED = files("gitprompt.sources") / "bundled"
-DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `tool_kinds`, `origin` rules, `injected` tags, `usage`
+# Shared settings every spec inherits: the field `map`, `tool_kinds`, `origin` rules, `injected` tags,
+# `usage`, `shown` and `ignored` keys.
+DEFAULTS = "_defaults.yaml"
 
 Format = Literal["json", "otlp"]  # how a source's request bodies are decoded (see capture/pipeline.py DECODERS)
 
@@ -81,6 +83,7 @@ UsageValue = Literal[
     "duration_ms",
     "query_source",  # who the call worked for: the main thread, a subagent, a system call
     "error",  # set when the call failed
+    "status",  # how the call ended, in the tool's words (Codex: completed, failed, cancelled)
 ]
 
 
@@ -147,6 +150,7 @@ class Spec(BaseModel):
     id: str
     name: str
     assistant: str = ""  # who answers in the tool, e.g. "Claude"; shown next to the final answer
+    short_name: str = ""  # the tool's name on a prompt's badge, e.g. "Codex"; empty = `name`
     # A tool can have several connectors, each an optional layer of the same tool (hooks, telemetry).
     part_of: str | None = None  # id of the tool's main connector; none = this is the main one
     layer: str = ""  # short name of this layer in its tool, e.g. "Hooks", "Telemetry"
@@ -176,6 +180,19 @@ class Spec(BaseModel):
     # touched, for tools that name files inside a text (a patch) instead of a path input.
     tool_files: dict[str, re.Pattern[str]] = {}
     usage: Usage = Usage()  # which events report model calls and their tokens (see Usage)
+    # Payload keys (a dotted path covers what is under it) the dashboard reads from the raw payload
+    # itself, not through a mapped field or a derivation -> where they are shown. The shared ones
+    # are in _defaults.yaml; a spec adds its own.
+    shown: dict[str, str] = {}
+    # Payload keys the tool sends that GitPrompt deliberately does not use -> why. Every key a
+    # fixture payload carries must be mapped, derived, shown or listed here
+    # (tests/sources/test_field_coverage.py), so a field a tool update adds is never dropped silently.
+    ignored: dict[str, str] = {}
+
+    @property
+    def label(self) -> str:
+        """The tool's name on a prompt's badge."""
+        return self.short_name or self.name
 
     @property
     def marker(self) -> re.Pattern[str]:
@@ -266,6 +283,8 @@ def parse_spec(name: str, text: str, defaults: dict[str, Any]) -> Spec:
     data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
     data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
     data["usage"] = data.get("usage") or defaults.get("usage") or {}  # a spec replaces the default whole
+    for key in ("shown", "ignored"):  # ...and adds its own payload keys to the shared ones
+        data[key] = (defaults.get(key) or {}) | (data.get(key) or {})
     try:
         return Spec(**data)
     except (ValidationError, TypeError) as e:

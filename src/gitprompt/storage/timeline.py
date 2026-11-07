@@ -8,12 +8,14 @@ from typing import Any
 
 from gitprompt.storage.store import CHUNK, INDEXED, OUTCOME, where
 
-# What a story or a search result needs of each prompt: index columns, the typed text, the outcome.
+# What a story or a search result needs of each prompt: index columns (with what insights/facts.py
+# reads), the typed text, the outcome.
 COLUMNS = (
     "i.id, i.prompt_id, i.source, i.session, i.repo, i.repo_name, i.branch, i.title, i.received_at, i.day, i.origin,"
     " i.chars, i.text_hash, i.slash_command, i.code_blocks, i.mentions, i.urls, i.cost_usd, i.api_requests,"
     " i.input_tokens, i.output_tokens, i.response_s, i.ended_by, i.tool_calls, i.tool_failures, i.subagents,"
-    " i.files_written, i.git_commits, i.compactions"
+    " i.files_written, i.git_commits, i.compactions, i.cache_read_tokens, i.cache_creation_tokens, i.reasoning_tokens,"
+    " i.model, i.permission_mode, i.tool_version, i.answered"
 )
 TEXT = "(select typed_text from prompt_fts where rowid = i.id) typed_text"
 
@@ -53,11 +55,12 @@ def tool_kinds(db: sqlite3.Connection, ids: list[int]) -> dict[int, dict[str, in
 
 # One row per tool call or compaction of a turn, with only the fields a story shows: the tool's input
 # (JSON text: the files a write tool touched, insights.derivations.files_of), and what a subagent was
-# asked (the Agent tool's documented input).
+# asked (derivations TASK_INPUTS / BRIEF_INPUTS: Claude Code's Agent tool, Codex's spawn_agent).
 _TURN_EVENTS = """select prompt_id, event, received_at, json_extract(raw, '$.tool_name') tool,
   case json_type(raw, '$.tool_input') when 'object' then json_extract(raw, '$.tool_input') end tool_input,
-  json_extract(raw, '$.tool_input.description') description, json_extract(raw, '$.tool_input.subagent_type') subagent_type,
-  substr(json_extract(raw, '$.tool_input.prompt'), 1, ?) prompt
+  coalesce(json_extract(raw, '$.tool_input.description'), json_extract(raw, '$.tool_input.task_name')) description,
+  json_extract(raw, '$.tool_input.subagent_type') subagent_type,
+  substr(coalesce(json_extract(raw, '$.tool_input.prompt'), json_extract(raw, '$.tool_input.message')), 1, ?) prompt
 from event where event in ('PostToolUse', 'PreCompact') and prompt_id in ({marks}) order by id"""
 
 

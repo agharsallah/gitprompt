@@ -86,3 +86,41 @@ def test_connector_conforms(tool, settings, monkeypatch):
             else:
                 prompts = {r["fields"]["prompt_id"] for r in stored.values() if "prompt" in r and r["fields"].get("prompt_id")}
                 assert row["prompt_id"] not in prompts, f"{name}: joined {row['prompt_id']!r}, expected no prompt"
+
+
+# --- display contract: what the prompt API shows for a connector, from its spec's capabilities ---
+
+
+@pytest.mark.parametrize("tool", TOOLS)
+def test_prompts_show_what_the_connector_can_report(tool, client, settings, monkeypatch):
+    """Every prompt names its tool; the model, tokens, cost, answer, turn end and tool calls appear
+    when the spec's `capabilities` say the tool reports them (insights/facts.py). A tool that can't
+    report tokens or cost shows null, never zeros."""
+    monkeypatch.setattr(pipeline, "observe", lambda spec, cwd: {})
+    spec = load_specs(settings)[tool]
+    auth = {"Authorization": f"Bearer {settings.token()}"}
+    for name, case in cases(tool):
+        assert client.post(f"/ingest/{tool}", json=case["payload"], headers=auth).status_code < 300, name
+    prompts = client.get("/api/prompts", params={"limit": 200}).json()
+    assert prompts, f"{tool}: no prompt in the fixtures"
+    facts = [p["facts"] for p in prompts]
+    can = set(spec.capabilities)
+
+    assert all(f["connector"] == {"id": tool, "name": spec.name, "label": spec.label, "assistant": spec.assistant} for f in facts)
+    if "model" in can:
+        assert all(f["model"] for f in facts), f"{tool}: a prompt without its model"
+    if "usage" in can:
+        assert any(f["tokens"] and f["tokens"]["total"] > 0 for f in facts), f"{tool}: no prompt shows tokens"
+    assert all(f["tokens"] is None or f["api_requests"] for f in facts), f"{tool}: tokens without a model call"
+    if "usage" not in can:
+        assert all(f["tokens"] is None for f in facts), f"{tool}: tokens shown though the tool can't report them"
+    if "cost" not in can:
+        assert all(f["cost_usd"] is None for f in facts), f"{tool}: a cost shown though the tool can't report one"
+    if "answer" in can:
+        assert any(f["answered"] and p["summary"].get("response") for f, p in zip(facts, prompts, strict=True)), tool
+    if "turn_end" in can:
+        assert any(f["outcome"] in ("done", "failed", "interrupted") and f["response_s"] is not None for f in facts), tool
+    if "tools" in can:
+        assert any(f["tool_calls"] for f in facts), f"{tool}: no prompt shows its tool calls"
+    detail = client.get(f"/api/prompts/{prompts[0]['id']}").json()
+    assert detail["facts"] == prompts[0]["facts"], "the list and the detail show the same facts"

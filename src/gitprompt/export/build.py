@@ -61,6 +61,40 @@ def money(usd: float | None) -> str:
     return f"${usd:,.2f}" if usd >= 0.01 or not usd else "<$0.01"
 
 
+def reported(usd: float | None) -> str:
+    """A cost the tool reported, or a dash when it reported none (not $0)."""
+    return "—" if usd is None else money(usd)
+
+
+def tool(facts: dict[str, Any] | None) -> str:
+    """The tool that sent a prompt (insights/facts.py connector)."""
+    return ((facts or {}).get("connector") or {}).get("label") or "—"
+
+
+def model(facts: dict[str, Any] | None) -> str:
+    return (facts or {}).get("model") or "—"
+
+
+def tokens(facts: dict[str, Any] | None) -> str:
+    """Tokens the tool reported, or a dash when it reported none (not 0)."""
+    reported = (facts or {}).get("tokens")
+    return "—" if reported is None else integer(reported["total"])
+
+
+# Facts kept in the rows of a CSV or JSON export, as columns (insights/facts.py).
+FACT_COLUMNS = ("model", "permission_mode", "tool_version", "api_requests")
+
+
+def fact_columns(facts: dict[str, Any] | None) -> dict[str, Any]:
+    facts = facts or {}
+    return {
+        "tool": ((facts.get("connector") or {}).get("id")),
+        **{k: facts.get(k) for k in FACT_COLUMNS},
+        "tokens": (facts.get("tokens") or {}).get("total"),
+        "reasoning_tokens": (facts.get("tokens") or {}).get("reasoning"),
+    }
+
+
 def duration(seconds: float | None) -> str:
     if seconds is None:
         return "—"
@@ -187,9 +221,12 @@ def session(data: dict[str, Any], options: Options) -> Built:
         tools.update(c.get("tools") or {})
     where = [p for p in ((story.get("project") or {}).get("name"), ", ".join(story.get("branches") or []), span(started, ended)) if p]
 
+    models = ", ".join(story.get("models") or {}) or "—"
     summary: list[Any] = [
         Figures(
             [
+                Figure("Tool", (story.get("connector") or {}).get("name") or story.get("source") or "—"),
+                Figure("Models", models),
                 Figure("Prompts you typed", integer(t["chapters"])),
                 Figure("System items", integer(t["markers"])),
                 Figure("Span", duration(seconds)),
@@ -220,10 +257,13 @@ def session(data: dict[str, Any], options: Options) -> Built:
 
 
 def _chapter(c: dict[str, Any]) -> Section:
+    f = c.get("facts") or {}
     facts = [
         OUTCOMES.get(c["outcome"], c["outcome"]),
         f"answered in {duration(c['response_s'])}" if c.get("response_s") is not None else "",
-        money(c["cost_usd"]),
+        f.get("model") or "",
+        f"{tokens(f)} tokens" if f.get("tokens") else "",
+        money(f["cost_usd"]) if f.get("cost_usd") is not None else "",
         plural(c["tool_calls"], "tool call"),
         plural(c["files_written"], "file") + " written" if c["files_written"] else "",
         f"retry of #{c['retry_of']}" if c.get("retry_of") else "",
@@ -245,6 +285,7 @@ def _chapter_row(c: dict[str, Any]) -> dict[str, Any]:
     row |= {k: c.get(k) for k in ("tool_calls", "tool_failures", "files_written", "subagents", "git_commits", "retry_of")}
     row |= {"commits": len(c.get("commits") or []), "insertions": (c.get("diffstat") or {}).get("insertions", 0)}
     row |= {"deletions": (c.get("diffstat") or {}).get("deletions", 0), "files": c.get("files") or []}
+    row |= fact_columns(c.get("facts"))
     if "text" in c:
         row["text"] = c["text"]
     return row
@@ -308,27 +349,29 @@ def project(data: dict[str, Any], options: Options) -> Built:
     texts = any("text" in e for p in story["phases"] for e in p["items"])
     for p in story["phases"]:
         table = Table(
-            ["When", "Branch", "Outcome", "Cost", "Tools", "Commits", *(["Prompt"] if texts else [])],
+            ["When", "Branch", "Tool", "Model", "Outcome", "Cost", "Tools", "Commits", *(["Prompt"] if texts else [])],
             [
                 [
                     when(e["received_at"]),
                     e.get("branch") or "—",
+                    tool(e.get("facts")),
+                    model(e.get("facts")),
                     OUTCOMES.get(e["outcome"], e["outcome"]),
-                    money(e["cost_usd"]),
+                    reported((e.get("facts") or {}).get("cost_usd")),
                     _tools(e.get("tools") or {}),
                     str(len(e.get("commits") or [])),
                     *([e.get("text", "")] if texts else []),
                 ]
                 for e in p["items"]
             ],
-            [False, False, False, True, False, True, False],
+            [False, False, False, False, False, True, False, True, False],
         )
         commits = [_commit(c) for e in p["items"] for c in e.get("commits") or []]
         blocks: list[Any] = [_measures(p), table] + ([Items(commits, mono=True)] if commits else [])
         sections.append(Section(f"Phase {p['index']}", blocks, f"{phase_reason(p)} · {span(p['first_at'], p['last_at'])}"))
         for e in p["items"]:
-            row = {"phase": p["index"], **{k: v for k, v in e.items() if k not in ("commits", "tools", "clipped")}}
-            rows.append(row | {"tools": e.get("tools") or {}, "commits": len(e.get("commits") or [])})
+            row = {"phase": p["index"], **{k: v for k, v in e.items() if k not in ("commits", "tools", "clipped", "facts")}}
+            rows.append(row | {"tools": e.get("tools") or {}, "commits": len(e.get("commits") or [])} | fact_columns(e.get("facts")))
     subtitle = " · ".join(x for x in (story.get("repo"), span(t.get("first_at"), t.get("last_at"))) if x)
     return _report("project", data, story.get("name") or "Project", subtitle, sections, options), rows
 
@@ -451,20 +494,23 @@ def prompts(data: dict[str, Any], options: Options) -> Built:
         ],
     )
     table = Table(
-        ["When", "Project", "Origin", "Outcome", "Cost", "Tool calls", *(["Prompt"] if texts else [])],
+        ["When", "Project", "Tool", "Model", "Origin", "Outcome", "Tokens", "Cost", "Tool calls", *(["Prompt"] if texts else [])],
         [
             [
                 when(p["received_at"]),
                 p.get("repo_name") or p.get("repo") or "—",
+                tool(p.get("facts")),
+                model(p.get("facts")),
                 ORIGINS.get(p["origin"], p["origin"]),
                 OUTCOMES.get(p["outcome"], p["outcome"]),
-                money(p.get("cost_usd")),
+                tokens(p.get("facts")),
+                reported((p.get("facts") or {}).get("cost_usd")),
                 integer(p.get("tool_calls")),
                 *([p.get("typed_text") or ""] if texts else []),
             ]
             for p in items
         ],
-        [False, False, False, False, True, True, False],
+        [False, False, False, False, False, False, True, True, True, False],
     )
     sections = [summary, Section("Prompts", [table])]
     raw = [p for p in items if p.get("raw")]
@@ -473,7 +519,7 @@ def prompts(data: dict[str, Any], options: Options) -> Built:
         sections.append(Section("Stored payloads", [Items(dumps, mono=True)]))
     rows = []
     for p in items:
-        row = {k: p.get(k) for k in PROMPT_COLUMNS}
+        row = {k: p.get(k) for k in PROMPT_COLUMNS} | fact_columns(p.get("facts"))
         row |= {k: p[k] for k in ("typed_text", "raw") if k in p}
         rows.append(row)
     subtitle = describe_filters(data.get("filters") or {})

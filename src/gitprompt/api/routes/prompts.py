@@ -8,12 +8,13 @@ from fastapi.sse import EventSourceResponse
 from pydantic import BaseModel
 
 from gitprompt.api.deps import BusDep, IndexDep, SpecsDep, StoreDep, require_dashboard
-from gitprompt.api.filters import FiltersQuery
+from gitprompt.api.filters import FiltersQuery, Outcome
 from gitprompt.core.errors import NotFound
 from gitprompt.core.git import commits
 from gitprompt.insights import derivations
+from gitprompt.insights.indexer import prompt_facts
 from gitprompt.insights.redaction import redact
-from gitprompt.sources.spec import Origin
+from gitprompt.sources.spec import Origin, Spec
 from gitprompt.storage.store import Store
 
 router = APIRouter(prefix="/api/prompts", tags=["prompts"])
@@ -32,6 +33,44 @@ class Injected(BaseModel):
     chars: int
 
 
+class Connector(BaseModel):
+    id: str  # the spec id (`source`)
+    name: str  # e.g. "OpenAI Codex CLI"
+    label: str  # the name on a badge, e.g. "Codex" (spec `short_name`)
+    assistant: str  # who answers, e.g. "Codex"
+
+
+class Tokens(BaseModel):
+    input: int  # not read from the cache
+    output: int
+    cache_read: int
+    cache_creation: int
+    reasoning: int  # part of output
+    total: int
+
+
+class Facts(BaseModel):
+    """What every page shows about a turn, computed once (insights/facts.py, ADR-0021)."""
+
+    connector: Connector
+    model: str | None  # the main model
+    models: list[str] = []
+    model_source: Literal["usage", "hook"] | None  # from model calls, or the model the hooks reported
+    tokens: Tokens | None  # null: no model call reported (the tool can't, or not in this version)
+    cost_usd: float | None  # null: no model call reported a cost
+    api_requests: int
+    outcome: Outcome | None
+    permission_mode: str | None
+    tool_version: str | None
+    response_s: float | None
+    answered: bool
+    tool_calls: int
+    tool_failures: int
+    files_written: int
+    git_commits: int
+    subagents: int
+
+
 class PromptOut(BaseModel):
     id: int
     source: str
@@ -45,6 +84,7 @@ class PromptOut(BaseModel):
     annotation: Annotation
     stats: dict[str, Any]  # derived from the prompt text (derivations.PROMPT_STATS)
     summary: dict[str, Any]  # derived from the prompt's events (derivations.TURN)
+    facts: Facts  # what every page shows about the turn (insights/facts.py)
 
 
 class PromptDetail(PromptOut):
@@ -76,7 +116,15 @@ async def list_prompts(
     by_prompt: defaultdict[str, list[dict]] = defaultdict(list)
     for e in store.events_for_prompts([pid for r in rows if (pid := r["fields"].get("prompt_id"))]):
         by_prompt[e["prompt_id"]].append(e)
-    return [derivations.derive(r, by_prompt[r["fields"].get("prompt_id")], specs.get(r["source"])) for r in rows]
+    outcomes = store.outcomes([r["id"] for r in rows])
+    return [_derive(r, by_prompt[r["fields"].get("prompt_id")], specs, outcomes.get(r["id"])) for r in rows]
+
+
+def _derive(row: dict, events: list[dict], specs: dict[str, Spec], outcome: str | None) -> dict[str, Any]:
+    """Everything derived about a prompt, and its facts."""
+    spec = specs.get(row["source"])
+    derived = derivations.derive(row, events, spec)
+    return derived | {"facts": prompt_facts(derived, spec, outcome)}
 
 
 @router.get("/stream", response_class=EventSourceResponse)
@@ -100,10 +148,10 @@ def _session(store: Store, row: dict) -> dict[str, Any]:
 
 
 @router.get("/{id}")
-async def get_prompt(row: Row, store: StoreDep, specs: SpecsDep) -> PromptDetail:
+async def get_prompt(_index: IndexDep, row: Row, store: StoreDep, specs: SpecsDep) -> PromptDetail:
     pid = row["fields"].get("prompt_id")
     events = store.events_for_prompts([pid]) if pid else []
-    derived = derivations.derive(row, events, specs.get(row["source"]))
+    derived = _derive(row, events, specs, store.outcomes([row["id"]]).get(row["id"]))
     return derived | {"events": events, "session": _session(store, row), "commits": await _commits_after(row)}
 
 

@@ -15,7 +15,7 @@ from gitprompt.api.deps import IndexDep, SettingsDep
 from gitprompt.api.filters import FiltersQuery, PromptFilters
 from gitprompt.api.routes import stories as story_routes
 from gitprompt.export.build import OVERVIEW_GROUPS
-from gitprompt.insights import derivations
+from gitprompt.insights import derivations, facts
 from gitprompt.storage import timeline
 from gitprompt.storage.stats import aggregate
 
@@ -71,7 +71,7 @@ async def _collect(kind: Kind, q: ExportQuery, filters: PromptFilters, index: An
         totals = aggregate(db, None, **kept)["totals"]
         roots = {b["key"] for b in groups["repo"] if b.get("key")}
         return {"generated_at": now, "filters": shown, "totals": totals, "groups": groups}, roots
-    rows = timeline.prompts(db, limit=MAX_PROMPTS, newest_first=True, **kept)
+    rows = facts.attach(timeline.prompts(db, limit=MAX_PROMPTS, newest_first=True, **kept), index.specs)
     if not q.drop_raw:
         raw = {r["id"]: r["raw"] for r in index.store.search(MAX_PROMPTS, **kept)}
         rows = [{**r, "raw": raw.get(r["id"])} for r in rows]

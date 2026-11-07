@@ -14,6 +14,7 @@
 # synchronously and can block execution"); curl gives up after 2 s.
 id: copilot-cli
 name: GitHub Copilot CLI
+short_name: Copilot CLI
 assistant: Copilot
 layer: Hooks
 summary: Your prompts, the tools each turn used, subagents and how the turn ended. Also captures the Copilot agent in VS Code, which reads the same hooks folder.
@@ -130,3 +131,14 @@ not_captured:
   userPromptTransformed: Holds the runtime-expanded prompt (injected context); the typed text comes from UserPromptSubmit.
   Notification: UI notices only.
   sessionStart prompt hooks: A `prompt` hook would add text to the session.
+
+# Keys Copilot sends that GitPrompt does not use (on top of _defaults.yaml's), and why.
+ignored:
+  timestamp: >-
+    When Copilot sent the event. GitPrompt times events by when it received them, which the
+    synchronous hooks keep within the hook's delivery time.
+  tool_result: >-
+    Copilot's tool output: result_type repeats which event fired (PostToolUse or PostToolUseFailure)
+    and text_result_for_llm is the output, kept in the stored event (Events tab) but not summarized.
+  agent_name: The same value as agent_type on every payload seen.
+  custom_instructions: What you typed after /compact; kept in the PreCompact event, not a prompt.
