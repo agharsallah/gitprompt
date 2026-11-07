@@ -9,10 +9,14 @@ export const RANGES = [
 export type RangeId = (typeof RANGES)[number]['id'];
 export type Range = (typeof RANGES)[number];
 
+/** Used when the URL has no `?range=`; the `default_range` setting can change it (lib/settings). */
 export const DEFAULT_RANGE: RangeId = '7d';
 
-export function parseRange(value: string | null | undefined): Range {
-	return RANGES.find((r) => r.id === value) ?? RANGES.find((r) => r.id === DEFAULT_RANGE)!;
+export function parseRange(
+	value: string | null | undefined,
+	fallback: RangeId = DEFAULT_RANGE
+): Range {
+	return RANGES.find((r) => r.id === value) ?? RANGES.find((r) => r.id === fallback)!;
 }
 
 /** Start of the window: `days` before now (null for all time). */

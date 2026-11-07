@@ -6,6 +6,8 @@ describe('ranges', () => {
 		expect(parseRange('30d').id).toBe('30d');
 		expect(parseRange('nonsense').id).toBe(DEFAULT_RANGE);
 		expect(parseRange(null).id).toBe(DEFAULT_RANGE);
+		expect(parseRange(null, '30d').id).toBe('30d');
+		expect(parseRange('24h', '30d').id).toBe('24h');
 	});
 
 	it('starts a window that many days back, or never for all time', () => {

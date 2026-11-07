@@ -28,7 +28,7 @@
 	title="Projects"
 	description="Where you worked with the agent: each repository or folder you sent prompts from, busiest first."
 >
-	{#snippet actions()}<RangePicker range={data.range} />{/snippet}
+	{#snippet actions()}<RangePicker range={data.range} fallback={data.defaultRange} />{/snippet}
 </PageHeader>
 
 <p class="summary muted">{plural(list.length, 'project')} {rangePhrase(data.range)}</p>

@@ -27,10 +27,10 @@ async function request<T>(path: string, init?: RequestInit, fetcher: Fetch = fet
 	return response.json();
 }
 
-const get = <T>(path: string, fetcher?: Fetch) => request<T>(path, undefined, fetcher);
+export const get = <T>(path: string, fetcher?: Fetch) => request<T>(path, undefined, fetcher);
 
 // Writes carry X-GitPrompt: the daemon rejects writes without it (cross-site protection).
-const write = <T>(path: string, method: 'POST' | 'PUT', body?: unknown) =>
+export const write = <T>(path: string, method: 'POST' | 'PUT', body?: unknown) =>
 	request<T>(path, {
 		method,
 		headers: { 'X-GitPrompt': '1', 'Content-Type': 'application/json' },

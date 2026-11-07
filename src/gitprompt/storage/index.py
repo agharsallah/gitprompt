@@ -102,6 +102,10 @@ class PromptIndex:
         for table in TABLES:
             self.db.execute(f"drop table if exists {table}")
 
+    def invalidate(self) -> None:
+        """Mark the whole index stale: the next `Indexer.ensure()` rebuilds it from the raw rows."""
+        self.db.execute("delete from index_meta where key = 'rules_version'")
+
     @property
     def version(self) -> str | None:
         row = self.db.execute("select value from index_meta where key = 'rules_version'").fetchone()

@@ -9,15 +9,14 @@
 
 import difflib
 import json
-import os
 import re
 import shutil
-import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
 from gitprompt.core.errors import ConfigError
+from gitprompt.core.files import atomic_write
 
 __all__ = ["ConfigError", "Record", "added", "diff", "dump", "merge", "read", "render", "strip", "uninstall", "write"]
 
@@ -118,9 +117,5 @@ def write(path: Path, text: str, backups: Path) -> Path | None:
         backups.mkdir(mode=0o700, parents=True, exist_ok=True)
         backup = backups / f"{path.name}.{time.strftime('%Y%m%d-%H%M%S')}"
         shutil.copy2(path, backup)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as tmp:
-        tmp.write(text)
-    os.chmod(tmp.name, mode)
-    os.replace(tmp.name, path)
+    atomic_write(path, text, mode)
     return backup

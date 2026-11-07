@@ -21,6 +21,7 @@
 	} from '#lib/insights/aggregate.ts';
 	import AttentionList from '#lib/insights/AttentionList.svelte';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
+	import { weekdays } from '#lib/insights/week.ts';
 	import { rangePhrase } from '#lib/insights/range.ts';
 	import { KIND_INFO, toolKind, toolLabel } from '#lib/insights/tools.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
@@ -86,16 +87,7 @@
 	const repoHref = (root?: string) =>
 		root ? `${resolve('/prompts')}?repo=${encodeURIComponent(root)}` : undefined;
 
-	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-	const WEEKDAY_NAMES = [
-		'Mondays',
-		'Tuesdays',
-		'Wednesdays',
-		'Thursdays',
-		'Fridays',
-		'Saturdays',
-		'Sundays'
-	];
+	const week = $derived(weekdays(data.weekStart));
 	const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 
 	const columns = $derived(
@@ -125,7 +117,7 @@
 	title="Overview"
 	description={prompts.length ? summary : 'Your prompting, at a glance.'}
 >
-	{#snippet actions()}<RangePicker range={data.range} />{/snippet}
+	{#snippet actions()}<RangePicker range={data.range} fallback={data.defaultRange} />{/snippet}
 </PageHeader>
 
 <div class="overview">
@@ -207,12 +199,12 @@
 			<Panel title="When you prompt" description="Prompts by weekday and hour, in your time zone.">
 				<Heatmap
 					label="Prompts by weekday and hour"
-					values={weekHours(prompts)}
-					rows={WEEKDAYS}
+					values={weekHours(prompts, data.weekStart)}
+					rows={week.map((d) => d.short)}
 					columns={HOURS}
 					columnTick={(c, i) => (i % 6 === 0 ? `${c}:00` : '')}
 					describe={(r, c, v) =>
-						`${plural(v, 'prompt')} on ${WEEKDAY_NAMES[WEEKDAYS.indexOf(r)]} at ${c}:00`}
+						`${plural(v, 'prompt')} on ${week.find((d) => d.short === r)?.plural} at ${c}:00`}
 				/>
 			</Panel>
 			<Panel title={hourly ? 'Prompts per hour' : 'Prompts per day'}>

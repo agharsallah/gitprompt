@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from gitprompt.capture import compact, pipeline
+from gitprompt.insights.indexer import Indexer
 from gitprompt.sources.spec import load_specs
 from gitprompt.storage.store import Store
 
@@ -95,3 +96,15 @@ def test_retention_removes_old_events_only_never_prompts_or_annotations(store, s
 def test_retention_needs_at_least_one_day(store):
     with pytest.raises(ValueError):
         compact.expired(store, 0)
+
+
+def test_deleting_events_rebuilds_the_prompt_index_on_next_read(store, specs):
+
+    indexer = Indexer(store, specs)
+    indexer.ensure()
+    add(store, "claude-code", "Stop", days_ago=40)
+    assert compact.remove(store, compact.expired(store, 30)) == 1
+    assert store.index.version is None  # stale: retention, Settings › Data and compact all go through remove()
+    indexer.ensure()
+    assert store.index.version == indexer.version
+    assert compact.remove(store, []) == 0 and store.index.version == indexer.version  # nothing deleted: kept

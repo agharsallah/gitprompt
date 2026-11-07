@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from importlib.metadata import PackageNotFoundError
@@ -11,8 +12,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from gitprompt.api.bus import Bus
 from gitprompt.api.routes import ROUTERS
+from gitprompt.capture import retention
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import GitPromptError, SpecError
+from gitprompt.core.preferences import PreferenceFile
 from gitprompt.insights.indexer import Indexer
 from gitprompt.sources.spec import load_specs
 from gitprompt.storage.store import Store
@@ -37,7 +40,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         with suppress(SpecError):  # a broken spec is reported by the pages; the index waits for a fix
             Indexer(store, load_specs(settings)).ensure()  # a rules change rebuilds it before the first page
+        retention_pass = asyncio.create_task(retention.keep(store, PreferenceFile(settings.home)))
         yield
+        retention_pass.cancel()
         store.close()
 
     app = FastAPI(title="GitPrompt", version=_version(), lifespan=lifespan)
