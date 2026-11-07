@@ -1,5 +1,6 @@
 import pytest
 
+from gitprompt.sources import probe
 from gitprompt.sources.spec import BUNDLED, expand, load_spec_set, load_specs, matches
 
 
@@ -96,3 +97,16 @@ def test_drop_events_match_exact_names_and_trailing_globs(settings):
 def test_accept_events_apply_before_drop_events(settings):
     spec = load_specs(settings)["claude-code"].model_copy(update={"accept_events": ["Stop", "Notification"], "drop_events": {"Sto*": "no"}})
     assert spec.keeps("Notification") and not spec.keeps("Stop") and not spec.keeps("PostToolUse")
+
+
+@pytest.mark.parametrize(
+    ("output", "version"),
+    [
+        ("2.1.317 (Claude Code)\n", "2.1.317"),
+        ("GitHub Copilot CLI 1.0.102.\nRun 'copilot update'.\n", "1.0.102"),
+        ("nightly\n", "nightly"),
+        ("", None),
+    ],
+)
+def test_tool_version_is_the_first_dotted_number(output, version):
+    assert probe.version_of(output) == version
