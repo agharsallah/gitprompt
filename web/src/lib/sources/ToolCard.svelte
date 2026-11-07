@@ -2,6 +2,7 @@
 	import { Plug } from '@lucide/svelte';
 	import type { StatsBucket } from '#lib/api/types.ts';
 	import LayerStep from '#lib/sources/LayerStep.svelte';
+	import ToolApps from '#lib/sources/ToolApps.svelte';
 	import { CAPABILITIES, CAPABILITY_IDS } from '#lib/sources/capabilities.ts';
 	import type { Tool } from '#lib/sources/state.ts';
 
@@ -39,6 +40,7 @@
 			showing zeros.
 		</p>
 	{/if}
+	<ToolApps source={tool.layers[0]} />
 	<ol class="layers">
 		{#each tool.layers as layer, i (layer.id)}
 			<LayerStep

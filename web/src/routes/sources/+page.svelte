@@ -7,6 +7,7 @@
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import Boundary from '#lib/errors/Boundary.svelte';
 	import { tools } from '#lib/sources/state.ts';
+	import RecentCaptures from '#lib/sources/RecentCaptures.svelte';
 	import SpecProblems from '#lib/sources/SpecProblems.svelte';
 	import ToolCard from '#lib/sources/ToolCard.svelte';
 	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
@@ -41,10 +42,12 @@
 			<ListSkeleton rows={2} height="9rem" /><ListSkeleton rows={2} height="9rem" />
 		</div>
 	{/snippet}
-	{#snippet children({ sources, origins, problems })}
+	{#snippet children({ sources, origins, problems, recent })}
 		{#if problems.length}
 			<div class="problems"><SpecProblems {problems} /></div>
 		{/if}
+
+		<RecentCaptures captures={recent} />
 
 		<div class="tools">
 			{#each tools(sources) as tool (tool.id)}
