@@ -13,6 +13,8 @@ export type Preferences = {
 	week_start: WeekStart;
 	event_retention_days: number | null;
 	hide_secrets_on_ingest: boolean;
+	/** Connector ids turned off in GitPrompt (changed on the Connectors page). */
+	disabled_sources: string[];
 };
 export type PreferenceKey = keyof Preferences;
 

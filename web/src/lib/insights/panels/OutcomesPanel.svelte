@@ -19,10 +19,13 @@
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
 	import Facts from './Facts.svelte';
-	import NeedsTelemetry from './NeedsTelemetry.svelte';
+	import type { Availability } from '#lib/sources/capabilities.ts';
+	import CapabilityNote from './CapabilityNote.svelte';
+	import NotAvailable from './NotAvailable.svelte';
 
 	/** What came of the prompts: how turns ended, commits, lines of code, and prompts nobody followed up. */
-	let { data, link, connected }: { data: Overview; link: Doorway; connected: boolean } = $props();
+	let { data, link, availability }: { data: Overview; link: Doorway; availability: Availability } =
+		$props();
 
 	const ORDER: TurnOutcome[] = ['done', 'failed', 'superseded', 'running', 'open'];
 	const ICONS = {
@@ -96,8 +99,9 @@
 						}
 					]}
 				/>
+				<CapabilityNote {availability} />
 			{:else}
-				<NeedsTelemetry what="lines of code and commits" {connected} />
+				<NotAvailable what="lines of code and commits" {availability} />
 			{/if}
 		</div>
 	{:else}

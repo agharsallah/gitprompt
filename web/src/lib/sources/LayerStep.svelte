@@ -4,6 +4,8 @@
 		Check,
 		CircleFadingArrowUp,
 		Plug,
+		Power,
+		PowerOff,
 		RefreshCw,
 		ShieldCheck,
 		Unplug,
@@ -18,6 +20,7 @@
 	import { integer, relativePath } from '#lib/shared/format.ts';
 	import { Task } from '#lib/shared/task.svelte.ts';
 	import Collects from '#lib/sources/Collects.svelte';
+	import ConnectorSpec from '#lib/sources/ConnectorSpec.svelte';
 	import ConsentReview from '#lib/sources/ConsentReview.svelte';
 	import Heartbeat from '#lib/sources/Heartbeat.svelte';
 	import OriginCounts from '#lib/sources/OriginCounts.svelte';
@@ -60,6 +63,7 @@
 	const id = $props.id();
 
 	const ICONS: Record<ConnectorAction, LucideIcon> = {
+		enable: Power,
 		connect: Plug,
 		update: CircleFadingArrowUp,
 		remap: RefreshCw,
@@ -110,7 +114,19 @@
 			done = `Re-mapped stored events: ${integer(updated)} updated.`;
 		});
 
+	const setEnabled = (enabled: boolean) =>
+		task.run(async () => {
+			done = '';
+			await api.setEnabled(source.id, enabled);
+			await refreshAll();
+			done = enabled
+				? 'Turned on: GitPrompt keeps what it sends again.'
+				: 'Turned off: GitPrompt discards what it sends.';
+			await focusHeading();
+		});
+
 	const ACTIONS: Record<Exclude<ConnectorAction, 'view'>, () => unknown> = {
+		enable: () => setEnabled(true),
 		connect: () => review('connect'),
 		update: () => review('connect'),
 		recheck,
@@ -157,6 +173,12 @@
 		{#each source.warnings as warning (warning)}
 			<Callout tone="warning">{warning}.</Callout>
 		{/each}
+		{#if source.spec_problem}
+			<Callout tone="warning" title="Your spec override is broken"
+				>{source.spec_problem.file.name} can’t be used, so the bundled spec is used instead. The error
+				is listed at the top of this page.</Callout
+			>
+		{/if}
 
 		{#if preview}
 			<ConsentReview
@@ -189,6 +211,14 @@
 						disabled={task.busy}>Disconnect</Button
 					>
 				{/if}
+				{#if source.enabled}
+					<Button
+						variant="ghost"
+						icon={PowerOff}
+						onclick={() => setEnabled(false)}
+						disabled={task.busy}>Turn off</Button
+					>
+				{/if}
 			</div>
 		{/if}
 
@@ -199,6 +229,7 @@
 			<p class="terms"><ShieldCheck size={16} aria-hidden="true" /><span>{source.terms}</span></p>
 		{/if}
 		<Collects {source} />
+		<ConnectorSpec {source} />
 	</div>
 </li>
 

@@ -200,7 +200,52 @@ export type Source = {
 	not_stored: Record<string, string>;
 	/** Event -> why GitPrompt does not subscribe to it. */
 	not_collected: Record<string, string>;
+	/** False: turned off in GitPrompt (what it sends is discarded). */
+	enabled: boolean;
+	/** What this connector yields (spec `capabilities`); a tool has those of its connected layers. */
+	capabilities: Capability[];
+	/** How its events find their prompt: by the tool's prompt id, or the latest prompt of the session. */
+	join: 'prompt_id' | 'session';
+	/** The spec file in use. */
+	spec: SpecFile;
+	/** The user's override of this spec is broken, so the bundled one is used. */
+	spec_problem: SpecProblem | null;
 };
+
+/** Mirrors sources/spec.py `Capability`. */
+export type Capability =
+	| 'prompt'
+	| 'cwd'
+	| 'model'
+	| 'usage'
+	| 'cost'
+	| 'turn_end'
+	| 'answer'
+	| 'tools'
+	| 'subagents'
+	| 'origin_markers'
+	| 'transcript_path'
+	| 'session_lifecycle'
+	| 'session_metrics';
+
+export type SpecFile = {
+	name: string;
+	path: string;
+	/** Bundled with GitPrompt, or a file of yours in ~/.gitprompt/sources/. */
+	origin: 'bundled' | 'user';
+	/** A file of yours replacing the bundled one of the same name. */
+	overrides: boolean;
+};
+
+/** A spec file that can't be used (GET /api/sources/problems). */
+export type SpecProblem = {
+	file: SpecFile;
+	error: string;
+	/** Id of the bundled spec used instead, if any. */
+	fallback: string | null;
+};
+
+export type SpecText = { file: SpecFile; text: string };
 
 /** A change to a tool's config file: previewed (dry run) before it is applied. */
 export type Change = { file: string; diff: string; applied: boolean; backup: string | null };

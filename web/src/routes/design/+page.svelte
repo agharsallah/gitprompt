@@ -27,7 +27,8 @@
 	import { KIND_INFO, TOOL_KINDS } from '#lib/insights/tools.ts';
 	import Collects from '#lib/sources/Collects.svelte';
 	import ConsentReview from '#lib/sources/ConsentReview.svelte';
-	import { NOW, STATE_FIXTURES } from '#lib/sources/fixtures.ts';
+	import { NOW, SPEC_PROBLEM_FIXTURES, STATE_FIXTURES } from '#lib/sources/fixtures.ts';
+	import SpecProblems from '#lib/sources/SpecProblems.svelte';
 	import Heartbeat from '#lib/sources/Heartbeat.svelte';
 	import { STATE_IDS, STATES } from '#lib/sources/state.ts';
 	import StateRow from '#lib/sources/StateRow.svelte';
@@ -331,6 +332,7 @@
 			<div class="stack">
 				<Heartbeat source={STATE_FIXTURES.receiving} now={NOW} />
 				<Collects source={STATE_FIXTURES.available} />
+				<SpecProblems problems={SPEC_PROBLEM_FIXTURES} />
 			</div>
 			<ConsentReview
 				action="connect"

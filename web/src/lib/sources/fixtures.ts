@@ -1,6 +1,6 @@
 // One connector per state, at a fixed time: what state.test.ts checks and the Design system page
 // draws, so every state is reachable and shown from the same data.
-import type { Source } from '#lib/api/types.ts';
+import type { Source, SpecProblem } from '#lib/api/types.ts';
 import type { ConnectorStateId } from '#lib/sources/state.ts';
 import { after, source } from '#lib/testing/builders.ts';
 
@@ -13,6 +13,14 @@ const DAY = [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 6, 14, 9, 3, 0, 1, 12, 20, 16, 8, 11,
 const received = { total: 412, events: 9_870, last_at: ago(0.1), hourly: DAY };
 
 export const STATE_FIXTURES: Record<ConnectorStateId, Source> = {
+	disabled: source({
+		id: 'copilot-cli',
+		name: 'GitHub Copilot CLI',
+		enabled: false,
+		version: '1.0.107',
+		config_file: '/Users/me/.copilot/hooks/gitprompt.json',
+		join: 'session'
+	}),
 	not_installed: source({ detected: false, version: null }),
 	available: source(),
 	warning: source({
@@ -35,3 +43,28 @@ export const STATE_FIXTURES: Record<ConnectorStateId, Source> = {
 	quiet: source({ connected: true, total: 88, events: 1_204, last_at: ago(30) }),
 	receiving: source({ connected: true, ...received })
 };
+
+/** Spec files that can't be used, as GET /api/sources/problems reports them (Design system page). */
+export const SPEC_PROBLEM_FIXTURES: SpecProblem[] = [
+	{
+		file: {
+			name: 'claude-code.yaml',
+			path: '/Users/me/.gitprompt/sources/claude-code.yaml',
+			origin: 'user',
+			overrides: true
+		},
+		error: 'source spec claude-code.yaml is not valid YAML: mapping values are not allowed here',
+		fallback: 'claude-code'
+	},
+	{
+		file: {
+			name: 'mytool.yaml',
+			path: '/Users/me/.gitprompt/sources/mytool.yaml',
+			origin: 'user',
+			overrides: false
+		},
+		error:
+			'source spec mytool.yaml is invalid: 2 validation errors for Spec\ndetect\n  Field required\ninstall\n  Field required',
+		fallback: null
+	}
+];

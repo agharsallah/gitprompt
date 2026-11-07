@@ -2,7 +2,7 @@
 	import { refreshAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
-	import type { PromptQuery } from '#lib/api/types.ts';
+	import type { Capability, PromptQuery } from '#lib/api/types.ts';
 	import FilterBar from '#lib/insights/FilterBar.svelte';
 	import { promptsHref } from '#lib/insights/filters.ts';
 	import { rangePhrase } from '#lib/insights/range.ts';
@@ -23,6 +23,7 @@
 	import StarredPanel from '#lib/insights/panels/StarredPanel.svelte';
 	import WritingPanel from '#lib/insights/panels/WritingPanel.svelte';
 	import { plural } from '#lib/shared/format.ts';
+	import { availability } from '#lib/sources/capabilities.ts';
 	import SetupSteps from '#lib/sources/SetupSteps.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
@@ -41,7 +42,9 @@
 	const slots = $derived(
 		timeSlots(o.activity.groups, chartStart(o.start, t.first_at, o.now), new Date(o.now), o.hourly)
 	);
-	const telemetry = $derived(!!data.sources.find((s) => s.id === 'claude-code-otel')?.connected);
+	// Which connectors can provide what the panels show (spec capabilities), so a panel says
+	// "not available for <tool>" instead of showing zeros.
+	const can = $derived((c: Capability) => availability(data.sources, c));
 	const hooked = $derived(data.sources.some((s) => s.connected));
 	const ever = $derived(data.sources.some((s) => s.total > 0));
 	const summary = $derived(
@@ -73,7 +76,7 @@
 			</EmptyState>
 		{/if}
 	{:else}
-		<KeyFigures data={o} {slots} {link} />
+		<KeyFigures data={o} {slots} {link} cost={can('cost')} />
 
 		<section aria-labelledby="activity">
 			<h2 id="activity" class="section">Activity</h2>
@@ -88,7 +91,7 @@
 			<h2 id="types" class="section">Prompt types</h2>
 			<div class="grid two">
 				<OriginPanel data={o} {link} />
-				<CommandsPanel data={o} {link} connected={telemetry} />
+				<CommandsPanel data={o} {link} availability={can('session_metrics')} />
 				<WritingPanel data={o} {link} />
 				<ReusePanel data={o} {link} />
 			</div>
@@ -97,8 +100,8 @@
 		<section aria-labelledby="cost">
 			<h2 id="cost" class="section">Models and cost</h2>
 			<div class="grid two">
-				<ModelsPanel data={o} {link} connected={telemetry} />
-				<SpendPanel data={o} {link} connected={telemetry} />
+				<ModelsPanel data={o} {link} availability={can('model')} />
+				<SpendPanel data={o} {link} availability={can('cost')} />
 			</div>
 		</section>
 
@@ -108,7 +111,7 @@
 				<PerformancePanel data={o} {link} />
 				<AgentPanel data={o} {link} />
 				<DelegationPanel data={o} {link} />
-				<OutcomesPanel data={o} {link} connected={telemetry} />
+				<OutcomesPanel data={o} {link} availability={can('session_metrics')} />
 			</div>
 		</section>
 

@@ -7,6 +7,8 @@ import type {
 	Prompt,
 	PromptDetail,
 	Source,
+	SpecProblem,
+	SpecText,
 	Stats,
 	Telemetry,
 	Updated
@@ -59,6 +61,13 @@ export const api = {
 	configure: (id: string, action: ConfigAction, dryRun = false) =>
 		write<Change>(`${source(id)}/${action}${dryRun ? '?dry_run=true' : ''}`, 'POST'),
 	remap: (id: string) => write<Updated>(`${source(id)}/remap`, 'POST'),
+	/** Spec files that can't be used, with their error. */
+	specProblems: (fetcher?: Fetch) => get<SpecProblem[]>('/api/sources/problems', fetcher),
+	/** The YAML file a connector's spec was read from. */
+	spec: (id: string) => get<SpecText>(`${source(id)}/spec`),
+	/** Turn a connector on or off in GitPrompt (off: what it sends is discarded). */
+	setEnabled: (id: string, enabled: boolean) =>
+		write<{ enabled: boolean }>(`${source(id)}/${enabled ? 'enable' : 'disable'}`, 'POST'),
 
 	fields: (fetcher?: Fetch) => get<Catalog>('/api/fields', fetcher)
 };

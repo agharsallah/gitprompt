@@ -7,13 +7,16 @@
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
 	import Facts from './Facts.svelte';
-	import NeedsTelemetry from './NeedsTelemetry.svelte';
+	import type { Availability } from '#lib/sources/capabilities.ts';
+	import CapabilityNote from './CapabilityNote.svelte';
+	import NotAvailable from './NotAvailable.svelte';
 
 	/**
 	 * Who the money was spent for (telemetry `query_source`): answering you, subagents, or calls the
 	 * tool makes on its own; then per prompt and per project.
 	 */
-	let { data, link, connected }: { data: Overview; link: Doorway; connected: boolean } = $props();
+	let { data, link, availability }: { data: Overview; link: Doorway; availability: Availability } =
+		$props();
 
 	const t = $derived(data.activity.totals);
 	const cost = (key: string) => data.work.groups.find((g) => g.key === key)?.cost_usd ?? 0;
@@ -69,9 +72,10 @@
 				}))}
 				format={money}
 			/>
+			<CapabilityNote {availability} />
 		</div>
 	{:else}
-		<NeedsTelemetry what="costs" {connected} />
+		<NotAvailable what="costs" {availability} />
 	{/if}
 </Panel>
 

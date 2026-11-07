@@ -11,7 +11,8 @@ export const DEFAULTS: Preferences = {
 	default_range: DEFAULT_RANGE,
 	week_start: 'monday',
 	event_retention_days: null,
-	hide_secrets_on_ingest: false
+	hide_secrets_on_ingest: false,
+	disabled_sources: []
 };
 
 /** The effective value of every preference. */

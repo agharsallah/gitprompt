@@ -8,13 +8,16 @@
 	import Meter from '#lib/ui/charts/Meter.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
-	import NeedsTelemetry from './NeedsTelemetry.svelte';
+	import type { Availability } from '#lib/sources/capabilities.ts';
+	import CapabilityNote from './CapabilityNote.svelte';
+	import NotAvailable from './NotAvailable.svelte';
 
 	/**
 	 * Which model does the work. "Most used" depends on the measure: a small model can serve the most
 	 * requests while a large one costs the most, so the three measures are one switch apart.
 	 */
-	let { data, link, connected }: { data: Overview; link: Doorway; connected: boolean } = $props();
+	let { data, link, availability }: { data: Overview; link: Doorway; availability: Availability } =
+		$props();
 
 	const MEASURES = {
 		requests: { label: 'Requests', value: (b: StatsBucket) => b.api_requests, format: compact },
@@ -74,9 +77,10 @@
 					<Meter value={cache} label="Prompt tokens served from cache" />
 				</div>
 			{/if}
+			<CapabilityNote {availability} />
 		</div>
 	{:else}
-		<NeedsTelemetry what="models" {connected} />
+		<NotAvailable what="models" {availability} />
 	{/if}
 </Panel>
 
