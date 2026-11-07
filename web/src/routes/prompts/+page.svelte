@@ -49,6 +49,7 @@
 	// With no prompt of any origin and no other filter, this is a first run, not a filter miss.
 	const filtered = $derived(
 		Object.keys(data.filters).length > 0 ||
+			Object.values(data.lists).some((l) => l.length > 0) ||
 			show.length > 0 ||
 			(!isAll(data.origins) && anyOrigin > 0)
 	);
@@ -112,6 +113,7 @@
 		/>
 		<PromptFilters
 			filters={data.filters}
+			lists={data.lists}
 			{show}
 			{counts}
 			origins={data.origins}

@@ -1,4 +1,4 @@
-import type { Prompt } from '#lib/api/types.ts';
+import type { Prompt, TurnOutcome } from '#lib/api/types.ts';
 
 /**
  * How a turn ended, from its Stop / StopFailure event.
@@ -25,6 +25,22 @@ export const OUTCOMES: Record<Outcome, { label: string; tone: Tone; hint: string
 		tone: 'neutral',
 		hint: 'Interrupted, or its end was not captured.'
 	}
+};
+
+/**
+ * How the daemon groups turns (storage/store.py OUTCOME): the outcomes above, with "no end, and a
+ * later prompt came" told apart as superseded (this module calls it open).
+ */
+export const TURN_OUTCOMES: Record<TurnOutcome, { label: string; tone: Tone; hint: string }> = {
+	done: OUTCOMES.done,
+	failed: OUTCOMES.failed,
+	superseded: {
+		label: 'Superseded',
+		tone: 'warning',
+		hint: 'No end was recorded, and you sent another prompt: interrupted or abandoned.'
+	},
+	running: OUTCOMES.running,
+	open: OUTCOMES.open
 };
 
 /**

@@ -26,9 +26,9 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import type { Filters, Origin } from '#lib/api/types.ts';
-	import { ORIGINS } from '#lib/prompts/origin.ts';
-	import { ALL_ORIGINS, originFilter, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
-	import { folder } from '#lib/shared/format.ts';
+	import OriginChips from '#lib/prompts/OriginChips.svelte';
+	import { originFilter, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
+	import { pins, unpin, type Lists, type Pin } from '#lib/prompts/pinned.ts';
 	import Button from '#lib/ui/Button.svelte';
 	import Chip from '#lib/ui/Chip.svelte';
 	import TextField from '#lib/ui/TextField.svelte';
@@ -36,12 +36,15 @@
 
 	let {
 		filters,
+		lists,
 		show,
 		counts,
 		origins,
 		originCounts
 	}: {
 		filters: Filters;
+		/** The multi-valued filters besides origin. */
+		lists: Lists;
 		show: Quick[];
 		/** How many loaded prompts each quick filter keeps. */
 		counts: Record<Quick, number>;
@@ -54,33 +57,17 @@
 	const ICONS = { failed: CircleX, files: FilePen, commands: SquareTerminal, secrets: KeyRound };
 	let form: HTMLFormElement;
 
-	/** The current URL without one parameter (and without the selection). */
-	function without(key: string) {
-		const params = new URLSearchParams(page.url.search);
-		params.delete(key);
-		params.delete('id');
-		const query = params.toString();
+	/** The current URL without one pinned value (and without the selection). */
+	function without(pin: Pin) {
+		const query = unpin(page.url.search, pin);
 		return `${resolve('/prompts')}${query ? `?${query}` : ''}`;
 	}
 
-	const pinned = $derived(
-		[
-			filters.session && { key: 'session', label: `Session ${filters.session.slice(0, 8)}` },
-			filters.repo && { key: 'repo', label: folder(filters.repo) ?? filters.repo },
-			filters.before && { key: 'before', label: 'Older prompts' }
-		].filter((p): p is { key: string; label: string } => !!p)
-	);
+	const pinned = $derived(pins(filters, lists));
 	const active = $derived(
 		!!(filters.q || filters.tag || filters.starred || pinned.length || show.length)
 	);
 	const submit = () => form.requestSubmit();
-
-	// Every origin you have prompts of, and any selected one: yours first, then system ones.
-	const shownOrigins = $derived(
-		ALL_ORIGINS.filter((o) => origins.includes(o) || (originCounts[o] ?? 0) > 0)
-	);
-	const yours = $derived(shownOrigins.filter((o) => !ORIGINS[o].system));
-	const system = $derived(shownOrigins.filter((o) => ORIGINS[o].system));
 
 	/** Remember the new choice for every prompt view, then load it. */
 	function changeOrigins() {
@@ -124,27 +111,7 @@
 		<Button type="submit" variant="secondary">Search</Button>
 	</div>
 
-	<fieldset class="toggles origins">
-		<legend class="sr-only">Who wrote the prompt</legend>
-		{#snippet originChip(o: Origin)}
-			<ToggleChip
-				name="origin"
-				value={o}
-				checked={origins.includes(o)}
-				icon={ORIGINS[o].icon}
-				count={originCounts[o] ?? 0}
-				title={ORIGINS[o].hint}
-				onchange={changeOrigins}
-			>
-				{ORIGINS[o].label}
-			</ToggleChip>
-		{/snippet}
-		{#each yours as o (o)}{@render originChip(o)}{/each}
-		{#if system.length}
-			<span class="group-label">System</span>
-			{#each system as o (o)}{@render originChip(o)}{/each}
-		{/if}
-	</fieldset>
+	<OriginChips {origins} counts={originCounts} onchange={changeOrigins} />
 
 	<div class="toggles">
 		<ToggleChip
@@ -169,10 +136,10 @@
 			</ToggleChip>
 		{/each}
 
-		{#each pinned as p (p.key)}
-			<input type="hidden" name={p.key} value={filters[p.key as keyof Filters]} />
+		{#each pinned as p (`${p.key}=${p.value}`)}
+			<input type="hidden" name={p.key} value={p.value} />
 			<Chip
-				onremove={() => goto(without(p.key), { reset: false })}
+				onremove={() => goto(without(p), { reset: false })}
 				removeLabel="Remove filter {p.label}"
 			>
 				{p.label}
@@ -206,20 +173,6 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2);
-	}
-
-	fieldset {
-		margin: 0;
-		padding: 0;
-		border: 0;
-		min-width: 0;
-	}
-
-	.group-label {
-		margin-left: var(--space-1);
-		color: var(--color-text-muted);
-		font-size: var(--text-xs);
-		font-weight: var(--weight-medium);
 	}
 
 	.clear {
