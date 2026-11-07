@@ -52,17 +52,33 @@ def local_time(received_at: str) -> tuple[str, int, int]:
     return t.date().isoformat(), t.hour, t.isoweekday()
 
 
+def text_hash(typed: str | None) -> str | None:
+    """Equal for texts that differ only in case and spacing: the same prompt sent again."""
+    words = " ".join((typed or "").lower().split())
+    return hashlib.sha256(words.encode()).hexdigest()[:16] if words else None
+
+
+def slash(command: str | None) -> str | None:
+    """Slash commands with their leading slash, whichever event named them."""
+    return command and "/" + command.lstrip("/")
+
+
 def entry(derived: dict[str, Any]) -> Entry:
     """The index row of a prompt, projected from derivations.derive()."""
     fields, context, stats, summary = derived["fields"], derived["context"], derived["stats"], derived["summary"]
     day, hour, weekday = local_time(derived["received_at"])
     typed = derived["typed_text"]
+    # What the user wrote is counted in the typed text; secrets in the prompt as received (context too).
+    typed_stats = derivations.prompt_stats(typed or "")
     row = {
         "id": derived["id"],
         "prompt_id": fields.get("prompt_id"),
         "source": derived["source"],
         "session": fields.get("session_id"),
         "repo": context.get("git_root") or fields.get("cwd"),
+        "repo_name": context.get("git_repo"),
+        "branch": context.get("git_branch"),
+        "title": fields.get("session_title"),
         "received_at": derived["received_at"],
         "day": day,
         "hour": hour,
@@ -70,16 +86,35 @@ def entry(derived: dict[str, Any]) -> Entry:
         "origin": derived["origin"],
         "typed_text": typed,
         "chars": len(typed or ""),
-        "slash_command": summary.get("slash_command") or stats.get("slash_command"),
+        "text_hash": text_hash(typed),
+        "slash_command": slash(summary.get("slash_command") or stats.get("slash_command")),
+        "code_blocks": typed_stats.get("code_blocks", 0),
+        "urls": len(typed_stats.get("urls", [])),
+        "mentions": len(typed_stats.get("at_mentions", [])),
+        "secrets": len(stats.get("secrets", [])),
         **{k: summary.get(k, 0) for k in USAGE},
+        "api_time_s": summary.get("api_time_s", 0),
+        "api_errors": summary.get("api_errors", 0),
         "response_s": summary.get("response_s"),
         "ended_by": summary.get("ended_by"),
         "tool_calls": sum(summary.get("tool_calls", {}).values()),
         "tool_failures": summary.get("tool_failures", 0),
+        "tool_time_s": summary.get("tool_time_s", 0),
+        "subagent_tool_calls": summary.get("subagent_tool_calls", 0),
+        "subagents": sum(summary.get("subagents", {}).values()),
+        "files_written": len(summary.get("files_written", [])),
+        "git_commits": summary.get("git_commits", 0),
+        "compactions": summary.get("compactions", 0),
+        "denials": len(summary.get("permission_denied", [])),
+        "rejections": summary.get("tool_rejections", 0),
     }
     models = [{"model": model, **{k: usage.get(k, 0) for k in USAGE}} for model, usage in summary.get("model_usage", {}).items()]
     tools = [(name, derivations.tool_kind(name), n) for name, n in summary.get("tool_calls", {}).items()]
-    return Entry(row, models, tools)
+    work = [
+        {"work": derivations.work_kind(source), "query_source": source, **{k: usage.get(k, 0) for k in USAGE}}
+        for source, usage in summary.get("work_usage", {}).items()
+    ]
+    return Entry(row, models, tools, work)
 
 
 class Indexer:
@@ -104,6 +139,17 @@ class Indexer:
             self.store.index.upsert(self.entries(ids[start : start + BATCH]))
         return len(ids)
 
+    def _index_telemetry(self) -> None:
+        """Telemetry metrics and slash commands that arrived since the last read (by event id)."""
+        index = self.store.index
+        events = self.store.events_after(index.telemetry_after, derivations.METRIC_PREFIX, (derivations.COMMAND_EVENT,))
+        if not events:
+            return
+        where = [(e["id"], e["session_id"], e["received_at"]) for e in events]
+        metrics = [(*w, *m) for w, e in zip(where, events, strict=True) if (m := derivations.metric(e))]
+        commands = [(*w, *c) for w, e in zip(where, events, strict=True) if (c := derivations.command(e))]
+        index.add_telemetry(events[-1]["id"], metrics, commands)
+
     def rebuild(self) -> int:
         """Drop the index and compute it again from the raw rows."""
         index = self.store.index
@@ -111,6 +157,7 @@ class Indexer:
             index.drop()
             index.create()
             index.version = self.version
+            self._index_telemetry()
             return self._reindex(self.store.prompt_ids())
 
     def ensure(self) -> int:
@@ -119,4 +166,5 @@ class Indexer:
         if index.version != self.version:
             return self.rebuild()
         with self.store.transaction():
+            self._index_telemetry()
             return self._reindex([*index.unindexed(), *self.store.prompts_of_turns(index.take_marked())])

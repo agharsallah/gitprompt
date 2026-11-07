@@ -129,6 +129,9 @@ TOOL_KINDS = {
 }
 
 
+GIT_COMMIT = re.compile(r"\bgit\b(?:\s+-\S+(?:\s+\S+)?)*\s+commit\b")  # git commit, git -C dir commit
+
+
 def tool_kind(name: str | None) -> str:
     """read, write, shell, web, mcp, agent or other."""
     if name and name.startswith("mcp__"):
@@ -196,7 +199,9 @@ def _ending(t: Turn) -> dict[str, Any]:
         "files_written / files_read": "file paths touched by file tools",
         "bash_commands / web": "shell commands run, URLs fetched and searches made",
         "mcp_tools": "MCP tools used",
-        "tool_kinds": "tool calls by kind: read, write, shell, web, mcp, agent, other",
+        "tool_kinds / tool_kind_of": "tool calls by kind (read, write, shell, web, mcp, agent, other), and the kind of each tool used",
+        "subagent_tool_calls": "tool calls made by subagents (their hook payload has agent_id)",
+        "git_commits": "git commits the agent ran (Bash commands with `git commit`)",
     }
 )
 def _tools(t: Turn) -> dict[str, Any]:
@@ -210,18 +215,21 @@ def _tools(t: Turn) -> dict[str, Any]:
         "web": [i.get("url") or i.get("query") for i in t.inputs(WEB_TOOLS)],
         "mcp_tools": sorted({name for name, _ in t.tool_uses if name and name.startswith("mcp__")}),
         "tool_kinds": dict(Counter(tool_kind(name) for name, _ in t.tool_uses)),
+        "tool_kind_of": {name: tool_kind(name) for name, _ in t.tool_uses if name},
+        "subagent_tool_calls": sum(bool(r.get("agent_id")) for r in t.raws(*TOOL_RESULTS)),
+        "git_commits": sum(bool(GIT_COMMIT.search(str(i.get("command") or ""))) for i in t.inputs({"Bash"})),
     }
 
 
 @TURN(
     {
-        "slash_command": "slash command the prompt expanded (UserPromptExpansion)",
+        "slash_command": "slash command the prompt expanded (UserPromptExpansion, or telemetry user_prompt.command_name)",
         "subagents / tasks / notifications / permission_denied / compactions / model_switches": "agentic activity",
     }
 )
 def _agent_activity(t: Turn) -> dict[str, Any]:
     return {
-        "slash_command": next((e.get("command_name") for e in t.raws("UserPromptExpansion")), None),
+        "slash_command": next((e.get("command_name") for e in t.raws("UserPromptExpansion", "user_prompt") if e.get("command_name")), None),
         "subagents": dict(Counter(e.get("agent_type") for e in t.raws("SubagentStart"))),
         "tasks": [e.get("task_subject") for e in t.raws("TaskCreated")],
         "notifications": dict(Counter(e.get("notification_type") for e in t.raws("Notification"))),
@@ -235,22 +243,44 @@ def _agent_activity(t: Turn) -> dict[str, Any]:
     {
         "api_requests / models / *_tokens / cost_usd / api_time_s / api_errors": "usage from telemetry (needs the telemetry source)",
         "model_usage": "requests, tokens and cost per model (telemetry)",
+        "work_usage": "requests, tokens and cost per query_source: the main thread, a subagent, or a system call (telemetry)",
         "tool_rejections": "tool calls you rejected (telemetry)",
     }
 )
 def _usage(t: Turn) -> dict[str, Any]:
     api = t.raws("api_request")
-    by_model: dict[Any, list[dict[str, Any]]] = {}
-    for e in api:
-        by_model.setdefault(e.get("model"), []).append(e)
+    by_model = _by(api, "model")
     return {
         **_usage_of(api),
         "models": dict(Counter(e.get("model") for e in api)),
         "model_usage": {model: _usage_of(requests) for model, requests in by_model.items()},
+        "work_usage": {source: _usage_of(requests) for source, requests in _by(api, "query_source").items()},
         "api_time_s": round(sum(_num(e.get("duration_ms")) for e in api) / 1000, 1),
         "api_errors": len(t.raws("api_error")),
         "tool_rejections": sum(e.get("decision") == "reject" for e in t.raws("tool_decision")),
     }
+
+
+def _by(payloads: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, Any]]]:
+    out: dict[Any, list[dict[str, Any]]] = {}
+    for e in payloads:
+        out.setdefault(e.get(key), []).append(e)
+    return out
+
+
+# Who a model call worked for, from telemetry `api_request.query_source` (Claude Code's values):
+# the main thread answering you, a subagent (`agent:builtin:Explore`...), or a system call the tool
+# makes on its own (compaction, titles, summaries, suggestions, hook prompts...).
+MAIN_QUERY_SOURCES = {None, "repl_main_thread", "sdk"}
+SUBAGENT_PREFIX = "agent:"
+WORK_KINDS = ("main", "subagent", "system")
+
+
+def work_kind(query_source: str | None) -> str:
+    """main, subagent or system."""
+    if query_source in MAIN_QUERY_SOURCES:
+        return "main"
+    return "subagent" if str(query_source).startswith(SUBAGENT_PREFIX) else "system"
 
 
 def _usage_of(api: list[dict[str, Any]]) -> dict[str, Any]:
@@ -298,13 +328,32 @@ def _lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def metric(event: dict[str, Any]) -> tuple[str, float] | None:
+    """(name, value) of a telemetry metric data point, e.g. claude_code.lines_of_code.count[added]."""
+    raw = event["raw"]
+    if not (event["event"] or "").startswith(METRIC_PREFIX) or "value" not in raw:
+        return None
+    return event["event"] + (f"[{raw['type']}]" if raw.get("type") else ""), _num(raw["value"])
+
+
+# Slash commands in telemetry: a `user_prompt` event with a `command_name`. Only the ones that expand
+# into a prompt reach the hooks, so the others are counted per session.
+COMMAND_EVENT = "user_prompt"
+
+
+def command(event: dict[str, Any]) -> tuple[str, str | None] | None:
+    """(/command, its source: builtin, custom...) of a telemetry slash command event."""
+    raw = event["raw"]
+    if event["event"] != COMMAND_EVENT or not raw.get("command_name"):
+        return None
+    return "/" + str(raw["command_name"]).lstrip("/"), raw.get("command_source")
+
+
 @SESSION({"metric_totals": "telemetry metric totals: lines of code, commits, active time, tokens, cost"})
 def _metrics(events: list[dict[str, Any]]) -> dict[str, Any]:
     totals: Counter[str] = Counter()
-    for e in events:
-        raw = e["raw"]
-        if e["event"] and e["event"].startswith(METRIC_PREFIX) and "value" in raw:
-            totals[e["event"] + (f"[{raw['type']}]" if raw.get("type") else "")] += _num(raw["value"])
+    for name, value in filter(None, map(metric, events)):
+        totals[name] += value
     return {"metric_totals": {k: round(v, 4) for k, v in totals.items()}}
 
 

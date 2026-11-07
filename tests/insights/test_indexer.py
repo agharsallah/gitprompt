@@ -181,3 +181,49 @@ def test_turn_numbers_count_only_the_prompt_session(store, index):
     assert store.get(second)["turn"] == 2 and store.get(second)["prev_at"] == store.get(first)["received_at"]
     assert store.get(first)["next_head"] is None and [store.get(i)["turn"] for i in lone] == [1, 2]
     assert [r["turn"] for r in store.search(session="a")] == [2, 1]
+
+
+def test_the_index_keeps_what_the_insights_need(store, index):
+    id = add_prompt(store, "<ide_selection>```py\nx\n```</ide_selection>\nSee https://a.b and @x.py", "p1", session_title="Docs")
+    add_event(store, "PostToolUse", "p1", tool_name="Bash", tool_input={"command": "git add . && git commit -m x"}, agent_id="a1")
+    add_event(store, "PostToolUse", "p1", tool_name="Bash", tool_input={"command": "git log --grep commit"})
+    add_event(store, "PostToolUse", "p1", tool_name="Write", tool_input={"file_path": "/a"}, duration_ms=2000)
+    add_event(store, "PermissionDenied", "p1", tool_name="Bash")
+    add_event(store, "PreCompact", "p1")
+    add_event(store, "SubagentStart", "p1", agent_type="Explore")
+    add_event(store, "user_prompt", "p1", source="claude-code-otel", command_name="effort")
+    for source, cost in (("repl_main_thread", 1.0), ("agent:builtin:Explore", 0.5), ("compact", 0.25)):
+        add_event(store, "api_request", "p1", source="claude-code-otel", model="opus", cost_usd=cost, query_source=source, duration_ms=500)
+    index.ensure()
+    row = indexed(store, id)
+    assert row["title"] == "Docs" and row["slash_command"] == "/effort"  # the telemetry command name, with its slash
+    # Code in the injected selection is not what you typed; the URL and the mention are.
+    assert (row["code_blocks"], row["urls"], row["mentions"]) == (0, 1, 1)
+    assert (row["git_commits"], row["subagent_tool_calls"], row["subagents"], row["files_written"]) == (1, 1, 1, 1)
+    assert (row["denials"], row["compactions"], row["tool_time_s"], row["api_time_s"]) == (1, 1, 2.0, 1.5)
+    assert row["text_hash"] == indexer.text_hash("see HTTPS://a.b   and @x.py")
+    work = store.db.execute("select work, query_source, cost_usd from prompt_index_work where id = ? order by cost_usd desc", (id,))
+    assert [tuple(r) for r in work] == [
+        ("main", "repl_main_thread", 1.0),
+        ("subagent", "agent:builtin:Explore", 0.5),
+        ("system", "compact", 0.25),
+    ]
+
+
+def test_session_telemetry_is_read_incrementally(store, index):
+    add_prompt(store, "hello", "p1")
+    for value in (3, 4):
+        row = store.add_event(
+            "claude-code-otel", {"event": "claude_code.lines_of_code.count", "session_id": "s1"}, {"type": "added", "value": value}
+        )
+    index.ensure()
+    totals = store.db.execute("select name, total(value) from session_metric").fetchone()
+    assert tuple(totals) == ("claude_code.lines_of_code.count[added]", 7.0)
+    store.add_event(
+        "claude-code-otel", {"event": "user_prompt", "session_id": "s1"}, {"command_name": "model", "command_source": "builtin"}
+    )
+    index.ensure()
+    assert [tuple(r) for r in store.db.execute("select command, source from session_command")] == [("/model", "builtin")]
+    assert store.index.telemetry_after > row["id"]
+    index.rebuild()  # rebuilt from the raw events, nothing counted twice
+    assert store.db.execute("select total(value) from session_metric").fetchone()[0] == 7.0

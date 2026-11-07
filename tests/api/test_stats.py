@@ -84,6 +84,7 @@ def test_totals_follow_the_filters(data):
     ("group_by", "expected"),
     [
         ("day", {"2026-11-02": 2, "2026-11-03": 2}),
+        ("day_hour", {"2026-11-02 09": 2, "2026-11-03 14": 2}),
         ("hour", {"09": 2, "14": 2}),
         ("weekday", {"1": 2, "2": 2}),
         ("weekday_hour", {"1-09": 2, "2-14": 2}),
@@ -91,8 +92,12 @@ def test_totals_follow_the_filters(data):
         ("source", {"claude-code": 4}),
         ("session", {"s1": 2, "s2": 1, "s3": 1}),
         ("repo", {"/r/app": 3, "/r/docs": 1}),
+        ("session_length", {"00000": 1, "00060": 1, "01800": 2}),  # s3 no end; s2 100 s; s1 08:00 to 08:30:30
+        ("size", {"00000": 3, "00020": 1}),  # typed characters
+        ("work", {"main": 2}),
+        ("query_source", {None: 2}),  # telemetry without a query_source: the main thread
         ("command", {None: 3, "/review": 1}),
-        ("outcome", {"Stop": 2, "StopFailure": 1, None: 1}),
+        ("outcome", {"done": 2, "failed": 1, "open": 1}),
         ("model", {"opus": 2, "haiku": 1}),
         ("tool", {"Read": 1, "Edit": 1, "Bash": 1}),
         ("tool_kind", {"read": 1, "write": 1, "shell": 1}),
@@ -145,3 +150,122 @@ def test_remap_rebuilds_the_index(data):
     before = stats(data)["totals"]["prompts"]
     assert data.post("/api/sources/claude-code/remap", headers=DASHBOARD).status_code == 200
     assert stats(data)["totals"]["prompts"] == before
+
+
+def ingest(client, settings, **payload):
+    headers = {"Authorization": f"Bearer {settings.token()}"}
+    assert client.post("/ingest/claude-code", json=payload, headers=headers).status_code == 204
+
+
+def test_work_split_matches_the_totals(data, settings):
+    for source, cost in (("repl_main_thread", 0.5), ("agent:builtin:Explore", 0.25), ("compact", 0.125), ("away_summary", 0.125)):
+        ingest(
+            data, settings, hook_event_name="api_request", prompt_id="p2", session_id="s1", model="opus", cost_usd=cost, query_source=source
+        )
+    work = stats(data, group_by="work")
+    assert keys(work, "cost_usd") == {"main": pytest.approx(3.6), "subagent": 0.25, "system": 0.25}
+    assert sum(g["cost_usd"] for g in work["groups"]) == pytest.approx(work["totals"]["cost_usd"])
+    assert keys(stats(data, group_by="work"))["system"] == 1  # two system sources, one prompt
+    by_source = stats(data, group_by="query_source")
+    assert {g["key"]: g["detail"] for g in by_source["groups"]}["agent:builtin:Explore"] == "subagent"
+    assert stats(data, query_source="compact")["totals"]["prompts"] == 1
+
+
+def test_text_groups_reused_prompts_with_an_excerpt(data, settings):
+    ingest(data, settings, hook_event_name="UserPromptSubmit", prompt_id="p5", session_id="s4", prompt="  fix the LOGIN   bug ")
+    result = stats(data, group_by="text", origin=["typed", "slash_command"])
+    top = result["groups"][0]
+    assert top["prompts"] == 2 and top["detail"] == "fix the LOGIN   bug"
+    assert result["totals"]["prompts"] - result["totals"]["distinct_texts"] == 1  # one prompt repeated a text
+    assert stats(data, q="login")["totals"]["prompts"] == 2
+
+
+def test_session_group_has_a_title_and_span(data):
+    sessions = {g["key"]: g for g in stats(data, group_by="session")["groups"]}
+    assert sessions["s1"]["detail"] == "Fix the login bug" and sessions["s1"]["span_s"] == 1830.0
+    assert sessions["s3"]["span_s"] == 0.0
+
+
+def test_order_by_a_measure(data):
+    assert [g["key"] for g in stats(data, group_by="repo", order="cost_usd")["groups"]] == ["/r/docs", "/r/app"]
+    assert [g["key"] for g in stats(data, group_by="session", order="last_at")["groups"]] == ["s3", "s2", "s1"]
+    assert data.get("/api/stats?group_by=repo&order=nope").status_code == 422
+
+
+def test_split_by_gives_each_group_its_parts(data):
+    result = stats(data, group_by="repo", split_by="day")
+    parts = {g["key"]: {p["key"]: p["prompts"] for p in g["parts"]} for g in result["groups"]}
+    assert parts == {"/r/app": {"2026-11-02": 2, "2026-11-03": 1}, "/r/docs": {"2026-11-03": 1}}
+    kinds = {
+        g["key"]: {p["key"]: p["tool_calls"] for p in g["parts"]} for g in stats(data, group_by="repo", split_by="tool_kind")["groups"]
+    }
+    assert kinds == {"/r/app": {"read": 1, "write": 1}, "/r/docs": {"shell": 1}}
+    by_outcome = stats(data, group_by="outcome", split_by="repo")["groups"]
+    assert sum(p["prompts"] for g in by_outcome for p in g["parts"]) == 4
+    assert data.get("/api/stats?group_by=model&split_by=tool").status_code == 422  # two multi-valued groupings
+    assert data.get("/api/stats?group_by=repo&split_by=repo").status_code == 422
+    assert data.get("/api/stats?split_by=repo").status_code == 422
+
+
+def test_new_measures(data, settings):
+    ingest(data, settings, hook_event_name="PostToolUse", prompt_id="p1", session_id="s1", tool_name="Bash", agent_id="a1",
+           tool_input={"command": "git -C /r/app commit -m fix"}, duration_ms=1500)  # fmt: skip
+    ingest(data, settings, hook_event_name="PermissionDenied", prompt_id="p3", session_id="s2", tool_name="Bash")
+    ingest(data, settings, hook_event_name="PreCompact", prompt_id="p3", session_id="s2")
+    ingest(data, settings, hook_event_name="SubagentStart", prompt_id="p1", session_id="s1", agent_type="Explore")
+    ingest(data, settings, hook_event_name="UserPromptSubmit", prompt_id="p6", session_id="s5", prompt="see https://x.y and @README.md")
+    t = stats(data)["totals"]
+    assert (t["git_commits"], t["with_commit"], t["subagent_tool_calls"], t["subagents"]) == (1, 1, 1, 1)
+    assert (t["denials"], t["compactions"], t["failed"], t["files_written"], t["tool_time_s"]) == (1, 1, 1, 1, 1.5)
+    assert (t["with_url"], t["with_mention"], t["with_code"]) == (1, 1, 0)
+    assert t["followed"] == 1  # p1 is followed by p2 in s1; every other session has one prompt
+
+
+@pytest.mark.parametrize(
+    ("params", "prompts"),
+    [
+        ({"weekday": 1}, 2),
+        ({"hour": 14}, 2),
+        ({"hour": 0}, 0),  # 0 is a value, not "no filter"
+        ({"command": "/review"}, 1),
+        ({"tool": "Bash"}, 1),
+        ({"tool_kind": "write"}, 1),
+        ({"outcome": ["done", "failed"]}, 3),
+        ({"outcome": "open"}, 1),
+        ({"size": "00020"}, 1),
+        ({"has": "no_follow_up"}, 3),
+        ({"session": ["s1", "s2"]}, 3),
+        ({"session": "s2"}, 1),
+    ],
+)
+def test_filters_match_their_groups(data, params, prompts):
+    assert stats(data, **params)["totals"]["prompts"] == prompts
+    assert len(data.get("/api/prompts", params=params).json()) == prompts
+
+
+def test_outcome_counts_superseded_and_running(data, settings):
+    ingest(data, settings, hook_event_name="UserPromptSubmit", prompt_id="p7", session_id="s3", prompt="and now?")
+    by_outcome = keys(stats(data, group_by="outcome"))
+    assert by_outcome == {"done": 2, "failed": 1, "superseded": 1, "running": 1}  # p4 had no end and p7 came after it
+
+
+def test_telemetry_is_summed_over_the_kept_sessions(data, settings):
+    metric = "claude_code.lines_of_code.count"
+    ingest(data, settings, hook_event_name=metric, session_id="s1", type="added", value=10)
+    ingest(data, settings, hook_event_name=metric, session_id="s2", type="added", value=5)
+    ingest(data, settings, hook_event_name=metric, session_id="s9", type="added", value=100)  # no prompt: not counted
+    ingest(data, settings, hook_event_name="user_prompt", session_id="s1", prompt_id="p8", command_name="model", command_source="builtin")
+    response = data.get("/api/stats/telemetry", params={"origin": ["typed", "slash_command"]})
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["sessions"] == 2 and result["metrics"] == {f"{metric}[added]": 15.0}
+    assert result["commands"] == [{"command": "/model", "source": "builtin", "uses": 1, "sessions": 1}]
+    assert data.get("/api/stats/telemetry", params={"repo": "/r/docs"}).json()["metrics"] == {f"{metric}[added]": 5.0}
+    assert data.get("/api/stats/telemetry", params={"since": "2099-01-01T00:00:00Z"}).json()["metrics"] == {}
+
+
+def test_filter_values_match_the_store():
+    from gitprompt.api.filters import Has, Outcome
+    from gitprompt.storage.store import HAS, OUTCOMES
+
+    assert set(get_args(Has)) == HAS.keys() and get_args(Outcome) == OUTCOMES

@@ -92,20 +92,77 @@ def _words(q: str) -> tuple[str, list[Any]]:
     return " and ".join(conditions) or "1=1", params + short
 
 
+# Values derived on the index when a query runs, because they depend on later prompts or the clock.
+# A later prompt in the same session (any origin): the user (or the tool) went on after this turn.
+FOLLOWED = "exists (select 1 from prompt_index n where n.session = i.session and n.id > i.id)"
+# How a turn ended, in the dashboard's words (web/src/lib/insights/outcome.ts): done, failed,
+# superseded (no end, and a later prompt came), running (no end, sent in the last hour), open.
+OUTCOME = f"""(case when i.ended_by = 'StopFailure' then 'failed' when i.ended_by is not null then 'done'
+  when {FOLLOWED} then 'superseded'
+  when i.received_at >= strftime('%Y-%m-%dT%H:%M:%f', 'now', '-1 hour') then 'running' else 'open' end)"""
+OUTCOMES = ("done", "failed", "superseded", "running", "open")
+
+
+def buckets(value: str, bounds: tuple[int, ...]) -> str:
+    """SQL putting `value` in the bucket of the largest lower bound it reaches, as a zero-padded key
+    (so keys sort as numbers): bounds (0, 20, 80) give '00000', '00020', '00080'."""
+    cases = " ".join(f"when {value} < {upper} then '{lower:05d}'" for lower, upper in zip(bounds, bounds[1:], strict=False))
+    return f"(case {cases} else '{bounds[-1]:05d}' end)"
+
+
+SIZES = (0, 20, 80, 200, 500, 1500)  # characters of typed text
+SIZE = buckets("i.chars", SIZES)
+
+# What a prompt or its turn contains (`has`): every listed condition must hold.
+HAS = {
+    "code": "i.code_blocks > 0",
+    "url": "i.urls > 0",
+    "mention": "i.mentions > 0",
+    "secret": "i.secrets > 0",
+    "commit": "i.git_commits > 0",
+    "subagent": "i.subagents > 0",
+    "tool_failure": "i.tool_failures > 0",
+    "api_error": "i.api_errors > 0",
+    "denial": "(i.denials > 0 or i.rejections > 0)",
+    "compaction": "i.compactions > 0",
+    "no_follow_up": f"not {FOLLOWED}",
+}
+
+
+def _sessions(value: str | list[str]) -> tuple[str, list[Any]]:
+    return "i.session in (select value from json_each(?))", [json.dumps([value] if isinstance(value, str) else list(value))]
+
+
+def _has(values: list[str]) -> tuple[str, list[Any]]:
+    return " and ".join(HAS[v] for v in values), []
+
+
 FILTERS: dict[str, Filter] = {
     "q": _words,
     "origin": "i.origin in (select value from json_each(?))",
     "model": "i.id in (select id from prompt_index_model where model in (select value from json_each(?)))",
     "source": "i.source = ?",
-    "session": "i.session = ?",
+    "session": _sessions,  # one session id, or several
     "repo": "i.repo = ?",
     "since": "i.received_at >= ?",  # ISO-8601 UTC, see api/filters.py
     "until": "i.received_at < ?",
+    "weekday": "i.weekday = ?",  # local ISO weekday, 1 = Monday
+    "hour": "i.hour = ?",  # local hour, 0-23
+    "command": "i.slash_command = ?",
+    "tool": "i.id in (select id from prompt_index_tool where tool = ?)",
+    "tool_kind": "i.id in (select id from prompt_index_tool where kind = ?)",
+    "query_source": "i.id in (select id from prompt_index_work where query_source = ?)",
+    "outcome": f"{OUTCOME} in (select value from json_each(?))",
+    "size": f"{SIZE} = ?",  # a bucket key of storage/stats `size`
+    "has": _has,
     "before": "i.id < ?",  # paging cursor: prompts older than this id
     "tag": "i.id in (select a.id from annotation a, json_each(a.data, '$.tags') t where t.value = ?)",
     "starred": "i.id in (select id from annotation where json_extract(data, '$.starred') = ?)",
 }
-EMPTY_FILTER = (None, "", False, [], ())
+
+
+def _empty(value: Any) -> bool:
+    return value is None or value is False or (isinstance(value, str | list | tuple) and not value)  # 0 is a value (hour 0)
 
 
 def where(**filters: Any) -> tuple[str, list[Any]]:
@@ -114,7 +171,7 @@ def where(**filters: Any) -> tuple[str, list[Any]]:
         raise ValueError(f"unknown prompt filters: {sorted(unknown)}")
     conditions, params = ["1=1"], []
     for key, value in filters.items():
-        if value in EMPTY_FILTER:
+        if _empty(value):
             continue
         condition = FILTERS[key]
         if callable(condition):
@@ -214,6 +271,15 @@ class Store:
 
     def events_for_prompts(self, prompt_ids: list[str]) -> list[dict]:
         return self._events("prompt_id", prompt_ids)
+
+    def events_after(self, event_id: int, prefix: str, names: tuple[str, ...]) -> list[dict]:
+        """Events newer than `event_id` whose name starts with `prefix` or is one of `names`."""
+        marks = ",".join("?" * len(names)) or "null"
+        rows = self.db.execute(
+            f"select * from event where id > ? and (substr(event, 1, ?) = ? or event in ({marks})) order by id",
+            [event_id, len(prefix), prefix, *names],
+        )
+        return [_row(r) for r in rows]
 
     def events_for_session(self, session_id: str) -> list[dict]:
         return self._events("session_id", [session_id])
