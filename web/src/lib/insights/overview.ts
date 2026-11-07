@@ -37,7 +37,7 @@ export type Overview = {
 	tools: Stats;
 	telemetry: Telemetry;
 	/** The choices of each filter, counted without that filter. */
-	options: { source: Stats; repo: Stats; model: Stats };
+	options: { source: Stats; surface: Stats; repo: Stats; model: Stats };
 	starred: Prompt[];
 };
 
@@ -67,10 +67,11 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 		telemetry: api.telemetry(query, fetcher),
 		starred: api.prompts(queryParams({ ...query, starred: 'true', limit: 5 }), fetcher),
 		source: stats('source', by('prompts', 50), without(query, 'source')),
+		surface: stats('surface', by('prompts', 50), without(query, 'surface')),
 		repo: stats('repo', by('prompts', 200), without(query, 'repo')),
 		model: stats('model', by('prompts', 50), without(query, 'model'))
 	});
-	const { source, repo, model, ...panels } = results;
+	const { source, surface, repo, model, ...panels } = results;
 	return {
 		filters,
 		query,
@@ -78,7 +79,7 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 		start: rangeStart(filters.range, now),
 		hourly,
 		...panels,
-		options: { source, repo, model }
+		options: { source, surface, repo, model }
 	};
 }
 

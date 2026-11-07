@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Bot, Flag, FolderGit2, Plug, type LucideIcon } from '@lucide/svelte';
+	import { AppWindow, Bot, Flag, FolderGit2, Plug, type LucideIcon } from '@lucide/svelte';
 	import type { Stats } from '#lib/api/types.ts';
 	import { FACETS, facetChoices, type Facet } from '#lib/insights/filters.ts';
 	import Select from '#lib/ui/Select.svelte';
 
 	/**
-	 * The select filters of the Overview and the Prompts page, in one row: tool, project, model,
-	 * outcome. Native selects inside the page's GET form, so the URL holds the choice. Each choice is
+	 * The select filters of the Overview and the Prompts page, in one row: tool, app, project,
+	 * model, outcome. Native selects inside the page's GET form, so the URL holds the choice. Each choice is
 	 * counted with the other filters applied (`options`, from /api/stats).
 	 */
 	let {
@@ -24,6 +24,7 @@
 
 	const ICONS: Record<Facet, LucideIcon> = {
 		source: Plug,
+		surface: AppWindow,
 		repo: FolderGit2,
 		model: Bot,
 		outcome: Flag

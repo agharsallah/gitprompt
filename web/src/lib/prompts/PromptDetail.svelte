@@ -194,7 +194,7 @@
 	</header>
 
 	<div class="project-line">
-		<ConnectorBadge connector={f.connector} size="md" />
+		<ConnectorBadge connector={f.connector} surface={f.surface} size="md" />
 		{#if view.model}<Badge tone="agent" icon={Bot} title={view.model.hint}>{view.model.name}</Badge
 			>{/if}
 		{#if project.root}

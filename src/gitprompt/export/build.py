@@ -67,8 +67,11 @@ def reported(usd: float | None) -> str:
 
 
 def tool(facts: dict[str, Any] | None) -> str:
-    """The tool that sent a prompt (insights/facts.py connector)."""
-    return ((facts or {}).get("connector") or {}).get("label") or "—"
+    """The tool that sent a prompt (insights/facts.py connector), and the app it was typed in when
+    the tool says (facts.surface), e.g. "Claude Code (Desktop app)"."""
+    label = ((facts or {}).get("connector") or {}).get("label") or "—"
+    surface = (facts or {}).get("surface")
+    return f"{label} ({surface['name']})" if surface else label
 
 
 def model(facts: dict[str, Any] | None) -> str:
@@ -90,6 +93,7 @@ def fact_columns(facts: dict[str, Any] | None) -> dict[str, Any]:
         return {}
     return {
         "tool": ((facts.get("connector") or {}).get("id")),
+        "surface": (facts.get("surface") or {}).get("id"),  # null when the tool doesn't say
         **{k: facts.get(k) for k in FACT_COLUMNS},
         "tokens": (facts.get("tokens") or {}).get("total"),
         "cost_usd": facts.get("cost_usd"),  # null, not 0, when the tool reported no cost

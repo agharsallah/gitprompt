@@ -122,3 +122,12 @@ def test_a_new_format_needs_no_other_change():
         assert export.render(export.prepare("session", data(), Options(), HOME), "txt").startswith("Summary\nEnvironment\nPrompt 1")
     finally:
         FORMATS.pop("txt")
+
+
+def test_rows_name_the_app_a_prompt_was_typed_in():
+    from gitprompt.export.build import fact_columns, tool
+
+    desktop = {"id": "desktop", "name": "Desktop app", "icon": "app-window"}
+    facts = {"connector": {"id": "claude-code", "label": "Claude Code"}, "surface": desktop}
+    assert tool(facts) == "Claude Code (Desktop app)" and fact_columns(facts)["surface"] == "desktop"
+    assert tool({"connector": {"label": "Codex"}, "surface": None}) == "Codex"

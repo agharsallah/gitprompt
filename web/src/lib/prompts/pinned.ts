@@ -23,7 +23,7 @@ export const HAS_LABELS: Record<Has, string> = {
 	no_follow_up: 'No follow-up'
 };
 
-export type Lists = { model: string[]; outcome: TurnOutcome[]; has: Has[] };
+export type Lists = { model: string[]; surface: string[]; outcome: TurnOutcome[]; has: Has[] };
 export type Pin = { key: string; value: string; label: string };
 
 const instant = (iso: string) =>
@@ -60,6 +60,7 @@ export function pins(filters: Filters, lists: Lists): Pin[] {
 		if (value) out.push({ key, value, label: label(value) });
 	}
 	for (const m of lists.model) out.push({ key: 'model', value: m, label: modelName(m) });
+	for (const s of lists.surface) out.push({ key: 'surface', value: s, label: `Typed in ${s}` });
 	for (const o of lists.outcome)
 		out.push({ key: 'outcome', value: o, label: TURN_OUTCOMES[o]?.label ?? o });
 	for (const h of lists.has) out.push({ key: 'has', value: h, label: HAS_LABELS[h] ?? h });

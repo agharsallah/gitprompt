@@ -1,6 +1,6 @@
 /**
  * The Overview's filters, kept in its URL so a view can be linked: time range (`range`), origins
- * (`origin`, repeated), source, project (`repo`) and model. Turned into the daemon's query, and into
+ * (`origin`, repeated), source, app (`surface`), project (`repo`) and model. Turned into the daemon's query, and into
  * links to the Prompts page with the same filters (every chart is a doorway). Pure, tested in
  * filters.test.ts.
  */
@@ -16,12 +16,14 @@ export type InsightFilters = {
 	/** The origins shown; empty = every origin. */
 	origins: Origin[];
 	source?: string;
+	/** Where prompts were typed (a Surface id). */
+	surface?: string;
 	repo?: string;
 	model?: string;
 };
 
 /** The single-valued filters the bar offers besides range and origin, in the order shown. */
-export const DIMENSIONS = ['source', 'repo', 'model'] as const;
+export const DIMENSIONS = ['source', 'surface', 'repo', 'model'] as const;
 export type Dimension = (typeof DIMENSIONS)[number];
 
 /**
@@ -31,6 +33,9 @@ export type Dimension = (typeof DIMENSIONS)[number];
  */
 export const FACETS = {
 	source: { label: 'Tool', any: 'Every tool', name: (key: string) => key },
+	// Where the prompt was typed: the daemon names each app (`detail`); prompts whose tool doesn't
+	// say have no surface and are only counted under "Every app".
+	surface: { label: 'App', any: 'Every app', name: (key: string) => key },
 	repo: { label: 'Project', any: 'Every project', name: (key: string) => folder(key) ?? key },
 	model: { label: 'Model', any: 'Every model', name: modelName },
 	outcome: {
@@ -83,6 +88,7 @@ export function toQuery(filters: InsightFilters, now: number): StatsQuery {
 		since: start?.toISOString(),
 		origin: isAll(filters.origins) ? [] : filters.origins,
 		source: filters.source,
+		surface: filters.surface ? [filters.surface] : [],
 		repo: filters.repo,
 		model: filters.model ? [filters.model] : []
 	};

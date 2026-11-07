@@ -20,7 +20,7 @@
 	export const isQuick = (value: string): value is Quick => value in QUICK;
 
 	/** The filters offered as selects on the Prompts page, in the order shown. */
-	export const PROMPT_FACETS = ['source', 'model', 'outcome', 'repo'] as const;
+	export const PROMPT_FACETS = ['source', 'surface', 'model', 'outcome', 'repo'] as const;
 </script>
 
 <script lang="ts">
@@ -67,6 +67,7 @@
 	const facetValues = $derived({
 		source: filters.source ?? '',
 		repo: filters.repo ?? '',
+		surface: single(lists.surface),
 		model: single(lists.model),
 		outcome: single(lists.outcome)
 	});

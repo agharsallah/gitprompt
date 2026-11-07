@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pins, unpin } from '#lib/prompts/pinned.ts';
 
-const none = { model: [], outcome: [], has: [] };
+const none = { model: [], surface: [], outcome: [], has: [] };
 
 describe('pins', () => {
 	it('labels each doorway filter', () => {
@@ -14,7 +14,7 @@ describe('pins', () => {
 				size: '00020',
 				command: '/review'
 			},
-			{ model: ['claude-opus-5-5'], outcome: ['superseded'], has: ['commit'] }
+			{ model: ['claude-opus-5-5'], surface: [], outcome: ['superseded'], has: ['commit'] }
 		).map((p) => p.label);
 		expect(labels).toEqual([
 			'app',

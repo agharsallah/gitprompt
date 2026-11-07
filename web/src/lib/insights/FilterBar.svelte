@@ -9,7 +9,7 @@
 	import { originFilter, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
 
 	/**
-	 * The Overview's filters in one row above the charts: time range, origins, tool, project and
+	 * The Overview's filters in one row above the charts: time range, origins, tool, app, project and
 	 * model. A plain GET form, so the URL holds the view (linkable) and the page's load refetches.
 	 * Each choice is counted without its own filter.
 	 */
@@ -58,7 +58,12 @@
 	<OriginChips origins={filters.origins} {counts} onchange={changeOrigins} />
 	<FacetSelects
 		facets={DIMENSIONS}
-		values={{ source: filters.source, repo: filters.repo, model: filters.model }}
+		values={{
+			source: filters.source,
+			surface: filters.surface,
+			repo: filters.repo,
+			model: filters.model
+		}}
 		{options}
 		onchange={submit}
 	/>

@@ -36,7 +36,11 @@
 <PageHeader {title} {actions}>
 	{#snippet description()}
 		<p class="where">
-			{#if story.connector}<ConnectorBadge connector={story.connector} size="md" />{/if}
+			{#if story.connector}<ConnectorBadge
+					connector={story.connector}
+					surface={story.surface}
+					size="md"
+				/>{/if}
 			{#each models as m (m)}<Badge tone="agent" icon={Bot} title="Model: {m}">{modelName(m)}</Badge
 				>{/each}
 			{#if story.project}

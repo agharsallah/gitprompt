@@ -170,6 +170,18 @@ export type Connector = {
 	assistant: string;
 };
 
+/**
+ * Where a prompt was typed: the app or client of its tool (insights/surface.py, ADR-0022). `icon`
+ * is a name from the spec, drawn by lib/prompts/surface.ts.
+ */
+export type Surface = {
+	/** e.g. "desktop", "vscode", "cli" */
+	id: string;
+	/** e.g. "Desktop app" */
+	name: string;
+	icon: string;
+};
+
 /** Tokens of a turn's model calls (input without cached ones; reasoning is part of output). */
 export type TurnTokens = {
 	input: number;
@@ -187,6 +199,8 @@ export type TurnTokens = {
  */
 export type Facts = {
 	connector: Connector;
+	/** null: the tool doesn't say where the prompt was typed (never guessed). */
+	surface?: Surface | null;
 	model: string | null;
 	models: string[];
 	/** usage: from model calls; hook: the model the tool's hooks reported. */
@@ -281,6 +295,10 @@ export type Source = {
 	needs_version?: Partial<Record<Capability, string>>;
 	/** How its events find their prompt: by the tool's prompt id, or the latest prompt of the session. */
 	join: 'prompt_id' | 'session';
+	/** The apps whose prompts reach this connector, and how they are told apart (spec `captures`). */
+	captures?: (Surface & { note: string })[];
+	/** Apps of the tool this connector can't capture -> why (spec `cannot_capture`). */
+	cannot_capture?: Record<string, string>;
 	/** The spec file in use. */
 	spec: SpecFile;
 	/** The user's override of this spec is broken, so the bundled one is used. */
@@ -390,13 +408,15 @@ export const FILTER_KEYS = [
 export type Filters = Partial<Record<(typeof FILTER_KEYS)[number], string>>;
 
 /** The multi-valued filters. */
-export const LIST_KEYS = ['origin', 'model', 'outcome', 'has'] as const;
+export const LIST_KEYS = ['origin', 'model', 'surface', 'outcome', 'has'] as const;
 
 /** Every filter GET /api/prompts and GET /api/stats accept. Empty lists mean "any". */
 export type PromptQuery = Omit<Filters, 'session'> & {
 	session?: string | string[];
 	origin?: Origin[];
 	model?: string[];
+	/** Typed in one of these apps (Surface ids). */
+	surface?: string[];
 	outcome?: TurnOutcome[];
 	has?: Has[];
 };
@@ -410,6 +430,7 @@ export type GroupBy =
 	| 'weekday_hour' // "1-09"
 	| 'origin'
 	| 'source'
+	| 'surface' // where it was typed; detail: its name
 	| 'session' // detail: title or first prompt; span_s
 	| 'session_length' // key: lower bound in seconds, zero-padded
 	| 'repo' // detail: owner/name of the remote
@@ -546,6 +567,8 @@ export type SessionStory = {
 	source: string | null;
 	/** The tool of the session. */
 	connector: Connector | null;
+	/** Where its prompts were typed, when the tool says. */
+	surface?: Surface | null;
 	/** Prompts per main model. */
 	models: Record<string, number>;
 	project: StoryProject | null;
@@ -661,3 +684,24 @@ export type SearchHit = {
 };
 
 export type SearchResults = { total: number; hits: SearchHit[] };
+
+/** GET /api/sources/recent: the newest prompt of one connector and surface (insights/captures.py). */
+export type RecentCapture = {
+	id: number;
+	connector: Connector;
+	surface: Surface | null;
+	received_at: string;
+	session: string | null;
+	title: string | null;
+	/** The main repository (also from a worktree), else the working directory. */
+	project: { repo: string; name: string } | null;
+	branch: string | null;
+	/** The linked worktree the prompt ran in. */
+	worktree: string | null;
+	model: string | null;
+	origin: Origin;
+	/** Prompts of this connector and surface. */
+	prompts: number;
+	/** What the surface rules read, e.g. { "app.entrypoint": "cli" }. */
+	signals: Record<string, unknown>;
+};

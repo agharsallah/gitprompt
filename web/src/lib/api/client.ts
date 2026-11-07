@@ -11,6 +11,7 @@ import type {
 	SearchResults,
 	SessionStory,
 	Source,
+	RecentCapture,
 	SpecProblem,
 	SpecText,
 	Stats,
@@ -91,6 +92,7 @@ export const api = {
 	remap: (id: string) => write<Updated>(`${source(id)}/remap`, 'POST'),
 	/** Spec files that can't be used, with their error. */
 	specProblems: (fetcher?: Fetch) => get<SpecProblem[]>('/api/sources/problems', fetcher),
+	recentCaptures: (fetcher?: Fetch) => get<RecentCapture[]>('/api/sources/recent', fetcher),
 	/** The YAML file a connector's spec was read from. */
 	spec: (id: string) => get<SpecText>(`${source(id)}/spec`),
 	/** Turn a connector on or off in GitPrompt (off: what it sends is discarded). */

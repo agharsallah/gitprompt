@@ -20,7 +20,7 @@ import type { PageLoad } from './$types';
 // when one of them changes, and not when a prompt is selected (?id=) or a quick filter (?show=)
 // is toggled: those are handled in the page component.
 //
-// Model, outcome and has can repeat (links from the Overview set them).
+// Model, surface, outcome and has can repeat (links from the Overview set them).
 //
 // Origins: the URL's `origin` values when it has some, else the remembered choice (default: what
 // you typed and slash commands). The daemon itself shows every origin when none is sent.
@@ -34,6 +34,7 @@ export const load: PageLoad = ({ fetch, url }) => {
 	}
 	const lists = {
 		model: url.searchParams.getAll('model'),
+		surface: url.searchParams.getAll('surface'),
 		outcome: url.searchParams.getAll('outcome') as TurnOutcome[],
 		has: url.searchParams.getAll('has') as Has[]
 	};

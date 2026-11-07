@@ -40,7 +40,7 @@
 </script>
 
 <span class="facts">
-	{#if tool}<ConnectorBadge connector={turn.facts.connector} />{/if}
+	{#if tool}<ConnectorBadge connector={turn.facts.connector} surface={turn.facts.surface} />{/if}
 	{#if turn.response_s != null}
 		<span class="fact" title="Time until the tool finished"
 			><Timer size={13} aria-hidden="true" /><span class="sr-only">Worked for </span>{duration(

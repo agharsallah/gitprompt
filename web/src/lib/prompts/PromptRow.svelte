@@ -49,7 +49,7 @@
 	<span class="body">
 		<span class="meta">
 			<time datetime={prompt.received_at}>{timeOfDay(prompt.received_at)}</time>
-			<ConnectorBadge connector={prompt.facts.connector} />
+			<ConnectorBadge connector={prompt.facts.connector} surface={prompt.facts.surface} />
 			{#if showProject}
 				<span class="project truncate">{project.name}</span>
 			{/if}

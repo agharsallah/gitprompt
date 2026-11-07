@@ -29,10 +29,11 @@ describe('readFilters', () => {
 
 describe('toQuery', () => {
 	it('turns the range into an instant and the model into a list', () => {
-		expect(toQuery(read('model=opus'), NOW)).toEqual({
+		expect(toQuery(read('model=opus&surface=desktop'), NOW)).toEqual({
 			since: '2026-10-31T12:00:00.000Z',
 			origin: ['typed', 'slash_command'],
 			source: undefined,
+			surface: ['desktop'],
 			repo: undefined,
 			model: ['opus']
 		});
