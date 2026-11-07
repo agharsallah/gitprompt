@@ -8,7 +8,6 @@ groupings; for `model`, `tool` and `tool_kind` it counts in every group it touch
 
 import sqlite3
 from dataclasses import dataclass, field
-from itertools import groupby
 from typing import Any, Literal
 
 from gitprompt.storage.store import INDEXED, where
@@ -83,28 +82,22 @@ def _measures(group: Group | None) -> str:
 def aggregate(db: sqlite3.Connection, group_by: str | None = None, limit: int = 1000, **filters: Any) -> dict[str, Any]:
     """{totals, groups} for the prompts the filters keep. `groups` is empty without `group_by`."""
     sql, params = where(**filters)
-    base = f"from {INDEXED}"
-    totals = dict(db.execute(f"select {_measures(None)} {base} where {sql}", params).fetchone())
-    totals |= _quantiles(db, None, base, sql, params).get(None, dict.fromkeys(QUANTILES))
-    groups: list[dict[str, Any]] = []
-    if group_by:
-        group = GROUPS[group_by]
-        order = "key" if group.by_key else "prompts desc, key"
-        rows = db.execute(
-            f"select {group.key} key, {_measures(group)} {base} {group.join} where {sql} group by key order by {order} limit ?",
-            [*params, limit],
-        )
-        quantiles = _quantiles(db, group, base, sql, params)
-        groups = [dict(r) | quantiles.get(r["key"], dict.fromkeys(QUANTILES)) for r in rows]
-    return {"totals": totals | {"key": None}, "groups": groups}
+    measures = f"{_measures(None)}, {TIMES}"
+    totals = _bucket(db.execute(f"select null key, {measures} from {INDEXED} where {sql}", params).fetchone())
+    if not group_by:
+        return {"totals": totals, "groups": []}
+    group = GROUPS[group_by]
+    order = "key" if group.by_key else "prompts desc, key"
+    select = f"select {group.key} key, {_measures(group)}, {TIMES} from {INDEXED} {group.join}"
+    rows = db.execute(f"{select} where {sql} group by key order by {order} limit ?", [*params, limit])
+    return {"totals": totals, "groups": [_bucket(r) for r in rows]}
 
 
-def _quantiles(db: sqlite3.Connection, group: Group | None, base: str, sql: str, params: list) -> dict[Any, dict[str, float | None]]:
-    """Response-time quantiles per group key (one key, None, without a group)."""
-    key, join = (group.key, group.join) if group else ("null", "")
-    rows = db.execute(f"select {key} key, i.response_s r {base} {join} where {sql} and i.response_s is not null order by key, r", params)
-    out = {}
-    for k, values in groupby(rows, key=lambda r: r[0]):
-        times = [r[1] for r in values]
-        out[k] = {name: quantile(times, q) for name, q in QUANTILES.items()}
-    return out
+# The response times of a bucket, in one string: parsing it is faster than fetching a row per prompt.
+TIMES = "group_concat(i.response_s) times"
+
+
+def _bucket(row: sqlite3.Row) -> dict[str, Any]:
+    out = dict(row)
+    times = sorted(map(float, out.pop("times").split(","))) if out["times"] else []
+    return out | {name: quantile(times, q) for name, q in QUANTILES.items()}

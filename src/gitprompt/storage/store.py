@@ -13,6 +13,23 @@ from typing import Any, Literal
 
 from gitprompt.storage.index import PromptIndex
 
+
+def _session(alias: str = "") -> str:
+    """A prompt's session key (no session = ''): the expression of the prompt_session index."""
+    return f"coalesce(json_extract({alias}fields, '$.session_id'), '')"
+
+
+# Prompts with their turn number and neighbours in their session; `{scope}` limits which prompts
+# are numbered (Store._view numbers only the sessions it needs).
+VIEW = f"""
+select p.*, coalesce(a.data, '{{}}') annotation,
+       row_number() over w turn,
+       lag(p.received_at) over w prev_at,
+       lead(json_extract(p.context, '$.git_head')) over w next_head
+from prompt p left join annotation a on a.id = p.id
+where {{scope}}
+window w as (partition by p.source, {_session("p.")} order by p.id)"""
+
 SCHEMA = """
 create table if not exists prompt (
   id          integer primary key,
@@ -44,24 +61,19 @@ create index if not exists event_session on event (session_id);
 -- The user's own notes on a prompt: {starred, rating, tags, note}.
 create table if not exists annotation (id integer primary key, data text not null);
 
+create index if not exists prompt_session on prompt (source, {session});
 drop view if exists prompt_view;
-create view prompt_view as
-select p.*, coalesce(a.data, '{}') annotation,
-       row_number() over w turn,
-       lag(p.received_at) over w prev_at,
-       lead(json_extract(p.context, '$.git_head')) over w next_head
-from prompt p left join annotation a on a.id = p.id
-window w as (partition by p.source, json_extract(p.fields, '$.session_id') order by p.id);
-"""
+create view prompt_view as {view};
+""".replace("{session}", _session()).replace("{view}", VIEW.replace("{scope}", "1=1"))
 
 JSON_COLUMNS = ("fields", "context", "raw", "annotation")
 CHUNK = 500  # values per `in (...)` query
 
-# Prompts as filters see them: the index `i` with the user's annotation `a`.
-INDEXED = "prompt_index i left join annotation a on a.id = i.id"
+# Prompts as filters see them.
+INDEXED = "prompt_index i"
 
 # Prompt filters, shared by the prompt list and statistics: query parameter -> SQL condition on the
-# prompt index `i` (storage/index.py) and the annotation `a`, with one `?` for the value. A list value
+# prompt index `i` (storage/index.py), with one `?` for the value. A list value
 # is passed as a JSON array (read it with json_each); a function builds a condition from the value.
 # To add a filter, add a line here and the matching field in api/filters.py.
 Filter = str | Callable[[Any], tuple[str, list[Any]]]
@@ -76,7 +88,7 @@ def _words(q: str) -> tuple[str, list[Any]]:
     long, short = [w for w in words if len(w) >= TRIGRAM], [w for w in words if len(w) < TRIGRAM]
     conditions = ["i.id in (select rowid from prompt_fts where prompt_fts match ?)"] if long else []
     params: list[Any] = [" ".join('"' + w.replace('"', '""') + '"' for w in long)] if long else []
-    conditions += ["i.typed_text like '%' || ? || '%'"] * len(short)
+    conditions += ["i.id in (select rowid from prompt_fts where typed_text like '%' || ? || '%')"] * len(short)
     return " and ".join(conditions) or "1=1", params + short
 
 
@@ -90,8 +102,8 @@ FILTERS: dict[str, Filter] = {
     "since": "i.received_at >= ?",  # ISO-8601 UTC, see api/filters.py
     "until": "i.received_at < ?",
     "before": "i.id < ?",  # paging cursor: prompts older than this id
-    "tag": "exists (select 1 from json_each(a.data, '$.tags') where value = ?)",
-    "starred": "json_extract(a.data, '$.starred') = ?",
+    "tag": "i.id in (select a.id from annotation a, json_each(a.data, '$.tags') t where t.value = ?)",
+    "starred": "i.id in (select id from annotation where json_extract(data, '$.starred') = ?)",
 }
 EMPTY_FILTER = (None, "", False, [], ())
 
@@ -169,10 +181,13 @@ class Store:
         return self._view(ids)
 
     def _view(self, ids: list[int]) -> list[dict]:
-        """prompt_view rows (turn number, neighbours) of these prompts, in the order given."""
+        """prompt_view rows (turn number, neighbours) of these prompts, in the order given. Only their
+        sessions are numbered (found through the prompt_session index), not every stored prompt."""
         if not ids:
             return []
-        rows = self.db.execute(f"select * from prompt_view where id in ({','.join('?' * len(ids))})", ids)
+        marks = ",".join("?" * len(ids))
+        scope = f"(p.source, {_session('p.')}) in (select source, {_session()} from prompt where id in ({marks}))"
+        rows = self.db.execute(f"select * from ({VIEW.replace('{scope}', scope)}) where id in ({marks})", [*ids, *ids])
         by_id = {r["id"]: _row(r) for r in rows}
         return [by_id[i] for i in ids if i in by_id]
 
@@ -195,8 +210,7 @@ class Store:
         return out
 
     def get(self, id: int) -> dict | None:
-        row = self.db.execute("select * from prompt_view where id = ?", (id,)).fetchone()
-        return _row(row) if row else None
+        return next(iter(self._view([id])), None)
 
     def events_for_prompts(self, prompt_ids: list[str]) -> list[dict]:
         return self._events("prompt_id", prompt_ids)

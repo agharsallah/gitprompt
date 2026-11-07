@@ -47,7 +47,9 @@ def add_event(store: Store, event: str, pid: str, at: str = "2026-11-03T10:00:30
 
 
 def indexed(store: Store, id: int) -> dict:
-    return dict(store.db.execute("select * from prompt_index where id = ?", (id,)).fetchone())
+    row = dict(store.db.execute("select * from prompt_index where id = ?", (id,)).fetchone())
+    text = store.db.execute("select typed_text from prompt_fts where rowid = ?", (id,)).fetchone()
+    return row | {"typed_text": text and text[0]}
 
 
 def test_the_index_stores_what_the_api_derives(store, index, berlin):
@@ -168,3 +170,14 @@ def test_reindex_command(settings, store, capsys):
     add_prompt(store, "Fix it", "p1")
     cli.reindex(settings, Namespace())
     assert "Indexed 1 prompts" in capsys.readouterr().out
+
+
+def test_turn_numbers_count_only_the_prompt_session(store, index):
+    first = add_prompt(store, "One", "p1", session="a")
+    add_prompt(store, "Other session", "p2", session="b")
+    second = add_prompt(store, "Two", "p3", session="a")
+    lone = [add_prompt(store, f"No session {i}", f"n{i}", session=None) for i in range(2)]
+    index.ensure()
+    assert store.get(second)["turn"] == 2 and store.get(second)["prev_at"] == store.get(first)["received_at"]
+    assert store.get(first)["next_head"] is None and [store.get(i)["turn"] for i in lone] == [1, 2]
+    assert [r["turn"] for r in store.search(session="a")] == [2, 1]

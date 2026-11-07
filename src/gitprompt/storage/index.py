@@ -15,10 +15,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-# The order of the prompt_index columns, as Entry.row provides them.
+# The order of the prompt_index columns, as Entry.row provides them. The typed text is only in
+# prompt_fts: keeping it out of prompt_index keeps its rows small, so aggregates scan fewer pages.
 COLUMNS = (
     "id", "prompt_id", "source", "session", "repo", "received_at", "day", "hour", "weekday",
-    "origin", "typed_text", "chars", "slash_command",
+    "origin", "chars", "slash_command",
     "api_requests", "cost_usd", "input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens",
     "response_s", "ended_by", "tool_calls", "tool_failures",
 )  # fmt: skip
@@ -38,8 +39,7 @@ create table if not exists prompt_index (
   hour          integer not null,      -- local hour, 0-23
   weekday       integer not null,      -- local ISO weekday, 1 = Monday
   origin        text not null,
-  typed_text    text,
-  chars         integer not null,      -- size of the typed text
+  chars         integer not null,      -- size of the typed text (the text itself is in prompt_fts)
   slash_command text,
   api_requests  integer not null,
   cost_usd      real not null,
@@ -80,7 +80,7 @@ TABLES = ("index_meta", "index_dirty", "prompt_index", "prompt_index_model", "pr
 class Entry:
     """Everything the index stores about one prompt."""
 
-    row: dict[str, Any]  # COLUMNS
+    row: dict[str, Any]  # COLUMNS, and typed_text for prompt_fts
     models: list[dict[str, Any]] = field(default_factory=list)  # {model, *USAGE}
     tools: list[tuple[str | None, str, int]] = field(default_factory=list)  # (tool, kind, calls)
 
