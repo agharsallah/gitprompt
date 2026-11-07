@@ -11,7 +11,7 @@ them. Each file holds:
               origin      prompts: who produced the text (insights/origin.py)
               typed_text  prompts, optional: the text with injected context removed
               turn        events: the fixture of the prompt it joins (by prompt_id or by the
-                          spec's `join` fallback), or null for none
+                          spec's `join` fallback), or null when it joins no prompt
 
 To add a connector: its YAML spec, then a folder here named after its id.
 """
@@ -80,5 +80,9 @@ def test_connector_conforms(tool, settings, monkeypatch):
                 assert derived["typed_text"] == expect["typed_text"], name
         else:
             turn = expect["turn"]
-            want = stored[turn]["fields"]["prompt_id"] if turn else None
-            assert row["prompt_id"] == want, f"{name}: joined {row['prompt_id']!r}, expected the turn of {turn}"
+            if turn:
+                want = stored[turn]["fields"]["prompt_id"]
+                assert row["prompt_id"] == want, f"{name}: joined {row['prompt_id']!r}, expected the turn of {turn}"
+            else:
+                prompts = {r["fields"]["prompt_id"] for r in stored.values() if "prompt" in r and r["fields"].get("prompt_id")}
+                assert row["prompt_id"] not in prompts, f"{name}: joined {row['prompt_id']!r}, expected no prompt"

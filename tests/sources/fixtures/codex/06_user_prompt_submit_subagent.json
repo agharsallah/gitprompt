@@ -1,5 +1,5 @@
 {
-  "about": "UserPromptSubmit inside a subagent thread: the optional agent_id/agent_type are set, so the prompt was written by the model (shared origin rule). Synthetic values (https://learn.chatgpt.com/docs/hooks).",
+  "about": "UserPromptSubmit with the optional agent_id/agent_type of the 0.150.1 input schema: a prompt inside a subagent thread, written by the model (shared origin rule). Not seen live: a spawned subagent fired no UserPromptSubmit. Synthetic values (https://learn.chatgpt.com/docs/hooks).",
   "payload": {
     "session_id": "0190a1b2-0000-7000-8000-000000000001",
     "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",

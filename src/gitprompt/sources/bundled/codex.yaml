@@ -65,7 +65,9 @@ after_connect: >-
 prompt_events: [UserPromptSubmit]
 
 # What this connector yields (docs/sources.md "Capabilities per tool"). Every hook payload carries
-# the model. Not available: tokens and cost (Codex's OpenTelemetry export, not connected: see
+# the model. Subagents: their SubagentStart, tool calls and SubagentStop carry the subagent's own
+# turn_id (seen live with 0.150.1), not the parent's, and fire no UserPromptSubmit, so they are
+# stored with the session but join no prompt. Not available: tokens and cost (Codex's OpenTelemetry export, not connected: see
 # docs/adr/0019-codex-connector.md), and per-session metrics.
 capabilities: [prompt, cwd, model, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
 
@@ -78,13 +80,16 @@ map:
 
 # What each tool does (insights/derivations.py). Hook payloads name the shell tool `Bash` (the
 # command is `tool_input.command`), file edits `apply_patch` (the patch text is `tool_input.command`),
-# MCP tools `mcp__<server>__<tool>` and other local tools by their function name (seen live:
-# Bash, apply_patch). Hosted tools such as web search fire no tool hooks.
+# MCP tools `mcp__<server>__<tool>` and other local tools by their function name. Seen live with
+# 0.150.1: Bash, apply_patch, and the subagent tools as namespace + name with no separator
+# (collaborationspawn_agent, collaborationwait_agent; the docs say spawn_agent). Hosted tools such
+# as web search fire no tool hooks.
 tool_kinds:
   Bash: shell
   apply_patch: write
   view_image: read
   spawn_agent: agent
+  "collaboration*": agent
   "mcp__*": mcp
 
 # apply_patch names its files inside the patch: "*** Add File: <path>", "*** Update File: <path>",
