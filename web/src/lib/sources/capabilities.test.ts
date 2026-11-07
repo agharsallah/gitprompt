@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { availability, names, note, toolCapabilities } from '#lib/sources/capabilities.ts';
+import {
+	assistantOf,
+	availability,
+	names,
+	note,
+	toolCapabilities,
+	toolOf
+} from '#lib/sources/capabilities.ts';
 import { tools } from '#lib/sources/state.ts';
 import { source } from '#lib/testing/builders.ts';
 
@@ -78,5 +85,25 @@ describe('names', () => {
 			'A and B',
 			'A, B and C'
 		]);
+	});
+});
+
+describe('toolOf', () => {
+	it('finds the tool of any of its layers, and who answers in it', () => {
+		const sources = [hooks(), telemetry(), copilot({ assistant: '' })];
+		expect(toolOf(sources, 'claude-code-otel')?.id).toBe('claude-code');
+		expect(assistantOf(toolOf(sources, 'claude-code'))).toBe('Claude');
+		expect(assistantOf(toolOf(sources, 'copilot-cli'))).toBe('Agent');
+		expect(assistantOf(toolOf(sources, 'gone'))).toBe('Agent');
+	});
+
+	it('says usage is not available for a tool without a layer that reports it', () => {
+		const codex = source({
+			id: 'codex',
+			name: 'OpenAI Codex CLI',
+			capabilities: ['prompt', 'model']
+		});
+		const tool = toolOf([hooks(), telemetry(), codex], 'codex')!;
+		expect(note(availability(tool.layers, 'usage'))).toBe('Not available for OpenAI Codex CLI.');
 	});
 });

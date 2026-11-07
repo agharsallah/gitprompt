@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Prompt } from '#lib/api/types.ts';
 	import { cacheShare, tokensOf, tokenTotal } from '#lib/insights/aggregate.ts';
 	import {
@@ -15,9 +14,15 @@
 	import Meter from '#lib/ui/charts/Meter.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
+	import NotAvailable from '#lib/insights/panels/NotAvailable.svelte';
+	import type { Availability } from '#lib/sources/capabilities.ts';
 
-	/** What the turn cost, from telemetry: tokens by kind, cache reuse, models, time in the API. */
-	let { prompt }: { prompt: Prompt } = $props();
+	/**
+	 * What the turn cost, from telemetry: tokens by kind, cache reuse, models, time in the API.
+	 * Without usage, `availability` (of the prompt's tool) says which layer would report it, or that
+	 * its tool can't.
+	 */
+	let { prompt, availability }: { prompt: Prompt; availability?: Availability } = $props();
 
 	const s = $derived(prompt.summary);
 	const tokens = $derived(tokensOf(prompt));
@@ -30,11 +35,9 @@
 </script>
 
 {#if !s.api_requests}
-	<Callout tone="info" title="No usage for this prompt">
-		Model, tokens and cost come from Claude Code's telemetry. Connect
-		<a href={resolve('/sources')}>Claude Code telemetry</a> on the Connectors page; it applies to sessions
-		started afterwards.
-	</Callout>
+	{#if availability}
+		<NotAvailable what="tokens and cost" {availability} />
+	{/if}
 {:else}
 	<div class="usage">
 		<dl class="figures">

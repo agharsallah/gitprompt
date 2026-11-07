@@ -9,9 +9,10 @@
 		TextCursorInput,
 		X
 	} from '@lucide/svelte';
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { api } from '#lib/api/client.ts';
-	import type { Annotation, PromptDetail } from '#lib/api/types.ts';
+	import type { Annotation, PromptDetail, Source } from '#lib/api/types.ts';
 	import { tokensOf, tokenTotal } from '#lib/insights/aggregate.ts';
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
@@ -36,6 +37,7 @@
 	import SessionPanel from '#lib/prompts/SessionPanel.svelte';
 	import TurnTimeline from '#lib/prompts/TurnTimeline.svelte';
 	import UsagePanel from '#lib/prompts/UsagePanel.svelte';
+	import { assistantOf, availability, toolOf } from '#lib/sources/capabilities.ts';
 	import { projectId } from '#lib/stories/story.ts';
 	import VersionsPanel from '#lib/stories/VersionsPanel.svelte';
 
@@ -50,9 +52,17 @@
 		onchange
 	}: { prompt: PromptDetail; outcome: Outcome; closeHref: string; onchange: () => void } = $props();
 
-	/** Who answers, by source; anything else is "Agent". */
-	const AGENTS: Record<string, string> = { 'claude-code': 'Claude' };
-	const agent = $derived(AGENTS[prompt.source] ?? 'Agent');
+	// The prompt's tool, from the connectors (spec data): who answers, and whether it can report usage.
+	let sources = $state<Source[]>([]);
+	onMount(() => {
+		api.sources().then(
+			(list) => (sources = list),
+			() => {} // the names fall back to "Agent"; nothing else depends on them
+		);
+	});
+	const tool = $derived(toolOf(sources, prompt.source));
+	const agent = $derived(assistantOf(tool));
+	const usage = $derived(tool && availability(tool.layers, 'usage'));
 
 	const s = $derived(prompt.summary);
 	const st = $derived(prompt.stats);
@@ -297,7 +307,7 @@
 			{#if id === 'activity'}
 				<ActivityPanel {prompt} />
 			{:else if id === 'usage'}
-				<UsagePanel {prompt} />
+				<UsagePanel {prompt} availability={usage} />
 			{:else if id === 'git'}
 				<GitPanel {prompt} />
 			{:else if id === 'session'}

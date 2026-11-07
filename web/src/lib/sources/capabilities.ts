@@ -69,6 +69,13 @@ export function availability(sources: Source[], capability: Capability): Availab
 	return out;
 }
 
+/** The tool a connector (a prompt's `source`) belongs to, with all its layers. */
+export const toolOf = (sources: Source[], source: string): Tool | undefined =>
+	tools(sources).find((t) => t.layers.some((l) => l.id === source));
+
+/** Who answers in a tool, e.g. "Claude" (its main connector's `assistant`), else "Agent". */
+export const assistantOf = (tool: Tool | undefined) => tool?.layers[0].assistant || 'Agent';
+
 /** "A", "A and B", "A, B and C". */
 export const names = (list: string[]) =>
 	list.length < 2 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
