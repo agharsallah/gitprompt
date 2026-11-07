@@ -215,26 +215,31 @@ Every key path Codex sent in the live runs (0.150.1 and 0.167.0, a scratch datab
 | Field (events) | Sent | Captured as | Shown | Why not / note |
 |---|---|---|---|---|
 | `session_id`, `cwd`, `transcript_path`, `hook_event_name` (all) | 0.150.1 | mapped | sessions, projects, Events/Raw tabs | transcript stored, never read |
-| `model` (all but SessionEnd) | 0.150.1 | mapped | model chip, models panel, filter | |
+| `model` (all but SessionEnd) | 0.150.1 | mapped; `facts.model` when no model call reports one | model badge on every row, detail, story and search hit; models panel; Model filter | |
 | `turn_id` (turn events) | 0.150.1 | `prompt_id` | joins events to their prompt | subagent events carry their own |
 | `permission_mode` (turn events, SessionStart) | 0.150.1 | mapped (`_defaults.yaml`) | prompt header badge | |
 | `prompt` (UserPromptSubmit) | 0.150.1 | mapped, typed text, origin | everywhere | `<stdin>` block removed |
 | `tool_name`, `tool_use_id`, `tool_input` (PostToolUse) | 0.150.1 | mapped, tool kinds, files from patches | Activity tab, timeline, tool panels | |
-| `tool_response` (PostToolUse) | 0.150.1 | raw | Events tab | **no exit code or duration**: Bash sends the output only (a failed command too); `apply_patch` text says `Exit code`/`Wall time`, too thin to use |
-| `last_assistant_message`, `stop_hook_active` (Stop) | 0.150.1 | `response` | the answer | |
+| `tool_response` (PostToolUse) | 0.150.1 | raw; `ignored` (`_defaults.yaml`) | Events tab | **no exit code or duration**: Bash sends the output only (a failed command too); `apply_patch` text says `Exit code`/`Wall time`, too thin to use |
+| `tool_input.task_name`, `tool_input.message` (spawn_agent) | 0.150.1 | **`summary.subagent_tasks`**, story markers | Activity tab, session story | |
+| `last_assistant_message` (Stop) | 0.150.1 | `response`, `facts.answered` | the answer | |
+| `stop_hook_active` (Stop, SubagentStop) | 0.150.1 | raw; `ignored` | Events tab | says whether another Stop hook made the agent go on, nothing about the turn |
 | `source` (SessionStart) | 0.150.1 (`startup`), 0.167.0 (`resume`) | **`session.starts`** (new) | **Session tab: how it started, times taken up again** | `clear`, `compact`, `fork`: docs |
 | `reason` (SessionEnd) | 0.150.1 | `session.ended` | Session tab | always `other` |
 | Interrupt (event) | 0.167.0 (Ctrl-C on `codex exec`) | **ends the turn, outcome `interrupted`** (new) | **badges, filters, outcomes panel, mixes** | |
-| `status`, `error`, `token_usage.*` (PostModelRequest) | 0.167.0 | **`usage` mapping** (new): tokens, reasoning tokens, API errors | **Usage tab, prompt figures, models and spend panels** | ≥ 0.164; no cost, no duration |
+| `status`, `error`, `token_usage.*` (PostModelRequest) | 0.167.0 | **`usage` mapping**: tokens, reasoning tokens, API errors, **`summary.model_call_status`**; `facts.tokens` | **token count on every row, Usage tab, prompt figures, models and spend panels** | ≥ 0.164; no cost, no duration; a cancelled call (Ctrl-C) has `token_usage: null`, so the turn shows no tokens rather than 0; `token_usage.total_tokens` is `ignored` (GitPrompt adds the kinds up) |
 | `agent_id`, `agent_type` (Subagent*, PostToolUse) | 0.150.1 | mapped, origin | subagent counts, tool calls by subagents | |
-| `agent_transcript_path`, `last_assistant_message` (SubagentStop) | 0.150.1 | raw | Events tab | joins no prompt (own `turn_id`) |
-| `trigger` (PreCompact/PostCompact) | docs | raw | compactions count | manual vs auto not split: rare |
+| `last_assistant_message`, `agent_type` (SubagentStop) | 0.150.1 | **`session.subagent_results`** | Session tab | joins no prompt (own `turn_id`), so per session |
+| `agent_transcript_path` (SubagentStop) | 0.150.1 | raw; `ignored` | Events tab | GitPrompt never reads transcripts |
+| `trigger` (PreCompact/PostCompact) | docs | **`summary.compaction_triggers`** | Activity tab (auto or manual) | |
 | `agent_id`/`agent_type` (UserPromptSubmit, model requests) | docs | mapped | origin | not seen live |
 | PreModelRequest | docs | not subscribed | | repeats PostModelRequest without the outcome |
 | PreToolUse, PermissionRequest (`tool_input.description`) | docs | not subscribed | | decision points |
 | reasoning effort, sandbox mode, approval policy | config only | not captured | | in no hook payload; `config.toml` holds defaults (profiles and `-c` override them), OTel `codex.conversation_starts` has them |
 | `notify` payload (`type`, `thread-id`, `turn-id`, `cwd`, `input-messages`, `last-assistant-message`) | docs | not used | | one program per config, often the user's; Stop already has it |
 | OTel (`codex.turn_cost`, `codex.tool_result` duration and success, `codex.sse_event` tokens) | docs | not connected | | must be written into `config.toml`; every record has `user.email` (ADR-0019) |
+
+Every key above is either mapped, derived, shown or listed in the spec's `ignored` with its reason; `tests/sources/test_field_coverage.py` fails on a fixture key that is none of these ([ADR-0021](adr/0021-turn-facts-and-field-coverage.md)). The same holds for Claude Code (`tool_response`, `stop_hook_active` ignored) and Copilot CLI (`timestamp`, `tool_result`, `agent_name`, `custom_instructions` ignored; `error` of PostToolUseFailure becomes `summary.tool_errors`, ErrorOccurred's `error`, `error_context` and `recoverable` become `summary.errors`, SubagentStop's answer and `stop_reason` become `session.subagent_results`).
 
 **Should you upgrade?** Yes, if you want tokens for Codex: 0.164.0 or later (0.167.0 is the latest release, 2026-11-06) adds `PostModelRequest`, which GitPrompt already subscribes to; on 0.150.1 the pages say "Needs OpenAI Codex CLI 0.164.0 or later". After upgrading, trust the hooks again with `/hooks` if Codex asks.
 

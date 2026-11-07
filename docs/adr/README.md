@@ -25,3 +25,4 @@ Status values: `proposed` → `accepted` → (`superseded by NNNN`). 0008 is the
 | [0018](0018-export.md) | Export: one redaction pass, a neutral report, server-side renderers, files only | accepted |
 | [0019](0019-codex-connector.md) | Codex connector: hooks only, files from patches, assistant and after-connect steps | accepted |
 | [0020](0020-model-call-usage-and-version-capabilities.md) | Model-call usage from a spec `usage` block, capabilities by tool version, interrupted turns | accepted |
+| [0021](0021-turn-facts-and-field-coverage.md) | Turn facts computed once, `ignored` payload keys and a field-coverage test, a display contract, filters by tool, model and outcome | accepted |
