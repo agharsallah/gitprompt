@@ -5,7 +5,8 @@
 	import { resolve } from '$app/paths';
 	import { api } from '#lib/api/client.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
-	import type { PromptDetail as Detail, Prompt } from '#lib/api/types.ts';
+	import type { PromptDetail as Detail, Origin, Prompt } from '#lib/api/types.ts';
+	import { isAll } from '#lib/prompts/originFilter.svelte.ts';
 	import { outcome, supersededIds } from '#lib/insights/outcome.ts';
 	import { eventTime } from '#lib/insights/timeline.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
@@ -37,7 +38,20 @@
 		) as Record<Quick, number>
 	);
 	const superseded = $derived(supersededIds(data.prompts));
-	const filtered = $derived(Object.keys(data.filters).length > 0 || show.length > 0);
+	// Prompts the server-side filters keep over every page (counts from /api/stats): of any
+	// origin, and of the origins shown.
+	const counted = (keep: (o: Origin) => boolean) =>
+		Object.entries(data.originCounts)
+			.filter(([o]) => keep(o as Origin))
+			.reduce((n, [, count]) => n + (count ?? 0), 0);
+	const anyOrigin = $derived(counted(() => true));
+	const matching = $derived(counted((o) => isAll(data.origins) || data.origins.includes(o)));
+	// With no prompt of any origin and no other filter, this is a first run, not a filter miss.
+	const filtered = $derived(
+		Object.keys(data.filters).length > 0 ||
+			show.length > 0 ||
+			(!isAll(data.origins) && anyOrigin > 0)
+	);
 
 	/** This page's URL with some parameters changed (null removes one). */
 	function url(changes: Record<string, string | null>) {
@@ -96,13 +110,21 @@
 			title="Prompts"
 			description="Everything you asked, newest first. Prompts of one session share a line; select one to see how the turn went."
 		/>
-		<PromptFilters filters={data.filters} {show} {counts} />
+		<PromptFilters
+			filters={data.filters}
+			{show}
+			{counts}
+			origins={data.origins}
+			originCounts={data.originCounts}
+		/>
 
 		<p class="summary muted" aria-live="polite">
 			{#if show.length}
 				{plural(shown.length, 'prompt')} match, among the {data.prompts.length} loaded
-			{:else}
+			{:else if data.filters.before || data.prompts.length >= matching}
 				{plural(data.prompts.length, 'prompt')}{data.filters.before ? ', older ones' : ''}
+			{:else}
+				Newest {data.prompts.length} of {plural(matching, 'prompt')}
 			{/if}
 		</p>
 
@@ -111,7 +133,8 @@
 				<PromptList prompts={shown} {selectedId} {hrefFor} />
 			{:else if filtered}
 				<EmptyState title="No prompts match these filters">
-					Try fewer words, another tag, or <a href={resolve('/prompts')}>clear all filters</a>.
+					Try fewer words, another tag or more origins, or
+					<a href={resolve('/prompts')}>clear all filters</a>.
 				</EmptyState>
 			{:else}
 				<EmptyState title="No prompts yet">

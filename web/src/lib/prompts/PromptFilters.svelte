@@ -25,7 +25,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import type { Filters } from '#lib/api/types.ts';
+	import type { Filters, Origin } from '#lib/api/types.ts';
+	import { ORIGINS } from '#lib/prompts/origin.ts';
+	import { ALL_ORIGINS, originFilter, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
 	import { folder } from '#lib/shared/format.ts';
 	import Button from '#lib/ui/Button.svelte';
 	import Chip from '#lib/ui/Chip.svelte';
@@ -35,12 +37,18 @@
 	let {
 		filters,
 		show,
-		counts
+		counts,
+		origins,
+		originCounts
 	}: {
 		filters: Filters;
 		show: Quick[];
 		/** How many loaded prompts each quick filter keeps. */
 		counts: Record<Quick, number>;
+		/** The origins shown (none = every origin). */
+		origins: Origin[];
+		/** How many prompts of each origin the other filters keep (all pages). */
+		originCounts: Partial<Record<Origin, number>>;
 	} = $props();
 
 	const ICONS = { failed: CircleX, files: FilePen, commands: SquareTerminal, secrets: KeyRound };
@@ -66,6 +74,19 @@
 		!!(filters.q || filters.tag || filters.starred || pinned.length || show.length)
 	);
 	const submit = () => form.requestSubmit();
+
+	// Every origin you have prompts of, and any selected one: yours first, then system ones.
+	const shownOrigins = $derived(
+		ALL_ORIGINS.filter((o) => origins.includes(o) || (originCounts[o] ?? 0) > 0)
+	);
+	const yours = $derived(shownOrigins.filter((o) => !ORIGINS[o].system));
+	const system = $derived(shownOrigins.filter((o) => ORIGINS[o].system));
+
+	/** Remember the new choice for every prompt view, then load it. */
+	function changeOrigins() {
+		originFilter.set(parseOrigins(new FormData(form).getAll('origin').map(String)));
+		submit();
+	}
 </script>
 
 <!-- A plain GET form: filters live in the URL, so the page's load function does the fetching. -->
@@ -102,6 +123,28 @@
 		</div>
 		<Button type="submit" variant="secondary">Search</Button>
 	</div>
+
+	<fieldset class="toggles origins">
+		<legend class="sr-only">Who wrote the prompt</legend>
+		{#snippet originChip(o: Origin)}
+			<ToggleChip
+				name="origin"
+				value={o}
+				checked={origins.includes(o)}
+				icon={ORIGINS[o].icon}
+				count={originCounts[o] ?? 0}
+				title={ORIGINS[o].hint}
+				onchange={changeOrigins}
+			>
+				{ORIGINS[o].label}
+			</ToggleChip>
+		{/snippet}
+		{#each yours as o (o)}{@render originChip(o)}{/each}
+		{#if system.length}
+			<span class="group-label">System</span>
+			{#each system as o (o)}{@render originChip(o)}{/each}
+		{/if}
+	</fieldset>
 
 	<div class="toggles">
 		<ToggleChip
@@ -163,6 +206,22 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	fieldset {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		min-width: 0;
+	}
+
+	.group-label {
+		margin-left: var(--space-1);
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-medium);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
 	}
 
 	.clear {
