@@ -24,6 +24,9 @@ export function prompt(overrides: PromptOverrides = {}): Prompt {
 		source: 'claude-code',
 		received_at: '2026-11-05T10:00:00.000Z',
 		prompt: 'Fix the failing test',
+		origin: 'typed',
+		typed_text: 'prompt' in overrides ? (overrides.prompt ?? null) : 'Fix the failing test',
+		injected: [],
 		...overrides,
 		fields: {
 			session_id: 'session-a',

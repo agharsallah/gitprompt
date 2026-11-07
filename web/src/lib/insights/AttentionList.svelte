@@ -2,6 +2,7 @@
 	import { CircleX, KeyRound, ShieldOff, Wrench } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { Attention } from '#lib/insights/aggregate.ts';
+	import { typedText } from '#lib/prompts/origin.ts';
 	import { excerpt, integer } from '#lib/shared/format.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 
@@ -63,7 +64,7 @@
 						{row.label}
 					</p>
 					<a class="latest truncate" href="{resolve('/prompts')}?id={latest.id}"
-						>{excerpt(latest.prompt, 90) || row.hint}</a
+						>{excerpt(typedText(latest), 90) || row.hint}</a
 					>
 				</div>
 				{#if row.href}<a class="review" href={row.href}>Review</a>{/if}

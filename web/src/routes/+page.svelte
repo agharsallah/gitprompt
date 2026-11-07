@@ -37,6 +37,7 @@
 		plural,
 		shortDuration
 	} from '#lib/shared/format.ts';
+	import { typedText } from '#lib/prompts/origin.ts';
 	import SetupSteps from '#lib/sources/SetupSteps.svelte';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import ColumnChart from '#lib/ui/charts/ColumnChart.svelte';
@@ -375,7 +376,7 @@
 			{#if starred.length}
 				<ul class="starred">
 					{#each starred as p (p.id)}
-						<li><a href="{resolve('/prompts')}?id={p.id}">{excerpt(p.prompt, 160)}</a></li>
+						<li><a href="{resolve('/prompts')}?id={p.id}">{excerpt(typedText(p), 160)}</a></li>
 					{/each}
 				</ul>
 			{:else}

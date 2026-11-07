@@ -8,6 +8,7 @@ import { dayKey } from '#lib/shared/format.ts';
 import { outcome, supersededIds, type Outcome } from '#lib/insights/outcome.ts';
 import { mergeProject, projectOf, type ProjectRef } from '#lib/insights/project.ts';
 import { byKind, toolKind, type ToolKind } from '#lib/insights/tools.ts';
+import { typedText } from '#lib/prompts/origin.ts';
 
 // ---- small numeric helpers ----------------------------------------------------------------
 
@@ -437,7 +438,7 @@ export function lanes(prompts: Prompt[], max = 6, now = Date.now()): Lane[] {
 			id: p.id,
 			at: Date.parse(p.received_at),
 			outcome: outcome(p, now, superseded.has(p.id)),
-			text: p.prompt ?? ''
+			text: typedText(p) ?? ''
 		});
 	}
 	const out = [...lane.values()];

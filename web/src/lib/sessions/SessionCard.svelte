@@ -17,6 +17,7 @@
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 	import PromptRow from '#lib/prompts/PromptRow.svelte';
+	import { typedText } from '#lib/prompts/origin.ts';
 	import TurnStrip from '#lib/sessions/TurnStrip.svelte';
 
 	/** One conversation: what it was about, where, how long, what it cost, and every turn. */
@@ -24,7 +25,9 @@
 
 	const s = $derived(session);
 	const span = $derived((Date.parse(s.endedAt) - Date.parse(s.startedAt)) / 1000);
-	const title = $derived(s.title ?? (excerpt(s.prompts[0]?.prompt, 110) || 'Untitled session'));
+	const title = $derived(
+		s.title ?? (excerpt(s.prompts[0] && typedText(s.prompts[0]), 110) || 'Untitled session')
+	);
 	const lastId = $derived(s.prompts.at(-1)?.id);
 	const real = $derived(!s.id.startsWith('prompt-'));
 </script>

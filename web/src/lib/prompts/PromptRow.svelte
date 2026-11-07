@@ -5,6 +5,8 @@
 	import { projectOf } from '#lib/insights/project.ts';
 	import { timeOfDay } from '#lib/shared/format.ts';
 	import RailNode from '#lib/ui/RailNode.svelte';
+	import OriginBadge from '#lib/prompts/OriginBadge.svelte';
+	import { isSystem, typedText } from '#lib/prompts/origin.ts';
 	import TurnFacts from '#lib/prompts/TurnFacts.svelte';
 
 	/**
@@ -31,10 +33,11 @@
 
 	const project = $derived(projectOf(prompt));
 	const secrets = $derived(prompt.stats.secrets?.length ?? 0);
+	const text = $derived(typedText(prompt));
 </script>
 
 <a
-	class={['row', selected && 'selected']}
+	class={['row', selected && 'selected', isSystem(prompt) && 'system']}
 	{href}
 	aria-current={selected ? 'true' : undefined}
 	data-sveltekit-reset="false"
@@ -54,6 +57,7 @@
 				>
 			{/if}
 			{#if prompt.summary.turn}<span class="turn">Turn {prompt.summary.turn}</span>{/if}
+			<OriginBadge {prompt} />
 			<span class="sr-only">{OUTCOMES[outcome].label}</span>
 			<span class="flags">
 				{#if secrets}
@@ -68,7 +72,7 @@
 				{/if}
 			</span>
 		</span>
-		<span class="text clamp-2">{prompt.prompt ?? 'No prompt text was captured'}</span>
+		<span class="text clamp-2">{text ?? 'No prompt text was captured'}</span>
 		<span class="foot">
 			<TurnFacts {prompt} />
 			{#each prompt.annotation.tags as tag (tag)}<span class="tag">#{tag}</span>{/each}
@@ -202,6 +206,12 @@
 		color: var(--color-text);
 		line-height: var(--leading-snug);
 		overflow-wrap: anywhere;
+	}
+
+	/* Not typed by you: muted, and labelled by OriginBadge (never colour alone). */
+	.system .text {
+		color: var(--color-text-muted);
+		font-size: var(--text-sm);
 	}
 
 	.foot {

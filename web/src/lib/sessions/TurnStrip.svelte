@@ -3,6 +3,7 @@
 	import type { Prompt } from '#lib/api/types.ts';
 	import { OUTCOMES, outcome } from '#lib/insights/outcome.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
+	import { typedText } from '#lib/prompts/origin.ts';
 	import { duration, excerpt } from '#lib/shared/format.ts';
 	import Tooltip from '#lib/ui/charts/Tooltip.svelte';
 
@@ -25,7 +26,7 @@
 		active = { p, x: el.offsetLeft + el.offsetWidth / 2 };
 	}
 	const describe = (p: Prompt, o: ReturnType<typeof outcome>) =>
-		`Turn ${p.summary.turn ?? ''}: ${OUTCOMES[o].label.toLowerCase()}${p.summary.response_s != null ? `, ${duration(p.summary.response_s)}` : ''}. ${excerpt(p.prompt, 80)}`;
+		`Turn ${p.summary.turn ?? ''}: ${OUTCOMES[o].label.toLowerCase()}${p.summary.response_s != null ? `, ${duration(p.summary.response_s)}` : ''}. ${excerpt(typedText(p), 80)}`;
 </script>
 
 <div class="strip" bind:clientWidth={width}>
@@ -49,7 +50,7 @@
 					? `, ${duration(active.p.summary.response_s)}`
 					: ''}</strong
 			>
-			{excerpt(active.p.prompt, 90)}
+			{excerpt(typedText(active.p), 90)}
 		</Tooltip>
 	{/if}
 </div>

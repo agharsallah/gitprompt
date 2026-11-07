@@ -22,6 +22,7 @@
 	import Callout from '#lib/ui/Callout.svelte';
 	import CodeBlock from '#lib/ui/CodeBlock.svelte';
 	import CopyButton from '#lib/ui/CopyButton.svelte';
+	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import KeyValue from '#lib/ui/KeyValue.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 	import Tabs from '#lib/ui/Tabs.svelte';
@@ -31,6 +32,7 @@
 	import GitPanel from '#lib/prompts/GitPanel.svelte';
 	import NotesEditor from '#lib/prompts/NotesEditor.svelte';
 	import OutcomeBadge from '#lib/prompts/OutcomeBadge.svelte';
+	import { injectedSummary, originOf, typedText } from '#lib/prompts/origin.ts';
 	import SessionPanel from '#lib/prompts/SessionPanel.svelte';
 	import TurnTimeline from '#lib/prompts/TurnTimeline.svelte';
 	import UsagePanel from '#lib/prompts/UsagePanel.svelte';
@@ -56,6 +58,9 @@
 	const session = $derived(prompt.fields.session_id);
 	const secrets = $derived(st.secrets ?? []);
 	const tokens = $derived(tokenTotal(tokensOf(prompt)));
+	const origin = $derived(originOf(prompt));
+	const text = $derived(typedText(prompt));
+	const injected = $derived(injectedSummary(prompt.injected ?? []));
 
 	// Annotation edits are saved right away; the parent reloads and passes the new value down.
 	const task = new Task();
@@ -81,7 +86,7 @@
 	let expanded = $state(false);
 	let promptExpanded = $state(false);
 	const longResponse = $derived(isLong(s.response));
-	const longPrompt = $derived(isLong(prompt.prompt));
+	const longPrompt = $derived(isLong(text));
 
 	const textFacts = $derived(
 		[
@@ -150,7 +155,7 @@
 		</div>
 		<div class="actions">
 			<AnnotationActions value={prompt.annotation} {save} busy={task.busy} />
-			<CopyButton text={prompt.prompt ?? ''} label="Copy prompt" ghost />
+			<CopyButton text={text ?? ''} label="Copy prompt" ghost />
 			<Button
 				variant="ghost"
 				size="sm"
@@ -186,12 +191,19 @@
 			>{/if}
 	</div>
 
-	<section class="voice you" aria-labelledby="prompt-{prompt.id}-title">
-		<h2 id="prompt-{prompt.id}-title" class="who">
-			<span class="avatar" aria-hidden="true"></span>You
+	<section
+		class={['voice', 'you', origin.system && 'system']}
+		aria-labelledby="prompt-{prompt.id}-title"
+	>
+		<h2 id="prompt-{prompt.id}-title" class="who" title={origin.system ? origin.hint : undefined}>
+			{#if origin.system}
+				<origin.icon size={14} aria-hidden="true" />{origin.label}
+			{:else}
+				<span class="avatar" aria-hidden="true"></span>You
+			{/if}
 		</h2>
 		<p class={['said', longPrompt && !promptExpanded && 'folded']}>
-			{prompt.prompt ?? 'No prompt text was captured: the source mapping may be outdated.'}
+			{text ?? 'No prompt text was captured: the source mapping may be outdated.'}
 		</p>
 		{#if longPrompt}
 			<button
@@ -202,6 +214,14 @@
 			>
 				{promptExpanded ? 'Show less' : 'Show the whole prompt'}
 			</button>
+		{/if}
+		{#if injected}
+			<div class="injected">
+				<Disclosure summary="Context added by the tool">
+					{#snippet meta()}{injected}{/snippet}
+					<CodeBlock code={prompt.prompt ?? ''} label="Prompt as received" maxHeight="20rem" />
+				</Disclosure>
+			</div>
 		{/if}
 		<ul class="text-facts" aria-label="About the prompt text">
 			{#each textFacts as f (f.text)}<li><f.icon size={13} aria-hidden="true" />{f.text}</li>{/each}
@@ -376,6 +396,25 @@
 
 	.voice.agent {
 		--voice: var(--color-agent);
+	}
+
+	/* Not typed by you: a quiet rule and text, with the origin's icon and label as the speaker. */
+	.voice.system {
+		--voice: var(--color-border-strong);
+	}
+
+	.system .said {
+		color: var(--color-text-secondary);
+		font-size: var(--text-md);
+	}
+
+	.you.system .said {
+		font-weight: var(--weight-regular);
+	}
+
+	.injected {
+		max-width: var(--reading-max);
+		font-size: var(--text-sm);
 	}
 
 	.who {

@@ -142,17 +142,12 @@ export function modelName(id: string): string {
 }
 
 /**
- * A prompt without the context blocks tools inject into it (an IDE selection, a system reminder),
- * so an excerpt shows what you actually typed. Only used for previews; the full text is kept.
+ * A text on one line, trimmed to `max` characters on a word boundary. For a prompt, pass its typed
+ * text (prompts/origin.ts typedText): the daemon has already removed the context a tool added.
  */
-export const withoutContext = (text: string) =>
-	text.replace(/<(ide_[a-z_]+|system-reminder|local-command-[a-z]+)>[\s\S]*?<\/\1>/g, '').trim() ||
-	text;
-
-/** First line of a text, trimmed to `max` characters on a word boundary. */
 export function excerpt(text: string | null | undefined, max = 140): string {
 	if (!text) return '';
-	const line = withoutContext(text).trim().replace(/\s+/g, ' ');
+	const line = text.trim().replace(/\s+/g, ' ');
 	if (line.length <= max) return line;
 	const cut = line.slice(0, max);
 	const space = cut.lastIndexOf(' ');

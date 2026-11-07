@@ -103,11 +103,27 @@ export type SessionFacts = {
 	environment?: Record<string, unknown>;
 };
 
+/** Who produced a prompt's text (insights/origin.py, docs/adr/0010-prompt-origin.md). */
+export type Origin =
+	| 'typed'
+	| 'slash_command'
+	| 'task_notification'
+	| 'agent_message'
+	| 'subagent'
+	| 'programmatic'
+	| 'unknown';
+
+/** A context block a tool added before or after what the user typed, e.g. an IDE selection. */
+export type Injected = { kind: string; chars: number };
+
 export type Prompt = {
 	id: number;
 	source: string;
 	received_at: string;
-	prompt: string | null;
+	prompt: string | null; // as received, including injected context
+	origin: Origin;
+	typed_text: string | null; // the prompt without injected context
+	injected: Injected[];
 	fields: PromptFields & Meta; // mapped by the source spec
 	context: GitContext & Meta; // observed at ingest: git state, tool version
 	annotation: Annotation;

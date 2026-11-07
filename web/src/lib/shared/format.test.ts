@@ -13,8 +13,7 @@ import {
 	plural,
 	relative,
 	relativePath,
-	shortDuration,
-	withoutContext
+	shortDuration
 } from '#lib/shared/format.ts';
 
 describe('money', () => {
@@ -132,20 +131,7 @@ describe('excerpt', () => {
 		expect(cut).not.toMatch(/wor…$/);
 	});
 
-	it('leaves out context the IDE injected', () => {
-		const text =
-			'<ide_selection>The user selected lines 1 to 7</ide_selection>\nRename the function';
-		expect(excerpt(text)).toBe('Rename the function');
-	});
-
 	it('is empty for no text', () => expect(excerpt(null)).toBe(''));
-});
-
-describe('withoutContext', () => {
-	it('keeps the text when it is nothing but context', () => {
-		const only = '<system-reminder>x</system-reminder>';
-		expect(withoutContext(only)).toBe(only);
-	});
 });
 
 describe('paths and keys', () => {
