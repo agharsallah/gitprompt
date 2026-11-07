@@ -8,17 +8,20 @@ by GET /api/sources/problems, so one broken file never hides the other connector
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from gitprompt.api.deps import ConnectionDep, IndexDep, PreferencesDep, SettingsDep, SpecDep, SpecSetDep, StoreDep, require_dashboard
+from gitprompt.api.routes.prompts import Connector, Surface
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import Conflict
 from gitprompt.core.preferences import PreferenceFile
+from gitprompt.insights import captures
 from gitprompt.sources import probe
 from gitprompt.sources.connection import Change, Connection
-from gitprompt.sources.spec import Capability, Join, Spec, SpecFile, SpecOrigin, SpecProblem, SpecSet, read_spec_file
+from gitprompt.sources.spec import Capability, Join, Origin, Spec, SpecFile, SpecOrigin, SpecProblem, SpecSet, read_spec_file
 from gitprompt.storage.store import Store
 
 router = APIRouter(prefix="/api/sources", tags=["sources"])
@@ -38,6 +41,10 @@ class SpecProblemOut(BaseModel):
     file: SpecFileOut
     error: str
     fallback: str | None = None  # id of the bundled spec used instead
+
+
+class CapturedSurface(Surface):
+    note: str  # what of this app reaches the connector, and how it is told apart (spec `captures`)
 
 
 class SourceOut(BaseModel):
@@ -68,8 +75,33 @@ class SourceOut(BaseModel):
     capabilities: list[Capability] = []  # what this connector yields (spec `capabilities`), with the installed version
     needs_version: dict[Capability, str] = {}  # capabilities the installed version lacks -> the version that adds them
     join: Join = "prompt_id"  # how its events find their prompt (spec `join`)
+    captures: list[CapturedSurface] = []  # the apps whose prompts reach this connector (spec `captures`)
+    cannot_capture: dict[str, str] = {}  # apps of the tool it can't capture -> why (spec `cannot_capture`)
     spec: SpecFileOut  # the file this spec was read from
     spec_problem: SpecProblemOut | None = None  # the user's override of it is broken: the bundled one is used
+
+
+class Project(BaseModel):
+    repo: str  # git root (the main repository, also from a worktree), else the working directory
+    name: str
+
+
+class RecentCapture(BaseModel):
+    """The newest prompt of one connector and surface (insights/captures.py)."""
+
+    id: int
+    connector: Connector
+    surface: Surface | None  # null: the tool doesn't say where the prompt was typed
+    received_at: str
+    session: str | None
+    title: str | None
+    project: Project | None
+    branch: str | None
+    worktree: str | None  # the linked worktree the prompt ran in, when not the main checkout
+    model: str | None
+    origin: Origin
+    prompts: int  # prompts of this connector and surface
+    signals: dict[str, Any]  # what the surface rules read, e.g. {"app.entrypoint": "cli"}
 
 
 class SpecText(BaseModel):
@@ -137,6 +169,8 @@ async def describe(
         capabilities=[c for c in spec.capabilities if c not in missing],
         needs_version=missing,
         join=spec.join,
+        captures=[CapturedSurface(**info, note=note) for s, note in spec.captures.items() if (info := spec.surface_info(s))],
+        cannot_capture=spec.cannot_capture,
         spec=file_out(spec_set.files[spec.id]),
         spec_problem=problem_out(problem) if problem else None,
     )
@@ -147,6 +181,12 @@ async def list_sources(spec_set: SpecSetDep, settings: SettingsDep, store: Store
     stats, activity = store.stats(), hourly(store, datetime.now(UTC))
     disabled = preferences.effective().disabled_sources
     return await asyncio.gather(*(describe(s, spec_set, settings, disabled, stats, activity) for s in spec_set.specs.values()))
+
+
+@router.get("/recent")
+async def recent_captures(index: IndexDep) -> list[RecentCapture]:
+    """The newest prompt of each connector and surface, and how it was attributed (insights/captures.py)."""
+    return [RecentCapture(**r) for r in captures.recent(index.store, index.specs)]
 
 
 @router.get("/problems")

@@ -2,6 +2,7 @@
 
 import re
 import subprocess
+from pathlib import Path
 from typing import Any
 
 SEP = "\x1f"  # field separator in --format strings
@@ -17,11 +18,18 @@ def _git(cwd: str, *args: str) -> str | None:
 
 
 def _layout(cwd: str) -> dict[str, Any] | None:
+    """The project (`git_root`) is the main repository, also from one of its linked worktrees (Claude
+    Desktop, Claude Code and the Codex app run sessions in worktrees): its prompts belong to the same
+    project. The worktree the prompt ran in is kept in `git_worktree_root`."""
     paths = _git(cwd, "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-dir", "--git-common-dir")
     if not paths:
         return None
-    root, git_dir, common = (paths.splitlines() + ["", ""])[:3]
-    return {"git_root": root, "git_worktree": git_dir != common}
+    top, git_dir, common = (paths.splitlines() + ["", ""])[:3]
+    if git_dir == common or not common:
+        return {"git_root": top}
+    main = Path(common)
+    main_root = str(main.parent) if main.name == ".git" else str(main)  # a bare repository: the folder itself
+    return {"git_root": main_root, "git_worktree": True, "git_worktree_root": top}
 
 
 def _status(cwd: str) -> dict[str, Any]:

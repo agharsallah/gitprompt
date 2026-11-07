@@ -238,3 +238,18 @@ def telemetry(db: sqlite3.Connection, **filters: Any) -> dict[str, Any]:
         "metrics": {r["name"]: round(r["value"], 4) for r in metrics},
         "commands": [dict(r) for r in commands],
     }
+
+
+# --- the newest prompt per connector and surface (gitprompt check, the Connectors page) ---------
+
+_LATEST = """select i.id, i.source, i.surface, i.received_at, i.session, i.repo, i.repo_name, i.branch, i.model,
+  i.origin, i.title, n.prompts
+from prompt_index i
+join (select max(id) id, count(*) prompts from prompt_index group by source, surface) n on n.id = i.id
+order by i.id desc"""
+
+
+def latest(db: sqlite3.Connection) -> list[dict[str, Any]]:
+    """For each connector and surface it was typed in (null = unknown): its newest prompt (when,
+    session, project, branch, model, origin) and how many prompts it has, newest first."""
+    return [dict(r) for r in db.execute(_LATEST)]

@@ -148,7 +148,8 @@ async def _commits_after(row: dict) -> dict[str, Any]:
     ctx = row["context"]
     if not ctx.get("git_root"):
         return {}
-    return await asyncio.to_thread(commits, ctx["git_root"], ctx.get("git_head"), row["next_head"] or "HEAD", row["received_at"])
+    checkout = ctx.get("git_worktree_root") or ctx["git_root"]  # a worktree has its own HEAD
+    return await asyncio.to_thread(commits, checkout, ctx.get("git_head"), row["next_head"] or "HEAD", row["received_at"])
 
 
 def _session(store: Store, row: dict) -> dict[str, Any]:

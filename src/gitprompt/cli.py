@@ -1,4 +1,4 @@
-"""Command line entry point: `gitprompt serve` (default), `gitprompt compact` and `gitprompt reindex`."""
+"""Command line entry point: `gitprompt serve` (default), `gitprompt compact`, `gitprompt reindex` and `gitprompt check`."""
 
 import argparse
 from dataclasses import replace
@@ -52,6 +52,61 @@ def reindex(settings: Settings, args: argparse.Namespace) -> None:
     print(f"Indexed {count:,} prompts in {time.perf_counter() - start:.1f} s.")
 
 
+def check(settings: Settings, args: argparse.Namespace) -> None:
+    """Per connector: is it connected, and the newest prompt of each app it was typed in, with how it
+    was attributed. Type one prompt in each app, then run this to see what arrived."""
+    from datetime import UTC, datetime
+
+    from gitprompt.insights.captures import recent
+    from gitprompt.insights.indexer import Indexer
+    from gitprompt.sources import probe
+    from gitprompt.sources.connection import Connection
+    from gitprompt.sources.spec import load_specs
+    from gitprompt.storage.store import Store
+
+    specs = load_specs(settings)
+    if not settings.db_path.exists():
+        print(f"No database yet at {settings.db_path}: start GitPrompt and send a prompt first.")
+        rows = []
+    else:
+        store = Store(settings.db_path)
+        try:
+            Indexer(store, specs).ensure()
+            rows = recent(store, specs)
+        finally:
+            store.close()
+    now = datetime.now(UTC)
+    for spec in (s for s in specs.values() if not s.part_of):
+        layers = [spec, *(s for s in specs.values() if s.part_of == spec.id)]
+        state = ", ".join(f"{s.layer or 'hooks'} {'connected' if Connection(s, settings).connected else 'not connected'}" for s in layers)
+        found = "" if probe.detected(spec, settings) else " (not detected on this machine)"
+        print(f"\n{spec.name}: {state}{found}")
+        mine = [r for r in rows if r["connector"]["id"] == spec.id]
+        for r in mine:
+            where = r["surface"]["name"] if r["surface"] else "surface unknown"
+            project = (r["project"] or {}).get("name") or "no folder"
+            branch = f" ({r['branch']})" if r["branch"] else ""
+            signals = " ".join(f"{k}={v}" for k, v in r["signals"].items())
+            print(
+                f"  {where:<16} {_ago(now, r['received_at']):>9}  {project}{branch}  session {str(r['session'] or '-')[:12]}"
+                f"  {r['model'] or 'no model'}  {r['prompts']:,} prompts{'  ' + signals if signals else ''}"
+            )
+        if not mine:
+            print("  no prompt captured yet")
+        for app, why in spec.cannot_capture.items():
+            print(f"  not capturable: {app}: {why}")
+
+
+def _ago(now, iso: str) -> str:
+    from datetime import datetime
+
+    seconds = int((now - datetime.fromisoformat(iso)).total_seconds())
+    for unit, size in (("d", 86400), ("h", 3600), ("min", 60)):
+        if seconds >= size:
+            return f"{seconds // size} {unit} ago"
+    return f"{seconds} s ago"
+
+
 def _mb(n: int) -> str:
     return f"{n / 1e6:,.1f} MB"
 
@@ -81,6 +136,9 @@ def main() -> None:
 
     p = commands.add_parser("reindex", help="rebuild the prompt index (filters, search, statistics) from the stored prompts")
     p.set_defaults(run=reindex)
+
+    p = commands.add_parser("check", help="per connector and app: the newest captured prompt and how it was attributed")
+    p.set_defaults(run=check)
 
     args = parser.parse_args()
     args.run(Settings(), args)

@@ -24,7 +24,7 @@ RAW_KEYS = frozenset({"raw", "fields", "context", "events"})
 IDENTITY_PREFIXES = ("user.", "organization.")
 IDENTITY_KEYS = frozenset({"author", "email", "user_email", "user_id", "account_id", "account_uuid", "organization_id"})
 # Keys whose value is a project folder (a git root, or the working directory outside a repository).
-ROOT_KEYS = frozenset({"repo", "git_root"})
+ROOT_KEYS = frozenset({"repo", "git_root", "git_worktree_root"})
 
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 # The cut end of a clipped text: a token cut in half could be the start of a secret no pattern matches.
