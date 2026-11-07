@@ -24,7 +24,13 @@ export function seqStep(value: number, max: number): number {
 }
 
 /** Path of a column with a 4px rounded data end and a square baseline (marks spec). */
-export function columnPath(x: number, y: number, width: number, height: number, radius = 4): string {
+export function columnPath(
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	radius = 4
+): string {
 	if (height <= 0) return '';
 	const r = Math.min(radius, width / 2, height);
 	const bottom = y + height;
@@ -40,7 +46,9 @@ export function columnPath(x: number, y: number, width: number, height: number, 
 }
 
 /** Steps a reader can count in, for a time axis in seconds: 1s, 5s, 15s, 1m, 5m, 15m, 1h... */
-const TIME_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14_400, 21_600, 43_200, 86_400];
+const TIME_STEPS = [
+	1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14_400, 21_600, 43_200, 86_400
+];
 
 /** Axis ticks from 0 to at least `max` seconds, on clock-friendly steps, about `count` of them. */
 export function durationTicks(max: number, count = 3): number[] {

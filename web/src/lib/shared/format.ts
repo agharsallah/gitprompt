@@ -22,7 +22,10 @@ export const count = (value: unknown) =>
 export const inline = (value: unknown) =>
 	typeof value === 'string' ? value : JSON.stringify(value);
 
-const compactFormat = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
+const compactFormat = new Intl.NumberFormat('en', {
+	notation: 'compact',
+	maximumFractionDigits: 1
+});
 const integerFormat = new Intl.NumberFormat('en');
 
 /** 1,284 under ten thousand, 12.9K / 4.2M above. */
@@ -143,7 +146,8 @@ export function modelName(id: string): string {
  * so an excerpt shows what you actually typed. Only used for previews; the full text is kept.
  */
 export const withoutContext = (text: string) =>
-	text.replace(/<(ide_[a-z_]+|system-reminder|local-command-[a-z]+)>[\s\S]*?<\/\1>/g, '').trim() || text;
+	text.replace(/<(ide_[a-z_]+|system-reminder|local-command-[a-z]+)>[\s\S]*?<\/\1>/g, '').trim() ||
+	text;
 
 /** First line of a text, trimmed to `max` characters on a word boundary. */
 export function excerpt(text: string | null | undefined, max = 140): string {

@@ -20,7 +20,16 @@ export type Span = {
 	failed: boolean;
 };
 
-export type Timeline = { spans: Span[]; rows: TimelineRow[]; end: number };
+export type Timeline = {
+	spans: Span[];
+	rows: TimelineRow[];
+	end: number;
+	/** Calls that started after the turn ended (e.g. background title or summary requests). */
+	after: number;
+};
+
+/** Grace after Stop before a call counts as happening after the turn. */
+const AFTER_GRACE_S = 2;
 
 const TOOL_EVENTS = new Set(['PostToolUse', 'PostToolUseFailure']);
 
@@ -45,7 +54,15 @@ export function toolDetail(input: unknown): string {
 	if (!input || typeof input !== 'object') return '';
 	const i = input as Record<string, unknown>;
 	const value =
-		i.command ?? i.file_path ?? i.notebook_path ?? i.path ?? i.url ?? i.query ?? i.pattern ?? i.description ?? i.prompt;
+		i.command ??
+		i.file_path ??
+		i.notebook_path ??
+		i.path ??
+		i.url ??
+		i.query ??
+		i.pattern ??
+		i.description ??
+		i.prompt;
 	return typeof value === 'string' ? value.split('\n')[0] : '';
 }
 
@@ -80,9 +97,12 @@ export function turnTimeline(events: Event[], startIso: string, responseS?: numb
 			});
 		}
 	}
-	spans.sort((a, b) => a.start - b.start);
-	const present = new Set(spans.map((s) => s.row));
+	// Once the turn has ended, its timeline ends there too: later calls are only counted.
+	const inside =
+		responseS === undefined ? spans : spans.filter((s) => s.start <= responseS + AFTER_GRACE_S);
+	inside.sort((a, b) => a.start - b.start);
+	const present = new Set(inside.map((s) => s.row));
 	const rows: TimelineRow[] = (['model', ...TOOL_KINDS] as const).filter((r) => present.has(r));
-	const end = Math.max(responseS ?? 0, ...spans.map((s) => s.end), 1);
-	return { spans, rows, end };
+	const end = Math.max(responseS ?? 0, ...inside.map((s) => s.end), 1);
+	return { spans: inside, rows, end, after: spans.length - inside.length };
 }

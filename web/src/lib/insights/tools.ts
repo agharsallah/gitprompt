@@ -18,10 +18,7 @@ import {
 export const TOOL_KINDS = ['read', 'write', 'shell', 'web', 'mcp', 'agent', 'other'] as const;
 export type ToolKind = (typeof TOOL_KINDS)[number];
 
-export const KIND_INFO: Record<
-	ToolKind,
-	{ label: string; color: string; icon: LucideIcon }
-> = {
+export const KIND_INFO: Record<ToolKind, { label: string; color: string; icon: LucideIcon }> = {
 	read: { label: 'Read & search', color: 'var(--chart-1)', icon: FileSearch },
 	write: { label: 'Edit files', color: 'var(--chart-2)', icon: FilePen },
 	shell: { label: 'Shell', color: 'var(--chart-3)', icon: SquareTerminal },
@@ -71,11 +68,16 @@ export function mcpParts(name: string): { server: string; tool: string } | null 
 export const toolLabel = (name: string) => mcpParts(name)?.tool ?? name;
 
 /** Tool-call counts folded into kinds, in kind order, zeros dropped. */
-export function byKind(calls: Record<string, number> | undefined): { kind: ToolKind; count: number }[] {
+export function byKind(
+	calls: Record<string, number> | undefined
+): { kind: ToolKind; count: number }[] {
 	const totals = new Map<ToolKind, number>();
 	for (const [name, n] of Object.entries(calls ?? {})) {
 		const kind = toolKind(name);
 		totals.set(kind, (totals.get(kind) ?? 0) + n);
 	}
-	return TOOL_KINDS.filter((k) => totals.get(k)).map((kind) => ({ kind, count: totals.get(kind)! }));
+	return TOOL_KINDS.filter((k) => totals.get(k)).map((kind) => ({
+		kind,
+		count: totals.get(kind)!
+	}));
 }

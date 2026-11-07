@@ -148,7 +148,13 @@ export function byHour(prompts: Prompt[], start: Date, end: Date): Day[] {
 	const cursor = new Date(start);
 	cursor.setMinutes(0, 0, 0);
 	for (let i = 0; i < 24 * 8 && cursor <= end; i++) {
-		hours.push({ key: cursor.toISOString(), date: new Date(cursor), prompts: 0, cost: 0, failed: 0 });
+		hours.push({
+			key: cursor.toISOString(),
+			date: new Date(cursor),
+			prompts: 0,
+			cost: 0,
+			failed: 0
+		});
 		cursor.setHours(cursor.getHours() + 1);
 	}
 	for (const p of prompts) {
@@ -332,8 +338,7 @@ export function sessions(prompts: Prompt[]): SessionSummary[] {
 				project: ordered.map(projectOf).reduce(mergeProject),
 				prompts: ordered,
 				title:
-					[...ordered].reverse().find((p) => p.fields.session_title)?.fields.session_title ??
-					null,
+					[...ordered].reverse().find((p) => p.fields.session_title)?.fields.session_title ?? null,
 				branch: last.context.git_branch ?? null,
 				startedAt: first.received_at,
 				endedAt: endOf(last),
@@ -385,7 +390,10 @@ export function projects(prompts: Prompt[], days: Day[] = []): ProjectSummary[] 
 				prompts: list.length,
 				sessions: new Set(list.map((p) => p.fields.session_id)).size,
 				cost: sum(list.map((p) => n(p.summary.cost_usd))),
-				lastAt: list.map((p) => p.received_at).sort().at(-1)!,
+				lastAt: list
+					.map((p) => p.received_at)
+					.sort()
+					.at(-1)!,
 				branches: [
 					...new Set(list.map((p) => p.context.git_branch).filter((b): b is string => !!b))
 				],

@@ -54,6 +54,8 @@ export function supersededIds(prompts: Prompt[]): Set<number> {
 		if (s && (latest.get(s) ?? -1) < p.id) latest.set(s, p.id);
 	}
 	return new Set(
-		prompts.filter((p) => p.fields.session_id && latest.get(p.fields.session_id) !== p.id).map((p) => p.id)
+		prompts
+			.filter((p) => p.fields.session_id && latest.get(p.fields.session_id) !== p.id)
+			.map((p) => p.id)
 	);
 }
