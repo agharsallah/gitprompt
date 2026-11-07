@@ -58,7 +58,9 @@
 									>{layer.spec.origin === 'user' ? 'Your spec' : 'Bundled spec'}</Badge
 								>
 								<span class="mono path" title={layer.spec.path}
-									>{relativePath(layer.spec.path)}</span
+									>{layer.spec.origin === 'user'
+										? relativePath(layer.spec.path)
+										: layer.spec.name}</span
 								>
 								<Button
 									size="sm"

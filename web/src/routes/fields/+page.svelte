@@ -3,6 +3,7 @@
 	import type { Field } from '#lib/api/types.ts';
 	import { inline, integer, percent, plural } from '#lib/shared/format.ts';
 	import { CAPABILITIES, CAPABILITY_IDS } from '#lib/sources/capabilities.ts';
+	import { tools } from '#lib/sources/state.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
@@ -23,10 +24,13 @@
 	// Which tool each value comes from: the connector's name, and what it can't provide at all.
 	const byId = $derived(new Map(data.sources.map((s) => [s.id, s])));
 	const nameOf = (id: string) => byId.get(id)?.name ?? (id === 'gitprompt' ? 'GitPrompt' : id);
+	// What the connector's tool can't provide from any of its layers (a hooks layer isn't
+	// blamed for what its telemetry layer adds).
 	const lacks = (id: string) => {
-		const s = byId.get(id);
-		return s?.capabilities.length
-			? CAPABILITY_IDS.filter((c) => !s.capabilities.includes(c)).map((c) => CAPABILITIES[c].what)
+		const tool = tools(data.sources).find((t) => t.layers.some((l) => l.id === id));
+		const has = new Set(tool?.layers.flatMap((l) => l.capabilities) ?? []);
+		return has.size
+			? CAPABILITY_IDS.filter((c) => !has.has(c)).map((c) => CAPABILITIES[c].what)
 			: [];
 	};
 	const seen = $derived(fields.filter((f) => f.count > 0));
@@ -139,7 +143,7 @@
 		</h2>
 		{#if lacks(group.source).length}
 			<p class="muted lacks">
-				Not available from this connector: {lacks(group.source).join(', ')}.
+				Not available from this tool: {lacks(group.source).join(', ')}.
 			</p>
 		{/if}
 		<div class="events">
