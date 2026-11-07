@@ -91,14 +91,14 @@ answer:
 # reports, not the docs) reads the same user hooks but often skips beforeSubmitPrompt: no `surface`
 # rules, so Cursor prompts show the Cursor badge with no surface.
 captures:
-  cursor: Agent chats in the Cursor app (the IDE), in every window and workspace.
+  cursor: >-
+    Agent chats in the Cursor app (the IDE), in every window and workspace. Claude Code's extension
+    inside Cursor is captured by the Claude Code connector instead.
 cannot_capture:
   Cursor CLI: >-
     The docs list hooks for the app; forum reports say cursor-agent skips beforeSubmitPrompt and stop
     (always with -p). Prompts that do arrive can't be told apart from the IDE.
   Tab completions: Not prompts; their hooks (beforeTabFileRead, afterTabFileEdit) aren't subscribed.
-  Claude Code in Cursor: Captured by the Claude Code connector (the extension runs Claude Code's own hooks).
-
 # Tool names as the docs list them for matchers: Shell, Read, Write, Grep, Delete, Task, MCP:<tool>.
 # Inputs are unverified beyond the docs' examples (command for Shell, file_path for file tools).
 tool_kinds:
