@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import Tooltip from '#lib/ui/charts/Tooltip.svelte';
 	import { SEQ_STEPS, seqStep } from '#lib/ui/charts/scale.ts';
 
@@ -12,7 +13,8 @@
 		columns,
 		label,
 		columnTick = (_c: string, i: number) => (i % 3 === 0 ? _c : ''),
-		describe
+		describe,
+		hrefFor
 	}: {
 		values: number[][];
 		rows: string[];
@@ -22,7 +24,14 @@
 		columnTick?: (column: string, index: number) => string;
 		/** Tooltip and table text for one cell. */
 		describe: (row: string, column: string, value: number) => string;
+		/** Makes each cell a doorway: click or Enter opens this link (the table view links too). */
+		hrefFor?: (row: number, column: number) => string | undefined;
 	} = $props();
+
+	function open(r: number, c: number) {
+		const href = hrefFor?.(r, c);
+		if (href) goto(href);
+	}
 
 	const max = $derived(Math.max(...values.flat(), 0));
 	let width = $state(0);
@@ -45,7 +54,8 @@
 		if (next) {
 			event.preventDefault();
 			point(next[0], next[1]);
-		} else if (event.key === 'Escape') active = null;
+		} else if (event.key === 'Enter' && active) open(active.r, active.c);
+		else if (event.key === 'Escape') active = null;
 	}
 </script>
 
@@ -56,7 +66,7 @@
 		class="grid"
 		style:--cols={columns.length}
 		role="img"
-		aria-label="{label}. Use arrow keys to read each cell."
+		aria-label="{label}. Use arrow keys to read each cell{hrefFor ? ', Enter to open it' : ''}."
 		tabindex="0"
 		onkeydown={key}
 		onblur={() => (active = null)}
@@ -65,12 +75,13 @@
 		{#each rows as row, r (row)}
 			<span class="row-label">{row}</span>
 			{#each columns as column, c (column)}
-				<!-- svelte-ignore a11y_no_static_element_interactions (pointer hover only; see the table view) -->
+				<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events (pointer only: Enter on the grid and the table view's links do the same) -->
 				<span
 					bind:this={cells[r * columns.length + c]}
-					class={['cell', active?.r === r && active?.c === c && 'active']}
+					class={['cell', active?.r === r && active?.c === c && 'active', hrefFor && 'clickable']}
 					style:background="var(--chart-seq-{seqStep(values[r][c], max)})"
 					onpointerenter={() => point(r, c)}
+					onclick={() => open(r, c)}
 				></span>
 			{/each}
 		{/each}
@@ -96,7 +107,18 @@
 		<tbody>
 			{#each rows as row, r (row)}
 				{#each columns as column, c (column)}
-					{#if values[r][c]}<tr><td>{describe(row, column, values[r][c])}</td></tr>{/if}
+					{#if values[r][c]}
+						{@const href = hrefFor?.(r, c)}
+						<tr>
+							<td
+								>{#if href}<a {href}>{describe(row, column, values[r][c])}</a>{:else}{describe(
+										row,
+										column,
+										values[r][c]
+									)}{/if}</td
+							>
+						</tr>
+					{/if}
 				{/each}
 			{/each}
 		</tbody>
@@ -128,6 +150,10 @@
 		height: 18px;
 		min-width: 0;
 		border-radius: 3px;
+	}
+
+	.grid .cell.clickable {
+		cursor: pointer;
 	}
 
 	.grid .cell.active {

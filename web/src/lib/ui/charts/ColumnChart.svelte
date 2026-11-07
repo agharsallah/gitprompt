@@ -10,6 +10,7 @@
 </script>
 
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import Tooltip from '#lib/ui/charts/Tooltip.svelte';
 	import { columnPath, niceTicks } from '#lib/ui/charts/scale.ts';
 	import { compact } from '#lib/shared/format.ts';
@@ -28,7 +29,8 @@
 		color = 'var(--chart-1)',
 		emphasis,
 		ticks: fixedTicks,
-		onselect
+		onselect,
+		hrefFor
 	}: {
 		data: Column[];
 		label: string;
@@ -41,7 +43,16 @@
 		/** Axis ticks to use instead of 1-2-5 steps (e.g. durationTicks for time). */
 		ticks?: number[];
 		onselect?: (column: Column) => void;
+		/** Makes each column a doorway: click or Enter opens this link (the table view links too). */
+		hrefFor?: (column: Column) => string | undefined;
 	} = $props();
+
+	function select(column: Column) {
+		if (onselect) return onselect(column);
+		const href = hrefFor?.(column);
+		if (href) goto(href);
+	}
+	const clickable = $derived(!!(onselect || hrefFor));
 
 	const AXIS_W = 40;
 	const AXIS_H = 22;
@@ -72,7 +83,7 @@
 		if (next !== undefined) {
 			event.preventDefault();
 			active = next;
-		} else if (event.key === 'Enter' && active !== null) onselect?.(data[active]);
+		} else if (event.key === 'Enter' && active !== null) select(data[active]);
 		else if (event.key === 'Escape') active = null;
 	}
 </script>
@@ -86,7 +97,9 @@
 			{width}
 			height={TOP + height + AXIS_H}
 			role="img"
-			aria-label="{label}. Use arrow keys to read each value."
+			aria-label="{label}. Use arrow keys to read each value{clickable
+				? ', Enter to open it'
+				: ''}."
 			tabindex="0"
 			onkeydown={key}
 			onblur={() => (active = null)}
@@ -111,14 +124,14 @@
 				{/if}
 				<!-- The hit target is the whole band, not the painted column. -->
 				<rect
-					class={['hit', onselect && 'clickable']}
+					class={['hit', clickable && 'clickable']}
 					x={AXIS_W + band * i}
 					y={TOP}
 					width={band}
 					{height}
 					role="presentation"
 					onpointerenter={() => (active = i)}
-					onclick={() => onselect?.(d)}
+					onclick={() => select(d)}
 				/>
 			{/each}
 			<line class="baseline" x1={AXIS_W} x2={width} y1={TOP + height} y2={TOP + height} />
@@ -133,8 +146,15 @@
 	<table class="sr-only">
 		<caption>{label}</caption>
 		<tbody>
-			{#each data as d (d.key)}<tr><th scope="row">{d.label}</th><td>{format(d.value)}</td></tr
-				>{/each}
+			{#each data as d (d.key)}
+				{@const href = hrefFor?.(d)}
+				<tr>
+					<th scope="row"
+						>{#if href}<a {href}>{d.label}</a>{:else}{d.label}{/if}</th
+					>
+					<td>{format(d.value)}</td>
+				</tr>
+			{/each}
 		</tbody>
 	</table>
 </figure>
