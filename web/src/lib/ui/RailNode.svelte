@@ -3,7 +3,7 @@
 
 	/**
 	 * GitPrompt's signature mark: a prompt as a commit node on a session's rail. The fill states the
-	 * outcome, and the shape differs too (filled, crossed, ringed, hollow), so it never relies on
+	 * outcome, and the shape differs too (filled, crossed, stopped, ringed, hollow), so it never relies on
 	 * color alone. Decorative: the row it sits in names the outcome in text.
 	 */
 	let { outcome, size = 14 }: { outcome: Outcome; size?: number } = $props();
@@ -15,6 +15,9 @@
 	{:else if outcome === 'failed'}
 		<circle cx="7" cy="7" r="5" />
 		<path d="M5 5l4 4M9 5l-4 4" />
+	{:else if outcome === 'interrupted'}
+		<circle cx="7" cy="7" r="5" />
+		<rect x="5.25" y="5.25" width="3.5" height="3.5" rx="0.5" />
 	{:else if outcome === 'running'}
 		<circle class="halo" cx="7" cy="7" r="6" />
 		<circle cx="7" cy="7" r="3" />
@@ -46,6 +49,14 @@
 		stroke: var(--color-text-on-accent);
 		stroke-width: 1.6;
 		stroke-linecap: round;
+	}
+
+	.interrupted circle {
+		fill: var(--color-info-solid);
+	}
+
+	.interrupted rect {
+		fill: var(--color-text-on-accent);
 	}
 
 	.running circle {

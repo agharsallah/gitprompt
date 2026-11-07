@@ -19,6 +19,10 @@ describe('outcome', () => {
 		expect(outcome(prompt({ summary: { ended_by: 'StopFailure' } }))).toBe('failed');
 	});
 
+	it('is interrupted when you stopped the turn (Interrupt), even with a later prompt', () => {
+		expect(outcome(prompt({ summary: { ended_by: 'Interrupt' } }), t0, true)).toBe('interrupted');
+	});
+
 	it('is running for a recent prompt without an end', () => {
 		expect(outcome(prompt({ received_at: sent }), t0 + RUNNING_WINDOW_MS - 1)).toBe('running');
 	});

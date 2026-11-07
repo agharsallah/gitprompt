@@ -73,11 +73,19 @@ export function phaseReason(phase: Pick<Phase, 'reason' | 'gap_s' | 'branches'>)
 }
 
 /** Outcome order for mixes and legends: best first. */
-export const OUTCOME_ORDER: TurnOutcome[] = ['done', 'superseded', 'open', 'failed', 'running'];
+export const OUTCOME_ORDER: TurnOutcome[] = [
+	'done',
+	'interrupted',
+	'superseded',
+	'open',
+	'failed',
+	'running'
+];
 
 /** The colour token of each outcome in mixes, the same as the rail and the turn strip. */
 export const OUTCOME_COLORS: Record<TurnOutcome, string> = {
 	done: 'var(--color-accent)',
+	interrupted: 'var(--color-info-solid)',
 	superseded: 'var(--color-warning-solid)',
 	open: 'var(--color-border-control)',
 	failed: 'var(--color-danger-solid)',
