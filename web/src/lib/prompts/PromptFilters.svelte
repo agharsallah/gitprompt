@@ -220,8 +220,6 @@
 		color: var(--color-text-muted);
 		font-size: var(--text-xs);
 		font-weight: var(--weight-medium);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
 	}
 
 	.clear {

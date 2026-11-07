@@ -59,7 +59,8 @@
 <style>
 	.row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
+		/* The text keeps a readable width; a long value (a path) wraps in the control column. */
+		grid-template-columns: minmax(min(20rem, 100%), 1fr) auto;
 		gap: var(--space-3) var(--space-6);
 		align-items: start;
 		padding: var(--space-4) 0;
