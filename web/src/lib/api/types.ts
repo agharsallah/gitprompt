@@ -166,6 +166,12 @@ export type PromptDetail = Prompt & {
 export type Source = {
 	id: string;
 	name: string;
+	/** The tool's main connector when this one is an optional layer of it (e.g. telemetry). */
+	part_of: string | null;
+	/** Short name of this layer in its tool: "Hooks", "Telemetry". */
+	layer: string;
+	/** What this layer adds, in one line. */
+	summary: string;
 	detected: boolean;
 	version: string | null;
 	connected: boolean;
@@ -178,6 +184,14 @@ export type Source = {
 	unmapped: number;
 	events: number;
 	last_at: string | null;
+	/** Prompts + events received per UTC hour over the last 24 hours, the current hour last. */
+	hourly: number[];
+	/** Documented events GitPrompt keeps. */
+	collects: string[];
+	/** Event -> why it is received but not stored. */
+	not_stored: Record<string, string>;
+	/** Event -> why GitPrompt does not subscribe to it. */
+	not_collected: Record<string, string>;
 };
 
 /** A change to a tool's config file: previewed (dry run) before it is applied. */

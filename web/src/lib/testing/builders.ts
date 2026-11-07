@@ -3,7 +3,7 @@
  * the fields the test is about. Deep-merges the nested objects so a test can say
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
-import type { Event, Prompt } from '#lib/api/types.ts';
+import type { Event, Prompt, Source } from '#lib/api/types.ts';
 
 let nextId = 1;
 
@@ -49,6 +49,34 @@ export function event(overrides: Partial<Event> & { raw?: Event['raw'] } = {}): 
 		event: 'PostToolUse',
 		fields: {},
 		raw: {},
+		...overrides
+	};
+}
+
+/** A connector as GET /api/sources reports it: installed, not connected, nothing received. */
+export function source(overrides: Partial<Source> = {}): Source {
+	return {
+		id: 'claude-code',
+		name: 'Claude Code',
+		part_of: null,
+		layer: 'Hooks',
+		summary: 'Your prompts, the tools each turn used and how the turn ended.',
+		detected: true,
+		version: '2.1.316',
+		connected: false,
+		outdated: false,
+		config_file: '/Users/me/.claude/settings.json',
+		terms: 'Uses the tool’s documented hooks in your own user settings.',
+		blocks: [],
+		warnings: [],
+		total: 0,
+		unmapped: 0,
+		events: 0,
+		last_at: null,
+		hourly: Array(24).fill(0),
+		collects: ['UserPromptSubmit', 'PostToolUse', 'Stop'],
+		not_stored: {},
+		not_collected: { PreToolUse: 'A decision point: GitPrompt stays out of decisions.' },
 		...overrides
 	};
 }

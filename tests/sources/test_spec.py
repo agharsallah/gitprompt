@@ -1,4 +1,21 @@
+import pytest
+
+from gitprompt.core.errors import SpecError
 from gitprompt.sources.spec import BUNDLED, expand, load_specs, matches
+
+
+def test_layers_name_their_main_connector(settings):
+    specs = load_specs(settings)
+    assert specs["claude-code"].part_of is None and specs["claude-code"].layer == "Hooks"
+    assert specs["claude-code-otel"].part_of == "claude-code" and specs["claude-code-otel"].layer == "Telemetry"
+
+
+def test_part_of_must_name_a_main_spec(settings):
+    settings.user_sources.mkdir(parents=True)
+    bundled = (BUNDLED / "claude-code-otel.yaml").read_text()
+    (settings.user_sources / "claude-code-otel.yaml").write_text(bundled.replace("part_of: claude-code", "part_of: nowhere"))
+    with pytest.raises(SpecError, match="part_of"):
+        load_specs(settings)
 
 
 def test_expand_uses_env_default_and_user_home(settings, monkeypatch):

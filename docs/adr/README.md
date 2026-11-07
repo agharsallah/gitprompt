@@ -18,3 +18,4 @@ Status values: `proposed` → `accepted` → (`superseded by NNNN`). 0008 is the
 | [0011](0011-drop-noise-events.md) | Drop telemetry lifecycle noise; `gitprompt compact` and event retention | accepted |
 | [0012](0012-prompt-index-and-stats.md) | A rebuildable prompt index for filters, FTS search and `/api/stats` | accepted |
 | [0013](0013-preferences.md) | User preferences: `preferences.json`, env > file > defaults, and which constants became settings | accepted |
+| [0015](0015-connector-layers-and-states.md) | Connectors: tools with layers (`part_of`), raw facts in `/api/sources`, one derived state per connector | accepted |

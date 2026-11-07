@@ -25,6 +25,12 @@
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import Sparkline from '#lib/ui/charts/Sparkline.svelte';
 	import { KIND_INFO, TOOL_KINDS } from '#lib/insights/tools.ts';
+	import Collects from '#lib/sources/Collects.svelte';
+	import ConsentReview from '#lib/sources/ConsentReview.svelte';
+	import { NOW, STATE_FIXTURES } from '#lib/sources/fixtures.ts';
+	import Heartbeat from '#lib/sources/Heartbeat.svelte';
+	import { STATE_IDS, STATES } from '#lib/sources/state.ts';
+	import StateRow from '#lib/sources/StateRow.svelte';
 
 	const RAMPS = {
 		gray: [
@@ -307,6 +313,40 @@
 		</div>
 	</Panel>
 
+	<Panel
+		title="Connector states"
+		description="Every state a connector can be in, drawn from the fixtures the state tests use (lib/sources/fixtures.ts). Each has one icon, label, tone, primary action and sentence."
+	>
+		<ul class="connector-states">
+			{#each STATE_IDS as id (id)}
+				<li>
+					<StateRow source={STATE_FIXTURES[id]} now={NOW} />
+					<p class="muted state-meta">
+						<code>{id}</code> · primary action: {STATES[id].actionLabel}
+					</p>
+				</li>
+			{/each}
+		</ul>
+		<div class="grid two">
+			<div class="stack">
+				<Heartbeat source={STATE_FIXTURES.receiving} now={NOW} />
+				<Collects source={STATE_FIXTURES.available} />
+			</div>
+			<ConsentReview
+				action="connect"
+				change={{
+					file: '/Users/me/.claude/settings.json',
+					diff: '--- ~/.claude/settings.json\n+++ ~/.claude/settings.json\n@@ -1,3 +1,8 @@\n {\n-  "theme": "dark"\n+  "theme": "dark",\n+  "hooks": {\n+    "UserPromptSubmit": [ … ],\n+    "Stop": [ … ]\n+  }\n }',
+					applied: false,
+					backup: null
+				}}
+				onconfirm={() => {}}
+				oncancel={() => {}}
+				autofocus={false}
+			/>
+		</div>
+	</Panel>
+
 	<Panel title="Figures and charts">
 		<div class="tiles">
 			<StatTile
@@ -492,6 +532,17 @@
 	.stack {
 		display: grid;
 		gap: var(--space-4);
+	}
+
+	.connector-states {
+		display: grid;
+		gap: var(--space-4);
+		margin-bottom: var(--space-5);
+	}
+
+	.state-meta {
+		margin-top: var(--space-1);
+		font-size: var(--text-xs);
 	}
 
 	.type {
