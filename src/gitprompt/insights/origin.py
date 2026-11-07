@@ -50,7 +50,9 @@ def _value_matches(data: Any, when: When) -> bool:
     return value not in NO_VALUE if when.equals is None else value == when.equals
 
 
-def _matches(when: When, prompt: dict[str, Any], events: list[dict[str, Any]], typed: str) -> bool:
+def matches(when: When, prompt: dict[str, Any], events: list[dict[str, Any]], typed: str) -> bool:
+    """Whether a rule's conditions hold for a prompt and the events of its turn (origin and surface
+    rules share them)."""
     if when.text_prefix is not None and not typed.startswith(when.text_prefix):
         return False
     if when.text_regex is not None and not when.text_regex.match(typed):
@@ -63,7 +65,7 @@ def _matches(when: When, prompt: dict[str, Any], events: list[dict[str, Any]], t
 
 
 def origin_of(prompt: dict[str, Any], events: list[dict[str, Any]], rules: list[OriginRule], typed: str) -> Origin:
-    return next((r.origin for r in rules if _matches(r.when, prompt, events, typed)), DEFAULT)
+    return next((r.origin for r in rules if matches(r.when, prompt, events, typed)), DEFAULT)
 
 
 def classify(prompt: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None) -> dict[str, Any]:

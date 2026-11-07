@@ -2,7 +2,8 @@
 
     request body --decode (spec.format)--> payloads --map (spec.map)--> prompt or event --> store
 
-Events the spec does not keep (`accept_events`, `drop_events`) are discarded before storage.
+Events the spec does not keep (`accept_events`, `drop_events`) are discarded before storage, and so
+are the payload keys it lists in `discard`.
 `Captured` says which turns got events, so the caller can mark them for the prompt index.
 A payload whose event is one of `spec.prompt_events` becomes a prompt, stamped with what GitPrompt
 observes on this machine at that moment (git state, tool version). Every other payload is stored
@@ -65,6 +66,7 @@ async def capture(spec: Spec, store: Store, body: dict[str, Any], hide_secrets: 
     """`hide_secrets` (preference `hide_secrets_on_ingest`): replace detected secrets before storing."""
     result = Captured()
     for payload in DECODERS[spec.format](body):
+        payload = spec.discarding(payload)  # keys the spec never stores (`discard`), e.g. an account email
         if hide_secrets:
             payload = redact(payload)
         fields = extract(payload, spec.map)

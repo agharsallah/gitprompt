@@ -18,6 +18,7 @@ class PromptFilters(BaseModel):
     q: str | None = None  # every word appears in the typed text (full-text index)
     origin: list[Origin] = []  # empty = every origin; the dashboard sends its default (typed, slash_command)
     model: list[str] = []  # the turn used one of these models
+    surface: list[str] = []  # typed in one of these apps or clients (insights/surface.py)
     source: str | None = None
     session: list[str] = []  # in one of these sessions
     repo: str | None = None  # git root, or the working directory outside a repository

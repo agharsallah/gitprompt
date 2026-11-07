@@ -270,6 +270,7 @@ def session_story(
         "title": next((p["title"] for p in rows if p.get("title")), None),
         "source": first.get("source"),
         "connector": (first.get("facts") or {}).get("connector"),
+        "surface": next((s for p in rows if (s := (p.get("facts") or {}).get("surface"))), None),
         "models": dict(Counter(m for p in rows if (m := (p.get("facts") or {}).get("model")))),
         "project": project_of(rows),
         "branches": list(dict.fromkeys(p["branch"] for p in rows if p.get("branch"))),

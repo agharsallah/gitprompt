@@ -15,7 +15,7 @@ COLUMNS = (
     " i.chars, i.text_hash, i.slash_command, i.code_blocks, i.mentions, i.urls, i.cost_usd, i.api_requests,"
     " i.input_tokens, i.output_tokens, i.response_s, i.ended_by, i.tool_calls, i.tool_failures, i.subagents,"
     " i.files_written, i.git_commits, i.compactions, i.cache_read_tokens, i.cache_creation_tokens, i.reasoning_tokens,"
-    " i.model, i.permission_mode, i.tool_version, i.answered"
+    " i.model, i.permission_mode, i.tool_version, i.answered, i.surface"
 )
 TEXT = "(select typed_text from prompt_fts where rowid = i.id) typed_text"
 

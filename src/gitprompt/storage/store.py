@@ -142,6 +142,7 @@ def _has(values: list[str]) -> tuple[str, list[Any]]:
 FILTERS: dict[str, Filter] = {
     "q": _words,
     "origin": "i.origin in (select value from json_each(?))",
+    "surface": "i.surface in (select value from json_each(?))",  # where it was typed (insights/surface.py)
     "model": "i.id in (select id from prompt_index_model where model in (select value from json_each(?)))",
     "source": "i.source = ?",
     "session": _sessions,  # one session id, or several

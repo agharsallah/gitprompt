@@ -40,6 +40,14 @@ class Connector(BaseModel):
     assistant: str  # who answers, e.g. "Codex"
 
 
+class Surface(BaseModel):
+    """Where a prompt was typed (insights/surface.py): the app or client of its tool."""
+
+    id: str  # e.g. "desktop", "vscode", "cli"
+    name: str  # e.g. "Desktop app"
+    icon: str  # an icon name the dashboard maps to its icon set
+
+
 class Tokens(BaseModel):
     input: int  # not read from the cache
     output: int
@@ -53,6 +61,7 @@ class Facts(BaseModel):
     """What every page shows about a turn, computed once (insights/facts.py, ADR-0021)."""
 
     connector: Connector
+    surface: Surface | None = None  # null: the tool doesn't say where the prompt was typed
     model: str | None  # the main model
     models: list[str] = []
     model_source: Literal["usage", "hook"] | None  # from model calls, or the model the hooks reported

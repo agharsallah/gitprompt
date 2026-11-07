@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from gitprompt.api.deps import IndexDep
 from gitprompt.api.filters import FiltersQuery, Outcome
-from gitprompt.api.routes.prompts import Connector, Facts
+from gitprompt.api.routes.prompts import Connector, Facts, Surface
 from gitprompt.core.errors import NotFound
 from gitprompt.core.git import history
 from gitprompt.insights import facts, stories
@@ -111,6 +111,7 @@ class SessionStory(BaseModel):
     title: str | None
     source: str | None
     connector: Connector | None  # the tool of the session
+    surface: Surface | None = None  # where its prompts were typed, when the tool says
     models: dict[str, int]  # prompts per main model
     project: Project | None
     branches: list[str]

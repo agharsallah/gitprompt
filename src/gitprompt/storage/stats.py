@@ -19,7 +19,7 @@ from typing import Any, Literal
 from gitprompt.storage.store import FOLLOWED, INDEXED, OUTCOME, SIZE, buckets, where
 
 GroupBy = Literal[
-    "day", "day_hour", "hour", "weekday", "weekday_hour", "origin", "source", "session", "session_length", "repo", "branch",
+    "day", "day_hour", "hour", "weekday", "weekday_hour", "origin", "source", "surface", "session", "session_length", "repo", "branch",
     "command", "size", "text", "outcome", "model", "tool", "tool_kind", "work", "query_source",
 ]  # fmt: skip
 Order = Literal["key", "prompts", "sessions", "cost_usd", "last_at"]
@@ -65,6 +65,7 @@ GROUPS: dict[str, Group] = {
     "weekday_hour": Group("i.weekday || '-' || printf('%02d', i.hour)", by_key=True),  # e.g. 1-09
     "origin": Group("i.origin"),
     "source": Group("i.source"),  # detail: the tool's name (api/routes/stats.py, from its spec)
+    "surface": Group("i.surface"),  # where it was typed; detail: its name (api/routes/stats.py)
     # detail: the session's title, else the start of its first prompt; span_s: first prompt to last turn's end
     "session": Group("i.session", measures={"span_s": f"round({_SPAN}, 1)"}, detail="max(i.title)", excerpt="first"),
     # sessions by how long they lasted (all their prompts, whatever the filters): key = lower bound in seconds

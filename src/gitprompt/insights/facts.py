@@ -6,6 +6,8 @@ row (storage/index.py COLUMNS, as insights/indexer.py `entry` projects them from
 and the source spec, so they need no `if source == ...`:
 
     connector       the tool that sent the prompt: spec id, name, badge label, who answers
+    surface         where it was typed (CLI, VS Code, a desktop app...): id, name, icon; null when
+                    the tool doesn't say (insights/surface.py)
     model           the turn's main model: from model calls when the tool reports them, else the
                     model its hooks carried (`model_source` says which)
     tokens          input, output, cache and reasoning tokens; null when no model call reported any
@@ -26,6 +28,7 @@ from gitprompt.sources.spec import Spec
 # The facts of a prompt, each with what it means (listed on the Fields page).
 DOCS: dict[str, str] = {
     "facts.connector": "the tool that sent the prompt: spec id, name, short name for badges, and who answers",
+    "facts.surface": "where the prompt was typed: id, name and icon of the app or client (spec `surface` rules); null when unknown",
     "facts.model / model_source": "the turn's main model, from its model calls (usage) or the model its hooks reported (hook)",
     "facts.models": "every model the turn used",
     "facts.tokens": "input, output, cache read, cache write, reasoning and total tokens; null when no model call reported any",
@@ -81,6 +84,7 @@ def facts(row: Mapping[str, Any], spec: Spec | None, outcome: str | None = None,
     model = row.get("model")
     return {
         "connector": connector(row["source"], spec),
+        "surface": spec.surface_info(row.get("surface")) if spec else None,
         "model": model,
         "models": models if models is not None else ([model] if model else []),
         "model_source": ("usage" if row.get("api_requests") else "hook") if model else None,

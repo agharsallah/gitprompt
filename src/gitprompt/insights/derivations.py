@@ -23,7 +23,7 @@ from functools import cached_property
 from typing import Any
 
 from gitprompt.core.payload import compact, pluck
-from gitprompt.insights import facts, origin
+from gitprompt.insights import facts, origin, surface
 from gitprompt.insights.redaction import find_secrets
 from gitprompt.sources.spec import Spec, ToolKind, Usage, by_name, tool_kind
 
@@ -461,16 +461,21 @@ def session(events: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def derive(row: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None) -> dict[str, Any]:
-    """A stored prompt row plus every value derived from it: origin and typed text (from the spec's
-    rules), stats from its text, summary from the events of its turn. The prompt API returns this,
+    """A stored prompt row plus every value derived from it: origin, typed text and surface (from the
+    spec's rules), stats from its text, summary from the events of its turn. The prompt API returns this,
     and the prompt index (insights/indexer.py) stores a projection of it."""
-    return row | origin.classify(row, events, spec) | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec)}
+    return (
+        row
+        | origin.classify(row, events, spec)
+        | {"surface": surface.surface_of(row, events, spec), "stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec)}
+    )
 
 
 # --- shown on the Fields page ----------------------------------------------------------------
 
 DERIVED: dict[str, str] = {
     **origin.DOCS,
+    **surface.DOCS,
     **PROMPT_STATS.docs,
     **TURN.docs,
     **SESSION.docs,

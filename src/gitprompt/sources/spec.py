@@ -113,7 +113,7 @@ class Policy(BaseModel):
 
 
 class When(BaseModel):
-    """Conditions of an origin rule; every condition given must hold.
+    """Conditions of an origin or surface rule; every condition given must hold.
 
     Without `event`, `field` and `path` look at the prompt itself. With `event`, the rule needs an
     event of the same turn with that name, and `path`/`equals` look at that event's payload."""
@@ -130,7 +130,7 @@ class When(BaseModel):
     @model_validator(mode="after")
     def _has_a_condition(self) -> "When":
         if not self.model_fields_set - {"equals"}:
-            raise ValueError("an origin rule needs at least one condition")
+            raise ValueError("a rule needs at least one condition")
         if self.equals is not None and not self.path:
             raise ValueError("`equals` needs a `path`")
         return self
@@ -144,6 +144,28 @@ class OriginRule(BaseModel):
 
 
 Tag = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][\w:-]*$")]
+
+# Where a prompt was typed: the app or client of the tool (CLI, VS Code, a desktop app...), apart from
+# the connector that delivered it (insights/surface.py, docs/adr/0022-surfaces-and-desktop-apps.md).
+SurfaceId = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9-]*$")]
+
+
+class SurfaceRule(BaseModel):
+    """A prompt was typed in `surface` when `when` holds (same conditions as an origin rule)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    when: When
+    surface: SurfaceId
+
+
+class SurfaceInfo(BaseModel):
+    """How a surface is named and drawn. `icon` is a name the dashboard maps to its icon set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    icon: str = "app"
 
 
 class Spec(BaseModel):
@@ -170,6 +192,13 @@ class Spec(BaseModel):
     not_captured: dict[str, str] = {}  # event -> why GitPrompt does not subscribe to it
     origin: list[OriginRule] = []  # first matching rule wins; the spec's own rules, then the shared ones
     injected: list[Tag] = []  # tags of context blocks a tool adds before or after what the user typed
+    # Where its prompts were typed (first matching rule wins; no match = unknown, never guessed), the
+    # names and icons of surfaces (shared ones in _defaults.yaml), the surfaces it can capture -> a
+    # note, and the apps of the tool it can't capture -> why (shown on the Connectors page).
+    surface: list[SurfaceRule] = []
+    surfaces: dict[SurfaceId, SurfaceInfo] = {}
+    captures: dict[SurfaceId, str] = {}
+    cannot_capture: dict[str, str] = {}
     capabilities: list[Capability] = []  # what this connector yields (see Capability)
     # Capability -> the first tool version that yields it. An older installed version doesn't have it,
     # and pages say which version to update to (api/routes/sources.py).
@@ -188,6 +217,24 @@ class Spec(BaseModel):
     # fixture payload carries must be mapped, derived, shown or listed here
     # (tests/sources/test_field_coverage.py), so a field a tool update adds is never dropped silently.
     ignored: dict[str, str] = {}
+    # Payload keys removed before anything is stored -> why (e.g. an account email nobody needs).
+    discard: dict[str, str] = {}
+
+    @model_validator(mode="after")
+    def _known_surfaces(self) -> "Spec":
+        named = {r.surface for r in self.surface} | self.captures.keys()
+        if unknown := named - self.surfaces.keys():
+            raise ValueError(f"surfaces without a name in `surfaces`: {sorted(unknown)}")
+        return self
+
+    def surface_info(self, surface: str | None) -> dict[str, str] | None:
+        """{id, name, icon} of a surface, for a prompt's facts; None when unknown."""
+        info = self.surfaces.get(surface) if surface else None
+        return {"id": surface, "name": info.name, "icon": info.icon} if info and surface else None
+
+    def discarding(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """The payload without the `discard` keys (top-level keys)."""
+        return {k: v for k, v in payload.items() if k not in self.discard} if self.discard else payload
 
     @property
     def label(self) -> str:
@@ -281,9 +328,10 @@ def parse_spec(name: str, text: str, defaults: dict[str, Any]) -> Spec:
     data["map"] = defaults.get("map", {}) | (data.get("map") or {})  # a spec replaces defaults per field
     data["tool_kinds"] = (defaults.get("tool_kinds") or {}) | (data.get("tool_kinds") or {})  # ...and per tool
     data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
+    data["surface"] = (data.get("surface") or []) + (defaults.get("surface") or [])
     data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
     data["usage"] = data.get("usage") or defaults.get("usage") or {}  # a spec replaces the default whole
-    for key in ("shown", "ignored"):  # ...and adds its own payload keys to the shared ones
+    for key in ("shown", "ignored", "surfaces"):  # ...and adds its own keys (and surfaces) to the shared ones
         data[key] = (defaults.get(key) or {}) | (data.get(key) or {})
     try:
         return Spec(**data)

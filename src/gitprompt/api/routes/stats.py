@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from gitprompt.api.deps import IndexDep
 from gitprompt.api.filters import FiltersQuery
+from gitprompt.insights.surface import catalog
 from gitprompt.storage.stats import GroupBy, Order, aggregate, telemetry
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
@@ -95,11 +96,13 @@ async def stats(
         result = aggregate(index.store.db, group_by, limit, split_by, order, **filters.store_filters())
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
+    surfaces = catalog(index.specs.values())
     for grouping, buckets in ((group_by, result["groups"]), (split_by, [p for g in result["groups"] for p in g.get("parts") or []])):
-        if grouping == "source":  # name each tool as its badge does (spec `short_name`)
-            for b in buckets:
-                if (spec := index.specs.get(b["key"])) and not b.get("detail"):
-                    b["detail"] = spec.label
+        for b in buckets:
+            if grouping == "source" and (spec := index.specs.get(b["key"])):  # named as its badge (spec `short_name`)
+                b["detail"] = b.get("detail") or spec.label
+            elif grouping == "surface" and (info := surfaces.get(b["key"] or "")):  # named as its label
+                b["detail"] = info.name
     return Stats(group_by=group_by, split_by=split_by, **result)
 
 

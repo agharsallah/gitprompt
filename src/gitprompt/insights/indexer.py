@@ -7,7 +7,7 @@ the prompt API returns (derivations.derive), so a value is computed in one place
     rebuild()     everything, e.g. after a remap, a compaction or `gitprompt reindex`
 
 The rules version hashes what the values depend on besides the raw rows: the source code of the
-modules that compute them, each spec's `origin` rules, `injected` tags, `tool_kinds`, `tool_files` and
+modules that compute them, each spec's `origin` and `surface` rules, `injected` tags, `tool_kinds`, `tool_files` and
 `usage`, and the local timezone (day and hour buckets). Changing any of them rebuilds the index on next use, with no migration.
 """
 
@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from gitprompt.insights import derivations, facts, origin
+from gitprompt.insights import derivations, facts, origin, surface
 from gitprompt.sources.spec import Spec
 from gitprompt.storage import index as storage_index
 from gitprompt.storage.index import USAGE, Entry
@@ -32,7 +32,7 @@ BATCH = 500  # prompts derived per query batch during a rebuild
 def _code_version() -> str:
     """A hash of the modules that compute or store the indexed values (this one included)."""
     digest = hashlib.sha256()
-    for module in (derivations, facts, origin, storage_index, sys.modules[__name__]):
+    for module in (derivations, facts, origin, surface, storage_index, sys.modules[__name__]):
         digest.update(Path(module.__file__ or "").read_bytes())
     return digest.hexdigest()[:16]
 
@@ -45,6 +45,7 @@ def rules_version(specs: Mapping[str, Spec]) -> str:
         (
             s.id,
             [r.model_dump(mode="json") for r in s.origin],
+            [r.model_dump(mode="json") for r in s.surface],
             s.injected,
             s.tool_kinds,
             {k: p.pattern for k, p in s.tool_files.items()},
@@ -122,6 +123,7 @@ def entry(derived: dict[str, Any]) -> Entry:
         "tool_version": context.get("tool_version"),
         "reasoning_tokens": summary.get("reasoning_tokens", 0),
         "answered": int(bool(summary.get("response"))),
+        "surface": derived.get("surface"),
     }
     # Models with usage come from model calls; without them, the model the tool reported with the
     # prompt (hooks that carry one) still counts the prompt for that model, with no usage.

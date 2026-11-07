@@ -2,8 +2,8 @@
 `GROUP BY` over every prompt (ADR-0012). Raw rows stay the truth; the index can be dropped at any
 time and is rebuilt from them (insights/indexer.py computes the values, this module only stores them).
 
-    prompt_index        one row per prompt: origin, typed text, time buckets, usage, outcome, main
-                        model (what insights/facts.py turns into a prompt's facts)
+    prompt_index        one row per prompt: origin, surface, typed text, time buckets, usage, outcome,
+                        main model (what insights/facts.py turns into a prompt's facts)
     prompt_index_model  requests, tokens and cost per model of a prompt (a turn can use several)
     prompt_index_tool   tool calls per tool of a prompt, with the tool's kind
     prompt_index_work   requests, tokens and cost per query_source of a prompt, with its kind of work
@@ -29,7 +29,7 @@ COLUMNS = (
     "api_time_s", "api_errors", "response_s", "ended_by",
     "tool_calls", "tool_failures", "tool_time_s", "subagent_tool_calls", "subagents",
     "files_written", "git_commits", "compactions", "denials", "rejections",
-    "model", "permission_mode", "tool_version", "reasoning_tokens", "answered",
+    "model", "permission_mode", "tool_version", "reasoning_tokens", "answered", "surface",
 )  # fmt: skip
 USAGE = ("api_requests", "cost_usd", "input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens")
 
@@ -81,7 +81,8 @@ create table if not exists prompt_index (
   permission_mode text,                -- as the tool reported it with the prompt
   tool_version  text,                  -- the tool's version when the prompt was sent
   reasoning_tokens integer not null,   -- output tokens spent reasoning, when the tool reports them
-  answered      integer not null       -- 1 when the turn's end carried the final answer
+  answered      integer not null,      -- 1 when the turn's end carried the final answer
+  surface       text                   -- where it was typed (insights/surface.py), null = unknown
 );
 create index if not exists prompt_index_time on prompt_index (received_at);
 create index if not exists prompt_index_origin on prompt_index (origin, received_at);
