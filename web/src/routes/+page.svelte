@@ -131,12 +131,10 @@
 
 	.section {
 		margin-top: var(--space-3);
-		color: var(--color-text-secondary);
-		font-size: var(--text-sm);
+		color: var(--color-text);
+		font-size: var(--text-lg);
 		font-weight: var(--weight-semibold);
-		font-stretch: var(--stretch-normal);
-		letter-spacing: var(--tracking-wide, 0.02em);
-		text-transform: uppercase;
+		font-stretch: var(--stretch-heading);
 	}
 
 	.grid {

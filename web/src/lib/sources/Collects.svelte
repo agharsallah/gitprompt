@@ -63,8 +63,6 @@
 		color: var(--color-text-secondary);
 		font-size: var(--text-xs);
 		font-weight: var(--weight-semibold);
-		letter-spacing: 0.02em;
-		text-transform: uppercase;
 	}
 
 	.events {
