@@ -45,3 +45,19 @@ usage:
     cost_usd: cost_usd
     duration_ms: duration_ms
     query_source: query_source
+
+# Payload keys the dashboard reads from the raw payload itself rather than through `map`, `usage` or
+# a derivation -> where it shows them. A spec adds its own. (None today: what it reads, the turn
+# timeline's durations and tool inputs, the derivations read too.)
+shown: {}
+
+# Payload keys the tools send that GitPrompt deliberately does not use -> why. Every key of a
+# connector's fixtures must be mapped, derived, shown or listed here (tests/sources/test_field_coverage.py),
+# so a field a tool update adds fails the tests until someone decides what it is for. A spec adds its own.
+ignored:
+  tool_response: >-
+    A tool's output as the model saw it. Kept in the stored event (Events tab, clipped at 10,000
+    characters) but not summarized: it can hold file contents, and Codex's has no exit code or duration.
+  stop_hook_active: >-
+    Whether another Stop hook already made the agent continue. It says nothing about the turn, and
+    GitPrompt's own hooks never make it continue.

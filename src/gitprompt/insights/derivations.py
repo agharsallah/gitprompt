@@ -117,12 +117,31 @@ TURN_END = ("Stop", "StopFailure", "Interrupt")  # Interrupt: you stopped the tu
 TOOL_RESULTS = ("PostToolUse", "PostToolUseFailure")
 USAGE_TOKENS = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens")
 FILE_INPUTS = ("file_path", "notebook_path", "path")  # tool inputs naming the file a tool touched
+# What an agent tool (spec tool_kinds: agent) was asked: its task's name and its brief, by the input
+# names the tools use (Claude Code's Agent tool: description, prompt; Codex's spawn_agent: task_name,
+# message).
+TASK_INPUTS = ("description", "task_name")
+BRIEF_INPUTS = ("prompt", "message")
+ERROR_EVENTS = ("ErrorOccurred",)  # an error the tool reported during the turn (Copilot CLI)
+TEXT_CHARS = 280  # of an error or a brief kept in a summary
 
 GIT_COMMIT = re.compile(r"\bgit\b(?:\s+-\S+(?:\s+\S+)?)*\s+commit\b")  # git commit, git -C dir commit
 
 
+def _first(data: dict[str, Any], keys: tuple[str, ...]) -> Any:
+    return next((data[k] for k in keys if data.get(k)), None)
+
+
 def _file(tool_input: dict[str, Any]) -> Any:
-    return next((tool_input[k] for k in FILE_INPUTS if tool_input.get(k)), None)
+    return _first(tool_input, FILE_INPUTS)
+
+
+def _text(value: Any) -> str | None:
+    """A message, clipped for a summary."""
+    if value in (None, ""):
+        return None
+    text = value if isinstance(value, str) else str(value)
+    return text if len(text) <= TEXT_CHARS else text[:TEXT_CHARS].rstrip() + "…"
 
 
 def files_of(name: str | None, tool_input: Any, tool_files: dict[str, re.Pattern[str]]) -> list[str]:
@@ -211,6 +230,8 @@ def _ending(t: Turn) -> dict[str, Any]:
         "tool_kinds / tool_kind_of": "calls per kind (spec tool_kinds: read, write, shell, web, mcp, agent, other), and each tool's kind",
         "subagent_tool_calls": "tool calls made by subagents (their hook payload has agent_id)",
         "git_commits": "git commits the agent ran (shell commands with `git commit`)",
+        "tool_errors": "what the failed tool calls reported (PostToolUseFailure.error)",
+        "subagent_tasks": "what each subagent was asked: task name and brief (agent tools' inputs)",
     }
 )
 def _tools(t: Turn) -> dict[str, Any]:
@@ -228,6 +249,12 @@ def _tools(t: Turn) -> dict[str, Any]:
         "tool_kind_of": {name: t.kind(name) for name, _ in t.tool_uses if name},
         "subagent_tool_calls": sum(bool(r.get("agent_id")) for r in t.raws(*TOOL_RESULTS)),
         "git_commits": sum(bool(GIT_COMMIT.search(str(c))) for c in commands),
+        "tool_errors": [e for r in t.raws("PostToolUseFailure") if (e := _text(r.get("error")))],
+        "subagent_tasks": [
+            {"task": _first(i, TASK_INPUTS), "brief": _text(_first(i, BRIEF_INPUTS))}
+            for i in t.inputs("agent")
+            if _first(i, TASK_INPUTS + BRIEF_INPUTS)
+        ],
     }
 
 
@@ -235,6 +262,8 @@ def _tools(t: Turn) -> dict[str, Any]:
     {
         "slash_command": "slash command the prompt expanded (UserPromptExpansion, or telemetry user_prompt.command_name)",
         "subagents / tasks / notifications / permission_denied / compactions / model_switches": "agentic activity",
+        "compaction_triggers": "what started each compaction: auto (the context was full) or manual",
+        "errors": "errors the tool reported during the turn (ErrorOccurred): name, message, where, recoverable",
     }
 )
 def _agent_activity(t: Turn) -> dict[str, Any]:
@@ -246,6 +275,18 @@ def _agent_activity(t: Turn) -> dict[str, Any]:
         "permission_denied": [e.get("tool_name") for e in t.raws("PermissionDenied")],
         "compactions": len(t.raws("PreCompact")),
         "model_switches": [e.get("to_model") for e in t.raws("PostModelSwitch")],
+        "compaction_triggers": dict(Counter(e.get("trigger") for e in t.raws("PreCompact") if e.get("trigger"))),
+        "errors": [
+            compact(
+                {
+                    "name": pluck(e, "error.name"),
+                    "message": _text(pluck(e, "error.message") or e.get("error")),
+                    "context": e.get("error_context"),
+                    "recoverable": e.get("recoverable"),
+                }
+            )
+            for e in t.raws(*ERROR_EVENTS)
+        ],
     }
 
 
@@ -253,6 +294,7 @@ def _agent_activity(t: Turn) -> dict[str, Any]:
     {
         "api_requests / models / *_tokens / cost_usd / api_time_s / api_errors": "model calls (the spec's `usage` events)",
         "reasoning_tokens": "output tokens spent reasoning, when the tool reports them",
+        "model_call_status": "model calls per status the tool reported: completed, failed, cancelled",
         "model_usage": "requests, tokens and cost per model",
         "work_usage": "requests, tokens and cost per query_source: the main thread, a subagent, or a system call (telemetry)",
         "tool_rejections": "tool calls you rejected (telemetry)",
@@ -263,6 +305,7 @@ def _usage(t: Turn) -> dict[str, Any]:
     return {
         **_usage_of(calls),
         "reasoning_tokens": int(sum(_num(c.get("reasoning_tokens")) for c in calls)),
+        "model_call_status": dict(Counter(c["status"] for c in calls if c.get("status"))),
         "models": dict(Counter(c.get("model") for c in calls)),
         "model_usage": {model: _usage_of(group) for model, group in _by(calls, "model").items()},
         "work_usage": {source: _usage_of(group) for source, group in _by(calls, "query_source").items()},
@@ -354,6 +397,23 @@ def _lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
         "instructions_loaded": sorted({r.get("file_path") for r in _raws(events, "InstructionsLoaded")} - {None}),
         "cwd_changes": [r.get("new_cwd") for r in _raws(events, "CwdChanged")],
         "config_changes": [r.get("file_path") or r.get("source") for r in _raws(events, "ConfigChange")],
+    }
+
+
+@SESSION({"subagent_results": "each subagent that finished: its type, how it stopped and its last message (SubagentStop)"})
+def _subagents(events: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "subagent_results": [
+            compact(
+                {
+                    "agent_id": r.get("agent_id"),
+                    "agent_type": r.get("agent_type"),
+                    "stop_reason": r.get("stop_reason"),
+                    "answer": _text(r.get("last_assistant_message")),
+                }
+            )
+            for r in _raws(events, "SubagentStop")
+        ]
     }
 
 
