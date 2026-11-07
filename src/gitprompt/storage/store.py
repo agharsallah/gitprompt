@@ -157,6 +157,33 @@ class Store:
             out[r["source"]] = {"last_at": r["last_at"], **out.get(r["source"], {}), "events": r["events"]}
         return out
 
+    # --- housekeeping (see capture/compact.py) ---
+
+    def event_usage(self, before: str | None = None) -> list[dict]:
+        """Stored events per (source, event): rows and approximate bytes. `before`: only rows received earlier."""
+        rows = self.db.execute(
+            "select source, event, count(*) rows, sum(length(cast(fields as blob)) + length(cast(raw as blob))) bytes"
+            " from event where received_at < coalesce(?, '9999') group by source, event order by bytes desc",
+            (before,),
+        )
+        return [dict(r) for r in rows]
+
+    def delete_events(self, source: str, event: str | None, before: str | None = None) -> int:
+        """Delete stored events of one kind (optionally only those received before `before`). Prompts and
+        annotations live in other tables and are never touched."""
+        return self.db.execute(
+            "delete from event where source = ? and event is ? and received_at < coalesce(?, '9999')", (source, event, before)
+        ).rowcount
+
+    def size(self) -> int:
+        """Bytes the database occupies (including free pages that VACUUM would return)."""
+        return self.db.execute("pragma page_count").fetchone()[0] * self.db.execute("pragma page_size").fetchone()[0]
+
+    def vacuum(self) -> None:
+        """Rewrite the file without free pages, then fold the write-ahead log back in."""
+        self.db.execute("vacuum")
+        self.db.execute("pragma wal_checkpoint(truncate)")
+
     # --- edits ---
 
     def annotate(self, id: int, data: dict) -> None:
