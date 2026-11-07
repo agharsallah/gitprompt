@@ -71,6 +71,6 @@ def build_catalog(samples: Iterable[tuple[str, str, dict]], specs: Iterable[Spec
         _mark_documented(seen, spec)
     return Catalog(
         fields=sorted(seen.values(), key=lambda f: (f.source, f.event, f.path)),
-        not_captured=[NotCaptured(source=s.id, event=e, reason=r) for s in specs for e, r in s.not_captured.items()],
+        not_captured=[NotCaptured(source=s.id, event=e, reason=r) for s in specs for e, r in (s.not_captured | s.drop_events).items()],
         derived=DERIVED,
     )

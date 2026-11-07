@@ -85,6 +85,7 @@ class Spec(BaseModel):
     format: Format = "json"  # one JSON event per call, or OTLP/HTTP JSON batches
     prompt_events: list[str] = ["UserPromptSubmit"]  # events that create a prompt; others attach to one
     accept_events: list[str] = []  # empty = keep every event the tool sends
+    drop_events: dict[str, str] = {}  # event (a trailing * matches a prefix) -> why it is not stored
     map: Mapping = {}
     policy: Policy = Policy()
     terms: str = ""  # shown before consent: why this is allowed by the tool's own docs
@@ -96,6 +97,12 @@ class Spec(BaseModel):
     @property
     def marker(self) -> re.Pattern[str]:
         return marker(self.id)
+
+    def keeps(self, event: str | None) -> bool:
+        """Whether an incoming event is stored (`accept_events`, then `drop_events`)."""
+        if self.accept_events and event not in self.accept_events:
+            return False
+        return not any(matches(pattern, event) for pattern in self.drop_events)
 
 
 def _parse(name: str, text: str) -> dict[str, Any]:
@@ -131,6 +138,13 @@ def load_specs(settings: Settings) -> dict[str, Spec]:
             raise SpecError(f"source spec {name} is invalid: {e}") from e
         specs[spec.id] = spec
     return specs
+
+
+def matches(pattern: str, event: str | None) -> bool:
+    """An event name pattern: exact, or a prefix when it ends with `*` (e.g. `hook_execution_*`)."""
+    if event is None:
+        return False
+    return event.startswith(pattern[:-1]) if pattern.endswith("*") else event == pattern
 
 
 def marker(source: str) -> re.Pattern[str]:

@@ -1,4 +1,4 @@
-from gitprompt.sources.spec import BUNDLED, expand, load_specs
+from gitprompt.sources.spec import BUNDLED, expand, load_specs, matches
 
 
 def test_expand_uses_env_default_and_user_home(settings, monkeypatch):
@@ -18,3 +18,15 @@ def test_user_spec_overrides_bundled(settings):
     bundled = (BUNDLED / "claude-code.yaml").read_text()
     (settings.user_sources / "claude-code.yaml").write_text(bundled.replace("name: Claude Code", "name: Patched"))
     assert load_specs(settings)["claude-code"].name == "Patched"
+
+
+def test_drop_events_match_exact_names_and_trailing_globs(settings):
+    spec = load_specs(settings)["claude-code-otel"]
+    assert not spec.keeps("hook_registered") and not spec.keeps("hook_execution_complete")
+    assert spec.keeps("api_request") and spec.keeps("hook_registered_later") and spec.keeps(None)
+    assert matches("hook_*", "hook_x") and not matches("hook_*", "a_hook_x") and not matches("hook", "hook_x")
+
+
+def test_accept_events_apply_before_drop_events(settings):
+    spec = load_specs(settings)["claude-code"].model_copy(update={"accept_events": ["Stop", "Notification"], "drop_events": {"Sto*": "no"}})
+    assert spec.keeps("Notification") and not spec.keeps("Stop") and not spec.keeps("PostToolUse")

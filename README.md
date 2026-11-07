@@ -26,17 +26,29 @@ GitPrompt uses only Claude Code's documented [hooks](https://code.claude.com/doc
 
 Sources are YAML files in `src/gitprompt/sources/bundled/`. To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on the Sources page.
 
+## Keeping the database small
+
+Telemetry start-up events (`hook_registered`, `plugin_loaded`, `hook_execution_*`, ...) are no longer stored: the spec lists them under `drop_events`, and the Fields page shows them as not stored. To remove those stored before, and optionally old raw events:
+
+```bash
+uv run gitprompt compact                          # dry run: rows and MB per event, nothing changes
+uv run gitprompt compact --apply                  # delete them, then VACUUM
+uv run gitprompt compact --events-older-than 30   # also raw events older than 30 days
+```
+
+Prompts and your notes are never removed. Removing the dropped events changes nothing on any page. Expired events take their turn details with them (tools, usage, timeline) for prompts older than the cutoff. Compact can run while the daemon is running.
+
 ## Layout
 
 ```
 src/gitprompt/            FastAPI daemon, one package per domain (see PLAN.md §5)
   core/                   shared kernel: settings, domain errors, JSON payload helpers, git facts
   sources/                tool specs, probing, connect/disconnect; bundled/ holds the YAML specs
-  capture/                ingest pipeline and the OTLP decoder
+  capture/                ingest pipeline, the OTLP decoder, compact (dropped events and retention)
   storage/                SQLite store
   insights/               values derived on read, prompt origin, secret redaction, field catalog
   api/                    FastAPI app, dependencies, live-update bus, routes/
-  cli.py                  `gitprompt serve`
+  cli.py                  `gitprompt serve`, `gitprompt compact`
 web/src/lib/              SvelteKit dashboard (built into src/gitprompt/dashboard)
   design/                 design tokens (tokens.css: primitives, semantic, scales) and base styles
   ui/                     generic components (Button, Badge, Panel, Tabs...); ui/charts/ for charts
