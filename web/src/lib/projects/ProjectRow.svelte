@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import type { ProjectSummary } from '#lib/projects/summary.ts';
 	import { KIND_INFO } from '#lib/insights/tools.ts';
+	import { projectId } from '#lib/stories/story.ts';
 	import { integer, money, plural, relativePath } from '#lib/shared/format.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
@@ -25,7 +26,7 @@
 			/>{/if}
 		<div class="titles">
 			<h2 id="project-{p.key}">
-				<a href="{resolve('/prompts')}?repo={encodeURIComponent(p.key)}">{p.name}</a>
+				<a href={resolve('/projects/[id]', { id: projectId(p.key) })}>{p.name}</a>
 			</h2>
 			<p class="path mono" title={p.key}>{relativePath(p.key)}</p>
 		</div>
@@ -33,7 +34,9 @@
 
 	<div class="volume">
 		<p class="prompts">
-			<span class="n">{integer(summary.prompts)}</span>
+			<a class="n" href="{resolve('/prompts')}?repo={encodeURIComponent(p.key)}"
+				>{integer(summary.prompts)}</a
+			>
 			<span class="muted">{summary.prompts === 1 ? 'prompt' : 'prompts'}</span>
 		</p>
 		<div
@@ -178,9 +181,16 @@
 	}
 
 	.n {
+		color: var(--color-text);
+		text-decoration: none;
 		font-size: var(--text-2xl);
 		font-weight: var(--weight-semibold);
 		font-stretch: var(--stretch-heading);
+	}
+
+	a.n:hover {
+		color: var(--color-accent-text);
+		text-decoration: underline;
 	}
 
 	.share {
