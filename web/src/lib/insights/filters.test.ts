@@ -73,6 +73,7 @@ describe('promptsHref', () => {
 describe('facetChoices', () => {
 	const stats = (groups: [string | null, number, string | null][]) => ({
 		group_by: null,
+		split_by: null,
 		totals: bucket(),
 		groups: groups.map(([key, prompts, detail]) => bucket({ key, prompts, detail }))
 	});
