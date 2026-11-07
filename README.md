@@ -38,13 +38,30 @@ uv run gitprompt compact --events-older-than 30   # also raw events older than 3
 
 Prompts and your notes are never removed. Removing the dropped events changes nothing on any page. Expired events take their turn details with them (tools, usage, timeline) for prompts older than the cutoff. Compact can run while the daemon is running.
 
+The same clean-up, a persistent event retention and deleting events by source or date are on the **Settings** page; each shows a dry run first and only deletes what you confirm.
+
+## Settings
+
+**Settings** (`/settings`) groups everything you can configure: General (theme, default time range, week start), Connectors, Capture (event retention), Privacy (hide detected secrets on arrival), Data (database size and location, compact, delete events, backups), Security (rotate the receiver token, reconnecting each connected tool after you review its diff) and the preferences kept in this browser.
+
+Preferences are stored in `~/.gitprompt/preferences.json` (written atomically, mode 0600). Each value comes from, in order: an environment variable, the file, the default. The page shows where each value comes from; one set by an environment variable is read-only there.
+
+| Key in `preferences.json` | Environment variable | Default | Effect |
+|---|---|---|---|
+| `default_range` (`24h`, `7d`, `30d`, `all`) | `GITPROMPT_DEFAULT_RANGE` | `7d` | Window Overview, Sessions and Projects open with |
+| `week_start` (`monday`, `sunday`) | `GITPROMPT_WEEK_START` | `monday` | First row of the weekday heatmap |
+| `event_retention_days` (1–3650 or `null`) | `GITPROMPT_EVENT_RETENTION_DAYS` | `null` (keep) | Raw events older than this are deleted at start-up and every 6 hours |
+| `hide_secrets_on_ingest` | `GITPROMPT_HIDE_SECRETS_ON_INGEST` | `false` | Replace detected secrets before a payload is stored |
+
+All of them apply without a restart. `GITPROMPT_HOME`, `GITPROMPT_PORT` and `GITPROMPT_LOG_LEVEL` stay environment-only ([ADR-0013](docs/adr/0013-preferences.md)). Theme stays in the browser (`localStorage`).
+
 ## Layout
 
 ```
 src/gitprompt/            FastAPI daemon, one package per domain (see PLAN.md §5)
-  core/                   shared kernel: settings, domain errors, JSON payload helpers, git facts
+  core/                   shared kernel: settings, preferences, domain errors, atomic writes, JSON payload helpers, git facts
   sources/                tool specs, probing, connect/disconnect; bundled/ holds the YAML specs
-  capture/                ingest pipeline, the OTLP decoder, compact (dropped events and retention)
+  capture/                ingest pipeline, the OTLP decoder, compact (dropped events and retention), the retention pass
   storage/                SQLite store
   insights/               values derived on read, prompt origin, secret redaction, field catalog
   api/                    FastAPI app, dependencies, live-update bus, routes/
@@ -53,6 +70,7 @@ web/src/lib/              SvelteKit dashboard (built into src/gitprompt/dashboar
   design/                 design tokens (tokens.css: primitives, semantic, scales) and base styles
   ui/                     generic components (Button, Badge, Panel, Tabs...); ui/charts/ for charts
   insights/               stories computed from prompts (sessions, projects, timelines), unit tested
+  settings/               Settings page sections (one component per section), preference cache
   api/ layout/ prompts/ sessions/ projects/ sources/ shared/ testing/
 tests/                    pytest, mirroring src/ (temp dirs only, never touches real tool configs)
 ```
