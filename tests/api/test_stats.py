@@ -92,6 +92,7 @@ def test_totals_follow_the_filters(data):
         ("source", {"claude-code": 4}),
         ("session", {"s1": 2, "s2": 1, "s3": 1}),
         ("repo", {"/r/app": 3, "/r/docs": 1}),
+        ("branch", {None: 4}),  # no git repository in the fixture
         ("session_length", {"00000": 1, "00060": 1, "01800": 2}),  # s3 no end; s2 100 s; s1 08:00 to 08:30:30
         ("size", {"00000": 3, "00020": 1}),  # typed characters
         ("work", {"main": 2}),

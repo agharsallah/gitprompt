@@ -8,6 +8,7 @@ import type {
 	PromptDetail,
 	Source,
 	Stats,
+	Telemetry,
 	Updated
 } from '#lib/api/types.ts';
 import { queryParams, type StatsQuery } from '#lib/api/query.ts';
@@ -49,6 +50,9 @@ export const api = {
 	/** Counts, sums and response-time quantiles over every prompt the filters keep. */
 	stats: (query: StatsQuery = {}, fetcher?: Fetch) =>
 		get<Stats>(`/api/stats?${queryParams(query)}`, fetcher),
+	/** Telemetry reported per session (lines of code, commits, slash commands) for the sessions kept. */
+	telemetry: (query: StatsQuery = {}, fetcher?: Fetch) =>
+		get<Telemetry>(`/api/stats/telemetry?${queryParams(query)}`, fetcher),
 
 	sources: (fetcher?: Fetch) => get<Source[]>('/api/sources', fetcher),
 	/** Connect or disconnect; with `dryRun`, only returns the diff that would be written. */

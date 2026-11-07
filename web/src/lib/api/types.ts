@@ -83,6 +83,12 @@ export type TurnSummary = {
 	mcp_tools?: string[];
 	/** Tool calls by kind (derivations.tool_kind): read, write, shell, web, mcp, agent, other. */
 	tool_kinds?: Record<string, number>;
+	/** The kind of each tool the turn used, by tool name. */
+	tool_kind_of?: Record<string, string>;
+	/** Tool calls made by subagents. */
+	subagent_tool_calls?: number;
+	/** git commits the agent ran. */
+	git_commits?: number;
 	slash_command?: string;
 	subagents?: Record<string, number>;
 	tasks?: string[];
@@ -99,6 +105,8 @@ export type TurnSummary = {
 	cost_usd?: number;
 	/** Requests, tokens and cost per model. */
 	model_usage?: Record<string, Usage>;
+	/** Requests, tokens and cost per telemetry query_source (main thread, a subagent, a system call). */
+	work_usage?: Record<string, Usage>;
 	api_time_s?: number;
 	api_errors?: number;
 	tool_rejections?: number;
@@ -203,55 +211,138 @@ export type Catalog = {
 	derived: Record<string, string>;
 };
 
+/** How a turn ended (storage/store.py OUTCOME): `superseded` and `running` depend on later prompts and the clock. */
+export type TurnOutcome = 'done' | 'failed' | 'superseded' | 'running' | 'open';
+
+/** What a prompt or its turn contains (`has`, storage/store.py HAS). */
+export type Has =
+	| 'code'
+	| 'url'
+	| 'mention'
+	| 'secret'
+	| 'commit'
+	| 'subagent'
+	| 'tool_failure'
+	| 'api_error'
+	| 'denial'
+	| 'compaction'
+	| 'no_follow_up';
+
 /**
  * Single-valued prompt filters the Prompts page keeps in its URL (api/filters.py PromptFilters).
- * `origin` and `model` take several values and are handled on their own; `since`/`until` are
- * ISO-8601 instants.
+ * `origin`, `model`, `outcome` and `has` take several values and are handled on their own;
+ * `since`/`until` are ISO-8601 instants.
  */
-export const FILTER_KEYS = ['q', 'tag', 'starred', 'session', 'repo', 'source', 'before'] as const;
+export const FILTER_KEYS = [
+	'q',
+	'tag',
+	'starred',
+	'session',
+	'repo',
+	'source',
+	'since',
+	'until',
+	'weekday',
+	'hour',
+	'command',
+	'tool',
+	'tool_kind',
+	'query_source',
+	'size',
+	'before'
+] as const;
 export type Filters = Partial<Record<(typeof FILTER_KEYS)[number], string>>;
 
+/** The multi-valued filters. */
+export const LIST_KEYS = ['origin', 'model', 'outcome', 'has'] as const;
+
 /** Every filter GET /api/prompts and GET /api/stats accept. Empty lists mean "any". */
-export type PromptQuery = Filters & {
+export type PromptQuery = Omit<Filters, 'session'> & {
+	session?: string | string[];
 	origin?: Origin[];
 	model?: string[];
-	since?: string;
-	until?: string;
+	outcome?: TurnOutcome[];
+	has?: Has[];
 };
 
 /** GET /api/stats groupings (storage/stats.py GROUPS). */
 export type GroupBy =
 	| 'day' // local calendar day of the daemon's machine, YYYY-MM-DD
+	| 'day_hour' // local clock hour, "YYYY-MM-DD HH"
 	| 'hour' // local hour, "00".."23"
 	| 'weekday' // ISO weekday, "1" = Monday
 	| 'weekday_hour' // "1-09"
 	| 'origin'
 	| 'source'
-	| 'session'
-	| 'repo'
+	| 'session' // detail: title or first prompt; span_s
+	| 'session_length' // key: lower bound in seconds, zero-padded
+	| 'repo' // detail: owner/name of the remote
+	| 'branch'
 	| 'command'
-	| 'outcome' // Stop, StopFailure, or null: no end recorded
+	| 'size' // typed characters; key: lower bound, zero-padded
+	| 'text' // the same typed text; detail: its start
+	| 'outcome' // TurnOutcome
 	| 'model'
-	| 'tool'
-	| 'tool_kind';
+	| 'tool' // detail: the tool's kind
+	| 'tool_kind'
+	| 'work' // main, subagent, system
+	| 'query_source'; // detail: its kind of work
+
+/** How groups are sorted: by key, or by a measure, largest first. */
+export type StatsOrder = 'key' | 'prompts' | 'sessions' | 'cost_usd' | 'last_at';
 
 /** Measures of one group, or of all the prompts (`key` null). Mirrors api/routes/stats.py Bucket. */
 export type StatsBucket = Usage & {
 	key: string | null;
+	detail: string | null;
 	prompts: number;
 	sessions: number;
+	api_time_s: number;
+	api_errors: number;
 	tool_calls: number;
 	tool_failures: number;
+	tool_time_s: number;
+	subagent_tool_calls: number;
+	subagents: number;
+	files_written: number;
+	git_commits: number;
+	compactions: number;
+	denials: number;
+	rejections: number;
 	/** Prompts whose turn ended: the ones with a response time. */
 	ended: number;
+	failed: number;
+	/** Prompts with a later prompt in their session. */
+	followed: number;
+	with_code: number;
+	with_url: number;
+	with_mention: number;
+	with_secret: number;
+	with_commit: number;
+	distinct_texts: number;
 	response_s_p50: number | null;
 	response_s_p90: number | null;
+	span_s?: number | null;
 	first_at: string | null;
 	last_at: string | null;
+	parts?: StatsBucket[] | null;
 };
 
 /**
- * GET /api/stats. For `model`, `tool` and `tool_kind` a prompt counts in each group it touched,
- * with usage (model) or tool calls (tool, tool_kind) split exactly between the groups.
+ * GET /api/stats. For `model`, `tool`, `tool_kind`, `work` and `query_source` a prompt counts in
+ * each group it touched, with usage or tool calls split exactly between the groups.
  */
-export type Stats = { group_by: GroupBy | null; totals: StatsBucket; groups: StatsBucket[] };
+export type Stats = {
+	group_by: GroupBy | null;
+	split_by: GroupBy | null;
+	totals: StatsBucket;
+	groups: StatsBucket[];
+};
+
+/** GET /api/stats/telemetry: what telemetry reports per session, over the sessions kept. */
+export type Telemetry = {
+	sessions: number;
+	/** Named like SessionFacts.metric_totals, e.g. "claude_code.lines_of_code.count[added]". */
+	metrics: Record<string, number>;
+	commands: { command: string; source: string | null; uses: number; sessions: number }[];
+};

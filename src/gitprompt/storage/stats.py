@@ -19,7 +19,7 @@ from typing import Any, Literal
 from gitprompt.storage.store import FOLLOWED, INDEXED, OUTCOME, SIZE, buckets, where
 
 GroupBy = Literal[
-    "day", "day_hour", "hour", "weekday", "weekday_hour", "origin", "source", "session", "session_length", "repo",
+    "day", "day_hour", "hour", "weekday", "weekday_hour", "origin", "source", "session", "session_length", "repo", "branch",
     "command", "size", "text", "outcome", "model", "tool", "tool_kind", "work", "query_source",
 ]  # fmt: skip
 Order = Literal["key", "prompts", "sessions", "cost_usd", "last_at"]
@@ -70,6 +70,7 @@ GROUPS: dict[str, Group] = {
     # sessions by how long they lasted (all their prompts, whatever the filters): key = lower bound in seconds
     "session_length": Group(buckets("ss.span", SESSION_LENGTHS), _SESSIONS, by_key=True),
     "repo": Group("i.repo", detail="max(i.repo_name)"),  # detail: owner/name of the remote
+    "branch": Group("i.branch"),  # git branch when the prompt was sent
     "command": Group("i.slash_command"),
     "size": Group(SIZE, by_key=True),  # typed characters: key = lower bound (store.SIZES)
     "text": Group("i.text_hash", excerpt="last"),  # the same typed text; detail: its start

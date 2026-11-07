@@ -3,7 +3,7 @@
  * the fields the test is about. Deep-merges the nested objects so a test can say
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
-import type { Event, Prompt } from '#lib/api/types.ts';
+import type { Event, Prompt, StatsBucket } from '#lib/api/types.ts';
 
 let nextId = 1;
 
@@ -56,3 +56,45 @@ export function event(overrides: Partial<Event> & { raw?: Event['raw'] } = {}): 
 /** An ISO time `seconds` after `base`. */
 export const after = (base: string, seconds: number) =>
 	new Date(Date.parse(base) + seconds * 1000).toISOString();
+
+/** A /api/stats bucket: zeros everywhere except what the test sets. */
+export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
+	return {
+		key: null,
+		detail: null,
+		prompts: 0,
+		sessions: 0,
+		api_requests: 0,
+		cost_usd: 0,
+		input_tokens: 0,
+		output_tokens: 0,
+		cache_read_tokens: 0,
+		cache_creation_tokens: 0,
+		api_time_s: 0,
+		api_errors: 0,
+		tool_calls: 0,
+		tool_failures: 0,
+		tool_time_s: 0,
+		subagent_tool_calls: 0,
+		subagents: 0,
+		files_written: 0,
+		git_commits: 0,
+		compactions: 0,
+		denials: 0,
+		rejections: 0,
+		ended: 0,
+		failed: 0,
+		followed: 0,
+		with_code: 0,
+		with_url: 0,
+		with_mention: 0,
+		with_secret: 0,
+		with_commit: 0,
+		distinct_texts: 0,
+		response_s_p50: null,
+		response_s_p90: null,
+		first_at: null,
+		last_at: null,
+		...overrides
+	};
+}

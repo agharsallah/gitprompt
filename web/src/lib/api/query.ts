@@ -1,9 +1,14 @@
 // Query strings for GET /api/prompts and GET /api/stats: both take the same filters
 // (api/filters.py). Lists repeat the parameter (`origin=typed&origin=slash_command`); an empty
 // list or value is left out, which the daemon reads as "any".
-import type { GroupBy, PromptQuery } from '#lib/api/types.ts';
+import type { GroupBy, PromptQuery, StatsOrder } from '#lib/api/types.ts';
 
-export type StatsQuery = PromptQuery & { group_by?: GroupBy; limit?: number };
+export type StatsQuery = PromptQuery & {
+	group_by?: GroupBy;
+	split_by?: GroupBy;
+	order?: StatsOrder;
+	limit?: number;
+};
 
 export function queryParams(query: StatsQuery): URLSearchParams {
 	const params = new URLSearchParams();
