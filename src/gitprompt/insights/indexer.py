@@ -120,7 +120,7 @@ def entry(derived: dict[str, Any]) -> Entry:
         "rejections": summary.get("tool_rejections", 0),
         "model": facts.main_model(summary, fields),
         "permission_mode": fields.get("permission_mode"),
-        "tool_version": context.get("tool_version"),
+        "tool_version": context.get("tool_version") or fields.get("tool_version"),
         "reasoning_tokens": summary.get("reasoning_tokens", 0),
         "answered": int(bool(summary.get("response"))),
         "surface": derived.get("surface"),

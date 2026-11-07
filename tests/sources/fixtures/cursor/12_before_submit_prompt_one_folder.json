@@ -1,0 +1,29 @@
+{
+  "about": "A prompt in a single-folder workspace.",
+  "payload": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0003-cccc",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "beforeSubmitPrompt",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/notes"
+    ],
+    "user_email": "someone@example.test",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "prompt": "Why does the build fail?",
+    "attachments": []
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {
+      "cwd": "/work/notes",
+      "prompt_id": "gen-0003-cccc"
+    },
+    "origin": "typed"
+  }
+}

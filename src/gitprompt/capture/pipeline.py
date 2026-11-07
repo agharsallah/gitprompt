@@ -21,7 +21,7 @@ from typing import Any
 
 from gitprompt.capture import otlp
 from gitprompt.core.git import git_context
-from gitprompt.core.payload import clip, extract
+from gitprompt.core.payload import clip
 from gitprompt.insights.redaction import redact
 from gitprompt.sources import probe
 from gitprompt.sources.spec import Spec
@@ -69,7 +69,7 @@ async def capture(spec: Spec, store: Store, body: dict[str, Any], hide_secrets: 
         payload = spec.discarding(payload)  # keys the spec never stores (`discard`), e.g. an account email
         if hide_secrets:
             payload = redact(payload)
-        fields = extract(payload, spec.map)
+        fields = spec.extract(payload)
         event = fields.get("event")
         if not spec.keeps(event):  # accept_events / drop_events in the spec
             continue

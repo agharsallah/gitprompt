@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from gitprompt.api.deps import ConnectionDep, IndexDep, PreferencesDep, SettingsDep, SpecDep, SpecSetDep, StoreDep, require_dashboard
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import Conflict
-from gitprompt.core.payload import extract
 from gitprompt.core.preferences import PreferenceFile
 from gitprompt.sources import probe
 from gitprompt.sources.connection import Change, Connection
@@ -200,7 +199,7 @@ def _set_enabled(spec: Spec, preferences: PreferenceFile, enabled: bool) -> Enab
 @writes.post("/remap")
 async def remap(spec: SpecDep, store: StoreDep, index: IndexDep) -> Remapped:
     """Rebuild mapped fields from stored raw payloads, e.g. after editing the spec, then the index."""
-    updated = store.remap(spec.id, lambda raw: extract(raw, spec.map))
+    updated = store.remap(spec.id, spec.extract)
     if spec.join == "session":  # the prompt ids given at ingest are not in raw: join again
         store.rejoin(spec.id)
     index.rebuild()

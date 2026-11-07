@@ -124,3 +124,21 @@ def test_prompts_show_what_the_connector_can_report(tool, client, settings, monk
         assert any(f["tool_calls"] for f in facts), f"{tool}: no prompt shows its tool calls"
     detail = client.get(f"/api/prompts/{prompts[0]['id']}").json()
     assert detail["facts"] == prompts[0]["facts"], "the list and the detail show the same facts"
+
+
+def test_discarded_keys_are_never_stored(settings, monkeypatch):
+    """Cursor sends your account email on every event; the spec's `discard` drops it before storing."""
+    monkeypatch.setattr(pipeline, "observe", lambda spec, cwd: {})
+    spec = load_specs(settings)["cursor"]
+    store = Store(settings.db_path)
+    for _, case in cases("cursor"):
+        replay(spec, store, case["payload"])
+    dump = "".join(r[0] for r in store.db.execute("select raw || fields from prompt union all select raw || fields from event"))
+    assert "user_email" not in dump and "@example.test" not in dump
+
+
+def test_surfaces_shown_for_a_connector_are_named(settings):
+    """Every surface a spec captures or derives has a name and an icon (spec `surfaces`)."""
+    for spec in load_specs(settings).values():
+        for surface in {r.surface for r in spec.surface} | spec.captures.keys():
+            assert spec.surface_info(surface), (spec.id, surface)

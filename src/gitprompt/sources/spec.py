@@ -20,11 +20,11 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, model_validator
 
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import SpecError
-from gitprompt.core.payload import Mapping
+from gitprompt.core.payload import Mapping, extract, pluck
 
 log = logging.getLogger(__name__)
 
@@ -136,6 +136,21 @@ class When(BaseModel):
         return self
 
 
+class EventName(BaseModel):
+    """The tool's event `from` is stored as GitPrompt's (Claude Code's) event `to`, when the payload
+    has `equals` at `path` (if given). Lets the derivations read every tool by one set of names."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    from_: str = Field(alias="from")
+    to: str
+    path: str | None = None
+    equals: str | int | float | bool | None = None
+
+    def applies(self, event: Any, payload: dict[str, Any]) -> bool:
+        return event == self.from_ and (self.path is None or pluck(payload, self.path) == self.equals)
+
+
 class OriginRule(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -185,6 +200,11 @@ class Spec(BaseModel):
     accept_events: list[str] = []  # empty = keep every event the tool sends
     drop_events: dict[str, str] = {}  # event (a trailing * matches a prefix) -> why it is not stored
     map: Mapping = {}
+    # The tool's event names -> GitPrompt's, first match wins (see EventName). Applied to the mapped
+    # `event` before `prompt_events`, `accept_events`, `drop_events` and every derivation.
+    event_names: list[EventName] = []
+    # Where a turn's final answer is: event (GitPrompt's name) -> payload path; the latest one wins.
+    answer: dict[str, str] = {}
     policy: Policy = Policy()
     terms: str = ""  # shown before consent: why this is allowed by the tool's own docs
     after_connect: str = ""  # what the user still has to do in the tool once connected, if anything
@@ -231,6 +251,14 @@ class Spec(BaseModel):
         """{id, name, icon} of a surface, for a prompt's facts; None when unknown."""
         info = self.surfaces.get(surface) if surface else None
         return {"id": surface, "name": info.name, "icon": info.icon} if info and surface else None
+
+    def extract(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """The mapped fields of a payload (`map`), its event under GitPrompt's name (`event_names`)."""
+        fields = extract(payload, self.map)
+        event = fields.get("event")
+        if renamed := next((n.to for n in self.event_names if n.applies(event, payload)), None):
+            fields["event"] = renamed
+        return fields
 
     def discarding(self, payload: dict[str, Any]) -> dict[str, Any]:
         """The payload without the `discard` keys (top-level keys)."""
@@ -331,6 +359,7 @@ def parse_spec(name: str, text: str, defaults: dict[str, Any]) -> Spec:
     data["surface"] = (data.get("surface") or []) + (defaults.get("surface") or [])
     data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
     data["usage"] = data.get("usage") or defaults.get("usage") or {}  # a spec replaces the default whole
+    data["answer"] = data.get("answer") or defaults.get("answer") or {}  # ...and so does its answer
     for key in ("shown", "ignored", "surfaces"):  # ...and adds its own keys (and surfaces) to the shared ones
         data[key] = (defaults.get(key) or {}) | (data.get(key) or {})
     try:

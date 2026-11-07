@@ -61,3 +61,22 @@ ignored:
   stop_hook_active: >-
     Whether another Stop hook already made the agent continue. It says nothing about the turn, and
     GitPrompt's own hooks never make it continue.
+
+# Where a turn's final answer is (insights/derivations.py `_ending`): event -> payload path, the
+# latest one in the turn wins. A spec's own `answer` replaces this one whole.
+answer:
+  Stop: last_assistant_message
+  StopFailure: last_assistant_message
+
+# Where a prompt was typed (insights/surface.py, ADR-0022): the names and icons of the apps and
+# clients specs name in their `surface` rules and `captures`. `icon` is a name the dashboard maps to
+# its icon set (web/src/lib/prompts/surface.ts). A spec adds its own.
+surfaces:
+  cli: {name: CLI, icon: terminal}
+  vscode: {name: VS Code, icon: code}
+  jetbrains: {name: JetBrains, icon: code}
+  desktop: {name: Desktop app, icon: app-window}
+  cursor: {name: Cursor, icon: mouse-pointer}
+  sdk: {name: SDK, icon: braces}
+  slack: {name: Slack, icon: message-square}
+  web: {name: Web, icon: globe}

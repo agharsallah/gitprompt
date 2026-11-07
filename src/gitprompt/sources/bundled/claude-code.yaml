@@ -102,6 +102,51 @@ origin:
   - when: {event: user_prompt, path: command_name}
     origin: slash_command
 
+# Where a prompt was typed (ADR-0022). Hook payloads don't say; the telemetry layer does: its
+# `user_prompt` event shares the prompt's prompt_id and carries the OTel resource. Documented
+# (https://code.claude.com/docs/en/monitoring-usage, checked 2026-11-07): `service.name` is
+# `claude-code-desktop` for local Code tab sessions of Claude Desktop, and `app.entrypoint` names the
+# client (cli, sdk-cli, sdk-ts, sdk-py, claude-vscode, claude-in-slack; the Desktop app's own
+# entrypoints claude-desktop and claude-desktop-3p). Without telemetry, or for another value, the
+# surface stays unknown. `cursor_version` is on payloads Cursor sends when it runs these hooks as
+# third-party hooks (unverified that it adds it to Claude-shaped payloads).
+surface:
+  - when: {event: user_prompt, path: service.name, equals: claude-code-desktop}
+    surface: desktop
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-desktop}
+    surface: desktop
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-desktop-3p}
+    surface: desktop
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-vscode}
+    surface: vscode
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-in-slack}
+    surface: slack
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-cli}
+    surface: sdk
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-ts}
+    surface: sdk
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-py}
+    surface: sdk
+  - when: {event: user_prompt, path: app.entrypoint, equals: cli}
+    surface: cli
+  - when: {path: cursor_version}
+    surface: cursor
+
+# Shown on the Connectors page: the apps whose prompts reach these hooks, and those that can't.
+captures:
+  cli: Claude Code in a terminal.
+  vscode: The VS Code extension (Cursor and other VS Code forks run the same extension).
+  desktop: >-
+    The Code tab of Claude Desktop: it runs the hooks in ~/.claude/settings.json. Told apart from the
+    CLI only with the telemetry layer (Desktop may only export telemetry set in managed settings:
+    unverified for user settings).
+  sdk: claude -p and the Agent SDK (also marked as programmatic).
+cannot_capture:
+  Claude Desktop chat: >-
+    Chat conversations have no hooks, telemetry or local API. The only export is the account data
+    export (Settings > Privacy, sent by email), and GitPrompt never reads the app's local storage.
+  Cowork: Configured through your claude.ai account, not ~/.claude, so these hooks don't run there.
+
 # Context Claude Code (and its IDE extensions) attach to what you typed.
 injected: [ide_selection, ide_opened_file, ide_diagnostics, local-command-stdout, local-command-stderr, local-command-caveat]
 

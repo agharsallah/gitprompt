@@ -4,11 +4,12 @@ is for, instead of the field being stored and never shown.
 
 A payload key (a dotted path, list items as `[]`) is covered when it is
 
-    mapped     a candidate path of the spec's `map`, its `usage` values or an origin rule's `path`
+    mapped     a candidate path of the spec's `map`, its `usage` values, `answer` paths or an origin
+               or surface rule's `path`
     derived    read by the derivations: the turn and session summaries, origin, the prompt's facts
                (found by replaying the fixtures and recording every key they read)
     shown      in the spec's `shown`: the dashboard reads it from the raw payload itself
-    ignored    in the spec's `ignored`, with the reason it is not used
+    ignored    in the spec's `ignored` (or `discard`: never stored), with the reason
 
 A key covers what is under it, except that a derivation which reads into a key (`token_usage` ->
 `token_usage.input_tokens`) covers only what it read.
@@ -75,8 +76,9 @@ def declared(spec: Spec) -> set[str]:
     """Keys covered by the spec's data: mapped, model-call values, origin rule paths, shown, ignored."""
     paths = {p for candidates in spec.map.values() for p in candidates}
     paths |= set(spec.usage.values.values())
-    paths |= {r.when.path for r in spec.origin if r.when.path}
-    return {_normal(p) for p in paths | spec.shown.keys() | spec.ignored.keys()}
+    paths |= {r.when.path for r in [*spec.origin, *spec.surface] if r.when.path}
+    paths |= set(spec.answer.values())
+    return {_normal(p) for p in paths | spec.shown.keys() | spec.ignored.keys() | spec.discard.keys()}
 
 
 def derived_reads(spec: Spec, settings, monkeypatch) -> set[str]:

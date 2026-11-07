@@ -90,3 +90,35 @@ def test_silent_when_gitprompt_answers_500(settings, receiver):
     state["status"] = 500
     result = run(hook_command(replace(settings, port=port)), {"hook_event_name": "Stop"})
     assert (result.returncode, result.stdout, result.stderr) == (0, "", "") and len(seen) == 1
+
+
+# --- Cursor: flat handlers (event -> [{command, timeout}]); each must answer with JSON that changes nothing ---
+
+
+def cursor_command(settings, event: str) -> str:
+    (handler,) = Connection(load_specs(settings)["cursor"], settings).patch()["hooks"][event]
+    assert set(handler) == {"command", "timeout"}  # never failClosed, never a prompt-type hook
+    return handler["command"]
+
+
+# The answer Cursor reads for each subscribed event: let the prompt through, and nothing else.
+CURSOR_ANSWERS = {"beforeSubmitPrompt": {"continue": True}, "stop": {}, "postToolUse": {}, "sessionStart": {}, "afterAgentResponse": {}}
+
+
+@pytest.mark.parametrize(("event", "answer"), CURSOR_ANSWERS.items())
+def test_cursor_answers_without_changing_anything(settings, receiver, event, answer):
+    port, seen, _ = receiver
+    result = run(cursor_command(replace(settings, port=port), event), {"hook_event_name": event, "generation_id": "g1"})
+    assert (result.returncode, json.loads(result.stdout), result.stderr) == (0, answer, "")
+    assert seen[0][0] == "/ingest/cursor" and seen[0][2]["generation_id"] == "g1"
+
+
+@pytest.mark.parametrize("event", CURSOR_ANSWERS)
+def test_cursor_lets_the_prompt_through_when_gitprompt_is_down(settings, event):
+    result = run(cursor_command(replace(settings, port=free_port()), event), {"hook_event_name": event})
+    assert (result.returncode, json.loads(result.stdout), result.stderr) == (0, CURSOR_ANSWERS[event], "")
+
+
+def test_cursor_subscribes_to_no_permission_hook(settings):
+    events = set(Connection(load_specs(settings)["cursor"], settings).patch()["hooks"])
+    assert not events & {"preToolUse", "beforeShellExecution", "beforeMCPExecution", "beforeReadFile", "subagentStart", "beforeTabFileRead"}

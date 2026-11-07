@@ -122,6 +122,7 @@ FILE_INPUTS = ("file_path", "notebook_path", "path")  # tool inputs naming the f
 # message).
 TASK_INPUTS = ("description", "task_name")
 BRIEF_INPUTS = ("prompt", "message")
+ERROR_KEYS = ("error", "error_message")  # what went wrong, by the names the tools use (Cursor: error_message)
 ERROR_EVENTS = ("ErrorOccurred",)  # an error the tool reported during the turn (Copilot CLI)
 TEXT_CHARS = 280  # of an error or a brief kept in a summary
 
@@ -163,6 +164,7 @@ class Turn:
     tool_kinds: dict[str, ToolKind] = field(default_factory=dict)  # the source spec's `tool_kinds`
     tool_files: dict[str, re.Pattern[str]] = field(default_factory=dict)  # ...and its `tool_files`
     usage: Usage = field(default_factory=Usage)  # ...and its `usage`
+    answer: dict[str, str] = field(default_factory=dict)  # ...and where its final answer is (`answer`)
 
     def raws(self, *names: str) -> list[dict[str, Any]]:
         """Raw payloads of the events with one of these names."""
@@ -207,17 +209,18 @@ def _position(t: Turn) -> dict[str, Any]:
 @TURN(
     {
         "response_s / ended_by / error": "time until Stop, StopFailure or Interrupt, and how it ended",
-        "response": "the agent's final answer (Stop.last_assistant_message)",
+        "response": "the agent's final answer (the spec's `answer` events: Stop.last_assistant_message by default)",
     }
 )
 def _ending(t: Turn) -> dict[str, Any]:
     if not (end := t.end):
         return {}
+    answers = (pluck(e["raw"], t.answer[e["event"]]) for e in reversed(t.events) if e["event"] in t.answer)
     return {
         "response_s": _seconds(t.prompt["received_at"], end["received_at"]),
         "ended_by": end["event"],
-        "error": end["raw"].get("error"),
-        "response": end["raw"].get("last_assistant_message"),
+        "error": _first(end["raw"], ERROR_KEYS),
+        "response": next((a for a in answers if a), None),
     }
 
 
@@ -249,7 +252,7 @@ def _tools(t: Turn) -> dict[str, Any]:
         "tool_kind_of": {name: t.kind(name) for name, _ in t.tool_uses if name},
         "subagent_tool_calls": sum(bool(r.get("agent_id")) for r in t.raws(*TOOL_RESULTS)),
         "git_commits": sum(bool(GIT_COMMIT.search(str(c))) for c in commands),
-        "tool_errors": [e for r in t.raws("PostToolUseFailure") if (e := _text(r.get("error")))],
+        "tool_errors": [e for r in t.raws("PostToolUseFailure") if (e := _text(_first(r, ERROR_KEYS)))],
         "subagent_tasks": [
             {"task": _first(i, TASK_INPUTS), "brief": _text(_first(i, BRIEF_INPUTS))}
             for i in t.inputs("agent")
@@ -360,7 +363,7 @@ def turn(prompt: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None
     no event counts as a model call."""
     if not spec:
         return TURN.derive(Turn(prompt, events))
-    return TURN.derive(Turn(prompt, events, spec.tool_kinds, spec.tool_files, spec.usage))
+    return TURN.derive(Turn(prompt, events, spec.tool_kinds, spec.tool_files, spec.usage, spec.answer))
 
 
 # --- the whole session: every event that shares the prompt's session_id ----------------------
@@ -388,11 +391,15 @@ def _activity(events: list[dict[str, Any]]) -> dict[str, Any]:
     {
         "starts": "how the session started, then each time it was taken up again (SessionStart.source: startup, resume...)",
         "ended / instructions_loaded / cwd_changes / config_changes": "end reason, instruction files, directory and config changes",
+        "modes / background": "the mode each session start reported (Cursor: composer_mode), and whether it ran as a background agent",
     }
 )
 def _lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
+    starts = _raws(events, "SessionStart")
     return {
-        "starts": [r["source"] for r in _raws(events, "SessionStart") if r.get("source")],
+        "modes": [r["composer_mode"] for r in starts if r.get("composer_mode")],
+        "background": any(r.get("is_background_agent") for r in starts),
+        "starts": [r["source"] for r in starts if r.get("source")],
         "ended": next((r.get("reason") for r in reversed(_raws(events, "SessionEnd"))), None),
         "instructions_loaded": sorted({r.get("file_path") for r in _raws(events, "InstructionsLoaded")} - {None}),
         "cwd_changes": [r.get("new_cwd") for r in _raws(events, "CwdChanged")],
@@ -407,9 +414,9 @@ def _subagents(events: list[dict[str, Any]]) -> dict[str, Any]:
             compact(
                 {
                     "agent_id": r.get("agent_id"),
-                    "agent_type": r.get("agent_type"),
-                    "stop_reason": r.get("stop_reason"),
-                    "answer": _text(r.get("last_assistant_message")),
+                    "agent_type": _first(r, ("agent_type", "subagent_type")),
+                    "stop_reason": _first(r, ("stop_reason", "status")),
+                    "answer": _text(_first(r, ("last_assistant_message", "summary"))),
                 }
             )
             for r in _raws(events, "SubagentStop")

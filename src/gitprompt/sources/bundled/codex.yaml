@@ -68,6 +68,16 @@ after_connect: >-
 
 prompt_events: [UserPromptSubmit]
 
+# Where prompts are typed (ADR-0022). The CLI, the IDE extension and the Codex desktop app share
+# $CODEX_HOME (~/.codex) and its hooks (https://learn.chatgpt.com/docs/hooks; the app has Settings >
+# Hooks), so this connector receives all three. No hook payload says which one sent it (no client,
+# originator or entrypoint field; SessionStart.source is startup/resume/clear/compact/fork), so
+# there are no `surface` rules: Codex prompts show no surface rather than a guessed one.
+captures:
+  cli: The Codex CLI (codex, codex exec).
+  desktop: The Codex desktop app, which reads the same hooks file. Shown as Codex with no surface.
+  vscode: The Codex IDE extension (unverified that it runs hooks). Shown as Codex with no surface.
+
 # What this connector yields (docs/sources.md "Capabilities per tool"). Every hook payload carries
 # the model; PostModelRequest (0.164+) the tokens of each model call. Subagents: their
 # SubagentStart, tool calls and SubagentStop carry the subagent's own turn_id (seen live with

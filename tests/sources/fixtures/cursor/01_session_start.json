@@ -1,0 +1,31 @@
+{
+  "about": "A new agent chat: its mode and whether it runs in the background.",
+  "payload": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0001-aaaa",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "sessionStart",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "user_email": "someone@example.test",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "session_id": "sess-0001",
+    "is_background_agent": false,
+    "composer_mode": "agent"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "SessionStart",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001"
+    },
+    "turn": null
+  }
+}

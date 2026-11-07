@@ -1,0 +1,29 @@
+{
+  "about": "You stopped the turn: stored as an Interrupt.",
+  "payload": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0002-bbbb",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "stop",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "user_email": "someone@example.test",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "status": "aborted",
+    "loop_count": 0
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "Interrupt"
+    },
+    "turn": "10_before_submit_prompt_slash"
+  }
+}

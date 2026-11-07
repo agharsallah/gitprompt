@@ -1,0 +1,39 @@
+{
+  "about": "A subagent finished.",
+  "payload": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0001-aaaa",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "subagentStop",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "user_email": "someone@example.test",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "subagent_type": "explore",
+    "status": "completed",
+    "task": "Find the checkout tests",
+    "description": "Find tests",
+    "summary": "Tests are in src/checkout.test.ts",
+    "duration_ms": 5400,
+    "message_count": 6,
+    "tool_call_count": 4,
+    "loop_count": 0,
+    "modified_files": [],
+    "agent_transcript_path": "/tmp/cursor-transcripts/c001-sub.jsonl"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "SubagentStop",
+      "agent_type": "explore"
+    },
+    "turn": "02_before_submit_prompt"
+  }
+}
