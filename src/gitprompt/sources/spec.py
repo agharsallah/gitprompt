@@ -79,6 +79,10 @@ Tag = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][\w:-]*$")]
 class Spec(BaseModel):
     id: str
     name: str
+    # A tool can have several connectors, each an optional layer of the same tool (hooks, telemetry).
+    part_of: str | None = None  # id of the tool's main connector; none = this is the main one
+    layer: str = ""  # short name of this layer in its tool, e.g. "Hooks", "Telemetry"
+    summary: str = ""  # one line: what this layer adds, shown before connecting
     detect: list[str]
     version_cmd: list[str] = []
     install: Install
@@ -137,6 +141,9 @@ def load_specs(settings: Settings) -> dict[str, Spec]:
         except ValidationError as e:
             raise SpecError(f"source spec {name} is invalid: {e}") from e
         specs[spec.id] = spec
+    for spec in specs.values():
+        if spec.part_of and (spec.part_of not in specs or specs[spec.part_of].part_of):
+            raise SpecError(f"source spec {spec.id}: part_of must name a main source spec, not {spec.part_of!r}")
     return specs
 
 

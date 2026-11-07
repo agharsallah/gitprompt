@@ -245,6 +245,22 @@ class Store:
             out[r["source"]] = {"last_at": r["last_at"], **out.get(r["source"], {}), "events": r["events"]}
         return out
 
+    def hourly(self, since: str) -> list[tuple[str, str, int]]:
+        """(source, UTC hour 'YYYY-MM-DDTHH', rows) for prompts and events received at or after `since`.
+
+        Cheap on a large table without an index on received_at: rows are inserted in time order, so
+        the newest row older than `since` is found by walking ids backwards, and only newer ids are read."""
+        out: list[tuple[str, str, int]] = []
+        for table in ("prompt", "event"):
+            older = self.db.execute(f"select id from {table} where received_at < ? order by id desc limit 1", (since,)).fetchone()
+            rows = self.db.execute(
+                f"select source, substr(received_at, 1, 13) hour, count(*) n from {table}"
+                " where id > ? and received_at >= ? group by source, hour",
+                (older[0] if older else 0, since),
+            )
+            out += [(r["source"], r["hour"], r["n"]) for r in rows]
+        return out
+
     # --- housekeeping (see capture/compact.py) ---
 
     def event_usage(self, before: str | None = None) -> list[dict]:

@@ -4,6 +4,9 @@
 # Separate from the hooks source so it can be connected (and reviewed) on its own.
 id: claude-code-otel
 name: Claude Code telemetry (model, tokens, cost)
+part_of: claude-code
+layer: Telemetry
+summary: Model, tokens, cost and API timings for each prompt. Optional; needs the hooks layer for prompts.
 detect: ["${CLAUDE_CONFIG_DIR:-~/.claude}"]
 version_cmd: [claude, --version]
 format: otlp

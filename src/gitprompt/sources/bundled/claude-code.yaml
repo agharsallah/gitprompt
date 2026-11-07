@@ -9,6 +9,8 @@
 # source's `last_at` on the dashboard. `async` keeps GitPrompt off Claude Code's critical path.
 id: claude-code
 name: Claude Code
+layer: Hooks
+summary: Your prompts, the tools each turn used, files touched and how the turn ended.
 detect: ["${CLAUDE_CONFIG_DIR:-~/.claude}"]
 version_cmd: [claude, --version]
 
