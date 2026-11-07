@@ -17,7 +17,7 @@ When a tool update changes an interface, update this file and add a fixture for 
 | **Copilot in VS Code** (agent mode) | Hooks (**Preview**), same files as Copilot CLI; OTel | same as Copilot CLI | `userPromptSubmitted` / `UserPromptSubmit` | as Copilot CLI | as CLI | OTel only | OTel tokens | `agentStop` / `Stop` | as CLI | enterprise-managed settings (key unverified); `chat.useHooks` is local-harness only | Preview; can't tell VS Code from CLI in the payload (unverified) |
 | **Gemini CLI** 0.67.0 | Hooks (command only) + OTel | `~/.gemini/settings.json` (`hooks`) | `BeforeAgent` | `session_id` / **none** in hooks (`prompt_id` in OTel) | yes | `BeforeModel.llm_request.model` | OTel only | `AfterAgent` | none documented in hooks | `hooksConfig.enabled: false`; system `settings.json` overrides all | **Sunset for individuals** on 2026-06-18 (replaced by Antigravity CLI) |
 | **Antigravity** (App, IDE, CLI; version not stated) | Hooks (command only) | `~/.gemini/config/hooks.json` | **none**: `lastUserInput` on every event | `conversationId` / `invocationNum` | `workspacePaths[]` | `modelName` | no | `Stop` | none in payloads | per-hook `enabled: false`; no enterprise key documented | no prompt-submit event (dedupe on `lastUserInput`) |
-| **Cursor IDE** (1.7.x example) | Hooks (command, `prompt`) | `~/.cursor/hooks.json` | `beforeSubmitPrompt` | `conversation_id` / `generation_id` | `workspace_roots[]` | `model` | no | `stop` (`status`) | `subagentStart/Stop` (`subagent_id`, `parent_conversation_id`) | enterprise/team hooks run first; no "disable user hooks" key documented | no tokens/cost; no OTel |
+| **Cursor IDE** (shipped; docs 2026-11-07) | Hooks (command, `prompt`) | `~/.cursor/hooks.json` | `beforeSubmitPrompt` | `conversation_id` / `generation_id` | `workspace_roots[]` | `model` | no | `stop` (`status`) | `subagentStart/Stop` (`subagent_id`, `parent_conversation_id`) | enterprise/team hooks run first; no "disable user hooks" key documented | no tokens/cost; no OTel |
 | **Cursor CLI** (`cursor-agent`) | Hooks only partly (docs name `workspaceOpen` only) | `~/.cursor/hooks.json` | `beforeSubmitPrompt` (**unreliable**) | as IDE | as IDE | as IDE | no | `stop` (reported missing) | unverified | as IDE | forum reports: prompt/stop hooks missing in CLI, absent in `-p` |
 | **Codex CLI** 0.167.0 docs, **0.150.1 live** (shipped) | Hooks (command, `mcp_tool`; on by default; **each hook must be trusted**) + OTel + `notify` | `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`) or `[hooks]` in `config.toml` | `UserPromptSubmit` | `session_id` / `turn_id` | yes | `model` (every event) | OTel (tokens; `codex.turn_cost` estimate) | `Stop` (`last_assistant_message`) | `SubagentStart/Stop` (`agent_id`, `agent_type`; the subagent's own `turn_id`) | `requirements.toml`: `[features].hooks = false`, `allow_managed_hooks_only = true`; `[features].hooks = false` in `config.toml` | hook trust per hash (re-trust after an update or token rotation); no usage in hooks before `PostModelRequest` (≥ 0.167) |
 
@@ -258,6 +258,41 @@ Reproduced on 2026-11-07 with the test client in a temp dir: one `~/.gitprompt/s
 
 ---
 
+## Desktop apps
+
+Which prompts typed in desktop apps reach GitPrompt, how each prompt's app (its **surface**) is told apart, and what is impossible within the rules (documented interfaces only; never an app's own storage). Checked 2026-11-07. Design: [ADR-0022](adr/0022-surfaces-and-desktop-apps.md).
+
+| App | Captured by | Surface detected from | Notes |
+|---|---|---|---|
+| **Claude Desktop, Code tab** | Claude Code hooks: Desktop shares `~/.claude/settings.json`; "hooks and skills defined in settings apply to both" ([desktop](https://code.claude.com/docs/en/desktop)); hooks fire "in the terminal, IDE extensions, the Desktop app" ([hooks](https://code.claude.com/docs/en/hooks)) | Telemetry layer only: resource `service.name` is `claude-code-desktop` for local Code tab sessions; `app.entrypoint` may be `claude-desktop` or `claude-desktop-3p` ([monitoring](https://code.claude.com/docs/en/monitoring-usage)) | **Unverified:** whether Desktop exports telemetry set in *user* settings (the desktop page names managed settings; a launcher-provided endpoint wins). No hook field names the client. Sessions may run in worktrees under `<project>/.claude/worktrees/` (resolved to the main repository) |
+| **Claude Desktop, chat** | **Not capturable** | | No hook, telemetry or local API; the only export is the account data export (Settings › Privacy, emailed link, [support](https://support.claude.com/en/articles/9450526-export-your-claude-data)). Reading the app's local storage is out of bounds. Cowork is configured through the claude.ai account, not `~/.claude` |
+| Claude Code CLI / VS Code / `claude -p`, Agent SDK | Claude Code hooks | Telemetry `app.entrypoint`: `cli`, `claude-vscode`, `sdk-cli` / `sdk-ts` / `sdk-py`, `claude-in-slack` | Seen in the author's data: `cli`, `sdk-cli`, `claude-vscode` with `service.name` `claude-code`. No JetBrains value is documented |
+| **Codex desktop app** | Codex hooks: "the CLI, IDE extension, and ChatGPT desktop app all share the same configuration layers" under `$CODEX_HOME` ([docs](https://developers.openai.com/codex/llms-full.txt), now served from learn.chatgpt.com); the app has Settings › Hooks ([hooks](https://learn.chatgpt.com/docs/hooks)) | **None**: no hook field names the client (`SessionStart.source` is startup/resume/clear/compact/fork). The client name exists only in app-server `clientInfo` and OTel `originator`, whose values aren't documented | Shown as Codex with no app. Unverified: whether the IDE extension runs hooks. App worktrees under `$CODEX_HOME/worktrees` resolve to their repository |
+| **Cursor** (the app's agent) | Cursor connector (`cursor.yaml`), `~/.cursor/hooks.json` | **None** within Cursor: no field tells the IDE from the CLI | Claude Code's extension in Cursor is captured by the Claude Code connector; payloads with `cursor_version` there get the `cursor` surface |
+| Cursor CLI (`cursor-agent`) | Unreliable | | Docs list CLI support for `workspaceOpen` only; forum reports (staff, 2026-08-21) say `beforeSubmitPrompt`/`afterAgentResponse`/`stop` don't fire in non-interactive mode and that `generation_id` = `conversation_id` there ([thread](https://forum.cursor.com/t/cursor-cli-omits-beforesubmitprompt-afteragentresponse-and-stop-hooks-loses-token-usage-and-emits-inconsistent-generation-id-values/169059)) |
+| Antigravity (App, IDE, CLI) | Not yet | | Hooks exist, but still no prompt-submit event: `lastUserInput` is on every event ([hooks](https://antigravity.google/docs/hooks)); needs a dedupe feature first |
+
+**How the surface works.** A spec's `surface` rules (`{when: {event?, path, equals}, surface: id}`, first match wins, no match stays null) run on read over the prompt payload and its turn's events (`insights/surface.py`); names and icons are `surfaces` data. `gitprompt check` and **Recent captures** on the Connectors page show, per tool and app, the newest prompt with its project, branch, session, model and the values the rules read.
+
+### Cursor connector: fields
+
+| Cursor field | GitPrompt |
+|---|---|
+| `generation_id` | prompt id (every event of the turn) |
+| `conversation_id` | session |
+| `workspace_roots[0]` | folder (`cwd`), so its git repository is the project; all roots kept in `workspace_roots` |
+| `model` | model (from the hooks: no tokens or cost) |
+| `cursor_version` | tool version of the prompt |
+| `afterAgentResponse.text` | the final answer (spec `answer`) |
+| `stop.status` | `completed` → done, `aborted` → interrupted, `error` → failed (spec `event_names`) |
+| `postToolUse` / `postToolUseFailure` `tool_name`, `tool_input` | tool calls by kind (`Shell`, `Read`, `Grep`, `Write`, `Delete`, `Task`, `MCP:*`); `error_message` as the tool error |
+| `subagentStop` | subagent results (`subagent_type`, `status`, `summary`) |
+| `sessionStart.composer_mode`, `is_background_agent` | session modes |
+| `user_email` | **removed before storing** (spec `discard`); exports drop identity keys too |
+| `transcript_path` | stored, never read |
+
+Answers: `beforeSubmitPrompt` → `{"continue":true}`, every other event → `{}`, always exit 0, never `failClosed`. Not subscribed: permission hooks (`preToolUse`, `beforeShellExecution`, `beforeMCPExecution`, `beforeReadFile`, `subagentStart`: an answer that isn't valid JSON blocks them), Tab hooks, `afterAgentThought`, `preCompact`, and the `after*Execution`/`afterFileEdit` events that repeat `postToolUse`. Unverified: that the command runs through a shell, Cursor's tool input names beyond the docs' examples, and that `generation_id` is the same on every event of a turn.
+
 ## Per-tool notes
 
 ### Claude Code — CLI 2.1.316 (also used by the VS Code / Cursor extension)
@@ -334,6 +369,7 @@ Docs: [hooks](https://cursor.com/docs/agent/hooks).
 - **Common:** `conversation_id`, `generation_id`, `model`, `model_id?`, `model_params?`, `hook_event_name`, `cursor_version`, `workspace_roots`, `user_email`, `transcript_path` — all already in `_defaults.yaml` aliases.
 - **Policy:** no documented key to disable user hooks; enterprise/team hooks only add. Can load Claude Code hooks (third-party hooks page not checked: unverified whether `~/.claude/settings.json` hooks fire in Cursor → risk of double capture with the Claude Code connector).
 - **Gaps:** no tokens, no cost, no OTel. `stop.followup_message` is auto-submitted, so only ever answer `{}`.
+- **Shipped** as `cursor.yaml`: see [Desktop apps](#desktop-apps) for its fields and answers.
 
 ### Cursor CLI — `cursor-agent`
 - Docs only say `workspaceOpen` "Runs in the Cursor desktop app and CLI" ([hooks](https://cursor.com/docs/agent/hooks)).
