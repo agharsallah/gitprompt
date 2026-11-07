@@ -64,7 +64,7 @@ create table if not exists prompt_index (
   api_time_s    real not null,         -- time spent in model calls (telemetry)
   api_errors    integer not null,
   response_s    real,                  -- null while the turn has no end
-  ended_by      text,                  -- Stop, StopFailure, or null
+  ended_by      text,                  -- Stop, StopFailure, Interrupt, or null
   tool_calls    integer not null,
   tool_failures integer not null,
   tool_time_s   real not null,         -- summed tool durations (parallel calls add up)

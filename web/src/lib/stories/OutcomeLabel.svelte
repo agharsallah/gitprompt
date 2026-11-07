@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CircleCheck, CircleDashed, CircleX, Hourglass, Redo2 } from '@lucide/svelte';
+	import { CircleCheck, CircleDashed, CircleStop, CircleX, Hourglass, Redo2 } from '@lucide/svelte';
 	import type { TurnOutcome } from '#lib/api/types.ts';
 	import { TURN_OUTCOMES } from '#lib/insights/outcome.ts';
 	import Badge from '#lib/ui/Badge.svelte';
@@ -10,6 +10,7 @@
 	const ICONS = {
 		done: CircleCheck,
 		failed: CircleX,
+		interrupted: CircleStop,
 		superseded: Redo2,
 		running: Hourglass,
 		open: CircleDashed

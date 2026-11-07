@@ -70,7 +70,7 @@ export type TurnSummary = {
 	turn?: number;
 	since_previous_prompt_s?: number;
 	response_s?: number;
-	ended_by?: 'Stop' | 'StopFailure' | string;
+	ended_by?: 'Stop' | 'StopFailure' | 'Interrupt' | string;
 	error?: unknown;
 	response?: string;
 	tool_calls?: Record<string, number>;
@@ -102,6 +102,8 @@ export type TurnSummary = {
 	output_tokens?: number;
 	cache_read_tokens?: number;
 	cache_creation_tokens?: number;
+	/** Output tokens spent reasoning, when the tool reports them (part of output_tokens). */
+	reasoning_tokens?: number;
 	cost_usd?: number;
 	/** Requests, tokens and cost per model. */
 	model_usage?: Record<string, Usage>;
@@ -117,6 +119,8 @@ export type SessionFacts = {
 	events?: Record<string, number>;
 	first_event_at?: string;
 	last_event_at?: string;
+	/** How the session started, then each time it was taken up again (SessionStart.source). */
+	starts?: string[];
 	ended?: string;
 	instructions_loaded?: string[];
 	cwd_changes?: string[];
@@ -208,6 +212,8 @@ export type Source = {
 	enabled: boolean;
 	/** What this connector yields (spec `capabilities`); a tool has those of its connected layers. */
 	capabilities: Capability[];
+	/** Capabilities the installed version lacks -> the version that adds them (spec `capability_since`). */
+	needs_version?: Partial<Record<Capability, string>>;
 	/** How its events find their prompt: by the tool's prompt id, or the latest prompt of the session. */
 	join: 'prompt_id' | 'session';
 	/** The spec file in use. */
@@ -275,7 +281,7 @@ export type Catalog = {
 };
 
 /** How a turn ended (storage/store.py OUTCOME): `superseded` and `running` depend on later prompts and the clock. */
-export type TurnOutcome = 'done' | 'failed' | 'superseded' | 'running' | 'open';
+export type TurnOutcome = 'done' | 'failed' | 'interrupted' | 'superseded' | 'running' | 'open';
 
 /** What a prompt or its turn contains (`has`, storage/store.py HAS). */
 export type Has =

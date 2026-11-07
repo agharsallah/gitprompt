@@ -46,6 +46,8 @@ export type Availability = {
 	available: string[];
 	/** Tools whose optional layer would provide it once connected. */
 	connectable: { tool: string; toolId: string; layer: string }[];
+	/** Tools whose newer version would provide it (spec `capability_since`). */
+	updatable: { tool: string; version: string }[];
 	/** Tools that can't provide it at all. */
 	unavailable: string[];
 };
@@ -57,13 +59,21 @@ export type Availability = {
 export function availability(sources: Source[], capability: Capability): Availability {
 	const all = tools(sources);
 	const inUse = all.filter((t) => t.layers.some(active));
-	const out: Availability = { capability, available: [], connectable: [], unavailable: [] };
+	const out: Availability = {
+		capability,
+		available: [],
+		connectable: [],
+		updatable: [],
+		unavailable: []
+	};
 	for (const tool of inUse.length ? inUse : all) {
 		const { has } = toolCapabilities(tool);
 		const layer = tool.layers.find((l) => l.enabled && l.capabilities.includes(capability));
+		const since = tool.layers.map((l) => l.needs_version?.[capability]).find(Boolean);
 		if (has.includes(capability)) out.available.push(tool.name);
 		else if (layer)
 			out.connectable.push({ tool: tool.name, toolId: tool.id, layer: layerName(layer) });
+		else if (since) out.updatable.push({ tool: tool.name, version: since });
 		else out.unavailable.push(tool.name);
 	}
 	return out;
@@ -80,7 +90,17 @@ export const assistantOf = (tool: Tool | undefined) => tool?.layers[0].assistant
 export const names = (list: string[]) =>
 	list.length < 2 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
 
+/** "Needs OpenAI Codex CLI 0.164.0 or later." for the tools an update would give it. */
+export const updateNote = (a: Availability) =>
+	a.updatable.map((u) => `Needs ${u.tool} ${u.version} or later.`).join(' ');
+
 /** One line for a panel whose numbers can't include every tool, or null when nothing is missing. */
 export function note(a: Availability): string | null {
-	return a.unavailable.length ? `Not available for ${names(a.unavailable)}.` : null;
+	const text = [
+		a.unavailable.length ? `Not available for ${names(a.unavailable)}.` : '',
+		updateNote(a)
+	]
+		.filter(Boolean)
+		.join(' ');
+	return text || null;
 }

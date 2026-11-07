@@ -1,13 +1,14 @@
 import type { Prompt, TurnOutcome } from '#lib/api/types.ts';
 
 /**
- * How a turn ended, from its Stop / StopFailure event.
- *   done     the tool finished (Stop)
- *   failed   the turn ended on an API error (StopFailure)
+ * How a turn ended, from its Stop / StopFailure / Interrupt event.
+ *   done         the tool finished (Stop)
+ *   failed       the turn ended on an API error (StopFailure)
+ *   interrupted  you stopped the turn (Interrupt)
  *   running  no end yet, and recent enough that the tool is probably still working
  *   open     no end was recorded: interrupted, or the end was never captured
  */
-export type Outcome = 'done' | 'failed' | 'running' | 'open';
+export type Outcome = 'done' | 'failed' | 'interrupted' | 'running' | 'open';
 
 export type Tone = 'neutral' | 'accent' | 'agent' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -19,6 +20,7 @@ export const ACTIVE_WINDOW_MS = 10 * 60 * 1000;
 export const OUTCOMES: Record<Outcome, { label: string; tone: Tone; hint: string }> = {
 	done: { label: 'Finished', tone: 'success', hint: 'The tool finished the turn.' },
 	failed: { label: 'Failed', tone: 'danger', hint: 'The turn ended on an API error.' },
+	interrupted: { label: 'Interrupted', tone: 'info', hint: 'You stopped the turn.' },
 	running: { label: 'Working', tone: 'accent', hint: 'No end yet: the tool is still on it.' },
 	open: {
 		label: 'No end recorded',
@@ -34,6 +36,7 @@ export const OUTCOMES: Record<Outcome, { label: string; tone: Tone; hint: string
 export const TURN_OUTCOMES: Record<TurnOutcome, { label: string; tone: Tone; hint: string }> = {
 	done: OUTCOMES.done,
 	failed: OUTCOMES.failed,
+	interrupted: OUTCOMES.interrupted,
 	superseded: {
 		label: 'Superseded',
 		tone: 'warning',
@@ -56,6 +59,7 @@ export function outcome(
 ): Outcome {
 	const end = p.summary.ended_by;
 	if (end === 'StopFailure') return 'failed';
+	if (end === 'Interrupt') return 'interrupted';
 	if (end === 'Stop') return 'done';
 	if (superseded) return 'open';
 	if (lastActivity !== undefined) return now - lastActivity < ACTIVE_WINDOW_MS ? 'running' : 'open';

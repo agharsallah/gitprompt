@@ -10,6 +10,7 @@ map:
   model: [model, model_name, modelName]
   transcript_path: [transcript_path, transcriptPath]
   effort: [effort.level, effort]
+  permission_mode: [permission_mode, permissionMode]
   agent_id: [agent_id, agentId]
   agent_type: [agent_type, agentType]
   tool_name: [tool_name, toolName]
@@ -29,3 +30,18 @@ origin:
 # Context blocks a tool adds before or after what the user typed: <tag ...>...</tag>. Only leading
 # and trailing blocks are removed from the typed text. A spec's own tags are added to these.
 injected: [system-reminder]
+
+# Model calls (insights/derivations.py `_usage`): the events that each report one call, and where
+# its model, tokens, cost and duration are. A spec's own `usage` replaces this one whole. These are
+# Claude Code's telemetry `api_request` events, joined to its hook prompts by prompt id.
+usage:
+  events: [api_request]
+  values:
+    model: model
+    input_tokens: input_tokens
+    output_tokens: output_tokens
+    cache_read_tokens: cache_read_tokens
+    cache_creation_tokens: cache_creation_tokens
+    cost_usd: cost_usd
+    duration_ms: duration_ms
+    query_source: query_source

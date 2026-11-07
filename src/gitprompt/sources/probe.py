@@ -58,6 +58,18 @@ def version_of(output: str) -> str | None:
     return output.split()[0] if output.strip() else None
 
 
+def _release(version: str) -> tuple[int, ...]:
+    return tuple(int(n) for n in re.findall(r"\d+", version.split("-")[0].split("+")[0]))
+
+
+def missing_capabilities(spec: Spec, version: str | None) -> dict[str, str]:
+    """Capabilities the installed version doesn't have yet (spec `capability_since`), with the
+    version that adds each. An unknown version is given the benefit of the doubt."""
+    if not version or not _release(version):
+        return {}
+    return {c: since for c, since in spec.capability_since.items() if _release(version) < _release(since)}
+
+
 def tool_version(spec: Spec) -> str | None:
     """The tool's `--version`, cached for a few minutes (it is also stamped on every prompt)."""
     cmd = tuple(spec.version_cmd)

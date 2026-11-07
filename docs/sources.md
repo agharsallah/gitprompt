@@ -33,7 +33,7 @@ What a connector can feed into the dashboard. Panels show "not available for X" 
 | `turn_id` | id that ties a turn's events to its prompt | yes (`prompt_id`) | **no** | **no** | no (OTel `prompt_id` only) | partial (`invocationNum`) | yes (`generation_id`) | unverified | yes (`turn_id`) |
 | `cwd` | working directory | yes | yes | yes | yes | yes (`workspacePaths`) | yes (`workspace_roots`) | yes | yes |
 | `model` | model per prompt/turn | yes (OTel) | no (OTel only) | no (OTel only) | yes (`BeforeModel`) | yes | yes | unverified | yes |
-| `usage` | tokens | yes (OTel) | no (OTel only) | no (OTel only) | no (OTel only) | no | no | no | no (OTel only) |
+| `usage` | tokens | yes (OTel) | no (OTel only) | no (OTel only) | no (OTel only) | no | no | no | yes (`PostModelRequest`, ≥ 0.164) |
 | `cost` | money | yes (OTel `cost_usd`) | no | no | no | no | no | no | no |
 | `turn_end` | an event when the answer is done | yes (`Stop`) | yes (`agentStop`) | yes | yes (`AfterAgent`) | yes (`Stop`) | yes (`stop`) | reported missing | yes (`Stop`) |
 | `response` | final answer text | yes | no (only `subagentStop.response`) | no | yes (`prompt_response`) | no | yes (`afterAgentResponse.text`) | unverified | yes |
@@ -200,11 +200,44 @@ Spec `src/gitprompt/sources/bundled/codex.yaml`, fixtures `tests/sources/fixture
 - `codex exec resume --last` continues the session: the second prompt is turn 2 of the same `session_id`.
 - Empty stdout with exit 0 is success on every event, `Stop` included.
 
-**From the docs and schemas only (not exercised):** `PreCompact`/`PostCompact` (`trigger`), `Interrupt`, `SessionStart.source` values other than `startup`, MCP tool names (`mcp__<server>__<tool>`), `view_image`, `UserPromptSubmit` with `agent_id` (in the schema; not seen), policy keys in `requirements.toml` (the TOML parsing is tested with synthetic files), slash commands (whether they fire `UserPromptSubmit`), a hook on Windows (`commandWindows`).
+**Second live test (2026-11-07, [ADR-0020](adr/0020-model-call-usage-and-version-capabilities.md)).** The same setup (port 7889), the installed 0.150.1 and a scratch 0.167.0 (`pnpm add @openai/codex@0.167.0` in a scratch folder), four runs: a failing shell command plus an `apply_patch` edit on each version, `exec resume --last` on 0.167.0, and Ctrl-C during `sleep 30`. Seen: `PostModelRequest` on every model call with 0.167.0 (async, none lost; the calls add up to `codex exec`'s turn usage), none with 0.150.1 (the name is ignored); a failed command's `tool_response` is its stderr text with no exit code; `SessionStart.source` `resume` on the same `session_id`; `Interrupt` with the turn's `turn_id`, then `SessionEnd`, and no `Stop`.
 
-**Docs vs 0.150.1:** the docs (0.167) list `PreModelRequest`/`PostModelRequest` (with `token_usage`), which 0.150.1 lacks; 0.150.1 ignores unknown event names (its `HooksFile` rejects only unknown top-level keys), but the spec subscribes only to events it could verify. The docs call the subagent tool `spawn_agent` ("also matches `Agent`"); hook payloads say `collaborationspawn_agent`. The docs' OTel example shows `protocol = "binary"`; 0.150.1's source also accepts `"json"`. The docs don't mention `CODEX_HOME` for hooks; 0.150.1 reads `$CODEX_HOME/hooks.json`.
+**From the docs and schemas only (not exercised):** `PreCompact`/`PostCompact` (`trigger`), `SessionStart.source` `clear`, `compact` and `fork`, MCP tool names (`mcp__<server>__<tool>`), `view_image`, `UserPromptSubmit` with `agent_id` (in the schema; not seen), policy keys in `requirements.toml` (the TOML parsing is tested with synthetic files), slash commands (whether they fire `UserPromptSubmit`), a hook on Windows (`commandWindows`).
 
-**What Codex yields in GitPrompt:** prompts with typed text and origin, model, working folder and project, turn end and response time, the final answer, tool calls by kind (shell, write, agent, mcp) with shell commands, git commits and files written (from the patch, `tool_files`), session start/end, transcript path (stored, never read). **Not available:** tokens and cost (OpenTelemetry only, not connected: see ADR-0019), per-session metrics, subagent work inside the parent turn, telling `codex exec` runs from interactive ones (the hooks don't say; OTel's `originator` would).
+**Docs vs 0.150.1:** `PreModelRequest`/`PostModelRequest` (with `token_usage`) arrived in 0.164.0; 0.150.1 ignores the names (its `HooksFile` rejects only unknown top-level keys), so the spec subscribes to `PostModelRequest` for every version and claims `usage` from 0.164.0 (`capability_since`). The docs call the subagent tool `spawn_agent` ("also matches `Agent`"); hook payloads say `collaborationspawn_agent`. The docs' OTel example shows `protocol = "binary"`; 0.150.1's source also accepts `"json"`. The docs don't mention `CODEX_HOME` for hooks; 0.150.1 reads `$CODEX_HOME/hooks.json`.
+
+**What Codex yields in GitPrompt:** prompts with typed text and origin, model, permission mode, working folder and project, turn end (finished or interrupted) and response time, the final answer, tokens per turn and per model with reasoning tokens and failed model calls (0.164+), tool calls by kind (shell, write, agent, mcp) with shell commands, git commits and files written (from the patch, `tool_files`), how each session started and was resumed, session end, transcript path (stored, never read). **Not available:** cost (OpenTelemetry only, not connected: see ADR-0019), tool durations and exit codes, per-session metrics, subagent work inside the parent turn, telling `codex exec` runs from interactive ones (the hooks don't say; OTel's `originator` would).
+
+### Codex fields: captured, shown and why not
+
+Every key path Codex sent in the live runs (0.150.1 and 0.167.0, a scratch database), next to the documented ones ([hooks](https://learn.chatgpt.com/docs/hooks), [input schemas](https://github.com/openai/codex/tree/main/codex-rs/hooks/schema/generated); `main` = 0.167.0). "Sent" = seen live; "docs" = documented only. Shown = where the dashboard uses it.
+
+| Field (events) | Sent | Captured as | Shown | Why not / note |
+|---|---|---|---|---|
+| `session_id`, `cwd`, `transcript_path`, `hook_event_name` (all) | 0.150.1 | mapped | sessions, projects, Events/Raw tabs | transcript stored, never read |
+| `model` (all but SessionEnd) | 0.150.1 | mapped | model chip, models panel, filter | |
+| `turn_id` (turn events) | 0.150.1 | `prompt_id` | joins events to their prompt | subagent events carry their own |
+| `permission_mode` (turn events, SessionStart) | 0.150.1 | mapped (`_defaults.yaml`) | prompt header badge | |
+| `prompt` (UserPromptSubmit) | 0.150.1 | mapped, typed text, origin | everywhere | `<stdin>` block removed |
+| `tool_name`, `tool_use_id`, `tool_input` (PostToolUse) | 0.150.1 | mapped, tool kinds, files from patches | Activity tab, timeline, tool panels | |
+| `tool_response` (PostToolUse) | 0.150.1 | raw | Events tab | **no exit code or duration**: Bash sends the output only (a failed command too); `apply_patch` text says `Exit code`/`Wall time`, too thin to use |
+| `last_assistant_message`, `stop_hook_active` (Stop) | 0.150.1 | `response` | the answer | |
+| `source` (SessionStart) | 0.150.1 (`startup`), 0.167.0 (`resume`) | **`session.starts`** (new) | **Session tab: how it started, times taken up again** | `clear`, `compact`, `fork`: docs |
+| `reason` (SessionEnd) | 0.150.1 | `session.ended` | Session tab | always `other` |
+| Interrupt (event) | 0.167.0 (Ctrl-C on `codex exec`) | **ends the turn, outcome `interrupted`** (new) | **badges, filters, outcomes panel, mixes** | |
+| `status`, `error`, `token_usage.*` (PostModelRequest) | 0.167.0 | **`usage` mapping** (new): tokens, reasoning tokens, API errors | **Usage tab, prompt figures, models and spend panels** | ≥ 0.164; no cost, no duration |
+| `agent_id`, `agent_type` (Subagent*, PostToolUse) | 0.150.1 | mapped, origin | subagent counts, tool calls by subagents | |
+| `agent_transcript_path`, `last_assistant_message` (SubagentStop) | 0.150.1 | raw | Events tab | joins no prompt (own `turn_id`) |
+| `trigger` (PreCompact/PostCompact) | docs | raw | compactions count | manual vs auto not split: rare |
+| `agent_id`/`agent_type` (UserPromptSubmit, model requests) | docs | mapped | origin | not seen live |
+| PreModelRequest | docs | not subscribed | | repeats PostModelRequest without the outcome |
+| PreToolUse, PermissionRequest (`tool_input.description`) | docs | not subscribed | | decision points |
+| reasoning effort, sandbox mode, approval policy | config only | not captured | | in no hook payload; `config.toml` holds defaults (profiles and `-c` override them), OTel `codex.conversation_starts` has them |
+| `notify` payload (`type`, `thread-id`, `turn-id`, `cwd`, `input-messages`, `last-assistant-message`) | docs | not used | | one program per config, often the user's; Stop already has it |
+| OTel (`codex.turn_cost`, `codex.tool_result` duration and success, `codex.sse_event` tokens) | docs | not connected | | must be written into `config.toml`; every record has `user.email` (ADR-0019) |
+
+**Should you upgrade?** Yes, if you want tokens for Codex: 0.164.0 or later (0.167.0 is the latest release, 2026-11-06) adds `PostModelRequest`, which GitPrompt already subscribes to; on 0.150.1 the pages say "Needs OpenAI Codex CLI 0.164.0 or later". After upgrading, trust the hooks again with `/hooks` if Codex asks.
+
 
 ## Check: does one broken user override take down the Sources page? It did; fixed
 
@@ -306,10 +339,10 @@ Docs: [hooks](https://learn.chatgpt.com/docs/hooks) (redirected from developers.
 - **Status:** hooks on by default (`codex features list`: `hooks stable true` in 0.150.1); `[features].hooks = false` turns them off (`codex_hooks` is a deprecated alias). Non-managed hooks run only once trusted (`/hooks`), per hook hash; `--dangerously-bypass-hook-trust` skips that for one run.
 - **Files:** `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`) or inline `[hooks]` in `config.toml`; project `.codex/` (trusted projects only); plugins; managed via `requirements.toml` (`/etc/codex/requirements.toml`, legacy `/etc/codex/managed_config.toml`, `%ProgramData%\OpenAI\Codex\requirements.toml`, macOS MDM). All layers run.
 - **Shape:** Claude-like: `hooks.<Event>[] = {matcher?, hooks: [{type: command|mcp_tool, command, commandWindows, timeout, async, statusMessage, additionalContextLimit}]}`. `async: true` supported (≤ 8 concurrent; cancelled when the session ends; SessionEnd always synchronous). No HTTP type. Default timeout 600 s; `SessionEnd` and `Interrupt` 1 s, at most 3 s.
-- **Events:** `SessionStart/End`, `UserPromptSubmit` (`prompt`), `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SubagentStart/Stop` (`agent_id`, `agent_type`, `agent_transcript_path`, `last_assistant_message`), `Stop` (`last_assistant_message`), `Interrupt`; ≥ 0.167 adds `PreModelRequest`/`PostModelRequest` (`status`, `error`, `token_usage`). Common: `session_id`, `transcript_path`, `cwd`, `hook_event_name`, `model`; turn events `turn_id`, `permission_mode`.
+- **Events:** `SessionStart/End`, `UserPromptSubmit` (`prompt`), `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SubagentStart/Stop` (`agent_id`, `agent_type`, `agent_transcript_path`, `last_assistant_message`), `Stop` (`last_assistant_message`), `Interrupt`; ≥ 0.164 adds `PreModelRequest`/`PostModelRequest` (`status`, `error`, `token_usage`). Common: `session_id`, `transcript_path`, `cwd`, `hook_event_name`, `model`; turn events `turn_id`, `permission_mode`.
 - **Policy:** `requirements.toml` `[features].hooks = false`, `allow_managed_hooks_only = true`. Exit 2 blocks on `UserPromptSubmit`, `PostToolUse`, `Stop` and `SubagentStop`; plain stdout becomes context on `SessionStart`, `UserPromptSubmit`, `SubagentStart` — the forwarder prints nothing and exits 0.
 - **OTel:** `[otel]` in user `config.toml` only; `exporter = { otlp-http = { endpoint, protocol = "binary" | "json", headers } }` (`json` in 0.150.1's source, not in the docs); `log_user_prompt` off by default; events `codex.conversation_starts`, `codex.user_prompt`, `codex.api_request`, `codex.sse_event` (tokens on `response.completed`, no turn id), `codex.tool_decision`, `codex.tool_result`, `codex.turn_cost` (`turn.id`, `usage.estimated_usd`); every record has `conversation.id`, `model`, `originator`, and `user.email` / `user.account_id`. Not connected ([ADR-0019](adr/0019-codex-connector.md)). Also `notify` (only `agent-turn-complete`).
-- **Gaps:** hook trust is a manual step after each change; no usage in 0.150.1 hooks; subagent events don't name the parent turn.
+- **Gaps:** hook trust is a manual step after each change; no usage before 0.164 and no cost in any hook; no tool exit codes or durations; subagent events don't name the parent turn.
 
 ## Web: Copilot (github.com/copilot), Gemini (gemini.google.com)
 - No local storage we can rely on → browser extension capturing typed text only (PLAN §4), iteration 3.

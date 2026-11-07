@@ -81,7 +81,7 @@
 		active = { mark, x: track.offsetLeft + el.offsetLeft + 1, y: track.offsetTop };
 	}
 
-	const LEGEND = (['done', 'failed', 'running', 'open'] as const).map((o) => ({
+	const LEGEND = (['done', 'failed', 'interrupted', 'running', 'open'] as const).map((o) => ({
 		label: OUTCOMES[o].label,
 		color: `var(--lane-${o})`,
 		shape: 'tick' as const
@@ -149,6 +149,7 @@
 	.lanes {
 		--lane-done: var(--color-accent);
 		--lane-failed: var(--color-danger-solid);
+		--lane-interrupted: var(--color-info-solid);
 		--lane-running: var(--color-agent);
 		--lane-open: var(--color-border-control);
 
@@ -240,6 +241,10 @@
 		top: 4px;
 		height: 20px;
 		background: var(--lane-failed);
+	}
+
+	.mark.interrupted {
+		background: var(--lane-interrupted);
 	}
 
 	.mark.running {

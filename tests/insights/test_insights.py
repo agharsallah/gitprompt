@@ -35,7 +35,7 @@ def test_turn_summary_from_events(settings):
         event("api_request", model="claude-haiku", input_tokens="10", output_tokens=5, cost_usd=0.01),
         event("Stop", last_assistant_message="Done."),
     ]
-    summary = derivations.turn(prompt, events, load_specs(settings)["claude-code"].tool_kinds)
+    summary = derivations.turn(prompt, events, load_specs(settings)["claude-code"])
     assert summary["since_previous_prompt_s"] == 60 and summary["response_s"] == 30 and summary["response"] == "Done."
     assert summary["tool_calls"] == {"Write": 1, "Bash": 1} and summary["files_written"] == ["/r/a.py"]
     assert summary["bash_commands"] == ["pytest"] and summary["tool_time_s"] == 1.5
@@ -82,7 +82,7 @@ def test_copilot_tool_calls_get_their_kinds_files_and_commands(settings):
             "raw": {"tool_name": "bash", "tool_input": {"command": "git commit -m x"}},
         }
     )
-    summary = derivations.turn({"received_at": "2026-11-07T10:00:00.000Z"}, events, load_specs(settings)["copilot-cli"].tool_kinds)
+    summary = derivations.turn({"received_at": "2026-11-07T10:00:00.000Z"}, events, load_specs(settings)["copilot-cli"])
     assert summary["tool_kind_of"] == {"bash": "shell", "edit": "write", "view": "read"}
     assert summary["files_written"] == ["client.py"] and summary["files_read"] == ["README.md"]
     assert summary["bash_commands"] == ["ls src", "git commit -m x"] and summary["git_commits"] == 1
@@ -95,10 +95,41 @@ def test_codex_turns_get_files_from_patches_and_the_answer(settings):
     at = "2026-11-07T10:00:09+00:00"
     events = [{"event": p["hook_event_name"], "received_at": at, "raw": p} for p in payloads if p.get("turn_id") == turn]
     codex = load_specs(settings)["codex"]
-    summary = derivations.turn({"received_at": "2026-11-07T10:00:00+00:00"}, events, codex.tool_kinds, codex.tool_files)
+    summary = derivations.turn({"received_at": "2026-11-07T10:00:00+00:00"}, events, codex)
     assert summary["tool_kind_of"] == {"Bash": "shell", "apply_patch": "write", "collaborationspawn_agent": "agent"}
-    assert summary["files_written"] == ["/work/app/upload.py"] and summary["bash_commands"] == ["pytest -q tests/test_upload.py"]
+    assert summary["files_written"] == ["/work/app/upload.py"]
+    assert summary["bash_commands"] == ["pytest -q tests/test_upload.py", "cat missing.txt"]
     assert summary["response"].startswith("Added a retry") and summary["ended_by"] == "Stop"
+    # PostModelRequest: input tokens without the cached ones, as Anthropic counts them; no cost.
+    usage = {
+        "api_requests": 1,
+        "input_tokens": 3000,
+        "output_tokens": 300,
+        "cache_read_tokens": 9000,
+        "cache_creation_tokens": 0,
+        "cost_usd": 0,
+    }
+    assert summary["model_usage"] == {"gpt-5-codex": usage} and summary["reasoning_tokens"] == 120
+    assert summary["input_tokens"] == 3000 and "cost_usd" not in summary
+
+
+def test_codex_interrupted_turn_and_failed_model_call(settings):
+    payloads = [json.loads(p.read_text())["payload"] for p in sorted(CODEX_FIXTURES.glob("*.json"))]
+    turn = "0190a1b2-0000-7000-8000-0000000000a3"
+    events = [
+        {"event": p["hook_event_name"], "received_at": "2026-11-07T10:00:05+00:00", "raw": p}
+        for p in payloads
+        if p.get("turn_id") == turn and p["hook_event_name"] != "UserPromptSubmit"
+    ]
+    summary = derivations.turn({"received_at": "2026-11-07T10:00:00+00:00"}, events, load_specs(settings)["codex"])
+    assert summary["ended_by"] == "Interrupt" and summary["response_s"] == 5
+    assert summary["api_requests"] == 1 and summary["api_errors"] == 1 and "input_tokens" not in summary
+
+
+def test_session_starts_list_how_it_began_and_each_resume():
+    payloads = [json.loads(p.read_text())["payload"] for p in sorted(CODEX_FIXTURES.glob("*.json"))]
+    events = [{"event": p["hook_event_name"], "received_at": "2026-11-07T10:00:00+00:00", "raw": p} for p in payloads]
+    assert derivations.session(events)["starts"] == ["startup", "resume"]
 
 
 def test_files_of_prefers_a_path_input_and_ignores_unknown_tools():

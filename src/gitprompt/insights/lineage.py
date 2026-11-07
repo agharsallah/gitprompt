@@ -107,7 +107,7 @@ def word_diff(before: str | None, after: str | None) -> list[tuple[Op, str]]:
 
 
 # How good an outcome is, to tell whether a later version did better. `running` has no verdict yet.
-OUTCOME_RANK = {"failed": 0, "superseded": 1, "open": 1, "done": 2}
+OUTCOME_RANK = {"failed": 0, "interrupted": 1, "superseded": 1, "open": 1, "done": 2}
 Change = Literal["improved", "worse", "same"]
 
 

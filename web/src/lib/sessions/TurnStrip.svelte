@@ -86,6 +86,10 @@
 		background: var(--color-danger-solid);
 	}
 
+	.interrupted {
+		background: var(--color-info-solid);
+	}
+
 	.running {
 		background: var(--color-agent);
 	}

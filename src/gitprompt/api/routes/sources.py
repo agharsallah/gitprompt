@@ -66,7 +66,8 @@ class SourceOut(BaseModel):
     collects: list[str] = []  # documented events GitPrompt keeps
     not_stored: dict[str, str] = {}  # event -> why it is received but dropped (spec `drop_events`)
     not_collected: dict[str, str] = {}  # event -> why GitPrompt does not subscribe to it (spec `not_captured`)
-    capabilities: list[Capability] = []  # what this connector yields (spec `capabilities`)
+    capabilities: list[Capability] = []  # what this connector yields (spec `capabilities`), with the installed version
+    needs_version: dict[Capability, str] = {}  # capabilities the installed version lacks -> the version that adds them
     join: Join = "prompt_id"  # how its events find their prompt (spec `join`)
     spec: SpecFileOut  # the file this spec was read from
     spec_problem: SpecProblemOut | None = None  # the user's override of it is broken: the bundled one is used
@@ -110,6 +111,8 @@ async def describe(
     connection = Connection(spec, settings)
     policy = probe.check_policy(spec, settings)
     problem = next((p for p in spec_set.problems if p.fallback == spec.id), None)
+    version = await asyncio.to_thread(probe.tool_version, spec)
+    missing = probe.missing_capabilities(spec, version)
     return SourceOut(
         id=spec.id,
         name=spec.name,
@@ -119,7 +122,7 @@ async def describe(
         summary=spec.summary,
         enabled=spec.id not in disabled,
         detected=probe.detected(spec, settings),
-        version=await asyncio.to_thread(probe.tool_version, spec),
+        version=version,
         connected=connection.connected,
         outdated=connection.outdated,
         config_file=str(connection.config_file),
@@ -132,7 +135,8 @@ async def describe(
         collects=[e for e in spec.documented if e != "*" and spec.keeps(e)],
         not_stored=spec.drop_events,
         not_collected=spec.not_captured,
-        capabilities=spec.capabilities,
+        capabilities=[c for c in spec.capabilities if c not in missing],
+        needs_version=missing,
         join=spec.join,
         spec=file_out(spec_set.files[spec.id]),
         spec_problem=problem_out(problem) if problem else None,

@@ -56,6 +56,7 @@ describe('availability', () => {
 			capability: 'usage',
 			available: ['Claude Code'],
 			connectable: [],
+			updatable: [],
 			unavailable: ['GitHub Copilot CLI']
 		});
 		expect(note(availability(sources, 'usage'))).toBe('Not available for GitHub Copilot CLI.');
@@ -105,5 +106,19 @@ describe('toolOf', () => {
 		});
 		const tool = toolOf([hooks(), telemetry(), codex], 'codex')!;
 		expect(note(availability(tool.layers, 'usage'))).toBe('Not available for OpenAI Codex CLI.');
+	});
+
+	it('says which version adds a capability the installed version lacks', () => {
+		const codex = source({
+			id: 'codex',
+			name: 'OpenAI Codex CLI',
+			connected: true,
+			capabilities: ['prompt', 'model'],
+			needs_version: { usage: '0.164.0' }
+		});
+		const a = availability([hooks({ connected: true }), codex], 'usage');
+		expect(a.updatable).toEqual([{ tool: 'OpenAI Codex CLI', version: '0.164.0' }]);
+		expect(a.unavailable).toEqual(['Claude Code']);
+		expect(note(a)).toBe('Not available for Claude Code. Needs OpenAI Codex CLI 0.164.0 or later.');
 	});
 });

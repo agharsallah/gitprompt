@@ -2,6 +2,7 @@
 	import {
 		CircleCheck,
 		CircleDashed,
+		CircleStop,
 		CircleX,
 		GitCommitHorizontal,
 		Hourglass,
@@ -27,10 +28,11 @@
 	let { data, link, availability }: { data: Overview; link: Doorway; availability: Availability } =
 		$props();
 
-	const ORDER: TurnOutcome[] = ['done', 'failed', 'superseded', 'running', 'open'];
+	const ORDER: TurnOutcome[] = ['done', 'failed', 'interrupted', 'superseded', 'running', 'open'];
 	const ICONS = {
 		done: CircleCheck,
 		failed: CircleX,
+		interrupted: CircleStop,
 		superseded: Redo2,
 		running: Hourglass,
 		open: CircleDashed

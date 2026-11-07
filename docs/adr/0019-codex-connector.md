@@ -35,4 +35,4 @@ OpenAI Codex CLI is the third connector. Its documented hooks ([hooks](https://l
 - No new dependency, no installer change: `hooks.json` has Claude Code's JSON shape, so the existing merge/strip/record installer handles it, and disconnecting restores the user's file byte for byte (checked live).
 - A Codex user has one extra step after connecting (and after every update or token rotation): trusting the hooks in Codex. Until then the connector stays `waiting` (or goes `quiet`) and says so.
 - Subagent work in Codex is stored with its session but not counted in the parent turn (no parent turn id in the payload).
-- Tokens and cost for Codex wait for the `PostModelRequest` hook (a usage mapping in the spec, then a fixture), not for a telemetry layer.
+- Tokens and cost for Codex wait for the `PostModelRequest` hook (a usage mapping in the spec, then a fixture), not for a telemetry layer. **Done** in [ADR-0020](0020-model-call-usage-and-version-capabilities.md): tokens from 0.164.0 on, verified live with 0.167.0; still no cost.

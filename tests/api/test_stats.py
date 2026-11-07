@@ -250,6 +250,12 @@ def test_outcome_counts_superseded_and_running(data, settings):
     assert by_outcome == {"done": 2, "failed": 1, "superseded": 1, "running": 1}  # p4 had no end and p7 came after it
 
 
+def test_an_interrupt_ends_a_turn_as_interrupted(data, settings):
+    ingest(data, settings, hook_event_name="Interrupt", prompt_id="p4", session_id="s3")
+    assert keys(stats(data, group_by="outcome"))["interrupted"] == 1
+    assert stats(data, outcome=["interrupted"])["totals"]["prompts"] == 1
+
+
 def test_telemetry_is_summed_over_the_kept_sessions(data, settings):
     metric = "claude_code.lines_of_code.count"
     ingest(data, settings, hook_event_name=metric, session_id="s1", type="added", value=10)

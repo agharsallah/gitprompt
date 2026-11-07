@@ -21,7 +21,14 @@ BUILDERS: dict[str, Builder] = {}
 RAW_CHARS = 2000  # of a stored payload, in a document (the JSON and CSV rows have all of it)
 TOP = 10  # items in a bar chart
 
-OUTCOMES = {"done": "Done", "failed": "Failed", "superseded": "Superseded", "running": "Running", "open": "No end seen"}
+OUTCOMES = {
+    "done": "Done",
+    "failed": "Failed",
+    "interrupted": "Interrupted",
+    "superseded": "Superseded",
+    "running": "Running",
+    "open": "No end seen",
+}
 ORIGINS = {
     "typed": "Typed",
     "slash_command": "Slash command",
@@ -354,8 +361,9 @@ def overview(data: dict[str, Any], options: Options) -> Built:
         [
             Figure("Prompts", integer(t["prompts"])),
             Figure("Sessions", integer(t["sessions"])),
-            # Only tools with telemetry report usage: without any, cost and tokens are left out, not zero.
-            *([Figure("Cost", money(t["cost_usd"])), Figure("Tokens", integer(tokens))] if t.get("api_requests") else []),
+            # Only some tools report usage, and fewer report cost: without any, they are left out, not zero.
+            *([Figure("Cost", money(t["cost_usd"]))] if t.get("cost_usd") else []),
+            *([Figure("Tokens", integer(tokens))] if t.get("api_requests") else []),
             Figure("Tool calls", integer(t["tool_calls"])),
             Figure("Failed turns", integer(t["failed"])),
             Figure("Median response", duration(t.get("response_s_p50"))),
