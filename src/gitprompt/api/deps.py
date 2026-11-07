@@ -8,6 +8,7 @@ from fastapi import Depends, Header, HTTPException, Request
 from gitprompt.api.bus import Bus
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import NotFound
+from gitprompt.core.preferences import PreferenceFile
 from gitprompt.sources.connection import Connection
 from gitprompt.sources.spec import Spec, load_specs
 from gitprompt.storage.store import Store
@@ -23,6 +24,10 @@ def get_store(request: Request) -> Store:
 
 def get_bus(request: Request) -> Bus:
     return request.app.state.bus
+
+
+def get_preferences(settings: Annotated[Settings, Depends(get_settings)]) -> PreferenceFile:
+    return PreferenceFile(settings.home)  # re-read each time: a change applies without a restart
 
 
 def get_specs(settings: Annotated[Settings, Depends(get_settings)]) -> dict[str, Spec]:
@@ -54,5 +59,6 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 StoreDep = Annotated[Store, Depends(get_store)]
 BusDep = Annotated[Bus, Depends(get_bus)]
 SpecDep = Annotated[Spec, Depends(get_spec)]
+PreferencesDep = Annotated[PreferenceFile, Depends(get_preferences)]
 SpecsDep = Annotated[dict[str, Spec], Depends(get_specs)]
 ConnectionDep = Annotated[Connection, Depends(get_connection)]

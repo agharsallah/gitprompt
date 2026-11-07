@@ -51,9 +51,13 @@ class Settings:
     def backups(self) -> Path:
         return self.home / "backups"
 
+    @property
+    def token_file(self) -> Path:
+        return self.home / "token"
+
     def token(self) -> str:
         """Shared secret that hook calls must present. Created once, readable by the user only."""
-        path = self.home / "token"
+        path = self.token_file
         if not path.exists():
             self.home.mkdir(mode=0o700, parents=True, exist_ok=True)
             path.write_text(secrets.token_urlsafe(32))

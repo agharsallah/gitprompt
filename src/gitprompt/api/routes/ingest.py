@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Body, Depends
 
-from gitprompt.api.deps import BusDep, SpecDep, StoreDep, require_token
+from gitprompt.api.deps import BusDep, PreferencesDep, SpecDep, StoreDep, require_token
 from gitprompt.capture.pipeline import capture
 from gitprompt.core.errors import NotFound
 
@@ -14,18 +14,20 @@ Payload = Annotated[dict[str, Any], Body()]
 
 
 @router.post("/ingest/{source}", status_code=204)
-async def ingest(spec: SpecDep, payload: Payload, store: StoreDep, bus: BusDep) -> None:
+async def ingest(spec: SpecDep, payload: Payload, store: StoreDep, bus: BusDep, preferences: PreferencesDep) -> None:
     """Hook endpoint. Always an empty 2xx, which Claude Code treats as "no output": nothing is
     blocked, changed or added to the conversation."""
-    if captured := await capture(spec, store, payload):
+    if captured := await capture(spec, store, payload, preferences.effective().hide_secrets_on_ingest):
         bus.publish(captured.notice())
 
 
 @router.post("/ingest/{source}/v1/{signal}")
-async def ingest_otlp(spec: SpecDep, signal: Literal["logs", "metrics"], payload: Payload, store: StoreDep, bus: BusDep) -> dict:
+async def ingest_otlp(
+    spec: SpecDep, signal: Literal["logs", "metrics"], payload: Payload, store: StoreDep, bus: BusDep, preferences: PreferencesDep
+) -> dict:
     """OTLP/HTTP JSON endpoint: the exporter appends /v1/logs and /v1/metrics to the configured URL."""
     if spec.format != "otlp":
         raise NotFound(f"source {spec.id!r} does not receive OpenTelemetry exports")
-    if captured := await capture(spec, store, payload):
+    if captured := await capture(spec, store, payload, preferences.effective().hide_secrets_on_ingest):
         bus.publish(captured.notice())
     return {}  # an empty ExportServiceResponse: everything accepted

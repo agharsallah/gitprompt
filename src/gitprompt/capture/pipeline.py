@@ -18,6 +18,7 @@ from typing import Any
 from gitprompt.capture import otlp
 from gitprompt.core.git import git_context
 from gitprompt.core.payload import clip, extract
+from gitprompt.insights.redaction import redact
 from gitprompt.sources import probe
 from gitprompt.sources.spec import Spec
 from gitprompt.storage.store import Store
@@ -48,9 +49,12 @@ def observe(spec: Spec, cwd: str | None) -> dict[str, Any]:
     return git_context(cwd) | ({"tool_version": version} if version else {})
 
 
-async def capture(spec: Spec, store: Store, body: dict[str, Any]) -> Captured:
+async def capture(spec: Spec, store: Store, body: dict[str, Any], hide_secrets: bool = False) -> Captured:
+    """`hide_secrets` (preference `hide_secrets_on_ingest`): replace detected secrets before storing."""
     result = Captured()
     for payload in DECODERS[spec.format](body):
+        if hide_secrets:
+            payload = redact(payload)
         fields = extract(payload, spec.map)
         event = fields.get("event")
         if not spec.keeps(event):  # accept_events / drop_events in the spec

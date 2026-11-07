@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from importlib.metadata import PackageNotFoundError
@@ -11,8 +12,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from gitprompt.api.bus import Bus
 from gitprompt.api.routes import ROUTERS
+from gitprompt.capture import retention
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import GitPromptError
+from gitprompt.core.preferences import PreferenceFile
 from gitprompt.storage.store import Store
 
 DASHBOARD = Path(__file__).parents[1] / "dashboard"  # built by `pnpm --dir web build`
@@ -33,7 +36,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        retention_pass = asyncio.create_task(retention.keep(store, PreferenceFile(settings.home)))
         yield
+        retention_pass.cancel()
         store.close()
 
     app = FastAPI(title="GitPrompt", version=_version(), lifespan=lifespan)

@@ -26,8 +26,9 @@ class Change:
 class Connection:
     """GitPrompt's entries for one source in one tool config file."""
 
-    def __init__(self, spec: Spec, settings: Settings) -> None:
+    def __init__(self, spec: Spec, settings: Settings, token: str | None = None) -> None:
         self.spec, self.settings = spec, settings
+        self.token = token  # render with this token instead of the current one (token rotation preview)
         self.config_file = expand(spec.install.file, settings)
         # Plain values we added at connect time, so disconnect removes exactly those.
         self.record_file = settings.home / "installed" / f"{spec.id}.json"
@@ -35,7 +36,7 @@ class Connection:
     # --- state ---
 
     def patch(self) -> dict[str, Any]:
-        values = {"receiver": self.settings.receiver, "source": self.spec.id, "token": self.settings.token()}
+        values = {"receiver": self.settings.receiver, "source": self.spec.id, "token": self.token or self.settings.token()}
         return installer.render(self.spec.install.merge, values)
 
     @property
