@@ -44,6 +44,7 @@ class SpecProblemOut(BaseModel):
 class SourceOut(BaseModel):
     id: str
     name: str
+    assistant: str = ""  # who answers in the tool, e.g. "Claude" (spec `assistant`)
     part_of: str | None = None  # the tool's main connector, when this one is an optional layer of it
     layer: str = ""  # e.g. "Hooks", "Telemetry"
     summary: str = ""  # what this layer adds
@@ -54,6 +55,7 @@ class SourceOut(BaseModel):
     outdated: bool = False  # connected, but the spec now adds more than what is installed
     config_file: str
     terms: str
+    after_connect: str = ""  # what the user still has to do in the tool once connected (spec `after_connect`)
     blocks: list[str]
     warnings: list[str]
     total: int = 0
@@ -111,6 +113,7 @@ async def describe(
     return SourceOut(
         id=spec.id,
         name=spec.name,
+        assistant=spec.assistant,
         part_of=spec.part_of,
         layer=spec.layer,
         summary=spec.summary,
@@ -121,6 +124,7 @@ async def describe(
         outdated=connection.outdated,
         config_file=str(connection.config_file),
         terms=spec.terms,
+        after_connect=spec.after_connect,
         blocks=policy.blocks,
         warnings=policy.warnings,
         **stats.get(spec.id, {}),

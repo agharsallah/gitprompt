@@ -14,6 +14,7 @@
 # synchronously and can block execution"); curl gives up after 2 s.
 id: copilot-cli
 name: GitHub Copilot CLI
+assistant: Copilot
 layer: Hooks
 summary: Your prompts, the tools each turn used, subagents and how the turn ended. Also captures the Copilot agent in VS Code, which reads the same hooks folder.
 detect: ["${COPILOT_HOME:-~/.copilot}"]

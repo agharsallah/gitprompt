@@ -118,6 +118,7 @@ Tag = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][\w:-]*$")]
 class Spec(BaseModel):
     id: str
     name: str
+    assistant: str = ""  # who answers in the tool, e.g. "Claude"; shown next to the final answer
     # A tool can have several connectors, each an optional layer of the same tool (hooks, telemetry).
     part_of: str | None = None  # id of the tool's main connector; none = this is the main one
     layer: str = ""  # short name of this layer in its tool, e.g. "Hooks", "Telemetry"
@@ -132,6 +133,7 @@ class Spec(BaseModel):
     map: Mapping = {}
     policy: Policy = Policy()
     terms: str = ""  # shown before consent: why this is allowed by the tool's own docs
+    after_connect: str = ""  # what the user still has to do in the tool once connected, if anything
     documented: dict[str, list[str]] = {}  # event ("*" = all) -> fields the tool's docs list
     not_captured: dict[str, str] = {}  # event -> why GitPrompt does not subscribe to it
     origin: list[OriginRule] = []  # first matching rule wins; the spec's own rules, then the shared ones
