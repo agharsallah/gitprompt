@@ -1,0 +1,16 @@
+# Shared field mapping for every source. For each field, the first candidate path that holds a
+# value wins. A spec's own `map` entries replace these per field. Unmapped payload keys are still
+# stored (raw) and shown in the dashboard, so new metadata from a tool needs no change here.
+map:
+  event: [hook_event_name, hookEventName, event]
+  prompt: [prompt, user_prompt, message.content, input, text]
+  session_id: [session_id, sessionId, conversation_id, conversationId]
+  prompt_id: [prompt_id, promptId, generation_id, messageId]
+  cwd: [cwd, "workspace_roots[0]", "workspacePaths[0]"]
+  model: [model, model_name, modelName]
+  transcript_path: [transcript_path, transcriptPath]
+  effort: [effort.level, effort]
+  agent_id: [agent_id, agentId]
+  agent_type: [agent_type, agentType]
+  tool_name: [tool_name, toolName]
+  tool_use_id: [tool_use_id, toolUseId]
