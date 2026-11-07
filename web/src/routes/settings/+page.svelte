@@ -47,7 +47,7 @@
 
 <div class="sections">
 	{#if prefs}<div id="general"><GeneralSection {prefs} /></div>{/if}
-	<div id="connectors"><ConnectorsSection sources={data.sources} /></div>
+	<div id="connectors"><ConnectorsSection sources={data.sources} problems={data.problems} /></div>
 	{#if prefs}
 		<div id="capture"><CaptureSection {prefs} /></div>
 		<div id="privacy"><PrivacySection {prefs} /></div>

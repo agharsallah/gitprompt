@@ -1,0 +1,22 @@
+{
+  "about": "A prompt fired inside a subagent carries agent_id, agent_type and parent_agent_id: origin subagent.",
+  "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:01:20.000Z",
+    "cwd": "/work/app",
+    "prompt": "List the callers of upload()",
+    "agent_id": "sub-2",
+    "agent_type": "explore",
+    "parent_agent_id": "main"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {
+      "event": "UserPromptSubmit",
+      "agent_id": "sub-2",
+      "parent_agent_id": "main"
+    },
+    "origin": "subagent"
+  }
+}

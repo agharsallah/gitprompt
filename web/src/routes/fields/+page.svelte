@@ -2,6 +2,8 @@
 	import { BookCheck, Eye, EyeOff, Search, Sparkles } from '@lucide/svelte';
 	import type { Field } from '#lib/api/types.ts';
 	import { inline, integer, percent, plural } from '#lib/shared/format.ts';
+	import { CAPABILITIES, CAPABILITY_IDS } from '#lib/sources/capabilities.ts';
+	import { tools } from '#lib/sources/state.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
@@ -19,6 +21,18 @@
 	let view = $state<View>('all');
 
 	const fields = $derived(data.catalog.fields);
+	// Which tool each value comes from: the connector's name, and what it can't provide at all.
+	const byId = $derived(new Map(data.sources.map((s) => [s.id, s])));
+	const nameOf = (id: string) => byId.get(id)?.name ?? (id === 'gitprompt' ? 'GitPrompt' : id);
+	// What the connector's tool can't provide from any of its layers (a hooks layer isn't
+	// blamed for what its telemetry layer adds).
+	const lacks = (id: string) => {
+		const tool = tools(data.sources).find((t) => t.layers.some((l) => l.id === id));
+		const has = new Set(tool?.layers.flatMap((l) => l.capabilities) ?? []);
+		return has.size
+			? CAPABILITY_IDS.filter((c) => !has.has(c)).map((c) => CAPABILITIES[c].what)
+			: [];
+	};
 	const seen = $derived(fields.filter((f) => f.count > 0));
 	const documented = $derived(fields.filter((f) => f.documented));
 	const fresh = $derived(seen.filter((f) => !f.documented));
@@ -123,7 +137,15 @@
 
 {#each groups as group (group.source)}
 	<section class="source" aria-labelledby="fields-{group.source}">
-		<h2 id="fields-{group.source}">{group.source}</h2>
+		<h2 id="fields-{group.source}">
+			{nameOf(group.source)}
+			{#if nameOf(group.source) !== group.source}<span class="mono id">{group.source}</span>{/if}
+		</h2>
+		{#if lacks(group.source).length}
+			<p class="muted lacks">
+				Not available from this tool: {lacks(group.source).join(', ')}.
+			</p>
+		{/if}
 		<div class="events">
 			{#each group.events as e (e.event)}
 				<Disclosure open={filter.length > 0 || view !== 'all'}>
@@ -190,7 +212,7 @@
 	<Panel title="Not captured, and why">
 		<dl class="glossary">
 			{#each data.catalog.not_captured as n (`${n.source}|${n.event}`)}
-				<dt><code>{n.event}</code> <span class="muted">{n.source}</span></dt>
+				<dt><code>{n.event}</code> <span class="muted">{nameOf(n.source)}</span></dt>
 				<dd>{n.reason}</dd>
 			{/each}
 		</dl>
@@ -229,7 +251,22 @@
 	}
 
 	.source h2 {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--space-2);
 		font-size: var(--text-lg);
+	}
+
+	.source h2 .id {
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-regular, 400);
+	}
+
+	.lacks {
+		margin-top: calc(-1 * var(--space-1));
+		font-size: var(--text-sm);
 	}
 
 	.events {

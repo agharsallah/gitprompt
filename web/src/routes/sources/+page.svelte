@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import { tools } from '#lib/sources/state.ts';
+	import SpecProblems from '#lib/sources/SpecProblems.svelte';
 	import ToolCard from '#lib/sources/ToolCard.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import type { PageProps } from './$types';
@@ -30,6 +31,10 @@
 	description="The tools GitPrompt captures from. It only uses each tool's documented extension points, and you review the exact change to its settings before anything is written."
 />
 
+{#if data.problems.length}
+	<div class="problems"><SpecProblems problems={data.problems} /></div>
+{/if}
+
 <div class="tools">
 	{#each list as tool (tool.id)}
 		<ToolCard {tool} origins={data.origins} {review} />
@@ -40,12 +45,18 @@
 	<h2>Adding or fixing a connector</h2>
 	<p>
 		Connectors are YAML files bundled with GitPrompt. To patch one without a release, copy it to
-		<code>~/.gitprompt/sources/</code>, edit it, then use <strong>Re-map stored events</strong> on its
-		card.
+		<code>~/.gitprompt/sources/</code>, edit it, then use <strong>Re-map stored events</strong> on
+		its card. Each card's <strong>Spec in use</strong> shows which file it runs on. A file that can't
+		be read is listed at the top of this page; the other connectors keep working, and a broken copy of
+		a bundled spec falls back to the bundled one.
 	</p>
 </aside>
 
 <style>
+	.problems {
+		margin-bottom: var(--space-4);
+	}
+
 	.tools {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr));

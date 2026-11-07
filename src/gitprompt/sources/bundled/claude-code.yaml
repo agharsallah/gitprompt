@@ -50,9 +50,40 @@ install:
 
 prompt_events: [UserPromptSubmit]
 
+# What this connector yields (docs/sources.md "Capabilities per tool"). Model, tokens, cost and
+# per-session metrics come from the telemetry layer. Events join their prompt by prompt_id.
+capabilities: [prompt, cwd, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+
 map:
   permission_mode: [permission_mode]
   session_title: [session_title]
+
+# What each tool does (insights/derivations.py): files read and written, shell commands and git
+# commits, URLs and searches. Unmapped tools are "other". The telemetry layer uses this mapping too.
+tool_kinds:
+  Read: read
+  Grep: read
+  Glob: read
+  LS: read
+  NotebookRead: read
+  LSP: read
+  Write: write
+  Edit: write
+  MultiEdit: write
+  NotebookEdit: write
+  Bash: shell
+  BashOutput: shell
+  KillShell: shell
+  PowerShell: shell
+  Monitor: shell
+  WebFetch: web
+  WebSearch: web
+  Task: agent
+  Agent: agent
+  Workflow: agent
+  Skill: agent
+  SendMessage: agent
+  "mcp__*": mcp
 
 # Who produced a prompt (on top of the shared rules in _defaults.yaml; see ADR-0010).
 origin:

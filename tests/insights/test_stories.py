@@ -100,7 +100,7 @@ def test_session_story_never_shows_system_text_as_typed():
         {"prompt_id": "p3", "event": "PreCompact", "received_at": at(5), "tool": None, "file": None, "prompt": None},
     ]  # fmt: skip
     commits = [{"hash": "abc", "subject": "Fix test", "author": "t", "time": at(2), "files": 1, "insertions": 3, "deletions": 1}]
-    story = stories.session_story("s1", rows, {1: {"write": 1, "agent": 1}}, events, commits)
+    story = stories.session_story("s1", rows, {1: {"write": 1, "agent": 1}}, events, commits, {"Edit": "write", "Agent": "agent"})
 
     kinds = [i["kind"] for i in story["items"]]
     assert kinds == ["chapter", "markers", "chapter", "markers"]
@@ -124,7 +124,7 @@ def test_session_story_never_shows_system_text_as_typed():
 
 
 def test_long_texts_are_clipped():
-    story = stories.session_story("s1", [row(1, 0, "x" * (stories.CHAPTER_CHARS + 10))], {}, [], [])
+    story = stories.session_story("s1", [row(1, 0, "x" * (stories.CHAPTER_CHARS + 10))], {}, [], [], {})
     chapter = story["items"][0]
     assert chapter["clipped"] and len(chapter["text"]) == stories.CHAPTER_CHARS + 1
 

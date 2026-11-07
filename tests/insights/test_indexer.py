@@ -108,6 +108,12 @@ def test_a_rule_change_rebuilds_the_index(store, settings, index):
     assert changed.ensure() == 0  # rebuilt once
 
 
+def test_a_tool_kind_change_rebuilds_the_index(settings):
+    specs = load_specs(settings)
+    changed = {**specs, "claude-code": specs["claude-code"].model_copy(update={"tool_kinds": {"Bash": "web"}})}
+    assert indexer.rules_version(changed) != indexer.rules_version(specs)
+
+
 def test_a_code_change_rebuilds_the_index(store, settings, index, monkeypatch):
     add_prompt(store, "Fix it", "p1")
     index.ensure()

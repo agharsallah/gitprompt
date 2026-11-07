@@ -46,7 +46,15 @@ def _run_version(cmd: tuple[str, ...]) -> str | None:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout
     except (OSError, subprocess.TimeoutExpired):
         return None
-    return out.split()[0] if out.strip() else None
+    return version_of(out)
+
+
+def version_of(output: str) -> str | None:
+    """The version in a `--version` output: the first dotted number ("2.1.317 (Claude Code)",
+    "GitHub Copilot CLI 1.0.102."), else its first word."""
+    if found := re.search(r"\d+(?:\.\d+)+(?:[-+][\w.]+)?", output):
+        return found[0].rstrip(".")
+    return output.split()[0] if output.strip() else None
 
 
 def tool_version(spec: Spec) -> str | None:

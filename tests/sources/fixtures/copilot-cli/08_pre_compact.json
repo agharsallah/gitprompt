@@ -1,0 +1,19 @@
+{
+  "about": "PreCompact (trigger: auto) joins the slash command's turn, the latest prompt.",
+  "payload": {
+    "hook_event_name": "PreCompact",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:01:10.000Z",
+    "cwd": "/work/app",
+    "transcript_path": "/work/.copilot/transcript.jsonl",
+    "trigger": "auto",
+    "custom_instructions": ""
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PreCompact"
+    },
+    "turn": "07_user_prompt_submit_slash"
+  }
+}

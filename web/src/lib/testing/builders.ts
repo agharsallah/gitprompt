@@ -77,6 +77,16 @@ export function source(overrides: Partial<Source> = {}): Source {
 		collects: ['UserPromptSubmit', 'PostToolUse', 'Stop'],
 		not_stored: {},
 		not_collected: { PreToolUse: 'A decision point: GitPrompt stays out of decisions.' },
+		enabled: true,
+		capabilities: ['prompt', 'cwd', 'turn_end', 'answer', 'tools', 'subagents', 'origin_markers'],
+		join: 'prompt_id',
+		spec: {
+			name: 'claude-code.yaml',
+			path: '/gitprompt/sources/bundled/claude-code.yaml',
+			origin: 'bundled',
+			overrides: false
+		},
+		spec_problem: null,
 		...overrides
 	};
 }

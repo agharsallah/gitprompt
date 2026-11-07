@@ -6,7 +6,9 @@ Events the spec does not keep (`accept_events`, `drop_events`) are discarded bef
 `Captured` says which turns got events, so the caller can mark them for the prompt index.
 A payload whose event is one of `spec.prompt_events` becomes a prompt, stamped with what GitPrompt
 observes on this machine at that moment (git state, tool version). Every other payload is stored
-as an event and attaches to its prompt by prompt_id / session_id.
+as an event and attaches to its prompt by prompt_id / session_id. A tool that sends no prompt id
+(spec `join: session`) gets one for each prompt, and its other events take the id of the latest
+prompt of their session.
 
 To support a new wire format, add a decoder to DECODERS and its name to sources/spec.py `Format`.
 """
@@ -51,6 +53,14 @@ def observe(spec: Spec, cwd: str | None) -> dict[str, Any]:
     return git_context(cwd) | ({"tool_version": version} if version else {})
 
 
+def join_session(spec: Spec, store: Store, fields: dict[str, Any]) -> dict[str, Any]:
+    """`join: session`: an event without a prompt id takes the latest prompt of its session."""
+    if spec.join != "session" or fields.get("prompt_id") or not fields.get("session_id"):
+        return fields
+    turn = store.latest_turn(spec.id, str(fields["session_id"]))
+    return fields | {"prompt_id": turn} if turn else fields
+
+
 async def capture(spec: Spec, store: Store, body: dict[str, Any], hide_secrets: bool = False) -> Captured:
     """`hide_secrets` (preference `hide_secrets_on_ingest`): replace detected secrets before storing."""
     result = Captured()
@@ -63,8 +73,12 @@ async def capture(spec: Spec, store: Store, body: dict[str, Any], hide_secrets: 
             continue
         if event in spec.prompt_events:
             context = await asyncio.to_thread(observe, spec, fields.get("cwd"))
-            result.prompts += store.add_prompt(spec.id, fields, context, payload) is not None  # None = duplicate
+            row = store.add_prompt(spec.id, fields, context, payload)  # None = duplicate
+            if row and spec.join == "session" and not fields.get("prompt_id"):
+                store.name_turn(row["id"], spec.id)
+            result.prompts += row is not None
         else:
+            fields = join_session(spec, store, fields)
             store.add_event(spec.id, fields, clip(payload))
             result.events += 1
             if fields.get("prompt_id"):

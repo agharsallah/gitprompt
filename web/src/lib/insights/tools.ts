@@ -31,7 +31,7 @@ export const KIND_INFO: Record<ToolKind, { label: string; color: string; icon: L
 const isKind = (value: unknown): value is ToolKind => TOOL_KINDS.includes(value as ToolKind);
 
 /**
- * The kind of a tool, as the daemon classified it (derivations.tool_kind, sent as
+ * The kind of a tool, as the daemon classified it (the spec's `tool_kinds`, sent as
  * `summary.tool_kind_of` on a prompt and as `detail` of a `tool` stats group). A kind this dashboard
  * does not know draws as "other".
  */

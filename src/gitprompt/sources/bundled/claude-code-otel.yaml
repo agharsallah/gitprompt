@@ -11,6 +11,8 @@ detect: ["${CLAUDE_CONFIG_DIR:-~/.claude}"]
 version_cmd: [claude, --version]
 format: otlp
 prompt_events: []  # attaches to prompts captured by the hooks source
+# What this layer adds to the tool (the entrypoint tells programmatic runs apart: origin_markers).
+capabilities: [model, usage, cost, session_metrics, origin_markers]
 
 install:
   file: "${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json"

@@ -17,7 +17,7 @@ derived in insights/origin.py (PromptOut.origin / typed_text / injected).
 import re
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from functools import cached_property
 from typing import Any
@@ -25,7 +25,7 @@ from typing import Any
 from gitprompt.core.payload import compact
 from gitprompt.insights import origin
 from gitprompt.insights.redaction import find_secrets
-from gitprompt.sources.spec import Spec
+from gitprompt.sources.spec import Spec, ToolKind, tool_kind
 
 
 class Derivations[Context]:
@@ -110,40 +110,26 @@ def prompt_stats(text: str) -> dict[str, Any]:
 
 
 # --- one turn: the prompt and the events that share its prompt_id ---------------------------
-# Event and tool names below are Claude Code's. Tools that copy its hook shape get these for free.
+# Event names below are Claude Code's; tools that copy its hook shape get these for free. What each
+# tool does comes from the source spec (`tool_kinds`), and its inputs are read by generic names.
 
 TURN_END = ("Stop", "StopFailure")
 TOOL_RESULTS = ("PostToolUse", "PostToolUseFailure")
-WRITE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
-READ_TOOLS = {"Read", "Grep", "Glob", "LS"}
-WEB_TOOLS = {"WebFetch", "WebSearch"}
 USAGE_TOKENS = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens")
-
-# What a tool call does. The dashboard reads the kinds from here (summary.tool_kind_of, stats `tool` detail)
-# and only decides how each kind is drawn (web/src/lib/insights/tools.ts).
-TOOL_KINDS = {
-    **dict.fromkeys(("Read", "Grep", "Glob", "LS", "NotebookRead", "LSP"), "read"),
-    **dict.fromkeys(("Write", "Edit", "MultiEdit", "NotebookEdit"), "write"),
-    **dict.fromkeys(("Bash", "BashOutput", "KillShell", "PowerShell", "Monitor"), "shell"),
-    **dict.fromkeys(("WebFetch", "WebSearch"), "web"),
-    **dict.fromkeys(("Task", "Agent", "Workflow", "Skill", "SendMessage"), "agent"),
-}
-
+FILE_INPUTS = ("file_path", "notebook_path", "path")  # tool inputs naming the file a tool touched
 
 GIT_COMMIT = re.compile(r"\bgit\b(?:\s+-\S+(?:\s+\S+)?)*\s+commit\b")  # git commit, git -C dir commit
 
 
-def tool_kind(name: str | None) -> str:
-    """read, write, shell, web, mcp, agent or other."""
-    if name and name.startswith("mcp__"):
-        return "mcp"
-    return TOOL_KINDS.get(name or "", "other")
+def _file(tool_input: dict[str, Any]) -> Any:
+    return next((tool_input[k] for k in FILE_INPUTS if tool_input.get(k)), None)
 
 
 @dataclass(frozen=True)
 class Turn:
     prompt: dict[str, Any]  # a prompt_view row: received_at, turn, prev_at...
     events: list[dict[str, Any]]  # event rows, in arrival order
+    tool_kinds: dict[str, ToolKind] = field(default_factory=dict)  # the source spec's `tool_kinds`
 
     def raws(self, *names: str) -> list[dict[str, Any]]:
         """Raw payloads of the events with one of these names."""
@@ -159,8 +145,12 @@ class Turn:
         """(tool name, tool input) of every finished tool call."""
         return [(t.get("tool_name"), t.get("tool_input") or {}) for t in self.raws(*TOOL_RESULTS)]
 
-    def inputs(self, tools: set[str]) -> list[dict[str, Any]]:
-        return [i for name, i in self.tool_uses if name in tools]
+    def kind(self, name: str | None) -> ToolKind:
+        return tool_kind(self.tool_kinds, name)
+
+    def inputs(self, kind: ToolKind) -> list[dict[str, Any]]:
+        """Inputs of the finished calls of tools of this kind."""
+        return [i for name, i in self.tool_uses if self.kind(name) == kind]
 
 
 TURN: Derivations[Turn] = Derivations("summary")
@@ -197,28 +187,29 @@ def _ending(t: Turn) -> dict[str, Any]:
 @TURN(
     {
         "tool_calls / tool_failures / tool_time_s": "tools used for the prompt (PostToolUse*)",
-        "files_written / files_read": "file paths touched by file tools",
+        "files_written / files_read": "file paths touched by write and read tools",
         "bash_commands / web": "shell commands run, URLs fetched and searches made",
         "mcp_tools": "MCP tools used",
-        "tool_kinds / tool_kind_of": "tool calls by kind (read, write, shell, web, mcp, agent, other), and the kind of each tool used",
+        "tool_kinds / tool_kind_of": "calls per kind (spec tool_kinds: read, write, shell, web, mcp, agent, other), and each tool's kind",
         "subagent_tool_calls": "tool calls made by subagents (their hook payload has agent_id)",
-        "git_commits": "git commits the agent ran (Bash commands with `git commit`)",
+        "git_commits": "git commits the agent ran (shell commands with `git commit`)",
     }
 )
 def _tools(t: Turn) -> dict[str, Any]:
+    commands = [i["command"] for i in t.inputs("shell") if i.get("command")]
     return {
         "tool_calls": dict(Counter(name for name, _ in t.tool_uses)),
         "tool_failures": len(t.raws("PostToolUseFailure")),
         "tool_time_s": round(sum(_num(r.get("duration_ms")) for r in t.raws(*TOOL_RESULTS)) / 1000, 1),
-        "files_written": sorted({i.get("file_path") or i.get("notebook_path") for i in t.inputs(WRITE_TOOLS)} - {None}),
-        "files_read": sorted({i.get("file_path") or i.get("path") for i in t.inputs(READ_TOOLS)} - {None}),
-        "bash_commands": [i.get("command") for i in t.inputs({"Bash"})],
-        "web": [i.get("url") or i.get("query") for i in t.inputs(WEB_TOOLS)],
-        "mcp_tools": sorted({name for name, _ in t.tool_uses if name and name.startswith("mcp__")}),
-        "tool_kinds": dict(Counter(tool_kind(name) for name, _ in t.tool_uses)),
-        "tool_kind_of": {name: tool_kind(name) for name, _ in t.tool_uses if name},
+        "files_written": sorted({_file(i) for i in t.inputs("write")} - {None}),
+        "files_read": sorted({_file(i) for i in t.inputs("read")} - {None}),
+        "bash_commands": commands,
+        "web": [i.get("url") or i.get("query") for i in t.inputs("web")],
+        "mcp_tools": sorted({name for name, _ in t.tool_uses if name and t.kind(name) == "mcp"}),
+        "tool_kinds": dict(Counter(t.kind(name) for name, _ in t.tool_uses)),
+        "tool_kind_of": {name: t.kind(name) for name, _ in t.tool_uses if name},
         "subagent_tool_calls": sum(bool(r.get("agent_id")) for r in t.raws(*TOOL_RESULTS)),
-        "git_commits": sum(bool(GIT_COMMIT.search(str(i.get("command") or ""))) for i in t.inputs({"Bash"})),
+        "git_commits": sum(bool(GIT_COMMIT.search(str(c))) for c in commands),
     }
 
 
@@ -293,9 +284,9 @@ def _usage_of(api: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def turn(prompt: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, Any]:
-    """What happened while the tool worked on one prompt."""
-    return TURN.derive(Turn(prompt, events))
+def turn(prompt: dict[str, Any], events: list[dict[str, Any]], tool_kinds: dict[str, ToolKind] | None = None) -> dict[str, Any]:
+    """What happened while the tool worked on one prompt. Without `tool_kinds` every tool is "other"."""
+    return TURN.derive(Turn(prompt, events, tool_kinds or {}))
 
 
 # --- the whole session: every event that shares the prompt's session_id ----------------------
@@ -376,7 +367,11 @@ def derive(row: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None)
     """A stored prompt row plus every value derived from it: origin and typed text (from the spec's
     rules), stats from its text, summary from the events of its turn. The prompt API returns this,
     and the prompt index (insights/indexer.py) stores a projection of it."""
-    return row | origin.classify(row, events, spec) | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events)}
+    return (
+        row
+        | origin.classify(row, events, spec)
+        | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec and spec.tool_kinds)}
+    )
 
 
 # --- shown on the Fields page ----------------------------------------------------------------

@@ -1,0 +1,23 @@
+{
+  "about": "UserPromptSubmit, the documented example (https://code.claude.com/docs/en/hooks).",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "default",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "Write a function to calculate the factorial of a number"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {
+      "event": "UserPromptSubmit",
+      "session_id": "abc123",
+      "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+      "cwd": "/work/app",
+      "permission_mode": "default"
+    },
+    "origin": "typed"
+  }
+}

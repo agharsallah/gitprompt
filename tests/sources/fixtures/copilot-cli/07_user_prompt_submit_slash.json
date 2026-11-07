@@ -1,0 +1,18 @@
+{
+  "about": "A prompt starting with a /command is a slash command (shared rule).",
+  "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:01:00.000Z",
+    "cwd": "/work/app",
+    "prompt": "/review the staged changes"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {
+      "event": "UserPromptSubmit",
+      "prompt": "/review the staged changes"
+    },
+    "origin": "slash_command"
+  }
+}

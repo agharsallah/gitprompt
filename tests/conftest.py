@@ -8,8 +8,9 @@ from gitprompt.core.preferences import KEYS, env_name
 
 @pytest.fixture
 def settings(tmp_path, monkeypatch):
-    """Everything lives under tmp_path: tests never touch the real ~/.claude or ~/.gitprompt."""
+    """Everything lives under tmp_path: tests never touch the real ~/.claude, ~/.copilot or ~/.gitprompt."""
     monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
+    monkeypatch.delenv("COPILOT_HOME", raising=False)
     for key in KEYS:  # preferences set in the developer's shell must not leak into tests
         monkeypatch.delenv(env_name(key), raising=False)
     return Settings(home=tmp_path / "gitprompt", user_home=tmp_path / "home")

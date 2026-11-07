@@ -1,0 +1,17 @@
+{
+  "about": "SessionEnd (reason: user_exit).",
+  "payload": {
+    "hook_event_name": "SessionEnd",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:02:00.000Z",
+    "cwd": "/work/app",
+    "reason": "user_exit"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "SessionEnd"
+    },
+    "turn": "09_user_prompt_submit_subagent"
+  }
+}

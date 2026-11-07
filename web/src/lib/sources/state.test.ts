@@ -30,6 +30,15 @@ describe('connectorState', () => {
 		expect(at(QUIET_AFTER_MS + 1)).toBe('quiet');
 	});
 
+	it('reports a turned-off connector before anything else', () => {
+		const off = { enabled: false };
+		expect(connectorState(source({ ...off, detected: false }), NOW)).toBe('disabled');
+		expect(connectorState(source({ ...off, connected: true, blocks: ['b'] }), NOW)).toBe(
+			'disabled'
+		);
+		expect(explain('disabled', source({ ...off, connected: true }), NOW)).toContain('disconnect');
+	});
+
 	it('reports policy before anything else once the tool is installed', () => {
 		const blocks = ['disableAllHooks is set in managed-settings.json'];
 		expect(connectorState(source({ blocks, warnings: ['w'] }), NOW)).toBe('blocked_by_policy');

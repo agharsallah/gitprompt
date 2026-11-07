@@ -10,6 +10,7 @@ import {
 	Hourglass,
 	Moon,
 	Plug,
+	PowerOff,
 	ShieldBan,
 	TriangleAlert,
 	type LucideIcon
@@ -21,6 +22,7 @@ import { plural, relative, relativePath } from '#lib/shared/format.ts';
 /**
  * Every state a connector can be in. Exactly one applies, decided in this order:
  *
+ *   either         disabled           turned off in GitPrompt: what it sends is discarded
  *   not connected  not_installed      the tool isn't on this machine
  *                  blocked_by_policy  a setting GitPrompt won't override turns it off
  *                  warning            it can connect, but a setting may stop its entries from running
@@ -37,6 +39,7 @@ import { plural, relative, relativePath } from '#lib/shared/format.ts';
  * still listed under the state.
  */
 export type ConnectorStateId =
+	| 'disabled'
 	| 'not_installed'
 	| 'available'
 	| 'warning'
@@ -48,6 +51,7 @@ export type ConnectorStateId =
 	| 'receiving';
 
 export const STATE_IDS: readonly ConnectorStateId[] = [
+	'disabled',
 	'not_installed',
 	'available',
 	'warning',
@@ -67,7 +71,7 @@ export const STATE_IDS: readonly ConnectorStateId[] = [
 export const QUIET_AFTER_MS = 24 * 60 * 60 * 1000;
 
 /** The one primary action of a state (Disconnect stays available as a secondary one when connected). */
-export type ConnectorAction = 'recheck' | 'connect' | 'update' | 'remap' | 'view';
+export type ConnectorAction = 'enable' | 'recheck' | 'connect' | 'update' | 'remap' | 'view';
 
 export type StateInfo = {
 	label: string;
@@ -78,6 +82,13 @@ export type StateInfo = {
 };
 
 export const STATES: Record<ConnectorStateId, StateInfo> = {
+	disabled: {
+		label: 'Turned off',
+		icon: PowerOff,
+		tone: 'neutral',
+		action: 'enable',
+		actionLabel: 'Turn on'
+	},
 	not_installed: {
 		label: 'Not installed',
 		icon: CircleDashed,
@@ -144,6 +155,7 @@ export const STATES: Record<ConnectorStateId, StateInfo> = {
 };
 
 export function connectorState(s: Source, now: number): ConnectorStateId {
+	if (!s.enabled) return 'disabled';
 	if (!s.connected) {
 		if (!s.detected) return 'not_installed';
 		if (s.blocks.length) return 'blocked_by_policy';
@@ -160,6 +172,10 @@ export function connectorState(s: Source, now: number): ConnectorStateId {
 export function explain(id: ConnectorStateId, s: Source, now: number): string {
 	const file = relativePath(s.config_file);
 	switch (id) {
+		case 'disabled':
+			return s.connected
+				? `Turned off in GitPrompt: what it sends is discarded. Its entries stay in ${file} until you disconnect.`
+				: 'Turned off in GitPrompt: it can’t be connected, and anything it sends is discarded.';
 		case 'not_installed':
 			return 'GitPrompt can’t find this tool on this machine: install it, then check again.';
 		case 'available':

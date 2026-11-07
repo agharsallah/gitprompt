@@ -1,0 +1,20 @@
+{
+  "about": "UserPromptSubmit: prompt, session and cwd mapped; no prompt id in the payload, so GitPrompt names the turn.",
+  "payload": {
+    "hook_event_name": "UserPromptSubmit",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:00:05.000Z",
+    "cwd": "/work/app",
+    "prompt": "Add a retry to the upload client"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {
+      "event": "UserPromptSubmit",
+      "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "cwd": "/work/app",
+      "prompt": "Add a retry to the upload client"
+    },
+    "origin": "typed"
+  }
+}

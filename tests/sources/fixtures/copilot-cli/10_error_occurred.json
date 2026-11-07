@@ -1,0 +1,22 @@
+{
+  "about": "ErrorOccurred: error object, context and recoverable flag.",
+  "payload": {
+    "hook_event_name": "ErrorOccurred",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:01:25.000Z",
+    "cwd": "/work/app",
+    "error": {
+      "message": "rate limited",
+      "name": "RateLimitError"
+    },
+    "error_context": "model_call",
+    "recoverable": true
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "ErrorOccurred"
+    },
+    "turn": "09_user_prompt_submit_subagent"
+  }
+}

@@ -229,7 +229,9 @@ async def session_story(session: str, index: IndexDep) -> SessionStory:
     user = [p for p in rows if stories.is_user(p)]
     events = timeline.turn_events(db, [p["prompt_id"] for p in rows if p.get("prompt_id")])
     commits = await asyncio.to_thread(_log, user)
-    return stories.session_story(session, rows, timeline.tool_kinds(db, [p["id"] for p in user]), events, commits)
+    spec = index.specs.get(rows[0]["source"])  # what each tool does is the source spec's `tool_kinds`
+    kinds = spec.tool_kinds if spec else {}
+    return stories.session_story(session, rows, timeline.tool_kinds(db, [p["id"] for p in user]), events, commits, kinds)
 
 
 @router.get("/stories/project/{project}")

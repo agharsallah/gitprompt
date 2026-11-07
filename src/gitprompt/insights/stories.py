@@ -16,11 +16,12 @@ import base64
 import binascii
 import statistics
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from gitprompt.insights import derivations, lineage
+from gitprompt.insights import lineage
+from gitprompt.sources.spec import tool_kind
 
 USER_ORIGINS = ("typed", "slash_command")
 # A pause this long starts a new phase. On the local data the gaps between prompts of a project fall
@@ -213,19 +214,19 @@ def _marker(
     }
 
 
-def _turn_markers(p: dict[str, Any], events: list[dict[str, Any]]) -> list[dict]:
+def _turn_markers(p: dict[str, Any], events: list[dict[str, Any]], kinds: Mapping[str, str]) -> list[dict]:
     """Subagents the turn started (what the model asked them) and its compactions."""
     out = []
     for e in events:
         if e["event"] == "PreCompact":
             out.append(_marker("compaction", p, e["received_at"]))
-        elif derivations.tool_kind(e["tool"]) == "agent" and e.get("prompt"):
+        elif tool_kind(kinds, e["tool"]) == "agent" and e.get("prompt"):
             out.append(_marker("subagent_prompt", p, e["received_at"], e.get("description"), e.get("subagent_type"), e["prompt"]))
     return out
 
 
-def _files(events: list[dict[str, Any]]) -> list[str]:
-    return sorted({e["file"] for e in events if e["tool"] in derivations.WRITE_TOOLS and e.get("file")})
+def _files(events: list[dict[str, Any]], kinds: Mapping[str, str]) -> list[str]:
+    return sorted({e["file"] for e in events if tool_kind(kinds, e["tool"]) == "write" and e.get("file")})
 
 
 def session_story(
@@ -234,6 +235,7 @@ def session_story(
     tool_kinds: dict[int, dict[str, int]],
     events: Iterable[dict[str, Any]],
     commits: Iterable[dict[str, Any]],
+    kinds: Mapping[str, str],
 ) -> dict[str, Any]:
     """One session as a narrative: each prompt you typed is a chapter (outcome, tools, files, commits,
     cost, time); task notifications, agent messages, subagent prompts and compactions are markers
@@ -248,10 +250,11 @@ def session_story(
     for turn, p in enumerate(rows, start=1):
         turn_events = by_turn.get(p.get("prompt_id"), [])
         if is_user(p):
-            items.append(_chapter(p, turn, tool_kinds.get(p["id"], {}), _files(turn_events), owned.get(p["id"], []), retry.get(p["id"])))
+            files = _files(turn_events, kinds)
+            items.append(_chapter(p, turn, tool_kinds.get(p["id"], {}), files, owned.get(p["id"], []), retry.get(p["id"])))
         else:
             items.append(_marker(p["origin"], p, p["received_at"], text=p.get("typed_text")))
-        items += _turn_markers(p, turn_events)
+        items += _turn_markers(p, turn_events, kinds)
     chapters = [i for i in items if i["kind"] == "chapter"]
     first = rows[0] if rows else {}
     ended = max((_ended(p) for p in rows), default=None)

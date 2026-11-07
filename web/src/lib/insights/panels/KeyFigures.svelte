@@ -4,10 +4,23 @@
 	import type { Overview } from '#lib/insights/overview.ts';
 	import { ratio, type Slot } from '#lib/insights/series.ts';
 	import { duration, integer, money, percent, plural } from '#lib/shared/format.ts';
+	import { note, type Availability } from '#lib/sources/capabilities.ts';
 	import StatTile from '#lib/ui/StatTile.svelte';
 
 	/** The headline numbers of the filtered prompts, each a link to the prompts it counts. */
-	let { data, slots, link }: { data: Overview; slots: Slot[]; link: Doorway } = $props();
+	let {
+		data,
+		slots,
+		link,
+		cost
+	}: { data: Overview; slots: Slot[]; link: Doorway; cost: Availability } = $props();
+
+	// Without cost data: say why (a layer to connect, or a tool that can't report it).
+	const noCost = $derived(
+		cost.connectable.length
+			? `Needs ${cost.connectable[0].tool}’s ${cost.connectable[0].layer.toLowerCase()}`
+			: (note(cost) ?? 'No cost reported')
+	);
 
 	const t = $derived(data.activity.totals);
 	const outcome = (key: string) => data.outcomes.groups.find((g) => g.key === key)?.prompts ?? 0;
@@ -29,7 +42,7 @@
 		label="Spend"
 		icon={Coins}
 		value={usage ? money(t.cost_usd) : '—'}
-		hint={usage ? `${money(t.cost_usd / t.prompts)} per prompt` : 'Needs telemetry'}
+		hint={usage ? `${money(t.cost_usd / t.prompts)} per prompt` : noCost}
 		trend={usage ? slots.map((s) => s.bucket?.cost_usd ?? 0) : undefined}
 	/>
 	<StatTile

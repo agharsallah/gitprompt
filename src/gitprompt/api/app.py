@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
 from pathlib import Path
@@ -17,7 +17,7 @@ from gitprompt.api.bus import Bus
 from gitprompt.api.routes import ROUTERS
 from gitprompt.capture import retention
 from gitprompt.core.config import Settings
-from gitprompt.core.errors import GitPromptError, SpecError
+from gitprompt.core.errors import GitPromptError
 from gitprompt.core.preferences import PreferenceFile
 from gitprompt.insights.indexer import Indexer
 from gitprompt.sources.spec import load_specs
@@ -56,8 +56,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
-        with suppress(SpecError):  # a broken spec is reported by the pages; the index waits for a fix
-            Indexer(store, load_specs(settings)).ensure()  # a rules change rebuilds it before the first page
+        # A rules change rebuilds the index before the first page. Broken spec files are skipped
+        # (and reported on the Connectors page), so start-up never fails over one.
+        Indexer(store, load_specs(settings)).ensure()
         retention_pass = asyncio.create_task(retention.keep(store, PreferenceFile(settings.home)))
         yield
         retention_pass.cancel()

@@ -5,14 +5,17 @@
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
-	import NeedsTelemetry from './NeedsTelemetry.svelte';
+	import type { Availability } from '#lib/sources/capabilities.ts';
+	import CapabilityNote from './CapabilityNote.svelte';
+	import NotAvailable from './NotAvailable.svelte';
 
 	/**
 	 * Slash commands you ran. Most never reach the hooks as prompts (only those that expand into one
 	 * do), so they come from telemetry, per session; without it, from the prompts that named one.
 	 * A command links to its prompts when it has some.
 	 */
-	let { data, link, connected }: { data: Overview; link: Doorway; connected: boolean } = $props();
+	let { data, link, availability }: { data: Overview; link: Doorway; availability: Availability } =
+		$props();
 
 	const prompted = $derived(
 		new Map(data.commands.groups.filter((g) => g.key).map((g) => [g.key!, g.prompts]))
@@ -52,8 +55,9 @@
 			{items}
 			format={(v) => plural(v, 'use')}
 		/>
-	{:else if !connected}
-		<NeedsTelemetry what="slash commands" {connected} />
+		<CapabilityNote {availability} />
+	{:else if !availability.available.length}
+		<NotAvailable what="slash commands" {availability} />
 	{:else}
 		<EmptyState compact title="No slash commands">None were run in these sessions.</EmptyState>
 	{/if}

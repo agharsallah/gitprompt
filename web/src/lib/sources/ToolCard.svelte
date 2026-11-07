@@ -2,6 +2,7 @@
 	import { Plug } from '@lucide/svelte';
 	import type { StatsBucket } from '#lib/api/types.ts';
 	import LayerStep from '#lib/sources/LayerStep.svelte';
+	import { CAPABILITIES, CAPABILITY_IDS } from '#lib/sources/capabilities.ts';
 	import type { Tool } from '#lib/sources/state.ts';
 
 	/** One tool and its connectors as steps: the main layer first, then the optional ones. */
@@ -18,6 +19,9 @@
 	} = $props();
 
 	const version = $derived(tool.layers[0].version);
+	// What this tool can feed into the dashboard at all (any layer), and what no layer provides.
+	const declared = $derived(new Set(tool.layers.flatMap((l) => l.capabilities)));
+	const missing = $derived(CAPABILITY_IDS.filter((c) => !declared.has(c)));
 </script>
 
 <article class="tool" id="tool-{tool.id}" aria-labelledby="tool-{tool.id}-name">
@@ -28,6 +32,13 @@
 			<p class="muted version">{version ? `Version ${version}` : 'Version unknown'}</p>
 		</div>
 	</header>
+	{#if missing.length && declared.size}
+		<p class="missing">
+			<span class="label">Not available from this tool:</span>
+			{missing.map((c) => CAPABILITIES[c].what).join(', ')}. Pages that need them say so instead of
+			showing zeros.
+		</p>
+	{/if}
 	<ol class="layers">
 		{#each tool.layers as layer, i (layer.id)}
 			<LayerStep
@@ -74,6 +85,17 @@
 
 	.version {
 		font-size: var(--text-xs);
+	}
+
+	.missing {
+		max-width: var(--reading-max);
+		color: var(--color-text-secondary);
+		font-size: var(--text-sm);
+	}
+
+	.missing .label {
+		color: var(--color-text);
+		font-weight: var(--weight-medium);
 	}
 
 	.layers {

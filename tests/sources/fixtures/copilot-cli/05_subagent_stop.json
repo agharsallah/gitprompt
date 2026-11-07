@@ -1,0 +1,25 @@
+{
+  "about": "SubagentStop: subagent markers on the event; it still belongs to the main prompt's turn.",
+  "payload": {
+    "hook_event_name": "SubagentStop",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:00:20.000Z",
+    "cwd": "/work/app",
+    "transcript_path": "/work/.copilot/transcript.jsonl",
+    "agent_id": "sub-1",
+    "agent_type": "explore",
+    "agent_name": "explore",
+    "last_assistant_message": "Found two callers.",
+    "stop_reason": "end_turn"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "SubagentStop",
+      "agent_id": "sub-1",
+      "agent_type": "explore",
+      "stop_reason": "end_turn"
+    },
+    "turn": "02_user_prompt_submit"
+  }
+}
