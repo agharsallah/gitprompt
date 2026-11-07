@@ -13,7 +13,7 @@ just serve          # opens on http://127.0.0.1:7878
 
 1. Open **Sources** → Claude Code → **Connect**. Review the exact change to `~/.claude/settings.json` and confirm (a backup goes to `~/.gitprompt/backups/`).
 2. Optionally connect **Claude Code telemetry** too, for model, tokens and cost (applies to sessions started afterwards).
-3. Type a prompt in any Claude Code session. It appears live under **Prompts**, on its session's rail. Select it to see the turn as a story: what you asked, a timeline of model and tool calls, the answer, then tabs for activity (tools, files, commands), usage (tokens, cache, models), the repository (state at send time, commits afterwards), the session and every event. Star, rate, tag and annotate prompts there.
+3. Type a prompt in any Claude Code session. It appears live under **Prompts**, on its session's rail. Select it to see the turn as a story: what you asked, a timeline of model and tool calls, the answer, then tabs for activity (tools, files, commands), usage (tokens, cache, models), the repository (state at send time, commits afterwards), the session and every event. Star, rate, tag and annotate prompts there. Prompts you didn't type (task notifications, agent messages, subagent and programmatic runs) are muted and labelled with their origin, and context the tool added (an IDE selection, a system reminder) folds into a note under what you typed.
 4. **Overview** shows where your prompts went (projects over time), when you prompt, spend and tokens, what the agent did, how you write, and what needs a look (secrets, failed turns). **Sessions** and **Projects** group the same prompts by conversation and by repository. Each takes a time range.
 5. **Fields** lists every captured field next to what the tool documents, to decide what to build on. **Design system** shows the tokens and components the dashboard is built from.
 6. **Disconnect** removes only what GitPrompt added. After an upgrade, a connected source may offer **Update connection** (with the diff first).
@@ -34,7 +34,7 @@ src/gitprompt/            FastAPI daemon, one package per domain (see PLAN.md §
   sources/                tool specs, probing, connect/disconnect; bundled/ holds the YAML specs
   capture/                ingest pipeline and the OTLP decoder
   storage/                SQLite store
-  insights/               values derived on read, secret redaction, field catalog
+  insights/               values derived on read, prompt origin, secret redaction, field catalog
   api/                    FastAPI app, dependencies, live-update bus, routes/
   cli.py                  `gitprompt serve`
 web/src/lib/              SvelteKit dashboard (built into src/gitprompt/dashboard)

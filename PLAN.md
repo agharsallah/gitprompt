@@ -88,11 +88,11 @@ These are hard rules for every source, enforced in code and review. They are eng
 | Capture | `src/gitprompt/capture/pipeline.py`, `otlp.py` | One pipeline for every channel: decode by `spec.format` (`DECODERS`), map, observe (git, version), store |
 | Store | `src/gitprompt/storage/store.py` | `prompt` (mapped fields, ingest context, raw), `event` (all other events, joined by prompt/session id), `annotation` (user notes); a view adds turn number and neighbours; `remap` and `rewrite` run in a transaction |
 | Git | `src/gitprompt/core/git.py` | State at prompt time (branch, HEAD, upstream ahead/behind, staged/modified/untracked, remote without credentials, last commit) and commits made after the prompt |
-| Insights | `src/gitprompt/insights/derivations.py`, `redaction.py`, `catalog.py` | Derived on read through three registries (`PROMPT_STATS`, `TURN`, `SESSION`): each value is one decorated function that also documents it for the Fields page; secret detection/hiding; field catalog |
+| Insights | `src/gitprompt/insights/derivations.py`, `origin.py`, `redaction.py`, `catalog.py` | Derived on read through three registries (`PROMPT_STATS`, `TURN`, `SESSION`): each value is one decorated function that also documents it for the Fields page; prompt origin and typed text from the spec's `origin`/`injected` rules ([ADR-0010](docs/adr/0010-prompt-origin.md)); secret detection/hiding; field catalog |
 | API | `src/gitprompt/api/routes/*.py`, `deps.py`, `bus.py`, `app.py`; `core/errors.py` | Thin FastAPI routers, typed dependencies, domain errors mapped to HTTP in one handler, native SSE |
 | Dashboard | `web/` (SvelteKit 3, Svelte 5 runes, adapter-static) | `lib/api/` (`types.ts` API types, `client.ts`, `live.ts` SSE), `lib/shared/` (`format.ts`, `task.svelte.ts` busy/error state, `MetaTable`), `lib/prompts/` and `lib/sources/` components; Prompts (live feed, filters, detail, notes, event timeline), Fields (catalog), Sources (consent flow, update, drift, remap) |
 
-**Extending:** a new tool is a YAML spec. A new wire format is a decoder in `capture.pipeline.DECODERS` plus its name in `sources.spec.Format`. A new derived value is one function registered on `insights.derivations.TURN` (or `PROMPT_STATS`/`SESSION`). A new policy key is a field on `sources.spec.Policy` plus a rule in `sources.probe.FILE_RULES`. A new secret kind is a pattern in `insights.redaction.SECRETS`. A new prompt filter is a line in `storage.store.FILTERS` plus a query parameter.
+**Extending:** a new tool is a YAML spec. A new wire format is a decoder in `capture.pipeline.DECODERS` plus its name in `sources.spec.Format`. A new derived value is one function registered on `insights.derivations.TURN` (or `PROMPT_STATS`/`SESSION`). A new policy key is a field on `sources.spec.Policy` plus a rule in `sources.probe.FILE_RULES`. A new way to tell who produced a prompt is an `origin` rule in the tool's spec (shared rules in `_defaults.yaml`), and a new kind of tool-added context is a tag in its `injected` list; `insights.origin.classify` applies them on read ([ADR-0010](docs/adr/0010-prompt-origin.md)). A new secret kind is a pattern in `insights.redaction.SECRETS`. A new prompt filter is a line in `storage.store.FILTERS` plus a query parameter.
 
 **Security:** `TrustedHostMiddleware` (127.0.0.1/localhost only, blocks DNS rebinding); `/ingest` needs a bearer token (`~/.gitprompt/token`, mode 0600); dashboard writes need an `X-GitPrompt` header, which browsers only send from the same origin because CORS is not enabled; data dir 0700, db 0600.
 
@@ -120,6 +120,8 @@ install:
            headers: { Authorization: "Bearer {{token}}" } } ] } ] } }
 prompt_events: [UserPromptSubmit]                # other events attach to the prompt
 map: { permission_mode: [permission_mode] }      # on top of sources/bundled/_defaults.yaml
+origin: [ { when: { text_prefix: "<task-notification>" }, origin: task_notification } ]  # before the shared rules
+injected: [ide_selection, ide_opened_file]       # context blocks removed from the typed text
 policy: { files: [...managed settings...], block_if: { disableAllHooks: [true], strictPluginOnlyCustomization: [true, hooks] },
           warn_if_set: [allowedHttpHookUrls] }
 terms: "Uses Claude Code's documented hooks feature…"
