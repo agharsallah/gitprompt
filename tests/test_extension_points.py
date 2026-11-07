@@ -8,10 +8,9 @@ import pytest
 
 from gitprompt.api.bus import Bus
 from gitprompt.capture import pipeline
-from gitprompt.core.errors import SpecError
 from gitprompt.insights import derivations
 from gitprompt.sources import probe
-from gitprompt.sources.spec import load_specs
+from gitprompt.sources.spec import load_spec_set, load_specs
 from gitprompt.storage.store import Store
 
 DASHBOARD = {"X-GitPrompt": "1"}
@@ -60,13 +59,24 @@ def test_policy_rules_report_blocks_and_warnings(settings, claude_settings, monk
     assert "OTEL_EXPORTER_OTLP_ENDPOINT" in otel.blocks[0] and any("OTEL_LOGS_EXPORTER" in w for w in otel.warnings)
 
 
-def test_a_broken_user_spec_names_the_file(client, settings):
+def test_a_broken_user_spec_is_isolated(client, settings, hook_payload):
+    """One invalid file in ~/.gitprompt/sources/ used to answer 500 on every spec route, ingest
+    included, so capture silently stopped for every tool (docs/sources.md). Now it is reported and
+    skipped: the other tools, ingest and every page keep working."""
     settings.user_sources.mkdir(parents=True)
     (settings.user_sources / "mytool.yaml").write_text("id: mytool\n")  # missing required keys
-    with pytest.raises(SpecError, match="mytool.yaml"):
-        load_specs(settings)
-    response = client.get("/api/sources")
-    assert response.status_code == 500 and "mytool.yaml" in response.json()["detail"]
+    (settings.user_sources / "other.yaml").write_text("id: [unclosed\n")  # not YAML
+    token = {"Authorization": f"Bearer {settings.token()}"}
+
+    assert client.post("/ingest/claude-code", json=hook_payload, headers=token).status_code == 204
+    for route in ("/api/sources", "/api/prompts", "/api/fields", "/api/security", "/api/stats"):
+        assert client.get(route).status_code == 200, route
+    assert len(client.get("/api/prompts").json()) == 1
+
+    problems = client.get("/api/sources/problems").json()
+    assert [p["file"]["name"] for p in problems] == ["mytool.yaml", "other.yaml"]
+    assert "mytool.yaml" in problems[0]["error"] and problems[0]["file"]["origin"] == "user"
+    assert "mytool.yaml" in str(load_spec_set(settings).problems[0].error)
 
 
 def test_store_rejects_unknown_filters(tmp_path):

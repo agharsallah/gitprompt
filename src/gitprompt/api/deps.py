@@ -11,7 +11,7 @@ from gitprompt.core.errors import NotFound
 from gitprompt.core.preferences import PreferenceFile
 from gitprompt.insights.indexer import Indexer
 from gitprompt.sources.connection import Connection
-from gitprompt.sources.spec import Spec, load_specs
+from gitprompt.sources.spec import Spec, SpecSet, load_spec_set
 from gitprompt.storage.store import Store
 
 
@@ -31,8 +31,14 @@ def get_preferences(settings: Annotated[Settings, Depends(get_settings)]) -> Pre
     return PreferenceFile(settings.home)  # re-read each time: a change applies without a restart
 
 
-def get_specs(settings: Annotated[Settings, Depends(get_settings)]) -> dict[str, Spec]:
-    return load_specs(settings)  # re-read each time: editing a spec needs no restart
+def get_spec_set(settings: Annotated[Settings, Depends(get_settings)]) -> SpecSet:
+    """Re-read each time: editing a spec needs no restart. A broken file is skipped and reported, so
+    it never takes down ingest or a page for another tool."""
+    return load_spec_set(settings)
+
+
+def get_specs(spec_set: Annotated[SpecSet, Depends(get_spec_set)]) -> dict[str, Spec]:
+    return spec_set.specs
 
 
 def get_spec(source: str, specs: Annotated[dict[str, Spec], Depends(get_specs)]) -> Spec:
@@ -70,5 +76,6 @@ BusDep = Annotated[Bus, Depends(get_bus)]
 SpecDep = Annotated[Spec, Depends(get_spec)]
 PreferencesDep = Annotated[PreferenceFile, Depends(get_preferences)]
 SpecsDep = Annotated[dict[str, Spec], Depends(get_specs)]
+SpecSetDep = Annotated[SpecSet, Depends(get_spec_set)]
 IndexDep = Annotated[Indexer, Depends(get_index)]
 ConnectionDep = Annotated[Connection, Depends(get_connection)]

@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from gitprompt.core.errors import Conflict, GitPromptError
 from gitprompt.core.files import atomic_write
@@ -42,6 +42,14 @@ class Preferences(BaseModel):
     week_start: Literal["monday", "sunday"] = "monday"  # first row of the weekday heatmap
     event_retention_days: int | None = Field(None, ge=1, le=3650)  # None = keep raw events forever
     hide_secrets_on_ingest: bool = False  # replace detected secrets before a payload is stored
+    # Connectors turned off in GitPrompt: what they send is discarded and they can't be connected.
+    # Changed from the Connectors page (POST /api/sources/{id}/enable|disable). Env: comma-separated ids.
+    disabled_sources: list[str] = []
+
+    @field_validator("disabled_sources", mode="before")
+    @classmethod
+    def _comma_separated(cls, value: Any) -> Any:
+        return [v.strip() for v in value.split(",") if v.strip()] if isinstance(value, str) else value
 
 
 APPLIES_AT_START: frozenset[str] = frozenset()  # keys that need a daemon restart to take effect

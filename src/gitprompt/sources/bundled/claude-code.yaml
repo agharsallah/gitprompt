@@ -50,6 +50,10 @@ install:
 
 prompt_events: [UserPromptSubmit]
 
+# What this connector yields (docs/sources.md "Capabilities per tool"). Model, tokens, cost and
+# per-session metrics come from the telemetry layer. Events join their prompt by prompt_id.
+capabilities: [prompt, cwd, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+
 map:
   permission_mode: [permission_mode]
   session_title: [session_title]

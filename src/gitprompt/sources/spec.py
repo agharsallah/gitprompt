@@ -3,12 +3,18 @@
 Bundled specs ship in `gitprompt/sources/bundled/`. A file with the same name in `~/.gitprompt/sources/`
 overrides it, so a tool update can be handled by editing data. Specs are re-read on every use.
 
+Each file is loaded on its own (`load_spec_set`): a broken file is reported with its error and
+skipped, and a broken override of a bundled spec falls back to the bundled file. One bad file never
+stops capture, or a page, for any other tool (docs/adr/0017-connector-capabilities.md).
+
 Adding a source = adding a YAML file. Adding a *kind* of source (a new payload format) = adding a
 decoder in capture/pipeline.py and its name to `Format` below.
 """
 
+import logging
 import os
 import re
+from dataclasses import dataclass, field
 from importlib.resources import files
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -20,6 +26,8 @@ from gitprompt.core.config import Settings
 from gitprompt.core.errors import SpecError
 from gitprompt.core.payload import Mapping
 
+log = logging.getLogger(__name__)
+
 BUNDLED = files("gitprompt.sources") / "bundled"
 DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `origin` rules, `injected` tags
 
@@ -27,6 +35,32 @@ Format = Literal["json", "otlp"]  # how a source's request bodies are decoded (s
 
 # Who produced a prompt's text (see insights/origin.py and docs/adr/0010-prompt-origin.md).
 Origin = Literal["typed", "slash_command", "task_notification", "agent_message", "subagent", "programmatic", "unknown"]
+
+# What a connector can feed into the dashboard (docs/sources.md "Capabilities per tool"). A page
+# that needs one says "not available for <tool>" instead of showing zeros
+# (web/src/lib/sources/capabilities.ts). A tool has the capabilities of its connected layers.
+Capability = Literal[
+    "prompt",  # prompt text on a prompt event
+    "cwd",  # working directory, so prompts join their repository
+    "model",  # model per turn
+    "usage",  # tokens
+    "cost",  # money
+    "turn_end",  # an event when the answer is done: response time, how the turn ended
+    "answer",  # the final answer text
+    "tools",  # tool calls and their results
+    "subagents",  # subagent start/stop, and markers on their events
+    "origin_markers",  # signals that tell typed prompts from generated ones
+    "transcript_path",  # path to the tool's own transcript
+    "session_lifecycle",  # session start and end
+    "session_metrics",  # per-session totals: lines of code, commits, slash commands run
+]
+
+# How events that are not prompts find their prompt (the turn they belong to):
+#   prompt_id  by the mapped `prompt_id`, which the tool sends on every event
+#   session    the tool sends no prompt id: GitPrompt names each prompt `<source>#<row id>`, and every
+#              other event joins the latest prompt of its session received before it. Needs events
+#              to arrive in order, i.e. hooks the tool runs synchronously.
+Join = Literal["prompt_id", "session"]
 
 
 class Install(BaseModel):
@@ -97,6 +131,8 @@ class Spec(BaseModel):
     not_captured: dict[str, str] = {}  # event -> why GitPrompt does not subscribe to it
     origin: list[OriginRule] = []  # first matching rule wins; the spec's own rules, then the shared ones
     injected: list[Tag] = []  # tags of context blocks a tool adds before or after what the user typed
+    capabilities: list[Capability] = []  # what this connector yields (see Capability)
+    join: Join = "prompt_id"  # how events find their prompt (see Join)
 
     @property
     def marker(self) -> re.Pattern[str]:
@@ -119,32 +155,106 @@ def _parse(name: str, text: str) -> dict[str, Any]:
     return data
 
 
-def _spec_files(settings: Settings) -> dict[str, str]:
-    """File name -> text. A user file replaces the bundled file with the same name."""
-    texts = {p.name: p.read_text() for p in BUNDLED.iterdir() if p.name.endswith(".yaml")}
+# --- loading, one file at a time -------------------------------------------------------------
+
+SpecOrigin = Literal["bundled", "user"]
+
+
+@dataclass(frozen=True)
+class SpecFile:
+    """Where a spec was read from."""
+
+    name: str  # file name, e.g. claude-code.yaml
+    path: str
+    origin: SpecOrigin
+    overrides: bool = False  # a user file with the name of a bundled one
+
+
+@dataclass(frozen=True)
+class SpecProblem:
+    """A spec file that can't be used, and what GitPrompt does instead."""
+
+    file: SpecFile
+    error: str
+    fallback: str | None = None  # id of the bundled spec used instead, if any
+
+
+@dataclass
+class SpecSet:
+    specs: dict[str, Spec] = field(default_factory=dict)
+    files: dict[str, SpecFile] = field(default_factory=dict)  # spec id -> the file it was read from
+    problems: list[SpecProblem] = field(default_factory=list)
+
+
+def _candidates(settings: Settings) -> list[list[SpecFile]]:
+    """Per file name, the files to try in order: the user's override first, then the bundled file."""
+    bundled = sorted(p.name for p in BUNDLED.iterdir() if p.name.endswith(".yaml") and p.name != DEFAULTS)
+    out: dict[str, list[SpecFile]] = {}
     if settings.user_sources.is_dir():
-        texts |= {p.name: p.read_text() for p in settings.user_sources.glob("*.yaml")}
-    texts.pop(DEFAULTS, None)
-    return texts
+        for p in sorted(settings.user_sources.glob("*.yaml")):
+            if p.name != DEFAULTS:  # the shared defaults are not overridable
+                out[p.name] = [SpecFile(p.name, str(p), "user", overrides=p.name in bundled)]
+    for name in bundled:
+        out.setdefault(name, []).append(SpecFile(name, str(BUNDLED / name), "bundled"))
+    return list(out.values())
+
+
+def read_spec_file(file: SpecFile) -> str:
+    return (BUNDLED / file.name).read_text() if file.origin == "bundled" else Path(file.path).read_text()
+
+
+def parse_spec(name: str, text: str, defaults: dict[str, Any]) -> Spec:
+    """One spec file on top of the shared defaults. Raises SpecError naming the file."""
+    data = _parse(name, text)
+    data["map"] = defaults.get("map", {}) | (data.get("map") or {})  # a spec replaces defaults per field
+    data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
+    data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
+    try:
+        return Spec(**data)
+    except (ValidationError, TypeError) as e:
+        raise SpecError(f"source spec {name} is invalid: {e}") from e
+
+
+def _load_one(candidates: list[SpecFile], defaults: dict[str, Any], out: SpecSet) -> None:
+    """The first candidate that parses wins; a failure before it is a problem (with its fallback)."""
+    failed: SpecProblem | None = None
+    for file in candidates:
+        try:
+            spec = parse_spec(file.name, read_spec_file(file), defaults)
+        except (SpecError, OSError, UnicodeDecodeError) as e:
+            failed = failed or SpecProblem(file, str(e))
+            continue
+        if failed:
+            failed = SpecProblem(failed.file, failed.error, fallback=spec.id)
+        if spec.id in out.specs:
+            out.problems.append(SpecProblem(file, f"source spec {file.name}: id {spec.id!r} is already used by {out.files[spec.id].name}"))
+        else:
+            out.specs[spec.id], out.files[spec.id] = spec, file
+        break
+    if failed:
+        out.problems.append(failed)
+
+
+def load_spec_set(settings: Settings) -> SpecSet:
+    """Every usable spec, the file each came from, and the files that can't be used. Never raises
+    over a spec file; only a broken bundled `_defaults.yaml` (a packaging error) does."""
+    defaults = _parse(DEFAULTS, (BUNDLED / DEFAULTS).read_text())
+    out = SpecSet()
+    for candidates in _candidates(settings):
+        _load_one(candidates, defaults, out)
+    for spec in list(out.specs.values()):
+        if spec.part_of and (spec.part_of not in out.specs or out.specs[spec.part_of].part_of):
+            file = out.files.pop(spec.id)
+            del out.specs[spec.id]
+            out.problems.append(SpecProblem(file, f"source spec {file.name}: part_of must name a main source spec, not {spec.part_of!r}"))
+    for problem in out.problems:
+        log.warning("%s%s", problem.error, f" (using the bundled {problem.fallback})" if problem.fallback else "")
+    return out
 
 
 def load_specs(settings: Settings) -> dict[str, Spec]:
-    defaults = _parse(DEFAULTS, (BUNDLED / DEFAULTS).read_text())
-    specs: dict[str, Spec] = {}
-    for name, text in _spec_files(settings).items():
-        data = _parse(name, text)
-        data["map"] = defaults.get("map", {}) | (data.get("map") or {})  # a spec replaces defaults per field
-        data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
-        data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
-        try:
-            spec = Spec(**data)
-        except ValidationError as e:
-            raise SpecError(f"source spec {name} is invalid: {e}") from e
-        specs[spec.id] = spec
-    for spec in specs.values():
-        if spec.part_of and (spec.part_of not in specs or specs[spec.part_of].part_of):
-            raise SpecError(f"source spec {spec.id}: part_of must name a main source spec, not {spec.part_of!r}")
-    return specs
+    """The usable specs by id; broken files are skipped (`load_spec_set` says what went wrong)."""
+    return load_spec_set(settings).specs
 
 
 def matches(pattern: str, event: str | None) -> bool:
