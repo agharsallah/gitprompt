@@ -20,3 +20,4 @@ Status values: `proposed` → `accepted` → (`superseded by NNNN`). 0008 is the
 | [0013](0013-preferences.md) | User preferences: `preferences.json`, env > file > defaults, and which constants became settings | accepted |
 | [0014](0014-insights-stats.md) | Insights dashboard: more of the index, split groupings, per-session telemetry | accepted |
 | [0015](0015-connector-layers-and-states.md) | Connectors: tools with layers (`part_of`), raw facts in `/api/sources`, one derived state per connector | accepted |
+| [0017](0017-connector-capabilities.md) | Connector capabilities, a `join: session` fallback for tools without a prompt id, isolated spec loading, turning a connector off | accepted |

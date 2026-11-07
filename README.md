@@ -24,10 +24,11 @@ GitPrompt uses only Claude Code's documented [hooks](https://code.claude.com/doc
 
 ## Connectors
 
-The **Connectors** page (`/sources`) shows each tool as one card, with its connectors as steps: for Claude Code, **Hooks** (prompts, tools, turn ends) and the optional **Telemetry** layer (model, tokens, cost). Each layer is in exactly one state, shown with an icon and a label (never colour alone), one sentence and the one action it needs now:
+The **Connectors** page (`/sources`) shows each tool as one card, with its connectors as steps: for Claude Code, **Hooks** (prompts, tools, turn ends) and the optional **Telemetry** layer (model, tokens, cost); for **GitHub Copilot CLI**, its hooks (also read by the Copilot agent in VS Code), installed as a file of its own, `~/.copilot/hooks/gitprompt.json`. Each layer is in exactly one state, shown with an icon and a label (never colour alone), one sentence and the one action it needs now:
 
 | State | Meaning | Action |
 |---|---|---|
+| Turned off | Turned off in GitPrompt: what it sends is discarded | Turn on |
 | Not installed | The tool isn't on this machine | Check again |
 | Ready to connect | Installed, not connected | Review and connect |
 | Check before connecting | A setting may stop GitPrompt's entries from running (listed) | Review and connect |
@@ -38,11 +39,15 @@ The **Connectors** page (`/sources`) shows each tool as one card, with its conne
 | Quiet | Connected, no event for a day | View prompts |
 | Receiving | Events are arriving | View prompts |
 
-A connected layer also shows its heartbeat (last event and events per hour over the last day), its prompts by origin, and **What this collects**: the events it stores, those it receives but drops, and those it never subscribes to, with the reason, straight from its spec. Settings › Connectors summarizes the same states. `/sources?connect=<id>` opens a connector's review directly (the Overview's first-run steps link there).
+A connected layer also shows its heartbeat (last event and events per hour over the last day), its prompts by origin, and **What this collects**: the events it stores, those it receives but drops, and those it never subscribes to, with the reason, straight from its spec. Each card also says what the tool can't provide (Copilot hooks have no model, tokens or cost), and **Spec in use** shows the spec file the layer runs on (bundled or your override, with its path and contents). Pages that need a capability a tool lacks say "not available for GitHub Copilot CLI" instead of showing zeros. **Turn off** keeps a connector's entries in the tool's settings but discards what it sends. Settings › Connectors summarizes the same states, with the spec file and Turn on/off for each layer. `/sources?connect=<id>` opens a connector's review directly (the Overview's first-run steps link there).
 
 ### Adding or fixing a connector
 
-Connectors are YAML files in `src/gitprompt/sources/bundled/`. To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on its card. A spec that adds a layer to another tool names it with `part_of`, plus a short `layer` name and a one-line `summary` ([ADR-0015](docs/adr/0015-connector-layers-and-states.md)).
+Connectors are YAML files in `src/gitprompt/sources/bundled/`. To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on its card. A spec that adds a layer to another tool names it with `part_of`, plus a short `layer` name and a one-line `summary` ([ADR-0015](docs/adr/0015-connector-layers-and-states.md)). It declares what it yields in `capabilities`, and a tool that sends no prompt id sets `join: session` ([ADR-0017](docs/adr/0017-connector-capabilities.md)).
+
+A spec file that can't be read is listed at the top of the Connectors page and in Settings with its error; it is skipped, every other connector (and capture) keeps working, and a broken copy of a bundled spec falls back to the bundled one.
+
+A connector is done when its conformance fixtures pass: synthetic payloads from the tool's documented examples in `tests/sources/fixtures/<id>/`, each with the fields, origin and turn it must map to (`tests/sources/test_conformance.py`).
 
 ## Keeping the database small
 

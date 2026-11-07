@@ -1,0 +1,27 @@
+# 0017 — Connector capabilities, a join fallback for tools without a prompt id, and isolated spec loading
+
+**Status:** accepted (implemented)
+**Builds on:** [0008](0008-universal-capture-declarative-sources.md) (declarative source specs), [0010](0010-prompt-origin.md) (origin rules), [0015](0015-connector-layers-and-states.md) (layers and states)
+
+## Context
+E6 asks that adding a tool be one YAML file plus fixtures, and that the UI adapt to what the tool can provide. Three things stood in the way:
+
+1. **One broken spec file took everything down.** `load_specs` raised on the first invalid file, and every spec route resolved specs per request, so one bad `~/.gitprompt/sources/*.yaml` answered 500 on `/api/sources`, `/api/prompts`, `/api/fields`, `/api/security` and on `POST /ingest/*`. The hook forwarders discard errors by design, so capture silently stopped for every connected tool (reproduced in [docs/sources.md](../sources.md)).
+2. **Panels assumed Claude Code.** The Overview decided "telemetry is connected" by testing the id `claude-code-otel`, and a tool without tokens or cost would have shown zeros.
+3. **Copilot CLI hooks send no prompt id.** Events joined their prompt only by `prompt_id`, so a Copilot turn would have had no tools, no end and no response time.
+
+## Decision
+1. **Each spec file is loaded on its own** (`sources.spec.load_spec_set` → `SpecSet{specs, files, problems}`). A file that is not YAML, fails validation, reuses an id, or names a bad `part_of` becomes a `SpecProblem(file, error, fallback)` and is skipped. A broken **override** of a bundled spec falls back to the bundled file (`fallback` = its id). `load_specs` keeps its signature and returns the usable specs, so every caller (ingest, pages, the CLI, start-up indexing) works with the rest. `GET /api/sources/problems` lists the problems; each source in `/api/sources` reports the file it was read from (`spec`: name, path, bundled or user, override) and its `spec_problem`. Only a broken bundled `_defaults.yaml`, a packaging error, still raises.
+2. **`capabilities` in the spec:** a typed list (`sources.spec.Capability`): `prompt`, `cwd`, `model`, `usage`, `cost`, `turn_end`, `answer`, `tools`, `subagents`, `origin_markers`, `transcript_path`, `session_lifecycle`, `session_metrics`. A tool has the union of its **active** layers (connected, or with data received, and not turned off). The dashboard has one helper, `web/src/lib/sources/capabilities.ts` `availability(sources, capability)`, which every panel that needs a capability calls: it names the tools that provide it, the optional layer that would add it ("Connect Claude Code's telemetry"), and the tools that can't ("Not available for GitHub Copilot CLI"). The id test on `claude-code-otel` is gone.
+3. **`join` in the spec** selects how non-prompt events find their prompt: `prompt_id` (default, unchanged) or `session`. With `session`, a prompt without a prompt id gets one when stored, `<source>#<row id>` (`Store.name_turn`), and every other event without one takes the prompt id of the latest prompt of the same source and session (`Store.latest_turn`). Everything downstream (derivations, the index, dirty marking, origin rules with `event`) keeps joining by `prompt_id` and needs no change. The ids are not in raw, so **Re-map** calls `Store.rejoin`, which renames prompts and re-attaches each event to the latest prompt of its session received at or before it: the join stays rebuildable from stored rows. It relies on events arriving in order, which holds for hooks the tool runs synchronously (Copilot: "Hooks run synchronously"). Events without a session id are never joined.
+4. **Turning a connector off in GitPrompt** (`disabled_sources` preference; `POST /api/sources/{id}/enable|disable`, env `GITPROMPT_DISABLED_SOURCES=a,b`): its payloads get the same empty 2xx but are discarded, and it can't be connected. Its entries stay in the tool's config file until Disconnect. This is the one new connector state, `disabled` (first in the order), with the action *Turn on*.
+
+## Consequences
+- The second tool, GitHub Copilot CLI (`copilot-cli.yaml`), needs no Python beyond these generic pieces. Its conformance fixtures (`tests/sources/fixtures/copilot-cli/`) pass, which is what "done" means for a connector: one parametrized test replays every folder through the pipeline and checks mapping, prompt vs event, origin and the joined turn.
+- A spec without `capabilities` is valid; its tool simply shows no "not available" notes. Every bundled spec declares them (tested).
+- `version_cmd` output is now read as its first dotted number, since Copilot prints `GitHub Copilot CLI 1.0.102.` (generic, in `probe.version_of`).
+
+## Not built
+- **A stdlib command shim** (PLAN §8). The curl command forwarder already works for every researched tool that has command hooks (Claude Code, Copilot CLI, Gemini CLI, Codex, Cursor, Antigravity all run a shell command with the payload on stdin). A shim would only remove the `curl` dependency, which every supported platform ships. Worth adding when Windows support needs a PowerShell-free forwarder, or for a tool that can only call an executable without a shell.
+- **Join by time window or `traceparent`.** The latest prompt of the session is enough for synchronous hooks; Copilot's `traceparent` (since 1.0.81) is undocumented as a turn key.
+- **A Copilot OTel layer** for model and tokens: Copilot's default protocol is `http/protobuf` and the receiver decodes JSON only.

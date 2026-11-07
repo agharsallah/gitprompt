@@ -25,7 +25,7 @@ Sources per row: see the per-tool notes below; every cell is backed there with a
 
 ## Capabilities per tool
 
-What a connector can feed into the dashboard. Panels should show "not available for X" when a capability is `no`, instead of zeros (E6 step 2). Proposed vocabulary for a `capabilities:` list in the spec:
+What a connector can feed into the dashboard. Panels show "not available for X" when a capability is `no`, instead of zeros. The spec's `capabilities:` list uses these names (`sources/spec.py` `Capability`; `turn_id` is the spec's `join` instead, `response` is `answer`, and `session_metrics` covers telemetry's per-session lines of code, commits and slash commands); see [ADR-0017](adr/0017-connector-capabilities.md):
 
 | Capability | Meaning | Claude Code (hooks + OTel) | Copilot CLI | Copilot VS Code | Gemini CLI | Antigravity | Cursor IDE | Cursor CLI | Codex CLI |
 |---|---|---|---|---|---|---|---|---|---|
@@ -43,7 +43,7 @@ What a connector can feed into the dashboard. Panels should show "not available 
 | `transcript_path` | path string to the tool's transcript | yes | `agentStop`/`subagent*`/`preCompact` only | unverified | yes | yes | yes (null if disabled) | unverified | yes |
 | `session_lifecycle` | session start/end | yes | yes | yes | yes | start only | yes | unverified | yes |
 
-## Recommendation: the second connector is Copilot CLI
+## The second connector is Copilot CLI (shipped)
 
 **Gemini CLI is out.** Google stopped serving Gemini CLI for Google AI Pro/Ultra and free Gemini Code Assist users on 2026-06-18 and points them to Antigravity CLI; only Standard/Enterprise licences and paid API keys keep it ([Google blog](https://developers.googleblog.com/en/an-important-update-transitioning-gemini-cli-to-antigravity-cli/), banner on [geminicli.com/docs/hooks](https://geminicli.com/docs/hooks/)). Antigravity, its successor, has no prompt-submit event.
 
@@ -57,7 +57,19 @@ What a connector can feed into the dashboard. Panels should show "not available 
 
 **Third connector: Codex CLI.** Its hooks copy Claude Code almost field for field (`session_id`, `turn_id`, `model`, `transcript_path`, `async`, `Stop.last_assistant_message`) and would need no Python at all (`prompt_id: [turn_id]`). It is not second only because its interface is the least settled: the docs moved from developers.openai.com to learn.chatgpt.com (308 redirect, 2026-11-07), and hooks were behind an experimental feature flag as recently as v0.114–0.116 (third-party reports, unverified).
 
-### Draft spec: `copilot-cli.yaml` (not a real spec file yet)
+### Spec: `src/gitprompt/sources/bundled/copilot-cli.yaml`
+
+Shipped (E6). Re-verified 2026-11-07 against the [reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference) and the [tutorial](https://docs.github.com/en/copilot/tutorials/copilot-cli-hooks). Changes from the draft below:
+- **`SubagentStart` dropped:** the reference gives no PascalCase form for it (only `subagentStart`, which has no event name); `SubagentStop` reports each subagent.
+- **`SubagentStop` carries `last_assistant_message`**, not `response` (PascalCase form); `PostToolUse.tool_result` is `{result_type, text_result_for_llm}`; `ErrorOccurred.error` is `{message, name, stack?}`.
+- `PostToolUseFailure` and `ErrorOccurred` PascalCase names are **confirmed**.
+- `join: session` instead of a capability `turn_id: no`; `capabilities` without `turn_id`.
+- No `warn_env`; the policy files include our own hooks file (a `disableAllHooks` there skips it).
+
+**Confirmed in the docs:** file locations (`~/.copilot/hooks/*.json`, `$COPILOT_HOME/hooks/`), `{version: 1, hooks}` shape, command handler fields (`bash`, `powershell`, `command`, `timeoutSec`), no `async`, hooks run synchronously, payload on stdin (tutorial scripts use `INPUT="$(cat)"`), localhost HTTP only with `COPILOT_HOOK_ALLOW_LOCALHOST=1`, PascalCase common fields `hook_event_name`, `session_id`, `timestamp` (ISO), `cwd`, subagent markers `agent_id`, `agent_type`, `parent_agent_id`, `disableAllHooks` per file and in repo `settings.json`, policy paths.
+**Unverified:** whether `disableAllHooks` in the *user* `~/.copilot/settings.json` disables hooks (checked anyway); whether `prompt` holds expanded `@` mentions; whether slash commands fire `UserPromptSubmit`; whether a `-p` prompt fires `UserPromptSubmit` as well as `SessionStart.initial_prompt`; how VS Code agent prompts can be told apart from CLI ones; exit-code handling for command hooks (the forwarder always exits 0). Not run against a live Copilot session: the forwarder was exercised by replaying the fixtures through the installed `bash` entries under `sh -c`, against a daemon on a scratch port.
+
+### Draft spec (as researched, kept for the record)
 
 Uses the PascalCase event names on purpose: the docs say the payload format is "selected by the event name used in the hook configuration", and only the PascalCase form sends `hook_event_name` and snake_case fields, which the shared `_defaults.yaml` map already covers. The camelCase form has no event-name field at all.
 
@@ -151,9 +163,9 @@ not_captured:
   sessionStart prompt hooks (type prompt): Would inject text into the session.
 ```
 
-### Conformance fixtures: `tests/sources/fixtures/copilot-cli/`
+### Conformance fixtures: `tests/sources/fixtures/copilot-cli/` (shipped)
 
-Synthetic payloads built from the documented schemas (the docs give TypeScript types, not literal samples), all in the PascalCase/snake_case form unless noted. Each file pairs a payload with the expected mapped fields and origin.
+Shipped as `01_…13_*.json`, replayed in order by `tests/sources/test_conformance.py`; subagent start is not a fixture (not subscribed, see above). Synthetic payloads built from the documented schemas (the docs give TypeScript types, not literal samples), all in the PascalCase/snake_case form unless noted. Each file pairs a payload with the expected mapped fields and origin.
 
 | File | Checks |
 |---|---|
@@ -170,7 +182,7 @@ Synthetic payloads built from the documented schemas (the docs give TypeScript t
 | `error_occurred.json` | `error.message`, `error_context: model_call`, `recoverable` |
 | `camelcase_user_prompt_submitted.json` | negative case: the camelCase form (`sessionId`, epoch-ms `timestamp`, no event name) maps session and prompt via `_defaults` aliases but has no `event`, so it is stored as an unnamed event, not a prompt (drift signal) |
 
-## Check: does one broken user override take down the Sources page? Yes, and more
+## Check: does one broken user override take down the Sources page? It did; fixed
 
 `load_specs` (`src/gitprompt/sources/spec.py`) raises `SpecError` on the first file that is not YAML or fails validation. The API resolves specs per request through `get_specs` (`src/gitprompt/api/deps.py`), and `SpecError` is answered with HTTP 500 by the shared handler in `api/app.py`. Only start-up indexing suppresses it.
 
@@ -180,7 +192,7 @@ Reproduced on 2026-11-07 with the test client in a temp dir: one `~/.gitprompt/s
 - `POST /ingest/claude-code`: 500, so **capture stops for every connected tool** until the file is fixed. The Claude Code forwarder discards errors by design, so the user sees nothing in their sessions; prompts in that window are lost.
 - `/healthz`: 200.
 
-Fix belongs to E6 step 5: load each file on its own, keep the good specs, and return the broken ones with their error (file name, bundled vs user) for Settings → Connectors. A broken override of a bundled spec should fall back to the bundled one and say so.
+**Fixed (E6, [ADR-0017](adr/0017-connector-capabilities.md)):** each file is loaded on its own; the good specs are kept and the broken ones listed by `GET /api/sources/problems` (file, bundled vs user, error), shown on the Connectors page and in Settings → Connectors. A broken override of a bundled spec falls back to the bundled one and says so on the connector. `tests/test_extension_points.py::test_a_broken_user_spec_is_isolated` reproduces the old failure: with two broken files, ingest answers 204 and every page route 200.
 
 ---
 
