@@ -32,3 +32,19 @@ def test_turn_summary_from_events():
     assert summary["tool_calls"] == {"Write": 1, "Bash": 1} and summary["files_written"] == ["/r/a.py"]
     assert summary["bash_commands"] == ["pytest"] and summary["tool_time_s"] == 1.5
     assert summary["input_tokens"] == 10 and summary["cost_usd"] == 0.01 and summary["models"] == {"claude-haiku": 1}
+    assert summary["tool_kinds"] == {"write": 1, "shell": 1}
+    assert summary["model_usage"] == {
+        "claude-haiku": {
+            "api_requests": 1,
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "cache_read_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cost_usd": 0.01,
+        }
+    }
+
+
+def test_tool_kinds():
+    kinds = {name: derivations.tool_kind(name) for name in ("Grep", "MultiEdit", "Bash", "WebSearch", "mcp__gh__x", "Agent", "Nope", None)}
+    assert list(kinds.values()) == ["read", "write", "shell", "web", "mcp", "agent", "other", "other"]

@@ -25,6 +25,7 @@ from typing import Any
 from gitprompt.core.payload import compact
 from gitprompt.insights import origin
 from gitprompt.insights.redaction import find_secrets
+from gitprompt.sources.spec import Spec
 
 
 class Derivations[Context]:
@@ -118,6 +119,22 @@ READ_TOOLS = {"Read", "Grep", "Glob", "LS"}
 WEB_TOOLS = {"WebFetch", "WebSearch"}
 USAGE_TOKENS = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens")
 
+# What a tool call does (the dashboard draws the same kinds, web/src/lib/insights/tools.ts).
+TOOL_KINDS = {
+    **dict.fromkeys(("Read", "Grep", "Glob", "LS", "NotebookRead", "LSP"), "read"),
+    **dict.fromkeys(("Write", "Edit", "MultiEdit", "NotebookEdit"), "write"),
+    **dict.fromkeys(("Bash", "BashOutput", "KillShell", "PowerShell", "Monitor"), "shell"),
+    **dict.fromkeys(("WebFetch", "WebSearch"), "web"),
+    **dict.fromkeys(("Task", "Agent", "Workflow", "Skill", "SendMessage"), "agent"),
+}
+
+
+def tool_kind(name: str | None) -> str:
+    """read, write, shell, web, mcp, agent or other."""
+    if name and name.startswith("mcp__"):
+        return "mcp"
+    return TOOL_KINDS.get(name or "", "other")
+
 
 @dataclass(frozen=True)
 class Turn:
@@ -179,6 +196,7 @@ def _ending(t: Turn) -> dict[str, Any]:
         "files_written / files_read": "file paths touched by file tools",
         "bash_commands / web": "shell commands run, URLs fetched and searches made",
         "mcp_tools": "MCP tools used",
+        "tool_kinds": "tool calls by kind: read, write, shell, web, mcp, agent, other",
     }
 )
 def _tools(t: Turn) -> dict[str, Any]:
@@ -191,6 +209,7 @@ def _tools(t: Turn) -> dict[str, Any]:
         "bash_commands": [i.get("command") for i in t.inputs({"Bash"})],
         "web": [i.get("url") or i.get("query") for i in t.inputs(WEB_TOOLS)],
         "mcp_tools": sorted({name for name, _ in t.tool_uses if name and name.startswith("mcp__")}),
+        "tool_kinds": dict(Counter(tool_kind(name) for name, _ in t.tool_uses)),
     }
 
 
@@ -215,19 +234,31 @@ def _agent_activity(t: Turn) -> dict[str, Any]:
 @TURN(
     {
         "api_requests / models / *_tokens / cost_usd / api_time_s / api_errors": "usage from telemetry (needs the telemetry source)",
+        "model_usage": "requests, tokens and cost per model (telemetry)",
         "tool_rejections": "tool calls you rejected (telemetry)",
     }
 )
 def _usage(t: Turn) -> dict[str, Any]:
     api = t.raws("api_request")
+    by_model: dict[Any, list[dict[str, Any]]] = {}
+    for e in api:
+        by_model.setdefault(e.get("model"), []).append(e)
     return {
-        "api_requests": len(api),
+        **_usage_of(api),
         "models": dict(Counter(e.get("model") for e in api)),
-        **{k: int(sum(_num(e.get(k)) for e in api)) for k in USAGE_TOKENS},
-        "cost_usd": round(sum(_num(e.get("cost_usd")) for e in api), 4),
+        "model_usage": {model: _usage_of(requests) for model, requests in by_model.items()},
         "api_time_s": round(sum(_num(e.get("duration_ms")) for e in api) / 1000, 1),
         "api_errors": len(t.raws("api_error")),
         "tool_rejections": sum(e.get("decision") == "reject" for e in t.raws("tool_decision")),
+    }
+
+
+def _usage_of(api: list[dict[str, Any]]) -> dict[str, Any]:
+    """Requests, tokens and cost of some api_request payloads."""
+    return {
+        "api_requests": len(api),
+        **{k: int(sum(_num(e.get(k)) for e in api)) for k in USAGE_TOKENS},
+        "cost_usd": round(sum(_num(e.get("cost_usd")) for e in api), 4),
     }
 
 
@@ -286,6 +317,16 @@ def _environment(events: list[dict[str, Any]]) -> dict[str, Any]:
 def session(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Session-wide facts."""
     return SESSION.derive(events)
+
+
+# --- everything derived about one prompt -----------------------------------------------------
+
+
+def derive(row: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None) -> dict[str, Any]:
+    """A stored prompt row plus every value derived from it: origin and typed text (from the spec's
+    rules), stats from its text, summary from the events of its turn. The prompt API returns this,
+    and the prompt index (insights/indexer.py) stores a projection of it."""
+    return row | origin.classify(row, events, spec) | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events)}
 
 
 # --- shown on the Fields page ----------------------------------------------------------------
