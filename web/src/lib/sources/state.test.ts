@@ -85,6 +85,16 @@ describe('presentation', () => {
 			'~/.claude/settings.json'
 		);
 	});
+
+	it('says what is left to do in the tool while waiting or quiet', () => {
+		const step = 'Open Codex, type /hooks and trust the hooks.';
+		const waiting = source({ connected: true, after_connect: step });
+		expect(explain('waiting', waiting, NOW)).toBe(
+			`Connected. ${step} Then events arrive once you start a new session and send a prompt.`
+		);
+		expect(explain('quiet', { ...STATE_FIXTURES.quiet, after_connect: step }, NOW)).toContain(step);
+		expect(explain('waiting', STATE_FIXTURES.waiting, NOW)).not.toContain('Then');
+	});
 });
 
 describe('tools', () => {

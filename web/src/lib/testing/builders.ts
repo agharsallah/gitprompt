@@ -58,6 +58,7 @@ export function source(overrides: Partial<Source> = {}): Source {
 	return {
 		id: 'claude-code',
 		name: 'Claude Code',
+		assistant: 'Claude',
 		part_of: null,
 		layer: 'Hooks',
 		summary: 'Your prompts, the tools each turn used and how the turn ended.',
@@ -67,6 +68,7 @@ export function source(overrides: Partial<Source> = {}): Source {
 		outdated: false,
 		config_file: '/Users/me/.claude/settings.json',
 		terms: 'Uses the tool’s documented hooks in your own user settings.',
+		after_connect: '',
 		blocks: [],
 		warnings: [],
 		total: 0,

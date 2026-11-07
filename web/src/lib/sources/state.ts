@@ -191,9 +191,11 @@ export function explain(id: ConnectorStateId, s: Source, now: number): string {
 		case 'drift':
 			return `${plural(s.unmapped, 'prompt')} arrived without text, so the tool may have changed its payload: fix the spec, then re-map.`;
 		case 'waiting':
-			return 'Connected: events arrive once you start a new session of the tool and send a prompt.';
+			return s.after_connect
+				? `Connected. ${s.after_connect} Then events arrive once you start a new session and send a prompt.`
+				: 'Connected: events arrive once you start a new session of the tool and send a prompt.';
 		case 'quiet':
-			return `Nothing for over a day (last event ${relative(s.last_at, now)}): normal if you haven’t used the tool, otherwise check it reads ${file}.`;
+			return `Nothing for over a day (last event ${relative(s.last_at, now)}): normal if you haven’t used the tool, otherwise check it reads ${file}.${s.after_connect ? ` ${s.after_connect}` : ''}`;
 		case 'receiving':
 			return `Events are arriving; the last one came in ${relative(s.last_at, now)}.`;
 	}

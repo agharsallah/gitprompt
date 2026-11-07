@@ -91,7 +91,7 @@
 			done =
 				action === 'disconnect'
 					? 'Disconnected: only what GitPrompt added was removed.'
-					: `${update ? 'Updated' : 'Connected'}.${change.backup ? ` The previous file is backed up at ${relativePath(change.backup)}.` : ''}`;
+					: `${update ? 'Updated' : 'Connected'}.${change.backup ? ` The previous file is backed up at ${relativePath(change.backup)}.` : ''}${source.after_connect ? ` Next: ${source.after_connect}` : ''}`;
 			await focusHeading();
 		});
 

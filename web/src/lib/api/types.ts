@@ -174,6 +174,8 @@ export type PromptDetail = Prompt & {
 export type Source = {
 	id: string;
 	name: string;
+	/** Who answers in the tool, e.g. "Claude" (spec `assistant`); empty when the spec doesn't say. */
+	assistant: string;
 	/** The tool's main connector when this one is an optional layer of it (e.g. telemetry). */
 	part_of: string | null;
 	/** Short name of this layer in its tool: "Hooks", "Telemetry". */
@@ -186,6 +188,8 @@ export type Source = {
 	outdated: boolean;
 	config_file: string;
 	terms: string;
+	/** What the user still has to do in the tool once connected (spec `after_connect`), or empty. */
+	after_connect: string;
 	blocks: string[];
 	warnings: string[];
 	total: number;
