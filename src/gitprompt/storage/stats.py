@@ -64,7 +64,7 @@ GROUPS: dict[str, Group] = {
     "weekday": Group("cast(i.weekday as text)", by_key=True),  # ISO weekday, 1 = Monday
     "weekday_hour": Group("i.weekday || '-' || printf('%02d', i.hour)", by_key=True),  # e.g. 1-09
     "origin": Group("i.origin"),
-    "source": Group("i.source"),
+    "source": Group("i.source"),  # detail: the tool's name (api/routes/stats.py, from its spec)
     # detail: the session's title, else the start of its first prompt; span_s: first prompt to last turn's end
     "session": Group("i.session", measures={"span_s": f"round({_SPAN}, 1)"}, detail="max(i.title)", excerpt="first"),
     # sessions by how long they lasted (all their prompts, whatever the filters): key = lower bound in seconds

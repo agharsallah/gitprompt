@@ -18,6 +18,9 @@
 	};
 
 	export const isQuick = (value: string): value is Quick => value in QUICK;
+
+	/** The filters offered as selects on the Prompts page, in the order shown. */
+	export const PROMPT_FACETS = ['source', 'model', 'outcome', 'repo'] as const;
 </script>
 
 <script lang="ts">
@@ -25,7 +28,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import type { Filters, Origin } from '#lib/api/types.ts';
+	import type { Filters, Origin, Stats } from '#lib/api/types.ts';
+	import FacetSelects from '#lib/insights/FacetSelects.svelte';
+	import type { Facet } from '#lib/insights/filters.ts';
 	import OriginChips from '#lib/prompts/OriginChips.svelte';
 	import { originFilter, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
 	import { pins, unpin, type Lists, type Pin } from '#lib/prompts/pinned.ts';
@@ -40,7 +45,8 @@
 		show,
 		counts,
 		origins,
-		originCounts
+		originCounts,
+		facetOptions
 	}: {
 		filters: Filters;
 		/** The multi-valued filters besides origin. */
@@ -52,7 +58,24 @@
 		origins: Origin[];
 		/** How many prompts of each origin the other filters keep (all pages). */
 		originCounts: Partial<Record<Origin, number>>;
+		/** The choices of each select, counted with the other filters (all pages). */
+		facetOptions: Partial<Record<Facet, Stats>>;
 	} = $props();
+
+	// A select shows one value; a link that sets several (two outcomes) keeps them as chips.
+	const single = (values: string[]) => (values.length <= 1 ? (values[0] ?? '') : null);
+	const facetValues = $derived({
+		source: filters.source ?? '',
+		repo: filters.repo ?? '',
+		model: single(lists.model),
+		outcome: single(lists.outcome)
+	});
+	const selects = $derived(PROMPT_FACETS.filter((f) => facetValues[f] !== null));
+	const values = $derived(
+		Object.fromEntries(selects.map((f) => [f, facetValues[f] ?? ''])) as Partial<
+			Record<Facet, string>
+		>
+	);
 
 	const ICONS = { failed: CircleX, files: FilePen, commands: SquareTerminal, secrets: KeyRound };
 	let form: HTMLFormElement;
@@ -63,9 +86,18 @@
 		return `${resolve('/prompts')}${query ? `?${query}` : ''}`;
 	}
 
-	const pinned = $derived(pins(filters, lists));
+	const pinned = $derived(
+		pins(filters, lists).filter((p) => !(selects as readonly string[]).includes(p.key))
+	);
 	const active = $derived(
-		!!(filters.q || filters.tag || filters.starred || pinned.length || show.length)
+		!!(
+			filters.q ||
+			filters.tag ||
+			filters.starred ||
+			pinned.length ||
+			show.length ||
+			selects.some((f) => values[f])
+		)
 	);
 	const submit = () => form.requestSubmit();
 
@@ -110,6 +142,8 @@
 		</div>
 		<Button type="submit" variant="secondary">Search</Button>
 	</div>
+
+	<FacetSelects facets={selects} {values} options={facetOptions} onchange={submit} />
 
 	<OriginChips {origins} counts={originCounts} onchange={changeOrigins} />
 

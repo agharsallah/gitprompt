@@ -95,6 +95,11 @@ async def stats(
         result = aggregate(index.store.db, group_by, limit, split_by, order, **filters.store_filters())
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
+    for grouping, buckets in ((group_by, result["groups"]), (split_by, [p for g in result["groups"] for p in g.get("parts") or []])):
+        if grouping == "source":  # name each tool as its badge does (spec `short_name`)
+            for b in buckets:
+                if (spec := index.specs.get(b["key"])) and not b.get("detail"):
+                    b["detail"] = spec.label
     return Stats(group_by=group_by, split_by=split_by, **result)
 
 

@@ -5,7 +5,9 @@
  * filters.test.ts.
  */
 import { queryParams, type StatsQuery } from '#lib/api/query.ts';
-import type { Origin, PromptQuery } from '#lib/api/types.ts';
+import type { Origin, PromptQuery, Stats, TurnOutcome } from '#lib/api/types.ts';
+import { TURN_OUTCOMES } from '#lib/insights/outcome.ts';
+import { folder, modelName } from '#lib/shared/format.ts';
 import { ALL_ORIGINS, isAll, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
 import { parseRange, rangeStart, type Range, type RangeId } from '#lib/insights/range.ts';
 
@@ -21,6 +23,37 @@ export type InsightFilters = {
 /** The single-valued filters the bar offers besides range and origin, in the order shown. */
 export const DIMENSIONS = ['source', 'repo', 'model'] as const;
 export type Dimension = (typeof DIMENSIONS)[number];
+
+/**
+ * Every filter offered as a select, on the Overview and the Prompts page (FacetSelects.svelte): its
+ * label, its "any" choice, and how one of its values is named (a group's `detail` from /api/stats,
+ * e.g. a tool's name or a remote's owner/name, wins).
+ */
+export const FACETS = {
+	source: { label: 'Tool', any: 'Every tool', name: (key: string) => key },
+	repo: { label: 'Project', any: 'Every project', name: (key: string) => folder(key) ?? key },
+	model: { label: 'Model', any: 'Every model', name: modelName },
+	outcome: {
+		label: 'Outcome',
+		any: 'Every outcome',
+		name: (key: string) => TURN_OUTCOMES[key as TurnOutcome]?.label ?? key
+	}
+} as const;
+export type Facet = keyof typeof FACETS;
+
+/**
+ * The choices of a facet select: each value the other filters keep, named and counted. A chosen
+ * value that none of them has (filtered away, or from a link) stays first, so the select shows it.
+ */
+export function facetChoices(facet: Facet, stats: Stats | undefined, chosen?: string) {
+	const name = (key: string, detail: string | null) => detail ?? FACETS[facet].name(key);
+	const list = (stats?.groups ?? [])
+		.filter((g) => g.key)
+		.map((g) => ({ value: g.key!, label: `${name(g.key!, g.detail)} (${g.prompts})` }));
+	return chosen && !list.some((o) => o.value === chosen)
+		? [{ value: chosen, label: name(chosen, null) }, ...list]
+		: list;
+}
 
 /**
  * Filters from the URL. Without `?range=`, the `default_range` setting; without `?origin=`, the

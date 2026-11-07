@@ -38,6 +38,7 @@
 	const listing = new Resource(() => data.listing);
 	const prompts = $derived(listing.value?.prompts ?? []);
 	const originCounts = $derived(listing.value?.originCounts ?? {});
+	const facetOptions = $derived(listing.value?.facetOptions ?? {});
 
 	const selectedId = $derived(Number(page.url.searchParams.get('id')) || null);
 	const show = $derived(page.url.searchParams.getAll('show').filter(isQuick));
@@ -171,6 +172,7 @@
 						{counts}
 						origins={data.origins}
 						{originCounts}
+						{facetOptions}
 					/>
 
 					<p class="summary muted" aria-live="polite">
@@ -188,7 +190,7 @@
 							<PromptList prompts={shown} {selectedId} {hrefFor} />
 						{:else if filtered}
 							<EmptyState title="No prompts match these filters">
-								Try fewer words, another tag or more origins, or
+								Try fewer words, another tool, model or outcome, more origins, or
 								<a href={resolve('/prompts')}>clear all filters</a>.
 							</EmptyState>
 						{:else}

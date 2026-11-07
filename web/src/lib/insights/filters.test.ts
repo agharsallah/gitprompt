@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { promptsHref, readFilters, toQuery, without } from '#lib/insights/filters.ts';
+import { facetChoices, promptsHref, readFilters, toQuery, without } from '#lib/insights/filters.ts';
+import { bucket } from '#lib/testing/builders.ts';
 import { ALL_ORIGINS } from '#lib/prompts/originFilter.svelte.ts';
 
 const NOW = Date.parse('2026-11-07T12:00:00Z');
@@ -66,5 +67,34 @@ describe('promptsHref', () => {
 		);
 		expect(params.get('since')).toBe('D');
 		expect(params.getAll('origin')).toEqual(ALL_ORIGINS);
+	});
+});
+
+describe('facetChoices', () => {
+	const stats = (groups: [string | null, number, string | null][]) => ({
+		group_by: null,
+		totals: bucket(),
+		groups: groups.map(([key, prompts, detail]) => bucket({ key, prompts, detail }))
+	});
+
+	it('names tools by the detail the daemon gives, models and outcomes in words', () => {
+		const tools = stats([
+			['codex', 3, 'Codex'],
+			[null, 1, null]
+		]);
+		expect(facetChoices('source', tools)).toEqual([{ value: 'codex', label: 'Codex (3)' }]);
+		expect(facetChoices('model', stats([['gpt-6-luna', 2, null]]))).toEqual([
+			{ value: 'gpt-6-luna', label: 'GPT-6 Luna (2)' }
+		]);
+		expect(facetChoices('outcome', stats([['interrupted', 1, null]]))).toEqual([
+			{ value: 'interrupted', label: 'Interrupted (1)' }
+		]);
+	});
+
+	it('keeps a chosen value that the other filters leave out, first', () => {
+		expect(facetChoices('model', stats([['claude-opus-5-5', 4, null]]), 'gpt-6-luna')).toEqual([
+			{ value: 'gpt-6-luna', label: 'GPT-6 Luna' },
+			{ value: 'claude-opus-5-5', label: 'Opus 5.5 (4)' }
+		]);
 	});
 });
