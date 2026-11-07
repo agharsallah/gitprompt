@@ -85,7 +85,8 @@ These are hard rules for every source, enforced in code and review. They are eng
 | Payload helpers | `src/gitprompt/core/payload.py` | Pure JSON helpers: fallback-path mapping (`pluck`, `extract`), `clip`, `flatten`, `map_strings` |
 | Probe | `src/gitprompt/sources/probe.py` | Read-only checks on this machine: detection, tool version (cached), policy rules (`FILE_RULES`) |
 | Connections | `src/gitprompt/sources/connection.py` → `installer.py` | Connect/disconnect workflow (policy gate, dry-run diff, record of added values) on top of the JSON mechanics: render, merge, strip (by receiver URL), parse-or-abort, diff, backup, atomic write keeping the file mode |
-| Capture | `src/gitprompt/capture/pipeline.py`, `otlp.py` | One pipeline for every channel: decode by `spec.format` (`DECODERS`), map, observe (git, version), store |
+| Capture | `src/gitprompt/capture/pipeline.py`, `otlp.py` | One pipeline for every channel: decode by `spec.format` (`DECODERS`), map, skip events the spec doesn't keep (`accept_events`, `drop_events`), observe (git, version), store |
+| Compact | `src/gitprompt/capture/compact.py`, `cli.py` | `gitprompt compact`: deletes stored events the current specs would drop and, optionally, raw events older than N days (never prompts or notes), then `VACUUM`. Dry run unless `--apply` ([ADR-0011](docs/adr/0011-drop-noise-events.md)) |
 | Store | `src/gitprompt/storage/store.py` | `prompt` (mapped fields, ingest context, raw), `event` (all other events, joined by prompt/session id), `annotation` (user notes); a view adds turn number and neighbours; `remap` and `rewrite` run in a transaction |
 | Git | `src/gitprompt/core/git.py` | State at prompt time (branch, HEAD, upstream ahead/behind, staged/modified/untracked, remote without credentials, last commit) and commits made after the prompt |
 | Insights | `src/gitprompt/insights/derivations.py`, `redaction.py`, `catalog.py` | Derived on read through three registries (`PROMPT_STATS`, `TURN`, `SESSION`): each value is one decorated function that also documents it for the Fields page; secret detection/hiding; field catalog |
@@ -106,6 +107,7 @@ These are hard rules for every source, enforced in code and review. They are eng
 | breaks silently | Drift signal: the Sources page counts events with no prompt and warns |
 | drops its hooks | Optional add-ons (transcript backfill, OpenTelemetry) can take over for that tool only |
 | documents new fields or events | Add them to `documented` in the spec; the Fields page shows which ones are actually seen |
+| sends high-volume events nothing reads | Add them to `drop_events` with the reason; unknown events are still kept by default. `gitprompt compact` removes those already stored |
 
 Spec format (the real Claude Code spec is in `src/gitprompt/sources/bundled/claude-code.yaml`):
 
@@ -125,6 +127,7 @@ policy: { files: [...managed settings...], block_if: { disableAllHooks: [true], 
 terms: "Uses Claude Code's documented hooks feature…"
 documented: { Stop: [last_assistant_message, …] }  # shown on the Fields page
 not_captured: { PreToolUse: "A decision point…" }
+drop_events: { "hook_execution_*": "Not stored. …" }  # received but not stored (trailing * = prefix)
 ```
 
 ## 7. Iteration 1 — Claude Code end to end (done)
