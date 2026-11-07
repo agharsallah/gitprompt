@@ -1,0 +1,199 @@
+# GitPrompt — Plan v2
+
+> **GitPrompt** keeps every prompt you write to an AI tool (CLI, IDE or web) with its metadata, **locally**, in one place.
+> **v2 in one sentence:** capture only through interfaces the tools document for this purpose (hooks, the page you type in), describe each tool as a YAML file instead of code, and keep every raw payload so a tool update never loses data.
+
+| Document | What it contains |
+|---|---|
+| **PLAN.md** (this file) | Scope, principles, terms-of-service guardrails, architecture, iteration 1, roadmap, risks |
+| [docs/adr/0008](docs/adr/0008-universal-capture-declarative-sources.md) | The v2 decision: documented interfaces + declarative source specs (supersedes ADR-0004, 0005, 0007) |
+| [docs/sources.md](docs/sources.md) | Per-tool research: hook payloads, config files, policy keys, evidence |
+| [docs/architecture.md](docs/architecture.md) | v1 detailed design. Still the reference for later add-ons (transcript backfill, Postgres), superseded where it conflicts with this plan |
+
+---
+
+## 1. What changed from v1
+
+| v1 | v2 | Why |
+|---|---|---|
+| Hooks **and** reading each tool's internal transcripts/SQLite stores | **Documented hooks only**; transcript backfill becomes an optional add-on later | Internal formats are undocumented and change with releases: they were most of the code and most of the maintenance |
+| One Python connector package per tool (manifest + parse code) | **One YAML spec per tool** (detect, install, field mapping, policy), hot-reloaded, user-overridable | A tool update becomes a data edit, often no edit at all |
+| Hook "dialects" as Python tables | Shared **fallback-path mapping** (`session_id` → `[session_id, sessionId, conversation_id…]`) | New tools that copy Claude Code's hook shape work out of the box |
+| Per-site browser adapters (request interception) | One **generic composer-capture** extension (text box + Enter/Send), per-site override only if needed | No dependency on private web APIs |
+| Raw inbox table + normalizer worker + Postgres from day one | One `prompt` table with the raw payload in the row; SQLite only | Same replay guarantee (`remap`), a fraction of the code |
+
+## 2. Scope
+
+**Iteration 1 (built, see §7):** Claude Code (terminal, IDE extensions, desktop app: they all read `~/.claude/settings.json`) → local daemon → live dashboard.
+
+**Later iterations (§8):** Copilot CLI + VS Code, Gemini CLI, Cursor, Codex (each a YAML file); web LLMs through the generic extension; optional history backfill; optional Postgres; signed remote spec registry.
+
+**Non-goals (permanent):** intercepting or proxying network traffic; reading credentials or tokens; changing, blocking or adding context to prompts; automating any tool or website; reverse-engineering encrypted or private formats; sending data anywhere off the machine (unless the user later picks their own remote database).
+
+## 3. Principles
+
+1. **Documented interfaces only.** A channel is allowed only if the tool documents it for user extensions: hooks in user settings, or the user's own browser page. These are public contracts the vendor maintains, so they change rarely and mostly by adding fields.
+2. **A source is data.** `src/gitprompt/sources/bundled/<tool>.yaml` holds detection, the exact config merge to install, the field mapping and the policy checks. Specs are re-read on every use; a file in `~/.gitprompt/sources/` overrides the bundled one.
+3. **Raw is always kept.** Every payload is stored verbatim next to the mapped fields. When a mapping is fixed, `remap` rebuilds the fields for all past events.
+4. **One receiver.** Every channel posts to `POST /ingest/{source}`. Everything downstream (mapping, git enrichment, storage, live push) is shared.
+5. **Consent is explicit and reversible.** Connect shows the exact diff of the tool's config file first, takes a backup, and disconnect removes only GitPrompt's entries.
+
+## 4. Terms-of-service and policy guardrails
+
+These are hard rules for every source, enforced in code and review. They are engineering guardrails, not legal advice: users remain bound by their own agreements and company policies (for example, rules on where prompts may be stored).
+
+**Always**
+- Use only extension points the vendor documents for end users (for Claude Code: [hooks](https://code.claude.com/docs/en/hooks) and the [OpenTelemetry export](https://code.claude.com/docs/en/monitoring-usage) in the user's own `settings.json`).
+- Subscribe only to observational events. Never hook decision points (tool permission, model switch, MCP elicitation) or events where a hook changes behaviour (`WorktreeCreate`). The reason for each skipped event is in the spec (`not_captured`).
+- Change a tool's config only after the user has seen the exact diff and confirmed. Keep a backup. Make it fully reversible.
+- Respect organization policy. If managed settings turn user hooks off (`allowManagedHooksOnly`, `disableAllHooks`, `strictPluginOnlyCustomization`), GitPrompt shows that and **does not install**. If an HTTP-hook URL allowlist is set, GitPrompt warns and does not work around it. If telemetry already has an endpoint (organization or user), the telemetry source is blocked; it never redirects an existing pipeline.
+- Keep data on the machine: bind `127.0.0.1`, no telemetry, no outbound calls.
+- Answer hooks with an **empty 2xx**. For Claude Code this means "no output": the prompt is never blocked, rewritten or given extra context. Failures (daemon down, timeout) are non-blocking by the tool's own design.
+
+**Never**
+- Proxy, intercept or decrypt traffic between a tool and its AI provider; change base URLs; use or read OAuth tokens, API keys or credential files.
+- Read or modify the tool's other private files, including its transcripts (GitPrompt only stores the `transcript_path` string it is given).
+- Enable telemetry options that capture more than needed: `OTEL_LOG_USER_PROMPTS` (hooks already have the prompt) and `OTEL_LOG_RAW_API_BODIES` (whole API requests) stay off.
+- Automate a tool or website, send requests on the user's behalf, or scrape AI responses.
+- Install anything into project-level or managed settings. User-level only.
+- Edit managed (organization) settings or try to bypass them.
+
+**Web (iteration 3):** capture only the text the user types in their own browser, on sites they enable one by one. No automated requests, no response scraping, no API interception. Each site's terms are reviewed before it's listed as supported.
+
+## 5. Architecture
+
+```
+ CLI / IDE tools                               Web LLMs (iteration 3)
+ Claude Code ─hooks+OTLP─┐                    ┌── generic extension: Enter/Send in a text box
+ Copilot, Gemini, Cursor ─┤ (iteration 2)      │   on a site you enabled → its text
+                          ▼                    ▼
+              ┌──────── gitprompt daemon · 127.0.0.1:7878 ─────────┐
+              │ POST /ingest/{source}  (token, empty 2xx reply)    │
+              │ POST /ingest/{source}/v1/{logs,metrics}  (OTLP)    │
+              │   spec mapping → git context → SQLite → SSE push   │
+              │ /api/sources  detect · policy · connect/disconnect │
+              │ /api/prompts  list · filters · detail · notes      │
+              │ /api/fields   seen vs documented fields            │
+              │ /             dashboard (SvelteKit static build)   │
+              └────────────────────────────────────────────────────┘
+```
+
+| Piece | File | Role |
+|---|---|---|
+| Settings | `src/gitprompt/core/config.py` | `~/.gitprompt/` (db, token, backups, user specs), host/port |
+| Source specs | `src/gitprompt/sources/spec.py`, `sources/bundled/*.yaml` | Schema, load + user override, `${VAR:-default}`/`~` paths; a broken spec is reported by file name |
+| Payload helpers | `src/gitprompt/core/payload.py` | Pure JSON helpers: fallback-path mapping (`pluck`, `extract`), `clip`, `flatten`, `map_strings` |
+| Probe | `src/gitprompt/sources/probe.py` | Read-only checks on this machine: detection, tool version (cached), policy rules (`FILE_RULES`) |
+| Connections | `src/gitprompt/sources/connection.py` → `installer.py` | Connect/disconnect workflow (policy gate, dry-run diff, record of added values) on top of the JSON mechanics: render, merge, strip (by receiver URL), parse-or-abort, diff, backup, atomic write keeping the file mode |
+| Capture | `src/gitprompt/capture/pipeline.py`, `otlp.py` | One pipeline for every channel: decode by `spec.format` (`DECODERS`), map, observe (git, version), store |
+| Store | `src/gitprompt/storage/store.py` | `prompt` (mapped fields, ingest context, raw), `event` (all other events, joined by prompt/session id), `annotation` (user notes); a view adds turn number and neighbours; `remap` and `rewrite` run in a transaction |
+| Git | `src/gitprompt/core/git.py` | State at prompt time (branch, HEAD, upstream ahead/behind, staged/modified/untracked, remote without credentials, last commit) and commits made after the prompt |
+| Insights | `src/gitprompt/insights/derivations.py`, `redaction.py`, `catalog.py` | Derived on read through three registries (`PROMPT_STATS`, `TURN`, `SESSION`): each value is one decorated function that also documents it for the Fields page; secret detection/hiding; field catalog |
+| API | `src/gitprompt/api/routes/*.py`, `deps.py`, `bus.py`, `app.py`; `core/errors.py` | Thin FastAPI routers, typed dependencies, domain errors mapped to HTTP in one handler, native SSE |
+| Dashboard | `web/` (SvelteKit 3, Svelte 5 runes, adapter-static) | `lib/api/` (`types.ts` API types, `client.ts`, `live.ts` SSE), `lib/shared/` (`format.ts`, `task.svelte.ts` busy/error state, `MetaTable`), `lib/prompts/` and `lib/sources/` components; Prompts (live feed, filters, detail, notes, event timeline), Fields (catalog), Sources (consent flow, update, drift, remap) |
+
+**Extending:** a new tool is a YAML spec. A new wire format is a decoder in `capture.pipeline.DECODERS` plus its name in `sources.spec.Format`. A new derived value is one function registered on `insights.derivations.TURN` (or `PROMPT_STATS`/`SESSION`). A new policy key is a field on `sources.spec.Policy` plus a rule in `sources.probe.FILE_RULES`. A new secret kind is a pattern in `insights.redaction.SECRETS`. A new prompt filter is a line in `storage.store.FILTERS` plus a query parameter.
+
+**Security:** `TrustedHostMiddleware` (127.0.0.1/localhost only, blocks DNS rebinding); `/ingest` needs a bearer token (`~/.gitprompt/token`, mode 0600); dashboard writes need an `X-GitPrompt` header, which browsers only send from the same origin because CORS is not enabled; data dir 0700, db 0600.
+
+## 6. How tool updates are absorbed
+
+| The tool… | What happens |
+|---|---|
+| adds metadata fields | Nothing to do: stored in raw, shown in the prompt detail automatically |
+| renames a field to a common alias | Nothing to do: the shared fallback paths already cover it |
+| renames a field to something new, or moves its config file | Edit one line of YAML (or drop an override in `~/.gitprompt/sources/`), then **Re-map stored events** |
+| breaks silently | Drift signal: the Sources page counts events with no prompt and warns |
+| drops its hooks | Optional add-ons (transcript backfill, OpenTelemetry) can take over for that tool only |
+| documents new fields or events | Add them to `documented` in the spec; the Fields page shows which ones are actually seen |
+
+Spec format (the real Claude Code spec is in `src/gitprompt/sources/bundled/claude-code.yaml`):
+
+```yaml
+id: claude-code
+name: Claude Code
+detect: ["${CLAUDE_CONFIG_DIR:-~/.claude}"]
+version_cmd: [claude, --version]
+install:
+  file: "${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json"
+  merge: { hooks: { UserPromptSubmit: [ { hooks: [ { type: http, url: "{{receiver}}/ingest/{{source}}", timeout: 2,
+           headers: { Authorization: "Bearer {{token}}" } } ] } ] } }
+prompt_events: [UserPromptSubmit]                # other events attach to the prompt
+map: { permission_mode: [permission_mode] }      # on top of sources/bundled/_defaults.yaml
+policy: { files: [...managed settings...], block_if: { disableAllHooks: [true], strictPluginOnlyCustomization: [true, hooks] },
+          warn_if_set: [allowedHttpHookUrls] }
+terms: "Uses Claude Code's documented hooks feature…"
+documented: { Stop: [last_assistant_message, …] }  # shown on the Fields page
+not_captured: { PreToolUse: "A decision point…" }
+```
+
+## 7. Iteration 1 — Claude Code end to end (done)
+
+**Flow:** `gitprompt serve` → open `http://127.0.0.1:7878` → **Sources**: "Claude Code, detected v2.1.x" → **Connect** shows the diff for `~/.claude/settings.json` → **Confirm** (backup taken) → type a prompt in any Claude Code session (running sessions pick up the change: Claude Code reloads hooks from settings files) → it appears live in **Prompts** with session, prompt id, cwd, git branch/remote, permission mode, transcript path and the raw payload.
+
+**Run it**
+```bash
+just setup      # uv sync + pnpm install
+just build      # builds the dashboard into src/gitprompt/dashboard
+just serve      # http://127.0.0.1:7878
+just test       # pytest + ruff + svelte-check
+just dev        # API with reload + Vite dev server (proxy to the API)
+```
+
+**Verified**
+- 14 tests: mapping, path expansion, spec override, merge/strip round trip, invalid-JSON refusal, connect → ingest → disconnect restoring the exact original settings, token and host checks, dedup, event filtering, remap, policy block.
+- Real run with Claude Code 2.1.316 (hook passed via `--settings`, so no file was touched): the prompt was captured with all fields and pushed over SSE. With a wrong token, Claude Code still answered normally (the failure was non-blocking, as documented).
+
+**Exit criteria:** a prompt typed in Claude Code appears in the dashboard in under a second; connect/disconnect leave `settings.json` exactly as before; nothing is installed when policy disables hooks.
+
+### 7b. Rich metadata (done, [ADR-0009](docs/adr/0009-metadata-events-telemetry-derived-on-read.md))
+
+| Group | Fields | Source |
+|---|---|---|
+| Prompt text | chars, words, lines, approx tokens, slash command, `@` mentions, URLs, code blocks, questions, **possible secrets** (with "Hide it") | derived |
+| Turn | turn number, time since previous prompt, response time, ended by Stop/StopFailure, error, final response, tool calls/failures/time, files written/read, Bash commands, web fetches/searches, MCP tools, subagents, tasks, notifications, permission denials, compactions, model switches | 20 hook events |
+| Usage | API requests, models, input/output/cache tokens, cost, API time, API errors, rejected tool calls | telemetry (opt-in source) |
+| Repository | root, worktree, branch/detached, HEAD, upstream ahead/behind, staged/modified/untracked/conflicts, remote (credentials stripped), `owner/repo`, host, last commit subject/time/author; **commits made after the prompt** with diffstat | `git` CLI |
+| Session | events by type, first/last event, end reason, instructions loaded, config/cwd changes, metric totals (lines of code, commits, active time, tokens, cost), environment (app version, entrypoint, terminal, OS, account) | hooks + telemetry |
+| Tool | version at prompt time | `claude --version` (cached) |
+| Yours | star, 👍/👎, tags, note; filter by tag, star, session, repository | dashboard |
+
+The **Fields** page lists every field path seen per source and event, with counts and the latest value, next to the fields each tool documents (also those not seen yet), the derived fields, and the events not captured with the reason.
+
+**Verified:** 26 tests. A real Claude Code 2.1.317 run (hooks and telemetry passed via `--settings` in a scratch git repo, no settings file touched) produced the prompt, 5 hook event types and 17 telemetry event and metric types. All were joined on the prompt, including the commit Claude made with its diffstat, tokens and cost.
+
+## 8. Roadmap
+
+| Iteration | Content | New code |
+|---|---|---|
+| **2. Other hook-capable tools** | Copilot CLI + VS Code (`~/.copilot/hooks/gitprompt.json`), Gemini CLI (`BeforeAgent`), Cursor (`beforeSubmitPrompt`), Codex (if hooks are confirmed). One YAML each + a stdlib-only command shim (`gp-hook`) for tools without HTTP hooks. Payload fingerprinting, since some tools also load Claude Code's hook file. | Shim (~40 LOC), fingerprint field in specs |
+| **3. Web** | MV3 extension: one content script on user-enabled sites; captures the focused text box on Enter/Send; posts to `/ingest/web` with a paired token. Optional per-site selector overrides. | Extension (~150 LOC) |
+| **4. History (optional add-on)** | Transcript backfill per tool, off by default, isolated behind the same spec format (`backfill:` block). The only place that tracks private formats. | Readers from v1 architecture §7 |
+| **5. Distribution & scale** | `uv tool install gitprompt`, auto-start (launchd/systemd), export, Postgres backend, signed remote spec registry, generated TS contracts (ADR-0006) | — |
+
+## 9. Engineering standards
+
+| Area | Standard |
+|---|---|
+| Python | 3.12+, uv, FastAPI (routers per domain, `Annotated` dependencies, Pydantic response models, native SSE), ruff, pytest. Stdlib `sqlite3` behind the `Store` class |
+| Web | pnpm, SvelteKit 3 + Svelte 5 runes per [svelte.dev/llms.txt](https://svelte.dev/llms.txt): `$derived` over `$effect`, `load` functions for data, `$app/state`, keyed `#each`, `onclick` attributes, `refreshAll`, `#lib` imports |
+| Tests | Synthetic payloads only (built from documented examples). Tests run in temp dirs and never touch real tool configs |
+| Specs | Each spec links the vendor doc it relies on and carries a `terms` text shown before consent |
+| Code size | Prefer data over code; a new source should need no Python |
+
+## 10. Risks
+
+| Risk | Mitigation |
+|---|---|
+| A tool changes its hook payload | Fallback paths, raw kept, drift warning, remap; spec override without a release |
+| A tool's hook API is preview/experimental (VS Code Copilot, Gemini) | Marked in the spec; history add-on as fallback |
+| Hook slows the tool | Empty 2xx in milliseconds, 2 s timeout, failures non-blocking |
+| Token stored in the tool's user settings file | File is user-only (0600 kept); token only works against 127.0.0.1; rotate by deleting `~/.gitprompt/token` and reconnecting |
+| Secrets inside prompts | Local only in iteration 1; redaction before any remote storage (iteration 5) |
+| Organization forbids hooks | Detected from managed settings files and reported; server-managed or MDM policies can't always be read → the dashboard points to `/status` in Claude Code |
+
+## 11. Open questions
+
+1. Store the transcript path only (current), or offer the history add-on per tool in iteration 4?
+2. Web sites for iteration 3: ChatGPT, Claude.ai, Gemini, Copilot — which first?
+3. Should specs be fetchable from a signed remote registry (opt-in), or only shipped with releases plus local overrides?
