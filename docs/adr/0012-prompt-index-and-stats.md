@@ -1,6 +1,6 @@
 # 0012 — A rebuildable prompt index for filters, FTS search and `/api/stats`
 
-**Status:** accepted (implemented)
+**Status:** accepted (implemented; extended by [0014](0014-insights-stats.md): more columns, `split_by`, `outcome` in the dashboard's words)
 **Amends:** [0009](0009-metadata-events-telemetry-derived-on-read.md) (derived values are still computed on read, and also cached in an index), [0010](0010-prompt-origin.md) (origin becomes filterable)
 
 ## Context
@@ -23,7 +23,7 @@ Everything GitPrompt shows about a prompt is derived on read in Python (`derivat
 + E3 can move the Overview to `/api/stats` with no 1,000-prompt cap.
 − A rebuild blocks the first read after an upgrade (seconds on real data, about 14 s at 100k prompts).
 − Any edit to the hashed modules (even a comment) triggers a rebuild. That is cheap and errs on the side of correctness.
-− Tool kinds are defined in Python (`derivations.TOOL_KINDS`) and in the dashboard (`tools.ts`) until E3 reads `summary.tool_kinds`.
+− Tool kinds were defined in Python (`derivations.TOOL_KINDS`) and in the dashboard (`tools.ts`); since [0014](0014-insights-stats.md) the dashboard reads them from the daemon.
 − Values that depend on later prompts or on the clock are not indexed: "superseded" and "running" outcomes stay client-side (`outcome.ts`).
 
 ## Alternatives considered

@@ -119,7 +119,8 @@ READ_TOOLS = {"Read", "Grep", "Glob", "LS"}
 WEB_TOOLS = {"WebFetch", "WebSearch"}
 USAGE_TOKENS = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens")
 
-# What a tool call does (the dashboard draws the same kinds, web/src/lib/insights/tools.ts).
+# What a tool call does. The dashboard reads the kinds from here (summary.tool_kind_of, stats `tool` detail)
+# and only decides how each kind is drawn (web/src/lib/insights/tools.ts).
 TOOL_KINDS = {
     **dict.fromkeys(("Read", "Grep", "Glob", "LS", "NotebookRead", "LSP"), "read"),
     **dict.fromkeys(("Write", "Edit", "MultiEdit", "NotebookEdit"), "write"),
