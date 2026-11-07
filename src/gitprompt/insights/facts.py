@@ -8,8 +8,8 @@ and the source spec, so they need no `if source == ...`:
     connector       the tool that sent the prompt: spec id, name, badge label, who answers
     model           the turn's main model: from model calls when the tool reports them, else the
                     model its hooks carried (`model_source` says which)
-    tokens          input, output, cache and reasoning tokens; null when no model call was
-                    reported (the tool can't, or not in this version), never zeros
+    tokens          input, output, cache and reasoning tokens; null when no model call reported any
+                    (the tool can't, not in this version, or the call was cancelled), never zeros
     cost_usd        null unless a model call reported a cost (the spec's `usage` maps one)
     outcome         done, failed, interrupted, superseded, running, open (storage/store.py OUTCOME)
     ...             permission mode, tool version, time, tool calls, files, commits, subagents
@@ -28,7 +28,7 @@ DOCS: dict[str, str] = {
     "facts.connector": "the tool that sent the prompt: spec id, name, short name for badges, and who answers",
     "facts.model / model_source": "the turn's main model, from its model calls (usage) or the model its hooks reported (hook)",
     "facts.models": "every model the turn used",
-    "facts.tokens": "input, output, cache read, cache write, reasoning and total tokens; null when no model call was reported",
+    "facts.tokens": "input, output, cache read, cache write, reasoning and total tokens; null when no model call reported any",
     "facts.cost_usd": "the turn's cost; null unless a model call reported one",
     "facts.api_requests": "model calls reported for the turn",
     "facts.outcome": "how the turn ended: done, failed, interrupted, superseded, running or open",
@@ -65,7 +65,9 @@ def _tokens(row: Mapping[str, Any]) -> dict[str, int] | None:
         return None
     out = {name: int(row.get(column) or 0) for name, column in TOKENS.items()}
     # Reasoning tokens are part of the output tokens: the total counts them once.
-    return out | {"total": out["input"] + out["output"] + out["cache_read"] + out["cache_creation"]}
+    total = out["input"] + out["output"] + out["cache_read"] + out["cache_creation"]
+    # Calls that carried no counts (Codex reports none for a cancelled call) are not zero tokens.
+    return out | {"total": total} if total else None
 
 
 def _cost(row: Mapping[str, Any], spec: Spec | None) -> float | None:

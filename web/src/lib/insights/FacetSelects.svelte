@@ -52,4 +52,14 @@
 		gap: var(--space-2);
 		min-width: 0;
 	}
+
+	/* A long project path must not stretch its select across the row. */
+	.selects > :global(.field) {
+		max-width: 16rem;
+	}
+
+	.selects :global(select) {
+		min-width: 0;
+		text-overflow: ellipsis;
+	}
 </style>

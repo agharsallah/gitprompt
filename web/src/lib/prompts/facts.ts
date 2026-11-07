@@ -59,6 +59,6 @@ export function missingTokens(f: Facts, usage: Availability | undefined): string
 	if (usage.updatable.length) return updateNote(usage);
 	if (usage.connectable.length)
 		return `Connect ${usage.connectable[0].layer} to see tokens and cost.`;
-	if (usage.available.length) return 'No model call was reported for this turn.';
+	if (usage.available.length) return 'No token counts were reported for this turn.';
 	return `${names(usage.unavailable) || f.connector.name} doesn't report tokens.`;
 }

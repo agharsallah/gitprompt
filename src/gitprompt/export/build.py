@@ -86,11 +86,13 @@ FACT_COLUMNS = ("model", "permission_mode", "tool_version", "api_requests")
 
 
 def fact_columns(facts: dict[str, Any] | None) -> dict[str, Any]:
-    facts = facts or {}
+    if not facts:
+        return {}
     return {
         "tool": ((facts.get("connector") or {}).get("id")),
         **{k: facts.get(k) for k in FACT_COLUMNS},
         "tokens": (facts.get("tokens") or {}).get("total"),
+        "cost_usd": facts.get("cost_usd"),  # null, not 0, when the tool reported no cost
         "reasoning_tokens": (facts.get("tokens") or {}).get("reasoning"),
     }
 

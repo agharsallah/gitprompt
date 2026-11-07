@@ -84,7 +84,7 @@ describe('missingTokens', () => {
 	});
 	it('says when a tool that reports tokens reported none for this turn', () => {
 		expect(missingTokens(none, usage({ available: ['OpenAI Codex CLI'] }))).toBe(
-			'No model call was reported for this turn.'
+			'No token counts were reported for this turn.'
 		);
 	});
 });

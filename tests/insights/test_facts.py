@@ -29,5 +29,11 @@ def test_tokens_add_up_and_cost_needs_a_tool_that_reports_one(settings):
     assert claude["cost_usd"] == 0  # telemetry maps a cost: a free call is $0, not unknown
 
 
+def test_calls_without_token_counts_show_no_tokens(settings):
+    """Codex reports a cancelled call (Ctrl-C) with no token_usage: that is unknown, not zero."""
+    f = facts.facts(ROW | {"api_requests": 1, "model": "gpt-6-luna"}, load_specs(settings)["codex"], "interrupted")
+    assert f["tokens"] is None and f["api_requests"] == 1 and f["model_source"] == "usage"
+
+
 def test_an_unknown_source_is_named_by_its_id():
     assert facts.facts(ROW | {"source": "mystery"}, None)["connector"]["label"] == "mystery"
