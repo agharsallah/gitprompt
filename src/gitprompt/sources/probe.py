@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import time
+import tomllib
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -114,13 +115,21 @@ def _warn_if_set(f: SettingsFile, report: PolicyReport) -> None:
 FILE_RULES: list[Rule] = [_block_if, _block_if_set, _warn_if_set]
 
 
+# How a settings file is parsed, by suffix; anything else is JSON. Read-only: tomllib can't write.
+PARSERS: dict[str, Callable[[str], Any]] = {".toml": tomllib.loads}
+
+
+def _parse(name: str) -> Any:
+    return PARSERS.get(Path(name).suffix.lower(), json.loads)(Path(name).read_text())
+
+
 def _settings_files(spec: Spec, settings: Settings) -> Iterator[SettingsFile]:
     for pattern in spec.policy.files:
         for name in sorted(glob.glob(str(expand(pattern, settings)))):
             try:
-                doc = json.loads(Path(name).read_text())
-            except (OSError, ValueError):
-                continue  # unreadable or not JSON: the tool can't apply it either
+                doc = _parse(name)
+            except (OSError, ValueError):  # tomllib.TOMLDecodeError is a ValueError
+                continue  # unreadable or not valid: the tool can't apply it either
             if isinstance(doc, dict):
                 yield SettingsFile(name, doc, spec.policy, spec.marker, settings.receiver)
 
