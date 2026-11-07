@@ -58,7 +58,9 @@
 		</div>
 		{#if id}
 			<p class="links">
-				<a href="{resolve('/prompts')}?session={encodeURIComponent(id)}">Every prompt in this session</a>
+				<a href="{resolve('/prompts')}?session={encodeURIComponent(id)}"
+					>Every prompt in this session</a
+				>
 				<a href="{resolve('/sessions')}#session-{id}">See it among your sessions</a>
 			</p>
 		{/if}
@@ -67,7 +69,10 @@
 	{#if highlights.length}
 		<dl class="figures">
 			{#each highlights as [label, value, kind] (label)}
-				<div><dt>{label}</dt><dd>{kind === 'time' ? duration(value) : integer(value)}</dd></div>
+				<div>
+					<dt>{label}</dt>
+					<dd>{kind === 'time' ? duration(value) : integer(value)}</dd>
+				</div>
 			{/each}
 		</dl>
 	{/if}
@@ -77,7 +82,11 @@
 			<h3>{list.label} <span class="muted num">{list.items.length}</span></h3>
 			<ul class="paths">
 				{#each list.items as item, i (i)}
-					<li><list.icon size={14} aria-hidden="true" /><span class="mono" title={item}>{relativePath(item)}</span></li>
+					<li>
+						<list.icon size={14} aria-hidden="true" /><span class="mono" title={item}
+							>{relativePath(item)}</span
+						>
+					</li>
 				{/each}
 			</ul>
 		</section>
@@ -85,7 +94,8 @@
 
 	{#if events.length}
 		<Disclosure summary="Events received for this session">
-			{#snippet meta()}<span class="num">{integer(events.reduce((a, e) => a + e.value, 0))}</span>{/snippet}
+			{#snippet meta()}<span class="num">{integer(events.reduce((a, e) => a + e.value, 0))}</span
+				>{/snippet}
 			<BarList items={events} label="Session events by type" max={12} otherLabel="Other events" />
 		</Disclosure>
 	{/if}

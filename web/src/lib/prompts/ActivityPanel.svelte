@@ -20,7 +20,14 @@
 			.sort((a, b) => b[1] - a[1])
 			.map(([name, value]) => {
 				const info = KIND_INFO[toolKind(name)];
-				return { key: name, label: toolLabel(name), value, color: info.color, icon: info.icon, mono: name.startsWith('mcp__') };
+				return {
+					key: name,
+					label: toolLabel(name),
+					value,
+					color: info.color,
+					icon: info.icon,
+					mono: name.startsWith('mcp__')
+				};
 			})
 	);
 	const COMMANDS_SHOWN = 6;
@@ -29,9 +36,17 @@
 
 	const extras = $derived(
 		[
-			s.subagents && count(s.subagents) && ['Subagents', Object.entries(s.subagents).map(([k, v]) => `${k || 'general'} × ${v}`)],
+			s.subagents &&
+				count(s.subagents) && [
+					'Subagents',
+					Object.entries(s.subagents).map(([k, v]) => `${k || 'general'} × ${v}`)
+				],
 			s.tasks?.length && ['Tasks created', s.tasks],
-			s.notifications && count(s.notifications) && ['Notifications', Object.entries(s.notifications).map(([k, v]) => `${k} × ${v}`)],
+			s.notifications &&
+				count(s.notifications) && [
+					'Notifications',
+					Object.entries(s.notifications).map(([k, v]) => `${k} × ${v}`)
+				],
 			s.permission_denied?.length && ['Permission denied', s.permission_denied],
 			s.tool_rejections && ['Tool calls you rejected', [String(s.tool_rejections)]],
 			s.compactions && ['Context compactions', [String(s.compactions)]],
@@ -52,13 +67,20 @@
 				<SegmentedBar
 					variant="tall"
 					label="Tool calls by kind"
-					parts={kinds.map((k) => ({ key: k.kind, label: KIND_INFO[k.kind].label, value: k.count, color: KIND_INFO[k.kind].color }))}
+					parts={kinds.map((k) => ({
+						key: k.kind,
+						label: KIND_INFO[k.kind].label,
+						value: k.count,
+						color: KIND_INFO[k.kind].color
+					}))}
 					format={(v) => plural(v, 'call')}
 				/>
 				<BarList items={tools} label="Tool calls by tool" max={10} otherLabel="Other tools" />
 				{#if s.tool_failures || s.tool_time_s}
 					<p class="note">
-						{#if s.tool_failures}<span class="danger-text">{plural(s.tool_failures, 'call')} failed.</span>{/if}
+						{#if s.tool_failures}<span class="danger-text"
+								>{plural(s.tool_failures, 'call')} failed.</span
+							>{/if}
 						{#if s.tool_time_s}Tools ran for {s.tool_time_s}s in total.{/if}
 					</p>
 				{/if}
@@ -70,7 +92,11 @@
 				<h3>Files changed <span class="muted num">{s.files_written.length}</span></h3>
 				<ul class="files">
 					{#each s.files_written as file (file)}
-						<li><FilePen size={14} aria-hidden="true" /><span class="mono" title={file}>{relativePath(file, root)}</span></li>
+						<li>
+							<FilePen size={14} aria-hidden="true" /><span class="mono" title={file}
+								>{relativePath(file, root)}</span
+							>
+						</li>
 					{/each}
 				</ul>
 			</section>
@@ -81,7 +107,11 @@
 				{#snippet meta()}<span class="num">{s.files_read!.length}</span>{/snippet}
 				<ul class="files">
 					{#each s.files_read as file (file)}
-						<li><FileCode size={14} aria-hidden="true" /><span class="mono" title={file}>{relativePath(file, root)}</span></li>
+						<li>
+							<FileCode size={14} aria-hidden="true" /><span class="mono" title={file}
+								>{relativePath(file, root)}</span
+							>
+						</li>
 					{/each}
 				</ul>
 			</Disclosure>

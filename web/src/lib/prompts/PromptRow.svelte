@@ -49,7 +49,9 @@
 				<span class="project truncate">{project.name}</span>
 			{/if}
 			{#if prompt.context.git_branch}
-				<span class="branch truncate"><GitBranch size={12} aria-hidden="true" />{prompt.context.git_branch}</span>
+				<span class="branch truncate"
+					><GitBranch size={12} aria-hidden="true" />{prompt.context.git_branch}</span
+				>
 			{/if}
 			{#if prompt.summary.turn}<span class="turn">Turn {prompt.summary.turn}</span>{/if}
 			<span class="sr-only">{OUTCOMES[outcome].label}</span>
@@ -60,7 +62,9 @@
 					</span>
 				{/if}
 				{#if prompt.annotation.starred}
-					<span class="star" title="Starred"><Star size={13} aria-hidden="true" /><span class="sr-only">Starred</span></span>
+					<span class="star" title="Starred"
+						><Star size={13} aria-hidden="true" /><span class="sr-only">Starred</span></span
+					>
 				{/if}
 			</span>
 		</span>

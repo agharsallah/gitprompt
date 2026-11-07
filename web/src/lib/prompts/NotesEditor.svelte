@@ -67,8 +67,7 @@
 			rows="2"
 			value={value.note}
 			placeholder="What made this prompt work, or not?"
-			onchange={(e) => save({ note: e.currentTarget.value })}
-		></textarea>
+			onchange={(e) => save({ note: e.currentTarget.value })}></textarea>
 	</div>
 </div>
 

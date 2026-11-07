@@ -2,7 +2,15 @@
 	import { resolve } from '$app/paths';
 	import type { Prompt } from '#lib/api/types.ts';
 	import { cacheShare, tokensOf, tokenTotal } from '#lib/insights/aggregate.ts';
-	import { compact, duration, integer, modelName, money, percent, plural } from '#lib/shared/format.ts';
+	import {
+		compact,
+		duration,
+		integer,
+		modelName,
+		money,
+		percent,
+		plural
+	} from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Meter from '#lib/ui/charts/Meter.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
@@ -30,10 +38,22 @@
 {:else}
 	<div class="usage">
 		<dl class="figures">
-			<div><dt>Cost</dt><dd>{money(s.cost_usd)}</dd></div>
-			<div><dt>Model requests</dt><dd>{integer(s.api_requests)}</dd></div>
-			<div><dt>Time in the API</dt><dd>{duration(s.api_time_s)}</dd></div>
-			<div><dt>Tokens</dt><dd>{compact(tokenTotal(tokens))}</dd></div>
+			<div>
+				<dt>Cost</dt>
+				<dd>{money(s.cost_usd)}</dd>
+			</div>
+			<div>
+				<dt>Model requests</dt>
+				<dd>{integer(s.api_requests)}</dd>
+			</div>
+			<div>
+				<dt>Time in the API</dt>
+				<dd>{duration(s.api_time_s)}</dd>
+			</div>
+			<div>
+				<dt>Tokens</dt>
+				<dd>{compact(tokenTotal(tokens))}</dd>
+			</div>
 		</dl>
 
 		<section class="block">
@@ -75,13 +95,19 @@
 		{#if models.length}
 			<section class="block">
 				<h3>Models</h3>
-				<BarList items={models} label="Requests by model" format={(v) => plural(v, 'request')} color="var(--color-agent)" />
+				<BarList
+					items={models}
+					label="Requests by model"
+					format={(v) => plural(v, 'request')}
+					color="var(--color-agent)"
+				/>
 			</section>
 		{/if}
 
 		{#if s.api_errors || s.tool_rejections}
 			<Callout tone="warning">
-				{#if s.api_errors}{plural(s.api_errors, 'API error')}. {/if}
+				{#if s.api_errors}{plural(s.api_errors, 'API error')}.
+				{/if}
 				{#if s.tool_rejections}You rejected {plural(s.tool_rejections, 'tool call')}.{/if}
 			</Callout>
 		{/if}

@@ -46,7 +46,15 @@
 
 <div class="events">
 	<div class="tools">
-		<TextField label="Filter events" hideLabel type="search" size="sm" bind:value={filter} placeholder="Filter by event, tool or input" clearable />
+		<TextField
+			label="Filter events"
+			hideLabel
+			type="search"
+			size="sm"
+			bind:value={filter}
+			placeholder="Filter by event, tool or input"
+			clearable
+		/>
 		<span class="muted">{shown.length} of {events.length}</span>
 	</div>
 	<ol>
@@ -60,7 +68,11 @@
 						<span class="detail truncate">{detail(e)}</span>
 						<span class="origin">{isTelemetry(e) ? 'telemetry' : 'hook'}</span>
 					</summary>
-					<CodeBlock code={JSON.stringify(e.raw, null, 2)} label="{e.event} payload" maxHeight="20rem" />
+					<CodeBlock
+						code={JSON.stringify(e.raw, null, 2)}
+						label="{e.event} payload"
+						maxHeight="20rem"
+					/>
 				</details>
 			</li>
 		{/each}

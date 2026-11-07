@@ -91,13 +91,26 @@
 			/>
 		</div>
 		<div class="tag">
-			<TextField label="Tag" hideLabel name="tag" icon={Tag} value={filters.tag ?? ''} placeholder="Tag" />
+			<TextField
+				label="Tag"
+				hideLabel
+				name="tag"
+				icon={Tag}
+				value={filters.tag ?? ''}
+				placeholder="Tag"
+			/>
 		</div>
 		<Button type="submit" variant="secondary">Search</Button>
 	</div>
 
 	<div class="toggles">
-		<ToggleChip name="starred" value="true" checked={!!filters.starred} icon={Star} onchange={submit}>
+		<ToggleChip
+			name="starred"
+			value="true"
+			checked={!!filters.starred}
+			icon={Star}
+			onchange={submit}
+		>
 			Starred
 		</ToggleChip>
 		{#each Object.entries(QUICK) as [key, label] (key)}
@@ -130,6 +143,7 @@
 <style>
 	form {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-3);
 	}
 
@@ -137,6 +151,11 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(6rem, 8rem) auto;
 		gap: var(--space-2);
+	}
+
+	/* Grid items default to min-width: auto, which lets an input's intrinsic width overflow. */
+	.fields > div {
+		min-width: 0;
 	}
 
 	.toggles {

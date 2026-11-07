@@ -12,21 +12,23 @@
 	const s = $derived(prompt.summary);
 	const tools = $derived(count(s.tool_calls));
 	const files = $derived(s.files_written?.length ?? 0);
-	const mainModel = $derived(
-		Object.entries(s.models ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0]
-	);
+	const mainModel = $derived(Object.entries(s.models ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0]);
 </script>
 
 <span class="facts">
 	{#if s.response_s != null}
 		<span class="fact" title="Time until the tool finished">
-			<Timer size={13} aria-hidden="true" /><span class="sr-only">Worked for</span>{duration(s.response_s)}
+			<Timer size={13} aria-hidden="true" /><span class="sr-only">Worked for</span>{duration(
+				s.response_s
+			)}
 		</span>
 	{/if}
 	{#if tools}
 		<span class="fact" title="Tool calls{s.tool_failures ? `, ${s.tool_failures} failed` : ''}">
 			<Wrench size={13} aria-hidden="true" />{tools}<span class="sr-only"> tool calls</span>
-			{#if s.tool_failures}<span class="failures">{s.tool_failures}<span class="sr-only"> failed</span></span>{/if}
+			{#if s.tool_failures}<span class="failures"
+					>{s.tool_failures}<span class="sr-only"> failed</span></span
+				>{/if}
 		</span>
 	{/if}
 	{#if files}

@@ -41,7 +41,11 @@
 </script>
 
 {#if timeline.spans.length}
-	<figure class="timeline" bind:clientWidth={width} aria-label="Turn timeline over {duration(timeline.end)}. {summary}">
+	<figure
+		class="timeline"
+		bind:clientWidth={width}
+		aria-label="Turn timeline over {duration(timeline.end)}. {summary}"
+	>
 		{#each timeline.rows as row (row)}
 			{@const info = ROW_INFO(row)}
 			{@const spans = timeline.spans.filter((s) => s.row === row)}
@@ -79,7 +83,13 @@
 				{duration(active.span.end - active.span.start)}, at {duration(active.span.start)}
 			</Tooltip>
 		{/if}
-		<figcaption class="sr-only">{plural(timeline.spans.length, 'call')}. The Events tab lists each one.</figcaption>
+		<figcaption class={[!timeline.after && 'sr-only', 'caption']}>
+			<span class="sr-only"
+				>{plural(timeline.spans.length, 'call')}. The Events tab lists each one.</span
+			>
+			{#if timeline.after}{plural(timeline.after, 'more call')} after the turn ended, such as session
+				titles.{/if}
+		</figcaption>
 	</figure>
 {/if}
 
@@ -181,6 +191,11 @@
 		font-size: var(--text-2xs);
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.caption {
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
 	}
 
 	@media (max-width: 40rem) {

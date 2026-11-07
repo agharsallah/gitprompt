@@ -59,11 +59,21 @@
 		<section class="block">
 			<h3>When you sent it</h3>
 			<div class="where">
-				<span class="branch"><GitBranch size={16} aria-hidden="true" />{c.git_branch ?? 'detached HEAD'}</span>
+				<span class="branch"
+					><GitBranch size={16} aria-hidden="true" />{c.git_branch ?? 'detached HEAD'}</span
+				>
 				{#if c.git_upstream}
 					<span class="upstream" title="Compared with {c.git_upstream}">
-						<span class="ab"><ArrowUp size={13} aria-hidden="true" />{c.git_ahead ?? 0}<span class="sr-only"> ahead</span></span>
-						<span class="ab"><ArrowDown size={13} aria-hidden="true" />{c.git_behind ?? 0}<span class="sr-only"> behind</span></span>
+						<span class="ab"
+							><ArrowUp size={13} aria-hidden="true" />{c.git_ahead ?? 0}<span class="sr-only">
+								ahead</span
+							></span
+						>
+						<span class="ab"
+							><ArrowDown size={13} aria-hidden="true" />{c.git_behind ?? 0}<span class="sr-only">
+								behind</span
+							></span
+						>
 						<span class="mono muted">{c.git_upstream}</span>
 					</span>
 				{/if}

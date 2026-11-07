@@ -76,7 +76,8 @@
 	}
 
 	// Long texts fold, so the story around them stays in view.
-	const isLong = (text?: string | null) => !!text && (text.length > 1400 || text.split('\n').length > 18);
+	const isLong = (text?: string | null) =>
+		!!text && (text.length > 1400 || text.split('\n').length > 18);
 	let expanded = $state(false);
 	let promptExpanded = $state(false);
 	const longResponse = $derived(isLong(s.response));
@@ -84,7 +85,10 @@
 
 	const textFacts = $derived(
 		[
-			{ icon: TextCursorInput, text: `${plural(st.words ?? 0, 'word')}, about ${compact(st.approx_tokens ?? 0)} tokens` },
+			{
+				icon: TextCursorInput,
+				text: `${plural(st.words ?? 0, 'word')}, about ${compact(st.approx_tokens ?? 0)} tokens`
+			},
 			st.questions && { icon: CircleHelp, text: plural(st.questions, 'question') },
 			st.code_blocks && { icon: Braces, text: plural(st.code_blocks, 'code block') },
 			st.urls?.length && { icon: Link2, text: plural(st.urls.length, 'link') },
@@ -95,7 +99,11 @@
 	const figures = $derived(
 		[
 			s.response_s != null && { label: 'Worked for', value: duration(s.response_s) },
-			{ label: 'Tool calls', value: integer(count(s.tool_calls)), hint: s.tool_failures ? `${s.tool_failures} failed` : undefined },
+			{
+				label: 'Tool calls',
+				value: integer(count(s.tool_calls)),
+				hint: s.tool_failures ? `${s.tool_failures} failed` : undefined
+			},
 			{ label: 'Files changed', value: integer(s.files_written?.length ?? 0) },
 			s.api_requests && { label: 'Cost', value: money(s.cost_usd) },
 			s.api_requests && { label: 'Tokens', value: compact(tokens) }
@@ -119,16 +127,23 @@
 			Object.entries(prompt.raw).filter(([, v]) => !Object.values(prompt.fields).includes(v))
 		)
 	);
-	const captured = $derived(Object.fromEntries(Object.entries(prompt.fields).filter(([k]) => k !== 'prompt')));
+	const captured = $derived(
+		Object.fromEntries(Object.entries(prompt.fields).filter(([k]) => k !== 'prompt'))
+	);
 </script>
 
 <article class="detail" aria-labelledby="prompt-{prompt.id}-title">
 	<header class="top">
 		<div class="where">
 			<OutcomeBadge {outcome} />
-			<span class="time" title={when(prompt.received_at)}><RelativeTime iso={prompt.received_at} /></span>
+			<span class="time" title={when(prompt.received_at)}
+				><RelativeTime iso={prompt.received_at} /></span
+			>
 			{#if session && s.turn}
-				<a href="{resolve('/prompts')}?session={encodeURIComponent(session)}&id={prompt.id}" data-sveltekit-reset="false">
+				<a
+					href="{resolve('/prompts')}?session={encodeURIComponent(session)}&id={prompt.id}"
+					data-sveltekit-reset="false"
+				>
 					Turn {s.turn} of its session
 				</a>
 			{/if}
@@ -136,29 +151,55 @@
 		<div class="actions">
 			<AnnotationActions value={prompt.annotation} {save} busy={task.busy} />
 			<CopyButton text={prompt.prompt ?? ''} label="Copy prompt" ghost />
-			<Button variant="ghost" size="sm" icon={X} label="Close" href={closeHref} data-sveltekit-reset="false" />
+			<Button
+				variant="ghost"
+				size="sm"
+				icon={X}
+				label="Close"
+				href={closeHref}
+				data-sveltekit-reset="false"
+			/>
 		</div>
 	</header>
 
 	<div class="project-line">
 		{#if project.root}
-			<a class="project" href="{resolve('/prompts')}?repo={encodeURIComponent(project.root)}">{project.name}</a>
+			<a class="project" href="{resolve('/prompts')}?repo={encodeURIComponent(project.root)}"
+				>{project.name}</a
+			>
 		{:else}
 			<span class="project">{project.name}</span>
 		{/if}
 		{#if prompt.context.git_branch}
-			<span class="branch"><GitBranch size={13} aria-hidden="true" />{prompt.context.git_branch}</span>
+			<span class="branch"
+				><GitBranch size={13} aria-hidden="true" />{prompt.context.git_branch}</span
+			>
 		{/if}
-		{#if prompt.fields.permission_mode}<Badge size="sm" variant="outline">{prompt.fields.permission_mode} mode</Badge>{/if}
-		{#if s.slash_command ?? st.slash_command}<Badge size="sm" tone="accent">{s.slash_command ?? st.slash_command}</Badge>{/if}
-		{#if prompt.context.tool_version}<span class="muted version">v{prompt.context.tool_version}</span>{/if}
+		{#if prompt.fields.permission_mode}<Badge size="sm" variant="outline"
+				>{prompt.fields.permission_mode} mode</Badge
+			>{/if}
+		{#if s.slash_command ?? st.slash_command}<Badge size="sm" tone="accent"
+				>{s.slash_command ?? st.slash_command}</Badge
+			>{/if}
+		{#if prompt.context.tool_version}<span class="muted version"
+				>v{prompt.context.tool_version}</span
+			>{/if}
 	</div>
 
 	<section class="voice you" aria-labelledby="prompt-{prompt.id}-title">
-		<h2 id="prompt-{prompt.id}-title" class="who"><span class="avatar" aria-hidden="true"></span>You</h2>
-		<p class={['said', longPrompt && !promptExpanded && 'folded']}>{prompt.prompt ?? 'No prompt text was captured: the source mapping may be outdated.'}</p>
+		<h2 id="prompt-{prompt.id}-title" class="who">
+			<span class="avatar" aria-hidden="true"></span>You
+		</h2>
+		<p class={['said', longPrompt && !promptExpanded && 'folded']}>
+			{prompt.prompt ?? 'No prompt text was captured: the source mapping may be outdated.'}
+		</p>
 		{#if longPrompt}
-			<button class="more you-more" type="button" aria-expanded={promptExpanded} onclick={() => (promptExpanded = !promptExpanded)}>
+			<button
+				class="more you-more"
+				type="button"
+				aria-expanded={promptExpanded}
+				onclick={() => (promptExpanded = !promptExpanded)}
+			>
 				{promptExpanded ? 'Show less' : 'Show the whole prompt'}
 			</button>
 		{/if}
@@ -169,21 +210,27 @@
 
 	{#if secrets.length}
 		<Callout tone="warning" icon={ShieldAlert} title="Possible secret in this prompt">
-			Detected: {secrets.join(', ')}. The value is stored only on this machine; hiding it replaces it
-			everywhere it was stored for this prompt.
+			Detected: {secrets.join(', ')}. The value is stored only on this machine; hiding it replaces
+			it everywhere it was stored for this prompt.
 			{#snippet actions()}
-				<Button size="sm" variant="secondary" onclick={hideSecrets} loading={redaction.busy}>Hide the secret</Button>
+				<Button size="sm" variant="secondary" onclick={hideSecrets} loading={redaction.busy}
+					>Hide the secret</Button
+				>
 			{/snippet}
 		</Callout>
 	{/if}
-	{#if task.error || redaction.error}<Callout tone="danger" live>{task.error || redaction.error}</Callout>{/if}
+	{#if task.error || redaction.error}<Callout tone="danger" live
+			>{task.error || redaction.error}</Callout
+		>{/if}
 
 	<section class="turn" aria-label="How the turn went">
 		<dl class="figures">
 			{#each figures as f (f.label)}
 				<div>
 					<dt>{f.label}</dt>
-					<dd>{f.value}{#if f.hint}<span class="hint">{f.hint}</span>{/if}</dd>
+					<dd>
+						{f.value}{#if f.hint}<span class="hint">{f.hint}</span>{/if}
+					</dd>
 				</div>
 			{/each}
 		</dl>
@@ -192,10 +239,17 @@
 
 	{#if s.response}
 		<section class="voice agent" aria-labelledby="prompt-{prompt.id}-answer">
-			<h2 id="prompt-{prompt.id}-answer" class="who"><span class="avatar" aria-hidden="true"></span>{agent}</h2>
+			<h2 id="prompt-{prompt.id}-answer" class="who">
+				<span class="avatar" aria-hidden="true"></span>{agent}
+			</h2>
 			<div class={['said', 'response', longResponse && !expanded && 'folded']}>{s.response}</div>
 			{#if longResponse}
-				<button class="more" type="button" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
+				<button
+					class="more"
+					type="button"
+					aria-expanded={expanded}
+					onclick={() => (expanded = !expanded)}
+				>
 					{expanded ? 'Show less' : 'Show the whole answer'}
 				</button>
 			{/if}
@@ -235,7 +289,11 @@
 							<KeyValue data={extra} rawKeys />
 						</section>
 					{/if}
-					<CodeBlock code={JSON.stringify(prompt.raw, null, 2)} label="Raw payload" maxHeight="28rem" />
+					<CodeBlock
+						code={JSON.stringify(prompt.raw, null, 2)}
+						label="Raw payload"
+						maxHeight="28rem"
+					/>
 				</div>
 			{/if}
 		{/snippet}
@@ -245,6 +303,7 @@
 <style>
 	.detail {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-5);
 		min-width: 0;
 	}
