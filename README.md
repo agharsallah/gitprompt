@@ -11,20 +11,38 @@ just setup
 just serve          # opens on http://127.0.0.1:7878
 ```
 
-1. Open **Sources** → Claude Code → **Connect**. Review the exact change to `~/.claude/settings.json` and confirm (a backup goes to `~/.gitprompt/backups/`).
-2. Optionally connect **Claude Code telemetry** too, for model, tokens and cost (applies to sessions started afterwards).
+1. On the Overview, click **Connect**. The **Connectors** page opens with the exact change to `~/.claude/settings.json` in front of you; confirm it (a backup goes to `~/.gitprompt/backups/`).
+2. Optionally add Claude Code's **Telemetry** layer too, for model, tokens and cost (applies to sessions started afterwards).
 3. Type a prompt in any Claude Code session. It appears live under **Prompts**, on its session's rail. Select it to see the turn as a story: what you asked, a timeline of model and tool calls, the answer, then tabs for activity (tools, files, commands), usage (tokens, cache, models), the repository (state at send time, commits afterwards), the session and every event. Star, rate, tag and annotate prompts there. Prompts you didn't type (task notifications, agent messages, subagent and programmatic runs) are muted and labelled with their origin, and context the tool added (an IDE selection, a system reminder) folds into a note under what you typed.
 4. **Overview** shows where your prompts went (projects over time), when you prompt, spend and tokens, what the agent did, how you write, and what needs a look (secrets, failed turns). **Sessions** and **Projects** group the same prompts by conversation and by repository. Each takes a time range.
 5. **Fields** lists every captured field next to what the tool documents, to decide what to build on. **Design system** shows the tokens and components the dashboard is built from.
-6. **Disconnect** removes only what GitPrompt added. After an upgrade, a connected source may offer **Update connection** (with the diff first).
+6. **Disconnect** removes only what GitPrompt added. After an upgrade, a connected layer may offer **Update connection** (with the diff first).
 
 ## How it stays within the tools' terms
 
 GitPrompt uses only Claude Code's documented [hooks](https://code.claude.com/docs/en/hooks) and, if you connect it, its [OpenTelemetry export](https://code.claude.com/docs/en/monitoring-usage), in your user settings and pointed at this machine. It subscribes only to events that report what happened, never to decision points, and answers each hook with an empty response, so nothing is blocked or changed. It never reads credentials, intercepts traffic, reads Claude Code's private files, or sends anything off your machine. If your organization turns hooks off, GitPrompt shows that and doesn't install anything. Full rules: [PLAN.md §4](PLAN.md#4-terms-of-service-and-policy-guardrails).
 
-## Adding or fixing a source
+## Connectors
 
-Sources are YAML files in `src/gitprompt/sources/bundled/`. To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on the Sources page.
+The **Connectors** page (`/sources`) shows each tool as one card, with its connectors as steps: for Claude Code, **Hooks** (prompts, tools, turn ends) and the optional **Telemetry** layer (model, tokens, cost). Each layer is in exactly one state, shown with an icon and a label (never colour alone), one sentence and the one action it needs now:
+
+| State | Meaning | Action |
+|---|---|---|
+| Not installed | The tool isn't on this machine | Check again |
+| Ready to connect | Installed, not connected | Review and connect |
+| Check before connecting | A setting may stop GitPrompt's entries from running (listed) | Review and connect |
+| Blocked by policy | A setting GitPrompt won't override turns it off | Check again |
+| Update available | GitPrompt now captures more than what is installed | Update connection |
+| Payload drift | Prompts arrived without text: the tool's payload changed | Re-map stored events |
+| Waiting for the first event | Connected, nothing received yet | Check again |
+| Quiet | Connected, no event for a day | View prompts |
+| Receiving | Events are arriving | View prompts |
+
+A connected layer also shows its heartbeat (last event and events per hour over the last day), its prompts by origin, and **What this collects**: the events it stores, those it receives but drops, and those it never subscribes to, with the reason, straight from its spec. Settings › Connectors summarizes the same states. `/sources?connect=<id>` opens a connector's review directly (the Overview's first-run steps link there).
+
+### Adding or fixing a connector
+
+Connectors are YAML files in `src/gitprompt/sources/bundled/`. To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on its card. A spec that adds a layer to another tool names it with `part_of`, plus a short `layer` name and a one-line `summary` ([ADR-0015](docs/adr/0015-connector-layers-and-states.md)).
 
 ## Keeping the database small
 
