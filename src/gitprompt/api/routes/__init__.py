@@ -6,6 +6,6 @@ header (deps.require_dashboard), and the ingest router requires the hook token.
 
 from fastapi import APIRouter
 
-from gitprompt.api.routes import fields, ingest, prompts, sources
+from gitprompt.api.routes import fields, ingest, prompts, sources, stats
 
-ROUTERS: list[APIRouter] = [ingest.router, prompts.router, prompts.writes, sources.router, sources.writes, fields.router]
+ROUTERS: list[APIRouter] = [ingest.router, prompts.router, prompts.writes, sources.router, sources.writes, stats.router, fields.router]
