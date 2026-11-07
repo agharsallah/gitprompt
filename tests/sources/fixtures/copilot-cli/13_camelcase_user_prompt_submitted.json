@@ -1,0 +1,17 @@
+{
+  "about": "Negative case: the camelCase form (userPromptSubmitted) has no event name, so it is stored as an unnamed event, not a prompt: a drift signal if the hooks file ever uses camelCase names.",
+  "payload": {
+    "sessionId": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": 1794045600000,
+    "cwd": "/work/app",
+    "prompt": "Ship it"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "prompt": "Ship it"
+    },
+    "turn": "09_user_prompt_submit_subagent"
+  }
+}

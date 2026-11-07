@@ -193,5 +193,7 @@ def _set_enabled(spec: Spec, preferences: PreferenceFile, enabled: bool) -> Enab
 async def remap(spec: SpecDep, store: StoreDep, index: IndexDep) -> Remapped:
     """Rebuild mapped fields from stored raw payloads, e.g. after editing the spec, then the index."""
     updated = store.remap(spec.id, lambda raw: extract(raw, spec.map))
+    if spec.join == "session":  # the prompt ids given at ingest are not in raw: join again
+        store.rejoin(spec.id)
     index.rebuild()
     return Remapped(updated=updated)

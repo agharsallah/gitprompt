@@ -1,0 +1,18 @@
+{
+  "about": "IDE context before the typed text is split off.",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "0b1d2c3e-0000-4000-8000-000000000005",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "default",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<ide_selection>def f(): pass</ide_selection>\nExplain this"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {},
+    "origin": "typed",
+    "typed_text": "Explain this"
+  }
+}

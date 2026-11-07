@@ -1,0 +1,28 @@
+{
+  "about": "PostToolUse joins its prompt by prompt_id.",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Write",
+    "tool_input": {
+      "file_path": "/work/app/f.py"
+    },
+    "tool_response": {
+      "success": true
+    },
+    "tool_use_id": "t1"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PostToolUse",
+      "tool_name": "Write",
+      "prompt_id": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    "turn": "01_user_prompt_submit"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "about": "Stop with the final answer.",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "default",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false,
+    "last_assistant_message": "Done."
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "Stop"
+    },
+    "turn": "01_user_prompt_submit"
+  }
+}

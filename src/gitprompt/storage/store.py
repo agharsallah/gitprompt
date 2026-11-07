@@ -229,6 +229,51 @@ class Store:
         ).fetchone()
         return _row(row)
 
+    # --- joining events to prompts without a prompt id (spec `join: session`) ---
+
+    @staticmethod
+    def turn_name(source: str, id: int) -> str:
+        """The prompt id given to a prompt whose tool sends none: unique, and rebuildable from the row."""
+        return f"{source}#{id}"
+
+    def name_turn(self, id: int, source: str) -> str:
+        turn = self.turn_name(source, id)
+        self.db.execute("update prompt set fields = json_set(fields, '$.prompt_id', ?) where id = ?", (turn, id))
+        return turn
+
+    def latest_turn(self, source: str, session_id: str) -> str | None:
+        """The prompt id of the latest prompt of this source and session."""
+        row = self.db.execute(
+            f"select json_extract(fields, '$.prompt_id') from prompt where source = ? and {_session()} = ? order by id desc limit 1",
+            (source, session_id),
+        ).fetchone()
+        return row[0] if row else None
+
+    def rejoin(self, source: str) -> None:
+        """Redo the session join over everything stored for a source (after `remap`): name prompts
+        that have no prompt id, then attach each event without one to the latest prompt of its
+        session received at or before it."""
+        with self.transaction():
+            self.db.execute(
+                "update prompt set fields = json_set(fields, '$.prompt_id', source || '#' || id)"
+                " where source = ? and json_extract(fields, '$.prompt_id') is null",
+                (source,),
+            )
+            self.db.execute(
+                f"""update event set prompt_id = (
+                      select json_extract(p.fields, '$.prompt_id') from prompt p
+                      where p.source = event.source and {_session("p.")} = event.session_id
+                        and p.received_at <= event.received_at
+                      order by p.id desc limit 1)
+                    where source = ? and session_id is not null and prompt_id is null""",
+                (source,),
+            )
+            self.db.execute(
+                "update event set fields = json_set(fields, '$.prompt_id', prompt_id)"
+                " where source = ? and prompt_id is not null and json_extract(fields, '$.prompt_id') is null",
+                (source,),
+            )
+
     # --- reads ---
 
     def search(self, limit: int = 50, **filters: Any) -> list[dict]:
