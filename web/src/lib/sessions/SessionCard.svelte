@@ -35,7 +35,9 @@
 <article class="session" id="session-{s.id}" aria-labelledby="session-{s.id}-title">
 	<header>
 		<div class="heading">
-			<h2 id="session-{s.id}-title" class="title">{title}</h2>
+			<h2 id="session-{s.id}-title" class="title">
+				{#if real}<a href={resolve('/sessions/[id]', { id: s.id })}>{title}</a>{:else}{title}{/if}
+			</h2>
 			<p class="where">
 				<span class="project">{s.project.name}</span>
 				{#if s.branch}<span class="branch"
@@ -88,9 +90,8 @@
 
 	<Disclosure summary="Every turn">
 		{#snippet meta()}
-			{#if real}<a href="{resolve('/prompts')}?session={encodeURIComponent(s.id)}"
-					>Open in prompts</a
-				>{/if}
+			{#if real}<a href={resolve('/sessions/[id]', { id: s.id })}>Read the story</a>
+				<a href="{resolve('/prompts')}?session={encodeURIComponent(s.id)}">Open in prompts</a>{/if}
 		{/snippet}
 		<ol class="turns">
 			{#each s.prompts as p, i (p.id)}
@@ -148,6 +149,16 @@
 		letter-spacing: var(--tracking-normal);
 		line-height: var(--leading-snug);
 		overflow-wrap: anywhere;
+	}
+
+	.title a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.title a:hover {
+		color: var(--color-accent-text);
+		text-decoration: underline;
 	}
 
 	.where {

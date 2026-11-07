@@ -360,3 +360,175 @@ export type Telemetry = {
 	metrics: Record<string, number>;
 	commands: { command: string; source: string | null; uses: number; sessions: number }[];
 };
+
+// --- Stories and search (api/routes/stories.py, insights/stories.py, ADR-0016) ---------------
+
+/** A commit made after a prompt, with its diffstat (core/git.history). */
+export type StoryCommit = Commit & { files: number; insertions: number; deletions: number };
+
+export type Diffstat = { commits: number; files: number; insertions: number; deletions: number };
+
+/** A project: `id` is the base64url of its git root (or folder), see lib/stories/story.ts. */
+export type StoryProject = { id: string; repo: string; name: string; git: boolean };
+
+/** A prompt you typed, as a chapter of its session's story. */
+export type Chapter = {
+	kind: 'chapter';
+	id: number;
+	turn: number;
+	received_at: string;
+	origin: Origin;
+	text: string;
+	clipped: boolean;
+	slash_command: string | null;
+	branch: string | null;
+	outcome: TurnOutcome;
+	response_s: number | null;
+	cost_usd: number;
+	tokens: number;
+	tool_calls: number;
+	tool_failures: number;
+	/** Tool calls by kind. */
+	tools: Record<string, number>;
+	files_written: number;
+	files: string[];
+	subagents: number;
+	git_commits: number;
+	commits: StoryCommit[];
+	diffstat: Diffstat | null;
+	/** An earlier chapter this one rewords or repeats. */
+	retry_of: number | null;
+};
+
+/** Something in a session you did not type: a system prompt, a subagent's brief, a compaction. */
+export type MarkerKind =
+	Exclude<Origin, 'typed' | 'slash_command'> | 'subagent_prompt' | 'compaction';
+
+export type Marker = {
+	kind: MarkerKind;
+	/** The prompt to open: the system prompt itself, or the turn it happened in. */
+	id: number;
+	received_at: string;
+	label: string | null;
+	detail: string | null;
+	excerpt: string | null;
+	clipped: boolean;
+};
+
+export type MarkerGroup = { kind: 'markers'; items: Marker[] };
+
+export type SessionStory = {
+	session: string;
+	title: string | null;
+	source: string | null;
+	project: StoryProject | null;
+	branches: string[];
+	started_at: string | null;
+	ended_at: string | null;
+	totals: {
+		chapters: number;
+		markers: number;
+		cost_usd: number;
+		tool_calls: number;
+		files_written: number;
+		outcomes: Partial<Record<TurnOutcome, number>>;
+		retries: number;
+		diffstat: Diffstat | null;
+	};
+	items: (Chapter | MarkerGroup)[];
+};
+
+/** A prompt in a project story. */
+export type StoryEntry = {
+	id: number;
+	received_at: string;
+	session: string | null;
+	origin: Origin;
+	branch: string | null;
+	text: string;
+	clipped: boolean;
+	chars: number;
+	outcome: TurnOutcome;
+	response_s: number | null;
+	cost_usd: number;
+	tool_calls: number;
+	tool_failures: number;
+	tools: Record<string, number>;
+	files_written: number;
+	git_commits: number;
+	commits: StoryCommit[];
+	retry_of: number | null;
+};
+
+export type StoryMeasures = {
+	prompts: number;
+	sessions: number;
+	cost_usd: number;
+	tool_calls: number;
+	files_written: number;
+	outcomes: Partial<Record<TurnOutcome, number>>;
+	diffstat: Diffstat | null;
+	retries: number;
+	median_chars: number;
+	with_mention: number;
+	with_code: number;
+	first_at: string | null;
+	last_at: string | null;
+};
+
+export type Phase = StoryMeasures & {
+	index: number;
+	/** Why the phase began: the first prompt, a pause, or a lasting branch change. */
+	reason: 'start' | 'gap' | 'branch';
+	gap_s: number | null;
+	branches: string[];
+	items: StoryEntry[];
+};
+
+export type ProjectStory = StoryProject & {
+	/** Prompts of other origins in the project: counted, never shown as typed. */
+	system: number;
+	totals: StoryMeasures;
+	phases: Phase[];
+};
+
+export type DiffOp = ['equal' | 'delete' | 'insert', string];
+
+export type Version = {
+	id: number;
+	received_at: string;
+	session: string | null;
+	project: StoryProject | null;
+	origin: Origin;
+	text: string;
+	clipped: boolean;
+	similarity: number;
+	same_text: boolean;
+	place: 'self' | 'session' | 'project' | 'elsewhere';
+	outcome: TurnOutcome;
+	response_s: number | null;
+	cost_usd: number;
+	tool_failures: number;
+	/** How the wording changed from the version before. */
+	diff: DiffOp[] | null;
+	change: 'improved' | 'worse' | 'same' | null;
+};
+
+export type Lineage = { id: number; threshold: number; versions: Version[] };
+
+export type Segment = { text: string; hit: boolean };
+
+export type SearchHit = {
+	id: number;
+	received_at: string;
+	session: string | null;
+	title: string | null;
+	project: StoryProject | null;
+	branch: string | null;
+	origin: Origin;
+	outcome: TurnOutcome;
+	cost_usd: number;
+	snippet: Segment[];
+};
+
+export type SearchResults = { total: number; hits: SearchHit[] };

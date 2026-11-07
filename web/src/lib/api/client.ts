@@ -4,8 +4,12 @@ import type {
 	Catalog,
 	Change,
 	ConfigAction,
+	Lineage,
+	ProjectStory,
 	Prompt,
 	PromptDetail,
+	SearchResults,
+	SessionStory,
 	Source,
 	Stats,
 	Telemetry,
@@ -53,6 +57,18 @@ export const api = {
 	/** Telemetry reported per session (lines of code, commits, slash commands) for the sessions kept. */
 	telemetry: (query: StatsQuery = {}, fetcher?: Fetch) =>
 		get<Telemetry>(`/api/stats/telemetry?${queryParams(query)}`, fetcher),
+
+	/** A session as chapters (what you typed) with system markers between them. */
+	sessionStory: (id: string, fetcher?: Fetch) =>
+		get<SessionStory>(`/api/stories/session/${encodeURIComponent(id)}`, fetcher),
+	/** A project's typed prompts in phases, with commits, cost and outcomes. */
+	projectStory: (id: string, fetcher?: Fetch) =>
+		get<ProjectStory>(`/api/stories/project/${encodeURIComponent(id)}`, fetcher),
+	/** The versions of a prompt you typed. */
+	lineage: (id: number, fetcher?: Fetch) => get<Lineage>(`/api/stories/prompt/${id}`, fetcher),
+	/** Full-text search over typed text, with snippets; takes the prompt filters. */
+	search: (query: StatsQuery, fetcher?: Fetch) =>
+		get<SearchResults>(`/api/search?${queryParams(query)}`, fetcher),
 
 	sources: (fetcher?: Fetch) => get<Source[]>('/api/sources', fetcher),
 	/** Connect or disconnect; with `dryRun`, only returns the diff that would be written. */
