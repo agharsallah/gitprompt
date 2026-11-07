@@ -1,0 +1,27 @@
+{
+  "about": "UserPromptSubmit: turn_id is the prompt id; model and transcript path ride along (field names as in the 0.150.1 input schema). Synthetic values (https://learn.chatgpt.com/docs/hooks).",
+  "payload": {
+    "session_id": "0190a1b2-0000-7000-8000-000000000001",
+    "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+    "cwd": "/work/app",
+    "hook_event_name": "UserPromptSubmit",
+    "model": "gpt-5-codex",
+    "turn_id": "0190a1b2-0000-7000-8000-0000000000a1",
+    "permission_mode": "default",
+    "prompt": "Add a retry to the upload client"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {
+      "event": "UserPromptSubmit",
+      "session_id": "0190a1b2-0000-7000-8000-000000000001",
+      "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",
+      "cwd": "/work/app",
+      "model": "gpt-5-codex",
+      "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "permission_mode": "default"
+    },
+    "origin": "typed",
+    "typed_text": "Add a retry to the upload client"
+  }
+}

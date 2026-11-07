@@ -7,6 +7,7 @@ from gitprompt.insights.redaction import find_secrets, redact
 from gitprompt.sources.spec import load_specs, tool_kind
 
 COPILOT_FIXTURES = Path(__file__).parents[1] / "sources" / "fixtures" / "copilot-cli"
+CODEX_FIXTURES = COPILOT_FIXTURES.parent / "codex"
 
 
 def test_prompt_stats():
@@ -85,6 +86,17 @@ def test_copilot_tool_calls_get_their_kinds_files_and_commands(settings):
     assert summary["tool_kind_of"] == {"bash": "shell", "edit": "write", "view": "read"}
     assert summary["files_written"] == ["client.py"] and summary["files_read"] == ["README.md"]
     assert summary["bash_commands"] == ["ls src", "git commit -m x"] and summary["git_commits"] == 1
+
+
+def test_codex_turns_get_files_from_patches_and_the_answer(settings):
+    """apply_patch names its files inside the patch: the spec's `tool_files` pattern finds them."""
+    payloads = [json.loads(p.read_text())["payload"] for p in sorted(CODEX_FIXTURES.glob("*.json"))]
+    events = [{"event": p["hook_event_name"], "received_at": "2026-11-07T10:00:09+00:00", "raw": p} for p in payloads if p.get("turn_id")]
+    codex = load_specs(settings)["codex"]
+    summary = derivations.turn({"received_at": "2026-11-07T10:00:00+00:00"}, events, codex.tool_kinds, codex.tool_files)
+    assert summary["tool_kind_of"] == {"Bash": "shell", "apply_patch": "write"}
+    assert summary["files_written"] == ["/work/app/upload.py"] and summary["bash_commands"] == ["pytest -q tests/test_upload.py"]
+    assert summary["response"].startswith("Added a retry") and summary["ended_by"] == "Stop"
 
 
 def test_files_of_prefers_a_path_input_and_ignores_unknown_tools():

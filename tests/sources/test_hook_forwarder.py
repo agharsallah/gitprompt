@@ -1,6 +1,7 @@
-"""The Claude Code hook entry is a shell command. Claude Code shows "hook error" whenever a hook
-fails, so the command must exit 0 and print nothing whether GitPrompt is up, down or broken.
-These tests run the exact rendered command, the way Claude Code would, against a real socket."""
+"""The Claude Code and Codex hook entries are shell commands. Both tools report a failing hook
+(Claude Code shows "hook error"; Codex adds a hook's stdout to the conversation on some events), so
+the command must exit 0 and print nothing whether GitPrompt is up, down or broken. These tests run
+the exact rendered command, the way the tools would, against a real socket."""
 
 import json
 import shutil
@@ -18,8 +19,11 @@ from gitprompt.sources.spec import load_specs
 pytestmark = pytest.mark.skipif(shutil.which("curl") is None, reason="the forwarder uses curl")
 
 
-def hook_command(settings) -> str:
-    handlers = [h for group in Connection(load_specs(settings)["claude-code"], settings).patch()["hooks"]["Stop"] for h in group["hooks"]]
+TOOLS = ["claude-code", "codex"]  # same hook shape: event -> groups -> handlers with a `command`
+
+
+def hook_command(settings, tool: str = "claude-code") -> str:
+    handlers = [h for group in Connection(load_specs(settings)[tool], settings).patch()["hooks"]["Stop"] for h in group["hooks"]]
     assert [h["type"] for h in handlers] == ["command"]
     return handlers[0]["command"]
 
@@ -58,23 +62,26 @@ def receiver():
     server.shutdown()
 
 
-def test_entry_is_async_and_carries_our_url(settings):
-    group = Connection(load_specs(settings)["claude-code"], settings).patch()["hooks"]["PostToolUse"][0]
+@pytest.mark.parametrize("tool", TOOLS)
+def test_entry_is_async_and_carries_our_url(settings, tool):
+    group = Connection(load_specs(settings)[tool], settings).patch()["hooks"]["PostToolUse"][0]
     assert group["hooks"][0]["async"] is True
-    assert load_specs(settings)["claude-code"].marker.search(group["hooks"][0]["command"])  # disconnect can find it
+    assert load_specs(settings)[tool].marker.search(group["hooks"][0]["command"])  # disconnect can find it
 
 
-def test_delivers_the_event_with_the_token(settings, receiver):
+@pytest.mark.parametrize("tool", TOOLS)
+def test_delivers_the_event_with_the_token(settings, receiver, tool):
     port, seen, _ = receiver
-    result = run(hook_command(replace(settings, port=port)), {"hook_event_name": "Stop", "session_id": "s1"})
+    result = run(hook_command(replace(settings, port=port), tool), {"hook_event_name": "Stop", "session_id": "s1"})
     assert (result.returncode, result.stdout, result.stderr) == (0, "", "")
     path, headers, body = seen[0]
-    assert path == "/ingest/claude-code" and headers["Authorization"] == f"Bearer {settings.token()}"
+    assert path == f"/ingest/{tool}" and headers["Authorization"] == f"Bearer {settings.token()}"
     assert body == {"hook_event_name": "Stop", "session_id": "s1"}
 
 
-def test_silent_when_gitprompt_is_down(settings):
-    result = run(hook_command(replace(settings, port=free_port())), {"hook_event_name": "Stop"})
+@pytest.mark.parametrize("tool", TOOLS)
+def test_silent_when_gitprompt_is_down(settings, tool):
+    result = run(hook_command(replace(settings, port=free_port()), tool), {"hook_event_name": "Stop"})
     assert (result.returncode, result.stdout, result.stderr) == (0, "", "")
 
 

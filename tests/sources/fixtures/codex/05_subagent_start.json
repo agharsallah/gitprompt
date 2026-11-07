@@ -1,0 +1,23 @@
+{
+  "about": "SubagentStart: agent_id and agent_type, in the turn that spawned it. Synthetic values (https://learn.chatgpt.com/docs/hooks).",
+  "payload": {
+    "session_id": "0190a1b2-0000-7000-8000-000000000001",
+    "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+    "cwd": "/work/app",
+    "hook_event_name": "SubagentStart",
+    "model": "gpt-5-codex",
+    "turn_id": "0190a1b2-0000-7000-8000-0000000000a1",
+    "permission_mode": "default",
+    "agent_id": "agent_0001",
+    "agent_type": "default"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "SubagentStart",
+      "agent_id": "agent_0001",
+      "agent_type": "default"
+    },
+    "turn": "02_user_prompt_submit"
+  }
+}
