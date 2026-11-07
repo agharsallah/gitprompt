@@ -1,0 +1,36 @@
+import { api } from '#lib/api/client.ts';
+import { readFilters, toQuery, without } from '#lib/insights/filters.ts';
+import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
+import { preferences } from '#lib/settings/preferences.ts';
+import type { PageLoad } from './$types';
+
+/** Results shown at first, and added by "Show more". */
+const PAGE = 50;
+
+// URL: ?q= (every word, in the typed text), ?repo= (a project), ?tag=, ?range=, ?origin= (repeated;
+// without it, the origins remembered in this browser), ?limit=.
+export const load: PageLoad = async ({ fetch, url }) => {
+	const { default_range } = await preferences(fetch);
+	const params = url.searchParams;
+	const filters = readFilters(params, default_range, originFilter.origins);
+	const q = params.get('q')?.trim() ?? '';
+	const tag = params.get('tag')?.trim() || undefined;
+	const limit = Math.min(200, Math.max(PAGE, Number(params.get('limit')) || PAGE));
+	const base = { ...toQuery(filters, Date.now()), tag };
+	const [results, byOrigin, projects] = await Promise.all([
+		q ? api.search({ ...base, q, limit }, fetch) : Promise.resolve(null),
+		api.stats({ ...without(base, 'origin'), q, group_by: 'origin' }, fetch),
+		api.stats({ ...without(base, 'repo'), group_by: 'repo', limit: 200 }, fetch)
+	]);
+	return {
+		q,
+		tag,
+		limit,
+		page: PAGE,
+		filters,
+		defaultRange: default_range,
+		results,
+		originCounts: Object.fromEntries(byOrigin.groups.map((g) => [g.key, g.prompts])),
+		projects: projects.groups.filter((g) => g.key)
+	};
+};

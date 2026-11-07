@@ -5,6 +5,7 @@
 		MessagesSquare,
 		Palette,
 		Plug,
+		Search,
 		Settings,
 		ShieldCheck,
 		TableProperties,
@@ -23,7 +24,8 @@
 				{ route: '/', label: 'Overview', icon: Activity },
 				{ route: '/prompts', label: 'Prompts', icon: TextQuote },
 				{ route: '/sessions', label: 'Sessions', icon: MessagesSquare },
-				{ route: '/projects', label: 'Projects', icon: FolderGit2 }
+				{ route: '/projects', label: 'Projects', icon: FolderGit2 },
+				{ route: '/search', label: 'Search', icon: Search }
 			]
 		},
 		{
@@ -53,7 +55,10 @@
 						<li>
 							<a
 								href={resolve(link.route)}
-								aria-current={page.route.id === link.route ? 'page' : undefined}
+								aria-current={page.route.id === link.route ||
+								(link.route !== '/' && page.route.id?.startsWith(`${link.route}/`))
+									? 'page'
+									: undefined}
 							>
 								<link.icon size={16} aria-hidden="true" />
 								<span>{link.label}</span>
