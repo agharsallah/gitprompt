@@ -14,6 +14,8 @@ prompts; everything else is a marker, labelled by its origin.
 
 import base64
 import binascii
+import json
+import re
 import statistics
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -21,6 +23,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from gitprompt.insights import lineage
+from gitprompt.insights.derivations import files_of
 from gitprompt.sources.spec import tool_kind
 
 USER_ORIGINS = ("typed", "slash_command")
@@ -225,8 +228,10 @@ def _turn_markers(p: dict[str, Any], events: list[dict[str, Any]], kinds: Mappin
     return out
 
 
-def _files(events: list[dict[str, Any]], kinds: Mapping[str, str]) -> list[str]:
-    return sorted({e["file"] for e in events if tool_kind(kinds, e["tool"]) == "write" and e.get("file")})
+def _files(events: list[dict[str, Any]], kinds: Mapping[str, str], tool_files: Mapping[str, re.Pattern[str]]) -> list[str]:
+    """Files the turn's write tools touched (storage.timeline gives each call's input as JSON text)."""
+    writes = [e for e in events if tool_kind(kinds, e["tool"]) == "write" and e.get("tool_input")]
+    return sorted({f for e in writes for f in files_of(e["tool"], json.loads(e["tool_input"]), tool_files)})
 
 
 def session_story(
@@ -236,6 +241,7 @@ def session_story(
     events: Iterable[dict[str, Any]],
     commits: Iterable[dict[str, Any]],
     kinds: Mapping[str, str],
+    tool_files: Mapping[str, re.Pattern[str]] | None = None,
 ) -> dict[str, Any]:
     """One session as a narrative: each prompt you typed is a chapter (outcome, tools, files, commits,
     cost, time); task notifications, agent messages, subagent prompts and compactions are markers
@@ -250,7 +256,7 @@ def session_story(
     for turn, p in enumerate(rows, start=1):
         turn_events = by_turn.get(p.get("prompt_id"), [])
         if is_user(p):
-            files = _files(turn_events, kinds)
+            files = _files(turn_events, kinds, tool_files or {})
             items.append(_chapter(p, turn, tool_kinds.get(p["id"], {}), files, owned.get(p["id"], []), retry.get(p["id"])))
         else:
             items.append(_marker(p["origin"], p, p["received_at"], text=p.get("typed_text")))

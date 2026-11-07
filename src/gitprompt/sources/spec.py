@@ -139,6 +139,9 @@ class Spec(BaseModel):
     capabilities: list[Capability] = []  # what this connector yields (see Capability)
     join: Join = "prompt_id"  # how events find their prompt (see Join)
     tool_kinds: dict[str, ToolKind] = {}  # tool name (a trailing * matches a prefix) -> kind (see ToolKind)
+    # Tool name (as above) -> pattern over the tool's text inputs whose first group is a file the call
+    # touched, for tools that name files inside a text (a patch) instead of a path input.
+    tool_files: dict[str, re.Pattern[str]] = {}
 
     @property
     def marker(self) -> re.Pattern[str]:
@@ -151,11 +154,16 @@ class Spec(BaseModel):
         return not any(matches(pattern, event) for pattern in self.drop_events)
 
 
+def by_name[T](table: dict[str, T], name: str | None) -> T | None:
+    """A tool's entry in a table keyed by tool name: its exact name, else the first matching `prefix*`."""
+    if name in table:
+        return table[name]
+    return next((value for pattern, value in table.items() if matches(pattern, name)), None)
+
+
 def tool_kind(kinds: dict[str, ToolKind], name: str | None) -> ToolKind:
-    """The kind of a tool: its exact name in `kinds`, else the first matching `prefix*` pattern."""
-    if name in kinds:
-        return kinds[name]
-    return next((kind for pattern, kind in kinds.items() if matches(pattern, name)), "other")
+    """The kind of a tool (`tool_kinds`); a tool the spec does not map is "other"."""
+    return by_name(kinds, name) or "other"
 
 
 def _parse(name: str, text: str) -> dict[str, Any]:

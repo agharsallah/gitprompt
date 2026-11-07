@@ -25,7 +25,7 @@ from typing import Any
 from gitprompt.core.payload import compact
 from gitprompt.insights import origin
 from gitprompt.insights.redaction import find_secrets
-from gitprompt.sources.spec import Spec, ToolKind, tool_kind
+from gitprompt.sources.spec import Spec, ToolKind, by_name, tool_kind
 
 
 class Derivations[Context]:
@@ -125,11 +125,24 @@ def _file(tool_input: dict[str, Any]) -> Any:
     return next((tool_input[k] for k in FILE_INPUTS if tool_input.get(k)), None)
 
 
+def files_of(name: str | None, tool_input: Any, tool_files: dict[str, re.Pattern[str]]) -> list[str]:
+    """Files one tool call touched: its path input, else what the spec's `tool_files` pattern for the
+    tool finds in its text inputs (the files a patch adds, updates or deletes)."""
+    if not isinstance(tool_input, dict):
+        return []
+    if path := _file(tool_input):
+        return [path]
+    if not (pattern := by_name(tool_files, name)):
+        return []
+    return [m[1].strip() for v in tool_input.values() if isinstance(v, str) for m in pattern.finditer(v)]
+
+
 @dataclass(frozen=True)
 class Turn:
     prompt: dict[str, Any]  # a prompt_view row: received_at, turn, prev_at...
     events: list[dict[str, Any]]  # event rows, in arrival order
     tool_kinds: dict[str, ToolKind] = field(default_factory=dict)  # the source spec's `tool_kinds`
+    tool_files: dict[str, re.Pattern[str]] = field(default_factory=dict)  # ...and its `tool_files`
 
     def raws(self, *names: str) -> list[dict[str, Any]]:
         """Raw payloads of the events with one of these names."""
@@ -152,6 +165,10 @@ class Turn:
         """Inputs of the finished calls of tools of this kind."""
         return [i for name, i in self.tool_uses if self.kind(name) == kind]
 
+    def files(self, kind: ToolKind) -> list[str]:
+        """Files touched by the finished calls of tools of this kind."""
+        return sorted({f for name, i in self.tool_uses if self.kind(name) == kind for f in files_of(name, i, self.tool_files)})
+
 
 TURN: Derivations[Turn] = Derivations("summary")
 
@@ -170,7 +187,7 @@ def _position(t: Turn) -> dict[str, Any]:
 @TURN(
     {
         "response_s / ended_by / error": "time until Stop or StopFailure, and why it ended",
-        "response": "Claude's final answer (Stop.last_assistant_message)",
+        "response": "the agent's final answer (Stop.last_assistant_message)",
     }
 )
 def _ending(t: Turn) -> dict[str, Any]:
@@ -187,7 +204,7 @@ def _ending(t: Turn) -> dict[str, Any]:
 @TURN(
     {
         "tool_calls / tool_failures / tool_time_s": "tools used for the prompt (PostToolUse*)",
-        "files_written / files_read": "file paths touched by write and read tools",
+        "files_written / files_read": "file paths touched by write and read tools (a path input, or the spec's tool_files pattern)",
         "bash_commands / web": "shell commands run, URLs fetched and searches made",
         "mcp_tools": "MCP tools used",
         "tool_kinds / tool_kind_of": "calls per kind (spec tool_kinds: read, write, shell, web, mcp, agent, other), and each tool's kind",
@@ -201,8 +218,8 @@ def _tools(t: Turn) -> dict[str, Any]:
         "tool_calls": dict(Counter(name for name, _ in t.tool_uses)),
         "tool_failures": len(t.raws("PostToolUseFailure")),
         "tool_time_s": round(sum(_num(r.get("duration_ms")) for r in t.raws(*TOOL_RESULTS)) / 1000, 1),
-        "files_written": sorted({_file(i) for i in t.inputs("write")} - {None}),
-        "files_read": sorted({_file(i) for i in t.inputs("read")} - {None}),
+        "files_written": t.files("write"),
+        "files_read": t.files("read"),
         "bash_commands": commands,
         "web": [i.get("url") or i.get("query") for i in t.inputs("web")],
         "mcp_tools": sorted({name for name, _ in t.tool_uses if name and t.kind(name) == "mcp"}),
@@ -284,9 +301,14 @@ def _usage_of(api: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def turn(prompt: dict[str, Any], events: list[dict[str, Any]], tool_kinds: dict[str, ToolKind] | None = None) -> dict[str, Any]:
+def turn(
+    prompt: dict[str, Any],
+    events: list[dict[str, Any]],
+    tool_kinds: dict[str, ToolKind] | None = None,
+    tool_files: dict[str, re.Pattern[str]] | None = None,
+) -> dict[str, Any]:
     """What happened while the tool worked on one prompt. Without `tool_kinds` every tool is "other"."""
-    return TURN.derive(Turn(prompt, events, tool_kinds or {}))
+    return TURN.derive(Turn(prompt, events, tool_kinds or {}, tool_files or {}))
 
 
 # --- the whole session: every event that shares the prompt's session_id ----------------------
@@ -370,7 +392,7 @@ def derive(row: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None)
     return (
         row
         | origin.classify(row, events, spec)
-        | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec and spec.tool_kinds)}
+        | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec and spec.tool_kinds, spec and spec.tool_files)}
     )
 
 

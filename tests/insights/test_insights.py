@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from gitprompt.insights import derivations
@@ -84,3 +85,12 @@ def test_copilot_tool_calls_get_their_kinds_files_and_commands(settings):
     assert summary["tool_kind_of"] == {"bash": "shell", "edit": "write", "view": "read"}
     assert summary["files_written"] == ["client.py"] and summary["files_read"] == ["README.md"]
     assert summary["bash_commands"] == ["ls src", "git commit -m x"] and summary["git_commits"] == 1
+
+
+def test_files_of_prefers_a_path_input_and_ignores_unknown_tools():
+    pattern = {"apply_patch": re.compile(r"(?m)^\*\*\* (?:Add|Update|Delete) File: (.+)$")}
+    patch = "*** Begin Patch\n*** Add File: a.txt\n+x\n*** Delete File: b.txt\n*** End Patch"
+    assert derivations.files_of("apply_patch", {"command": patch}, pattern) == ["a.txt", "b.txt"]
+    assert derivations.files_of("apply_patch", {"path": "c.txt", "command": patch}, pattern) == ["c.txt"]
+    assert derivations.files_of("Bash", {"command": patch}, pattern) == []
+    assert derivations.files_of("apply_patch", "not an object", pattern) == []

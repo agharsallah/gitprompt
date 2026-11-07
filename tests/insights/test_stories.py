@@ -94,10 +94,12 @@ def test_session_story_never_shows_system_text_as_typed():
         row(3, 4, "fix the flaky tests please", outcome="failed", ended_by="StopFailure"),
     ]
     events = [
-        {"prompt_id": "p1", "event": "PostToolUse", "received_at": at(1), "tool": "Edit", "file": "/r/app/a.py", "prompt": None},
-        {"prompt_id": "p1", "event": "PostToolUse", "received_at": at(2), "tool": "Agent", "file": None,
+        {"prompt_id": "p1", "event": "PostToolUse", "received_at": at(1), "tool": "Edit",
+         "tool_input": '{"file_path": "/r/app/a.py"}', "prompt": None},
+        {"prompt_id": "p1", "event": "PostToolUse", "received_at": at(2), "tool": "Agent",
+         "tool_input": '{"prompt": "Find the test helpers"}',
          "description": "Look around", "subagent_type": "Explore", "prompt": "Find the test helpers"},
-        {"prompt_id": "p3", "event": "PreCompact", "received_at": at(5), "tool": None, "file": None, "prompt": None},
+        {"prompt_id": "p3", "event": "PreCompact", "received_at": at(5), "tool": None, "tool_input": None, "prompt": None},
     ]  # fmt: skip
     commits = [{"hash": "abc", "subject": "Fix test", "author": "t", "time": at(2), "files": 1, "insertions": 3, "deletions": 1}]
     story = stories.session_story("s1", rows, {1: {"write": 1, "agent": 1}}, events, commits, {"Edit": "write", "Agent": "agent"})

@@ -51,10 +51,11 @@ def tool_kinds(db: sqlite3.Connection, ids: list[int]) -> dict[int, dict[str, in
     return out
 
 
-# One row per tool call or compaction of a turn, with only the fields a story shows: the file a
-# write tool touched, and what a subagent was asked (the Agent tool's documented input).
+# One row per tool call or compaction of a turn, with only the fields a story shows: the tool's input
+# (JSON text: the files a write tool touched, insights.derivations.files_of), and what a subagent was
+# asked (the Agent tool's documented input).
 _TURN_EVENTS = """select prompt_id, event, received_at, json_extract(raw, '$.tool_name') tool,
-  coalesce(json_extract(raw, '$.tool_input.file_path'), json_extract(raw, '$.tool_input.notebook_path')) file,
+  case json_type(raw, '$.tool_input') when 'object' then json_extract(raw, '$.tool_input') end tool_input,
   json_extract(raw, '$.tool_input.description') description, json_extract(raw, '$.tool_input.subagent_type') subagent_type,
   substr(json_extract(raw, '$.tool_input.prompt'), 1, ?) prompt
 from event where event in ('PostToolUse', 'PreCompact') and prompt_id in ({marks}) order by id"""
