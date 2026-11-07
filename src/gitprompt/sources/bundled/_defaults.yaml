@@ -14,3 +14,18 @@ map:
   agent_type: [agent_type, agentType]
   tool_name: [tool_name, toolName]
   tool_use_id: [tool_use_id, toolUseId]
+
+# Who produced a prompt (insights/origin.py, ADR-0010). Rules are tried in order and the first match
+# wins: a spec's own `origin` rules first, then these. No match = `typed`. Text conditions look at the
+# typed text, i.e. with the `injected` blocks below removed.
+origin:
+  - when: {field: agent_id}
+    origin: subagent
+  - when: {field: agent_type}
+    origin: subagent
+  - when: {text_regex: '/[\w:.-]+(\s|$)'}
+    origin: slash_command
+
+# Context blocks a tool adds before or after what the user typed: <tag ...>...</tag>. Only leading
+# and trailing blocks are removed from the typed text. A spec's own tags are added to these.
+injected: [system-reminder]

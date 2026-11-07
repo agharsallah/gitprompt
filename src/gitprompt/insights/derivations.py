@@ -9,6 +9,9 @@ Each value comes from a small function registered on one of three registries:
 
 To add a derived value, write one function and decorate it with its registry and a description
 of each value it returns. The descriptions are listed on the Fields page (DERIVED).
+
+A prompt's origin and typed text come from the source spec's rules, not from code, so they are
+derived in insights/origin.py (PromptOut.origin / typed_text / injected).
 """
 
 import re
@@ -20,6 +23,7 @@ from functools import cached_property
 from typing import Any
 
 from gitprompt.core.payload import compact
+from gitprompt.insights import origin
 from gitprompt.insights.redaction import find_secrets
 
 
@@ -287,6 +291,7 @@ def session(events: list[dict[str, Any]]) -> dict[str, Any]:
 # --- shown on the Fields page ----------------------------------------------------------------
 
 DERIVED: dict[str, str] = {
+    **origin.DOCS,
     **PROMPT_STATS.docs,
     **TURN.docs,
     **SESSION.docs,

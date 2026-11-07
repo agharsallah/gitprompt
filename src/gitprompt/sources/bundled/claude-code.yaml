@@ -52,6 +52,26 @@ map:
   permission_mode: [permission_mode]
   session_title: [session_title]
 
+# Who produced a prompt (on top of the shared rules in _defaults.yaml; see ADR-0010).
+origin:
+  # Started by another program (`claude -p`, the Agent SDK). Needs the telemetry source: its
+  # user_prompt event shares the prompt's prompt_id and carries the entrypoint. The IDE
+  # extensions report their own entrypoint (claude-vscode), not sdk-cli.
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-cli}
+    origin: programmatic
+  # Added by Claude Code itself when a background task ends, or sent by another agent.
+  - when: {text_prefix: "<task-notification>"}
+    origin: task_notification
+  - when: {text_prefix: "<agent-message"}
+    origin: agent_message
+  - when: {event: UserPromptExpansion}
+    origin: slash_command
+  - when: {event: user_prompt, path: command_name}
+    origin: slash_command
+
+# Context Claude Code (and its IDE extensions) attach to what you typed.
+injected: [ide_selection, ide_opened_file, ide_diagnostics, local-command-stdout, local-command-stderr, local-command-caveat]
+
 # Org policy can turn user hooks off. GitPrompt then reports it and does not install anything.
 policy:
   files:

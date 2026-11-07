@@ -11,19 +11,22 @@ import os
 import re
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import yaml
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError, model_validator
 
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import SpecError
 from gitprompt.core.payload import Mapping
 
 BUNDLED = files("gitprompt.sources") / "bundled"
-DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits (currently: the field `map`)
+DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `origin` rules, `injected` tags
 
 Format = Literal["json", "otlp"]  # how a source's request bodies are decoded (see capture/pipeline.py DECODERS)
+
+# Who produced a prompt's text (see insights/origin.py and docs/adr/0010-prompt-origin.md).
+Origin = Literal["typed", "slash_command", "task_notification", "agent_message", "subagent", "programmatic", "unknown"]
 
 
 class Install(BaseModel):
@@ -37,6 +40,40 @@ class Policy(BaseModel):
     block_if_set: list[str] = []  # paths whose value, unless it is ours, means someone else owns this setting
     warn_if_set: list[str] = []  # paths that may stop our entries from running (e.g. URL allowlists)
     warn_env: list[str] = []  # env vars that, when set where the tool starts, win over its settings file
+
+
+class When(BaseModel):
+    """Conditions of an origin rule; every condition given must hold.
+
+    Without `event`, `field` and `path` look at the prompt itself. With `event`, the rule needs an
+    event of the same turn with that name, and `path`/`equals` look at that event's payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event: str | None = None  # an event of the turn with this name
+    field: str | None = None  # a mapped field (see `map`) has a value
+    path: str | None = None  # a raw payload path has a value
+    equals: str | int | float | bool | None = None  # ...and that value is this one
+    text_prefix: str | None = None  # the typed text (injected context removed) starts with this
+    text_regex: re.Pattern[str] | None = None  # the typed text matches this (re.match, from the start)
+
+    @model_validator(mode="after")
+    def _has_a_condition(self) -> "When":
+        if not self.model_fields_set - {"equals"}:
+            raise ValueError("an origin rule needs at least one condition")
+        if self.equals is not None and not self.path:
+            raise ValueError("`equals` needs a `path`")
+        return self
+
+
+class OriginRule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    when: When
+    origin: Origin
+
+
+Tag = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][\w:-]*$")]
 
 
 class Spec(BaseModel):
@@ -53,6 +90,8 @@ class Spec(BaseModel):
     terms: str = ""  # shown before consent: why this is allowed by the tool's own docs
     documented: dict[str, list[str]] = {}  # event ("*" = all) -> fields the tool's docs list
     not_captured: dict[str, str] = {}  # event -> why GitPrompt does not subscribe to it
+    origin: list[OriginRule] = []  # first matching rule wins; the spec's own rules, then the shared ones
+    injected: list[Tag] = []  # tags of context blocks a tool adds before or after what the user typed
 
     @property
     def marker(self) -> re.Pattern[str]:
@@ -84,6 +123,8 @@ def load_specs(settings: Settings) -> dict[str, Spec]:
     for name, text in _spec_files(settings).items():
         data = _parse(name, text)
         data["map"] = defaults.get("map", {}) | (data.get("map") or {})  # a spec replaces defaults per field
+        data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
+        data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
         try:
             spec = Spec(**data)
         except ValidationError as e:
