@@ -198,3 +198,22 @@ def test_prompts_carry_origin_and_typed_text(client, settings, hook_payload):
     assert second["origin"] == "task_notification" and second["injected"] == []
     assert client.get(f"/api/prompts/{first['id']}").json()["origin"] == "typed"
     assert "origin" in client.get("/api/fields").json()["derived"]
+
+
+def test_dashboard_serves_the_fallback_page_for_story_paths(tmp_path):
+    from fastapi.testclient import TestClient
+    from starlette.applications import Starlette
+
+    from gitprompt.api.app import Dashboard
+
+    (tmp_path / "index.html").write_text("home")
+    (tmp_path / "200.html").write_text("fallback")
+    (tmp_path / "sessions").mkdir()
+    (tmp_path / "sessions" / "index.html").write_text("sessions")
+    app = Starlette()
+    app.mount("/", Dashboard(directory=tmp_path, html=True))
+    client = TestClient(app)
+    assert client.get("/sessions/").text == "sessions"
+    assert client.get("/sessions/abc-123/").text == "fallback"  # a story: routed in the browser
+    assert client.get("/api/nothing").status_code == 404  # never for the API
+    assert client.get("/missing.js").status_code == 404  # nor for a missing asset

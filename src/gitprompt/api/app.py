@@ -8,7 +8,10 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.responses import Response
+from starlette.types import Scope
 
 from gitprompt.api.bus import Bus
 from gitprompt.api.routes import ROUTERS
@@ -22,6 +25,21 @@ from gitprompt.storage.store import Store
 
 DASHBOARD = Path(__file__).parents[1] / "dashboard"  # built by `pnpm --dir web build`
 LOCAL_HOSTS = ["127.0.0.1", "localhost"]
+
+
+class Dashboard(StaticFiles):
+    """The built dashboard. A page path with no file of its own (a story: /sessions/<id>/) gets the
+    fallback page of the static build, which routes in the browser; /api paths keep their 404."""
+
+    FALLBACK = "200.html"
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as e:
+            if e.status_code != 404 or path.split("/", 1)[0] in ("api", "ingest") or "." in path.rsplit("/", 1)[-1]:
+                raise
+            return await super().get_response(self.FALLBACK, scope)
 
 
 def _version() -> str:
@@ -63,5 +81,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"ok": True}
 
     if DASHBOARD.is_dir():  # last: it catches every other path
-        app.mount("/", StaticFiles(directory=DASHBOARD, html=True), name="dashboard")
+        app.mount("/", Dashboard(directory=DASHBOARD, html=True), name="dashboard")
     return app
