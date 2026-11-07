@@ -184,3 +184,17 @@ def test_older_connection_is_reported_and_updated_in_place(client, claude_settin
     written = json.loads(claude_settings.read_text())
     assert len(written["hooks"]["UserPromptSubmit"]) == 1 and "Stop" in written["hooks"]  # replaced, not duplicated
     assert not source(client)["outdated"]
+
+
+def test_prompts_carry_origin_and_typed_text(client, settings, hook_payload):
+    typed = hook_payload | {"prompt": "<ide_selection>x = 1</ide_selection>\nRename x"}
+    notice = hook_payload | {"prompt_id": "p2", "prompt": "<task-notification><task-id>t</task-id></task-notification>"}
+    for payload in (typed, notice):
+        client.post("/ingest/claude-code", json=payload, headers=auth(settings))
+
+    second, first = client.get("/api/prompts").json()
+    assert first["origin"] == "typed" and first["typed_text"] == "Rename x" and first["prompt"] == typed["prompt"]
+    assert first["injected"] == [{"kind": "ide_selection", "chars": len("<ide_selection>x = 1</ide_selection>")}]
+    assert second["origin"] == "task_notification" and second["injected"] == []
+    assert client.get(f"/api/prompts/{first['id']}").json()["origin"] == "typed"
+    assert "origin" in client.get("/api/fields").json()["derived"]

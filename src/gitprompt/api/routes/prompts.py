@@ -7,11 +7,12 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.sse import EventSourceResponse
 from pydantic import BaseModel
 
-from gitprompt.api.deps import BusDep, StoreDep, require_dashboard
+from gitprompt.api.deps import BusDep, SpecsDep, StoreDep, require_dashboard
 from gitprompt.core.errors import NotFound
 from gitprompt.core.git import commits
-from gitprompt.insights import derivations
+from gitprompt.insights import derivations, origin
 from gitprompt.insights.redaction import redact
+from gitprompt.sources.spec import Origin, Spec
 from gitprompt.storage.store import Store
 
 router = APIRouter(prefix="/api/prompts", tags=["prompts"])
@@ -25,11 +26,19 @@ class Annotation(BaseModel):
     note: str = ""
 
 
+class Injected(BaseModel):
+    kind: str  # the block's tag, e.g. ide_selection
+    chars: int
+
+
 class PromptOut(BaseModel):
     id: int
     source: str
     received_at: str
-    prompt: str | None
+    prompt: str | None  # as received, including injected context
+    origin: Origin  # who produced the text (insights/origin.py)
+    typed_text: str | None  # the prompt without injected context
+    injected: list[Injected]
     fields: dict[str, Any]  # mapped by the source spec
     context: dict[str, Any]  # observed at ingest: git state, tool version
     annotation: Annotation
@@ -48,9 +57,13 @@ class Updated(BaseModel):
     updated: int
 
 
-def derive(row: dict, events: list[dict]) -> dict:
+def derive(row: dict, events: list[dict], spec: Spec | None) -> dict:
     """A stored prompt row plus the values derived from its text and its events."""
-    return row | {"stats": derivations.prompt_stats(row["prompt"] or ""), "summary": derivations.turn(row, events)}
+    return (
+        row
+        | origin.classify(row, events, spec)
+        | {"stats": derivations.prompt_stats(row["prompt"] or ""), "summary": derivations.turn(row, events)}
+    )
 
 
 def get_row(id: int, store: StoreDep) -> dict:
@@ -65,6 +78,7 @@ Row = Annotated[dict, Depends(get_row)]
 @router.get("")
 async def list_prompts(
     store: StoreDep,
+    specs: SpecsDep,
     q: str | None = None,
     source: str | None = None,
     session: str | None = None,
@@ -78,7 +92,7 @@ async def list_prompts(
     by_prompt: defaultdict[str, list[dict]] = defaultdict(list)
     for e in store.events_for_prompts([pid for r in rows if (pid := r["fields"].get("prompt_id"))]):
         by_prompt[e["prompt_id"]].append(e)
-    return [derive(r, by_prompt[r["fields"].get("prompt_id")]) for r in rows]
+    return [derive(r, by_prompt[r["fields"].get("prompt_id")], specs.get(r["source"])) for r in rows]
 
 
 @router.get("/stream", response_class=EventSourceResponse)
@@ -102,10 +116,11 @@ def _session(store: Store, row: dict) -> dict[str, Any]:
 
 
 @router.get("/{id}")
-async def get_prompt(row: Row, store: StoreDep) -> PromptDetail:
+async def get_prompt(row: Row, store: StoreDep, specs: SpecsDep) -> PromptDetail:
     pid = row["fields"].get("prompt_id")
     events = store.events_for_prompts([pid]) if pid else []
-    return derive(row, events) | {"events": events, "session": _session(store, row), "commits": await _commits_after(row)}
+    derived = derive(row, events, specs.get(row["source"]))
+    return derived | {"events": events, "session": _session(store, row), "commits": await _commits_after(row)}
 
 
 @writes.put("/annotation")
