@@ -38,6 +38,16 @@ uv run gitprompt compact --events-older-than 30   # also raw events older than 3
 
 Prompts and your notes are never removed. Removing the dropped events changes nothing on any page. Expired events take their turn details with them (tools, usage, timeline) for prompts older than the cutoff. Compact can run while the daemon is running.
 
+## The prompt index
+
+Filters, search and statistics run in SQL on a prompt index: one row per prompt with the values GitPrompt derives (origin, typed text, local day and hour, usage per model, tools, outcome), plus a full-text index of the typed text. It is a cache of the stored prompts and events: it updates itself as events arrive and rebuilds itself when the rules or the code that compute it change. To rebuild it by hand (for example after restoring a backup):
+
+```bash
+uv run gitprompt reindex
+```
+
+Day and hour buckets use this machine's timezone; changing the timezone rebuilds the index on next use.
+
 ## Layout
 
 ```
@@ -45,10 +55,10 @@ src/gitprompt/            FastAPI daemon, one package per domain (see PLAN.md §
   core/                   shared kernel: settings, domain errors, JSON payload helpers, git facts
   sources/                tool specs, probing, connect/disconnect; bundled/ holds the YAML specs
   capture/                ingest pipeline, the OTLP decoder, compact (dropped events and retention)
-  storage/                SQLite store
-  insights/               values derived on read, prompt origin, secret redaction, field catalog
+  storage/                SQLite store, the rebuildable prompt index (FTS5) and statistics over it
+  insights/               values derived on read, prompt origin, the indexer, secret redaction, field catalog
   api/                    FastAPI app, dependencies, live-update bus, routes/
-  cli.py                  `gitprompt serve`, `gitprompt compact`
+  cli.py                  `gitprompt serve`, `gitprompt compact`, `gitprompt reindex`
 web/src/lib/              SvelteKit dashboard (built into src/gitprompt/dashboard)
   design/                 design tokens (tokens.css: primitives, semantic, scales) and base styles
   ui/                     generic components (Button, Badge, Panel, Tabs...); ui/charts/ for charts

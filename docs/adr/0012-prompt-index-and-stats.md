@@ -1,0 +1,35 @@
+# 0012 — A rebuildable prompt index for filters, FTS search and `/api/stats`
+
+**Status:** accepted (implemented)
+**Amends:** [0009](0009-metadata-events-telemetry-derived-on-read.md) (derived values are still computed on read, and also cached in an index), [0010](0010-prompt-origin.md) (origin becomes filterable)
+
+## Context
+Everything GitPrompt shows about a prompt is derived on read in Python (`derivations.derive`: origin, typed text, stats, turn summary). That keeps old prompts correct when a rule changes, but a filter such as `origin` or a chart over all prompts needs SQL `WHERE` and `GROUP BY`. The dashboard worked around this by aggregating at most 1,000 prompts in the browser, and search used `LIKE` on the raw text, including the context a tool injected.
+
+## Decision
+1. **A prompt index that is only a cache** (`storage/index.py`). Tables: `prompt_index` (one row per prompt: prompt/session/source, repo = git root or else cwd, UTC `received_at`, local `day`/`hour`/`weekday`, origin, typed-text size, slash command, usage totals, response time, how the turn ended, tool counts), `prompt_index_model` (usage per model, since a turn can use several), `prompt_index_tool` (calls per tool and its kind), `prompt_fts` (FTS5, trigram tokenizer, over the typed text; the text lives only there so index rows stay small) and `index_meta`. Raw rows stay the truth; dropping these tables loses nothing.
+2. **Values come from the existing derivations** (DRY). `insights/indexer.py` runs `derivations.derive()` (the same function the prompt API returns) and projects it into a row (`entry`). Two derived values were added for this, both shown on the Fields page: `summary.tool_kinds` and `summary.model_usage`.
+3. **Update strategy: mark on ingest, recompute on read.** Ingest does no derivation. It adds the `prompt_id` of every event to `index_dirty` (one cheap insert). Before each read (`deps.get_index` → `Indexer.ensure`), the index recomputes the marked turns and indexes any prompt newer than the last indexed one, in one transaction, on the event loop, so ingest and indexing never interleave. Recomputing a turn reads all its events: 73 ms for the largest real turn (4,113 events). Doing it per event would make a long turn quadratic. Doing it per read costs one recomputation per dashboard refresh. Events that arrive before their prompt are picked up when the prompt is indexed.
+4. **Rules version.** It is a hash of the source of the modules that compute or store the values (`derivations`, `origin`, `storage.index`, `indexer`), each spec's `origin` rules and `injected` tags, and `time.tzname`. When it differs from `index_meta`, the index is dropped and rebuilt on next use (also at daemon start-up). Editing a derivation, a spec rule or the machine timezone needs no migration and no version bump by hand. Remap, `compact --apply` (expired events change turn values) and `gitprompt reindex` rebuild explicitly. Hiding a secret reindexes that prompt, so the secret leaves the search index too.
+5. **Local time.** Day, hour and weekday are computed when a prompt is indexed, in the daemon machine's timezone with the DST rules at that instant (the dashboard runs on the same machine). Time-range filters (`since`, `until`) compare UTC instants. An instant without an offset is read as local time.
+6. **Filters stay one registry.** `store.FILTERS` now holds SQL conditions on the index, shared by `/api/prompts` and `/api/stats` through one Pydantic query model (`api/filters.py`). New filters: `origin` and `model` (multi-value, `?origin=a&origin=b`), `since`, `until`. `repo` now also matches the cwd of prompts sent outside a repository. With no `origin`, every origin is returned (backward compatible). The dashboard sends its own default (`typed` + `slash_command`, remembered per browser).
+7. **Search.** `q` uses FTS5 over the typed text: every word must appear, as a substring and ignoring case, like the old `LIKE` but per word and without injected context. Words shorter than 3 characters (below a trigram) are checked with `LIKE` on the FTS content. FTS5 with trigrams is required: the CPython builds GitPrompt supports ship SQLite ≥ 3.34, and the index raises a clear error otherwise (a test asserts this). Snippets (`snippet()`) are possible because the FTS table keeps its content; E4 can add them.
+8. **`GET /api/stats`**: the prompt filters plus `group_by` ∈ day, hour, weekday, weekday_hour, origin, source, session, repo, command, outcome, model, tool, tool_kind (`storage/stats.GROUPS`), and `limit`. It returns `{group_by, totals, groups[]}`. Each bucket holds prompts, sessions, API requests, cost, four token counts, tool calls and failures, ended turns, response-time p50/p90 (linear interpolation, as `aggregate.ts` does) and first/last time. Time buckets are ordered by key, other groupings by prompt count. For `model`, `tool` and `tool_kind`, a prompt counts in each group it touched, and usage (model) or tool calls (tool, tool_kind) are split exactly.
+9. **Prompt list cost.** The `prompt_view` window (turn number, neighbours) is computed only for the sessions of the prompts being returned, through a new `prompt_session` expression index, instead of over every stored prompt.
+
+## Consequences
++ Origin filtering everywhere. With the real DB, the default Prompts list covers 225 prompts instead of 553.
++ Benchmarks. Real DB copy (553 prompts, 168k events): any stats query ≤ 1.3 ms, prompt list 2 ms, full rebuild 2.8 s. Synthetic 100k prompts / 400k events, 90-day window with the default origins (39k prompts): totals 57 ms, single-valued groupings 110–150 ms, model 146 ms, tool/tool_kind ~190 ms, prompt list 31 ms (was 800 ms), full rebuild 14 s.
++ E3 can move the Overview to `/api/stats` with no 1,000-prompt cap.
+− A rebuild blocks the first read after an upgrade (seconds on real data, about 14 s at 100k prompts).
+− Any edit to the hashed modules (even a comment) triggers a rebuild. That is cheap and errs on the side of correctness.
+− Tool kinds are defined in Python (`derivations.TOOL_KINDS`) and in the dashboard (`tools.ts`) until E3 reads `summary.tool_kinds`.
+− Values that depend on later prompts or on the clock are not indexed: "superseded" and "running" outcomes stay client-side (`outcome.ts`).
+
+## Alternatives considered
+- **Store origin and the other values on `prompt` at ingest:** every rule change would need a backfill, against "raw is truth".
+- **Recompute a turn on every event:** simple, but quadratic for long agentic turns (measured above).
+- **A background debounce task:** same effect as mark-and-read, but adds a timer and makes reads racy.
+- **A hand-bumped `DERIVATION_VERSION`:** easy to forget. Hashing the code cannot drift from it.
+- **SQL percentiles** (window functions): measured slower than parsing `group_concat` in Python. SQLite's `percentile()` is not compiled into the CPython build.
+- **unicode61 tokenizer with prefix queries:** smaller index, but it does not match inside words (file names, identifiers), which `LIKE` did.

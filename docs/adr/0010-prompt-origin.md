@@ -1,6 +1,6 @@
 # 0010 — Prompt origin and typed text, from spec rules, derived on read
 
-**Status:** accepted (implemented: classification, API, display; filtering follows in F1)
+**Status:** accepted (implemented: classification, API, display; filtering through the prompt index, [0012](0012-prompt-index-and-stats.md))
 **Amends:** [0008](0008-universal-capture-declarative-sources.md) (adds `origin` and `injected` to the spec schema), [0009](0009-metadata-events-telemetry-derived-on-read.md) (one more value derived on read)
 
 ## Context
