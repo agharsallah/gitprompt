@@ -26,7 +26,9 @@
 	let sort = $state<'recent' | 'longest' | 'costliest'>('recent');
 
 	const projectNames = $derived(
-		[...new Map(all.map((s) => [s.project.key, s.project.name]))].sort((a, b) => a[1].localeCompare(b[1]))
+		[...new Map(all.map((s) => [s.project.key, s.project.name]))].sort((a, b) =>
+			a[1].localeCompare(b[1])
+		)
 	);
 	const shown = $derived.by(() => {
 		const q = query.trim().toLowerCase();
@@ -54,7 +56,15 @@
 
 <div class="controls">
 	<div class="search">
-		<TextField label="Search sessions" hideLabel type="search" icon={Search} bind:value={query} placeholder="Search what was asked" clearable />
+		<TextField
+			label="Search sessions"
+			hideLabel
+			type="search"
+			icon={Search}
+			bind:value={query}
+			placeholder="Search what was asked"
+			clearable
+		/>
 	</div>
 	<SegmentedControl
 		label="Sort sessions"
@@ -80,7 +90,8 @@
 {/if}
 
 <p class="summary muted" aria-live="polite">
-	{plural(shown.length, 'session')}{project || query ? ' match' : ''} {rangePhrase(data.range)}
+	{plural(shown.length, 'session')}{project || query ? ' match' : ''}
+	{rangePhrase(data.range)}
 </p>
 
 {#if shown.length}

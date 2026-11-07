@@ -27,7 +27,26 @@
 	import { KIND_INFO, TOOL_KINDS } from '#lib/insights/tools.ts';
 
 	const RAMPS = {
-		gray: ['0', '25', '50', '75', '100', '150', '200', '300', '400', '500', '600', '700', '750', '800', '850', '900', '925', '950'],
+		gray: [
+			'0',
+			'25',
+			'50',
+			'75',
+			'100',
+			'150',
+			'200',
+			'300',
+			'400',
+			'500',
+			'600',
+			'700',
+			'750',
+			'800',
+			'850',
+			'900',
+			'925',
+			'950'
+		],
 		lagoon: ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'],
 		iris: ['50', '100', '200', '300', '400', '500', '600', '700', '800', '950'],
 		amber: ['50', '100', '300', '400', '600', '700', '950'],
@@ -37,7 +56,14 @@
 	};
 
 	const SEMANTIC = {
-		Surfaces: ['canvas', 'surface', 'surface-raised', 'surface-sunken', 'surface-hover', 'surface-selected'],
+		Surfaces: [
+			'canvas',
+			'surface',
+			'surface-raised',
+			'surface-sunken',
+			'surface-hover',
+			'surface-selected'
+		],
 		Text: ['text', 'text-secondary', 'text-muted', 'text-disabled'],
 		Lines: ['border-subtle', 'border', 'border-strong', 'border-control'],
 		'You (brand)': ['accent', 'accent-hover', 'accent-text', 'accent-soft', 'accent-border'],
@@ -67,7 +93,9 @@
 	let pressed = $state(false);
 
 	const heat = Array.from({ length: 7 }, (_, r) =>
-		Array.from({ length: 24 }, (_, c) => Math.max(0, Math.round(Math.sin((c - 6) / 4) * 6 + (r < 5 ? 4 : -2) + ((r * c) % 3))))
+		Array.from({ length: 24 }, (_, c) =>
+			Math.max(0, Math.round(Math.sin((c - 6) / 4) * 6 + (r < 5 ? 4 : -2) + ((r * c) % 3)))
+		)
 	);
 </script>
 
@@ -81,15 +109,33 @@
 <div class="design">
 	<Panel title="Principles">
 		<ol class="principles">
-			<li><strong>The rail is the signature.</strong> Sessions are lines, prompts are nodes whose shape and fill say how the turn ended. Everything else stays quiet.</li>
-			<li><strong>Color means something.</strong> Lagoon is you, iris is the agent, amber asks for attention, red is failure. Never decoration, never color alone.</li>
-			<li><strong>Flat, with tone for depth.</strong> Hairlines and surface steps separate things; only floating layers cast a shadow.</li>
-			<li><strong>Every chart can be read without hover.</strong> Values are printed or listed, tooltips only add, and each chart has a table twin.</li>
-			<li><strong>Words do one job each.</strong> Sentence case, plain verbs, errors that say what to do next.</li>
+			<li>
+				<strong>The rail is the signature.</strong> Sessions are lines, prompts are nodes whose shape
+				and fill say how the turn ended. Everything else stays quiet.
+			</li>
+			<li>
+				<strong>Color means something.</strong> Lagoon is you, iris is the agent, amber asks for attention,
+				red is failure. Never decoration, never color alone.
+			</li>
+			<li>
+				<strong>Flat, with tone for depth.</strong> Hairlines and surface steps separate things; only
+				floating layers cast a shadow.
+			</li>
+			<li>
+				<strong>Every chart can be read without hover.</strong> Values are printed or listed, tooltips
+				only add, and each chart has a table twin.
+			</li>
+			<li>
+				<strong>Words do one job each.</strong> Sentence case, plain verbs, errors that say what to do
+				next.
+			</li>
 		</ol>
 	</Panel>
 
-	<Panel title="Semantic color" description="What components use. Each resolves per theme with light-dark().">
+	<Panel
+		title="Semantic color"
+		description="What components use. Each resolves per theme with light-dark()."
+	>
 		<div class="semantic">
 			{#each Object.entries(SEMANTIC) as [group, tokens] (group)}
 				<section>
@@ -107,14 +153,19 @@
 		</div>
 	</Panel>
 
-	<Panel title="Primitive ramps" description="Raw steps the semantic tokens point to. Components never use these directly.">
+	<Panel
+		title="Primitive ramps"
+		description="Raw steps the semantic tokens point to. Components never use these directly."
+	>
 		<div class="ramps">
 			{#each Object.entries(RAMPS) as [name, steps] (name)}
 				<div class="ramp">
 					<span class="ramp-name">{name}</span>
 					<div class="steps">
 						{#each steps as step (step)}
-							<span class="step" style:background="var(--{name}-{step})" title="--{name}-{step}"><span class="sr-only">--{name}-{step}</span></span>
+							<span class="step" style:background="var(--{name}-{step})" title="--{name}-{step}"
+								><span class="sr-only">--{name}-{step}</span></span
+							>
 						{/each}
 					</div>
 				</div>
@@ -122,19 +173,32 @@
 		</div>
 	</Panel>
 
-	<Panel title="Data color" description="Categorical slots in validated order (colorblind-safe for adjacent pairs, both themes), and the sequential ramp for magnitude.">
+	<Panel
+		title="Data color"
+		description="Categorical slots in validated order (colorblind-safe for adjacent pairs, both themes), and the sequential ramp for magnitude."
+	>
 		<div class="stack">
 			<Legend
 				label="Tool kinds"
-				items={TOOL_KINDS.map((k) => ({ label: `${KIND_INFO[k].label}`, color: KIND_INFO[k].color }))}
+				items={TOOL_KINDS.map((k) => ({
+					label: `${KIND_INFO[k].label}`,
+					color: KIND_INFO[k].color
+				}))}
 			/>
 			<div class="steps seq">
-				{#each [0, 1, 2, 3, 4, 5, 6] as s (s)}<span class="step" style:background="var(--chart-seq-{s})" title="--chart-seq-{s}"></span>{/each}
+				{#each [0, 1, 2, 3, 4, 5, 6] as s (s)}<span
+						class="step"
+						style:background="var(--chart-seq-{s})"
+						title="--chart-seq-{s}"
+					></span>{/each}
 			</div>
 		</div>
 	</Panel>
 
-	<Panel title="Type" description="Instrument Sans Variable for everything, headings slightly condensed; Commit Mono only for code, paths and field names.">
+	<Panel
+		title="Type"
+		description="Instrument Sans Variable for everything, headings slightly condensed; Commit Mono only for code, paths and field names."
+	>
 		<ul class="type">
 			{#each TYPE as [size, px, use] (size)}
 				<li>
@@ -155,9 +219,14 @@
 				{/each}
 			</ul>
 		</Panel>
-		<Panel title="Radius and elevation" description="Radius grows with size. Only overlays have a shadow.">
+		<Panel
+			title="Radius and elevation"
+			description="Radius grows with size. Only overlays have a shadow."
+		>
 			<div class="radii">
-				{#each RADII as r (r)}<span class="radius" style:border-radius="var(--radius-{r})"><code>{r}</code></span>{/each}
+				{#each RADII as r (r)}<span class="radius" style:border-radius="var(--radius-{r})"
+						><code>{r}</code></span
+					>{/each}
 			</div>
 			<div class="overlay-sample">--shadow-overlay</div>
 		</Panel>
@@ -171,19 +240,38 @@
 			<Button variant="danger" icon={Trash2}>Disconnect</Button>
 			<Button loading>Saving</Button>
 			<Button disabled>Disabled</Button>
-			<Button icon={Star} label="Star" pressed={pressed} onclick={() => (pressed = !pressed)} />
+			<Button icon={Star} label="Star" {pressed} onclick={() => (pressed = !pressed)} />
 			<Button size="sm" variant="primary">Small</Button>
 			<Button size="sm" icon={Search} label="Search" />
 		</div>
 		<div class="row">
-			<SegmentedControl label="Period" bind:value={segment} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} />
+			<SegmentedControl
+				label="Period"
+				bind:value={segment}
+				options={[
+					{ value: 'day', label: 'Day' },
+					{ value: 'week', label: 'Week' },
+					{ value: 'month', label: 'Month' }
+				]}
+			/>
 			<ToggleChip bind:checked={toggled} icon={Star} count={12}>Starred</ToggleChip>
 			<Chip icon={Tag}>#refactor</Chip>
 			<Chip onremove={() => {}} removeLabel="Remove filter">repo: gitprompt</Chip>
 		</div>
 		<div class="row fields">
-			<TextField label="Search prompts" icon={Search} bind:value={text} placeholder="Search prompt text" clearable />
-			<TextField label="Tag" size="sm" placeholder="Small field" hint="Hints sit under the field." />
+			<TextField
+				label="Search prompts"
+				icon={Search}
+				bind:value={text}
+				placeholder="Search prompt text"
+				clearable
+			/>
+			<TextField
+				label="Tag"
+				size="sm"
+				placeholder="Small field"
+				hint="Hints sit under the field."
+			/>
 		</div>
 	</Panel>
 
@@ -208,17 +296,28 @@
 			{/each}
 		</div>
 		<div class="stack">
-			<Callout tone="info" title="Information">Something worth knowing about the content around it.</Callout>
+			<Callout tone="info" title="Information"
+				>Something worth knowing about the content around it.</Callout
+			>
 			<Callout tone="success">Connected. The previous file was backed up.</Callout>
-			<Callout tone="warning" title="Possible secret in this prompt">Hide it so it is not kept.</Callout>
+			<Callout tone="warning" title="Possible secret in this prompt"
+				>Hide it so it is not kept.</Callout
+			>
 			<Callout tone="danger" title="The turn ended on an error">rate_limit_error</Callout>
 		</div>
 	</Panel>
 
 	<Panel title="Figures and charts">
 		<div class="tiles">
-			<StatTile label="Spend" value="$12.40" hint="$0.08 per prompt" trend={[2, 4, 3, 6, 5, 8, 7]} />
-			<StatTile label="Tokens" value="4.2M" hint="81% from cache"><Meter value={0.81} label="From cache" /></StatTile>
+			<StatTile
+				label="Spend"
+				value="$12.40"
+				hint="$0.08 per prompt"
+				trend={[2, 4, 3, 6, 5, 8, 7]}
+			/>
+			<StatTile label="Tokens" value="4.2M" hint="81% from cache"
+				><Meter value={0.81} label="From cache" /></StatTile
+			>
 			<StatTile label="Typical turn" value="42s" hint="1 in 10 take over 3m 05s" />
 		</div>
 		<div class="grid two charts">
@@ -233,28 +332,72 @@
 						{ key: 'r', label: 'Cache read', value: 60, color: 'var(--chart-4)' }
 					]}
 				/>
-				<BarList label="Tools" items={[{ key: 'b', label: 'Bash', value: 42, color: 'var(--chart-3)' }, { key: 'r', label: 'Read', value: 30, color: 'var(--chart-1)' }, { key: 'e', label: 'Edit', value: 12, color: 'var(--chart-2)' }]} />
+				<BarList
+					label="Tools"
+					items={[
+						{ key: 'b', label: 'Bash', value: 42, color: 'var(--chart-3)' },
+						{ key: 'r', label: 'Read', value: 30, color: 'var(--chart-1)' },
+						{ key: 'e', label: 'Edit', value: 12, color: 'var(--chart-2)' }
+					]}
+				/>
 				<Sparkline values={[1, 3, 2, 5, 4, 7, 6, 9]} width={160} height={36} label="Sample trend" />
 			</div>
 			<div class="stack">
-				<ColumnChart label="Prompts per day" emphasis="7" data={[3, 8, 5, 12, 9, 2, 6].map((v, i) => ({ key: String(i + 1), label: `Day ${i + 1}`, tick: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i], value: v }))} />
-				<Heatmap label="Sample heatmap" values={heat} rows={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']} columns={Array.from({ length: 24 }, (_, h) => String(h))} columnTick={(c, i) => (i % 6 === 0 ? c : '')} describe={(r, c, v) => `${v} on ${r} at ${c}:00`} />
+				<ColumnChart
+					label="Prompts per day"
+					emphasis="7"
+					data={[3, 8, 5, 12, 9, 2, 6].map((v, i) => ({
+						key: String(i + 1),
+						label: `Day ${i + 1}`,
+						tick: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+						value: v
+					}))}
+				/>
+				<Heatmap
+					label="Sample heatmap"
+					values={heat}
+					rows={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
+					columns={Array.from({ length: 24 }, (_, h) => String(h))}
+					columnTick={(c, i) => (i % 6 === 0 ? c : '')}
+					describe={(r, c, v) => `${v} on ${r} at ${c}:00`}
+				/>
 			</div>
 		</div>
 	</Panel>
 
 	<Panel title="Content">
-		<Tabs label="Sample tabs" bind:selected={tab} tabs={[{ id: 'one', label: 'Activity', count: 12 }, { id: 'two', label: 'Usage' }, { id: 'three', label: 'Disabled', disabled: true }]}>
+		<Tabs
+			label="Sample tabs"
+			bind:selected={tab}
+			tabs={[
+				{ id: 'one', label: 'Activity', count: 12 },
+				{ id: 'two', label: 'Usage' },
+				{ id: 'three', label: 'Disabled', disabled: true }
+			]}
+		>
 			{#snippet panel(id)}
 				{#if id === 'one'}
-					<KeyValue data={{ git_branch: 'main', git_ahead: 2, files: ['src/app.ts', 'README.md'], cwd: '/Users/me/project', worktree: false }} rawKeys />
+					<KeyValue
+						data={{
+							git_branch: 'main',
+							git_ahead: 2,
+							files: ['src/app.ts', 'README.md'],
+							cwd: '/Users/me/project',
+							worktree: false
+						}}
+						rawKeys
+					/>
 				{:else}
 					<p class="muted">Usage panel.</p>
 				{/if}
 			{/snippet}
 		</Tabs>
 		<div class="stack">
-			<CodeBlock label="settings.json" diff code={'@@ hooks @@\n   "hooks": {\n+    "UserPromptSubmit": [ ... ],\n-    "Stop": [ ... ]\n   }'} />
+			<CodeBlock
+				label="settings.json"
+				diff
+				code={'@@ hooks @@\n   "hooks": {\n+    "UserPromptSubmit": [ ... ],\n-    "Stop": [ ... ]\n   }'}
+			/>
 			<Disclosure summary="A disclosure">Hidden detail, opened on demand.</Disclosure>
 			<EmptyState title="No prompts yet">Connect a source, then type a prompt in it.</EmptyState>
 		</div>

@@ -16,7 +16,12 @@
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Spinner from '#lib/ui/Spinner.svelte';
 	import PromptDetail from '#lib/prompts/PromptDetail.svelte';
-	import PromptFilters, { isQuick, PREDICATES, QUICK, type Quick } from '#lib/prompts/PromptFilters.svelte';
+	import PromptFilters, {
+		isQuick,
+		PREDICATES,
+		QUICK,
+		type Quick
+	} from '#lib/prompts/PromptFilters.svelte';
 	import PromptList from '#lib/prompts/PromptList.svelte';
 	import { MAX_LIMIT, PAGE } from '#lib/prompts/paging.ts';
 	import type { PageProps } from './$types';
@@ -121,14 +126,22 @@
 		{#if full || data.filters.before}
 			<nav class="pager" aria-label="More prompts">
 				{#if data.filters.before}
-					<Button href={url({ before: null, limit: null, id: null })} size="sm">Newest prompts</Button>
+					<Button href={url({ before: null, limit: null, id: null })} size="sm"
+						>Newest prompts</Button
+					>
 				{/if}
 				{#if full && data.limit < MAX_LIMIT}
-					<Button href={url({ limit: String(data.limit + PAGE) })} size="sm" data-sveltekit-reset="false">
+					<Button
+						href={url({ limit: String(data.limit + PAGE) })}
+						size="sm"
+						data-sveltekit-reset="false"
+					>
 						Show {PAGE} more
 					</Button>
 				{:else if full && last}
-					<Button href={url({ before: String(last.id), limit: null, id: null })} size="sm">Older prompts</Button>
+					<Button href={url({ before: String(last.id), limit: null, id: null })} size="sm"
+						>Older prompts</Button
+					>
 				{/if}
 			</nav>
 		{/if}
@@ -136,7 +149,9 @@
 
 	<div class="detail-column" aria-live="polite" aria-busy={loadingDetail}>
 		{#if selectedId}
-			<a class="back" href={url({ id: null })} data-sveltekit-reset="false"><ArrowLeft size={14} aria-hidden="true" />All prompts</a>
+			<a class="back" href={url({ id: null })} data-sveltekit-reset="false"
+				><ArrowLeft size={14} aria-hidden="true" />All prompts</a
+			>
 		{/if}
 		{#if detailError}
 			<Callout tone="danger" title="This prompt could not be loaded">{detailError}</Callout>
@@ -172,6 +187,7 @@
 
 	.list-column {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-4);
 		min-width: 0;
 	}

@@ -16,7 +16,8 @@
 
 	const prompts = $derived(data.window.prompts);
 	const start = $derived(
-		data.window.start ?? new Date(prompts.length ? Date.parse(prompts.at(-1)!.received_at) : Date.now())
+		data.window.start ??
+			new Date(prompts.length ? Date.parse(prompts.at(-1)!.received_at) : Date.now())
 	);
 	const list = $derived(projects(prompts, byDay(prompts, start, new Date(data.window.loadedAt))));
 </script>

@@ -65,7 +65,9 @@
 	);
 	const hourly = $derived(data.range.id === '24h');
 	const t = $derived(totals(prompts, clock.now));
-	const buckets = $derived(hourly ? byHour(prompts, start, new Date(now)) : byDay(prompts, start, new Date(now)));
+	const buckets = $derived(
+		hourly ? byHour(prompts, start, new Date(now)) : byDay(prompts, start, new Date(now))
+	);
 	const projectList = $derived(projects(prompts, byDay(prompts, start, new Date(now))));
 	const tools = $derived(toolUse(prompts));
 	const kinds = $derived(kindMix(prompts));
@@ -84,7 +86,15 @@
 		root ? `${resolve('/prompts')}?repo=${encodeURIComponent(root)}` : undefined;
 
 	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-	const WEEKDAY_NAMES = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'];
+	const WEEKDAY_NAMES = [
+		'Mondays',
+		'Tuesdays',
+		'Wednesdays',
+		'Thursdays',
+		'Fridays',
+		'Saturdays',
+		'Sundays'
+	];
 	const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 
 	const columns = $derived(
@@ -95,7 +105,10 @@
 				: dayLabel(b.key, new Date(now)),
 			tick: hourly
 				? b.date.toLocaleTimeString([], { hour: '2-digit' })
-				: b.date.toLocaleDateString('en-GB', buckets.length > 10 ? { day: 'numeric', month: 'short' } : { weekday: 'short' }),
+				: b.date.toLocaleDateString(
+						'en-GB',
+						buckets.length > 10 ? { day: 'numeric', month: 'short' } : { weekday: 'short' }
+					),
 			prompts: b.prompts,
 			cost: b.cost
 		}))
@@ -107,7 +120,10 @@
 
 <svelte:head><title>Overview · GitPrompt</title></svelte:head>
 
-<PageHeader title="Overview" description={prompts.length ? summary : 'Your prompting, at a glance.'}>
+<PageHeader
+	title="Overview"
+	description={prompts.length ? summary : 'Your prompting, at a glance.'}
+>
 	{#snippet actions()}<RangePicker range={data.range} />{/snippet}
 </PageHeader>
 
@@ -131,7 +147,10 @@
 			</EmptyState>
 		{/if}
 	{:else}
-		<Panel title="Where your prompts went" description="Each tick is a prompt, on its project's lane, colored and shaped by how its turn ended.">
+		<Panel
+			title="Where your prompts went"
+			description="Each tick is a prompt, on its project's lane, colored and shaped by how its turn ended."
+		>
 			<Lanes
 				label="Prompts by project over time"
 				lanes={lanes(prompts, 7, clock.now).map((l) => ({ ...l, href: repoHref(l.root) }))}
@@ -191,13 +210,19 @@
 					rows={WEEKDAYS}
 					columns={HOURS}
 					columnTick={(c, i) => (i % 6 === 0 ? `${c}:00` : '')}
-					describe={(r, c, v) => `${plural(v, 'prompt')} on ${WEEKDAY_NAMES[WEEKDAYS.indexOf(r)]} at ${c}:00`}
+					describe={(r, c, v) =>
+						`${plural(v, 'prompt')} on ${WEEKDAY_NAMES[WEEKDAYS.indexOf(r)]} at ${c}:00`}
 				/>
 			</Panel>
 			<Panel title={hourly ? 'Prompts per hour' : 'Prompts per day'}>
 				<ColumnChart
 					label={hourly ? 'Prompts per hour' : 'Prompts per day'}
-					data={columns.map((c) => ({ key: c.key, label: c.label, tick: c.tick, value: c.prompts }))}
+					data={columns.map((c) => ({
+						key: c.key,
+						label: c.label,
+						tick: c.tick,
+						value: c.prompts
+					}))}
 					format={(v) => plural(v, 'prompt')}
 					axisFormat={compact}
 				/>
@@ -216,13 +241,23 @@
 		</div>
 
 		<div class="grid three">
-			<Panel title="What the agent did" description="{plural(t.toolCalls, 'tool call')}{t.toolFailures ? `, ${integer(t.toolFailures)} failed` : ''}.">
+			<Panel
+				title="What the agent did"
+				description="{plural(t.toolCalls, 'tool call')}{t.toolFailures
+					? `, ${integer(t.toolFailures)} failed`
+					: ''}."
+			>
 				{#if kinds.length}
 					<div class="stack">
 						<SegmentedBar
 							variant="tall"
 							label="Tool calls by kind"
-							parts={kinds.map((k) => ({ key: k.kind, label: KIND_INFO[k.kind].label, value: k.count, color: KIND_INFO[k.kind].color }))}
+							parts={kinds.map((k) => ({
+								key: k.kind,
+								label: KIND_INFO[k.kind].label,
+								value: k.count,
+								color: KIND_INFO[k.kind].color
+							}))}
 							format={(v) => plural(v, 'call')}
 						/>
 						<BarList
@@ -239,22 +274,38 @@
 						/>
 					</div>
 				{:else}
-					<EmptyState compact title="No tool calls">Turns in this window were answered directly.</EmptyState>
+					<EmptyState compact title="No tool calls"
+						>Turns in this window were answered directly.</EmptyState
+					>
 				{/if}
 			</Panel>
 
-			<Panel title="How you write" description="Median prompt: {plural(Math.round(words.medianWords ?? 0), 'word')}.">
+			<Panel
+				title="How you write"
+				description="Median prompt: {plural(Math.round(words.medianWords ?? 0), 'word')}."
+			>
 				<div class="stack">
 					<ul class="craft">
-						<li><span class="num">{percent(words.withCode / t.prompts)}</span> include a code block</li>
-						<li><span class="num">{percent(words.withQuestion / t.prompts)}</span> ask a question</li>
+						<li>
+							<span class="num">{percent(words.withCode / t.prompts)}</span> include a code block
+						</li>
+						<li>
+							<span class="num">{percent(words.withQuestion / t.prompts)}</span> ask a question
+						</li>
 						<li><span class="num">{percent(words.withLink / t.prompts)}</span> link somewhere</li>
-						{#if words.withMention}<li><span class="num">{percent(words.withMention / t.prompts)}</span> @-mention a file</li>{/if}
+						{#if words.withMention}<li>
+								<span class="num">{percent(words.withMention / t.prompts)}</span> @-mention a file
+							</li>{/if}
 					</ul>
 					<h3 class="sub">Typical turn length, by prompt length in words</h3>
 					<ColumnChart
 						label="Median turn duration by prompt length"
-						data={lengths.map((l) => ({ key: l.label, label: `${l.label} words (${plural(l.prompts, 'prompt')})`, tick: l.label, value: l.medianResponse ?? 0 }))}
+						data={lengths.map((l) => ({
+							key: l.label,
+							label: `${l.label} words (${plural(l.prompts, 'prompt')})`,
+							tick: l.label,
+							value: l.medianResponse ?? 0
+						}))}
 						height={96}
 						format={(v) => duration(v)}
 						axisFormat={shortDuration}
@@ -263,7 +314,16 @@
 					/>
 					{#if words.slashCommands.length}
 						<h3 class="sub">Commands you use</h3>
-						<BarList label="Slash commands" max={5} items={words.slashCommands.map((c) => ({ key: c.name, label: c.name, value: c.count, mono: true }))} />
+						<BarList
+							label="Slash commands"
+							max={5}
+							items={words.slashCommands.map((c) => ({
+								key: c.name,
+								label: c.name,
+								value: c.count,
+								mono: true
+							}))}
+						/>
 					{/if}
 				</div>
 			</Panel>
@@ -273,12 +333,18 @@
 					<BarList
 						label="Requests by model"
 						color="var(--color-agent)"
-						items={models.map((m) => ({ key: m.model, label: modelName(m.model), value: m.requests, hint: m.model.includes('haiku') ? 'background' : undefined }))}
+						items={models.map((m) => ({
+							key: m.model,
+							label: modelName(m.model),
+							value: m.requests,
+							hint: m.model.includes('haiku') ? 'background' : undefined
+						}))}
 						format={(v) => compact(v)}
 					/>
 				{:else}
 					<EmptyState compact title="No model data">
-						Models come from Claude Code telemetry. <a href={resolve('/sources')}>Connect it</a> to see them.
+						Models come from Claude Code telemetry. <a href={resolve('/sources')}>Connect it</a> to see
+						them.
 					</EmptyState>
 				{/if}
 			</Panel>
@@ -324,6 +390,7 @@
 <style>
 	.overview {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-5);
 	}
 

@@ -9,7 +9,9 @@
 
 <div class="error">
 	<p class="status num">{page.status}</p>
-	<h1>{page.status === 404 ? 'This page does not exist' : 'The dashboard could not load this page'}</h1>
+	<h1>
+		{page.status === 404 ? 'This page does not exist' : 'The dashboard could not load this page'}
+	</h1>
 	{#if page.error?.message}
 		<CodeBlock code={page.error.message} label="Error" />
 	{/if}

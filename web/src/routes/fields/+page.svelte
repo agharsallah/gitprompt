@@ -23,10 +23,13 @@
 	const documented = $derived(fields.filter((f) => f.documented));
 	const fresh = $derived(seen.filter((f) => !f.documented));
 	const missing = $derived(documented.filter((f) => f.count === 0));
-	const coverage = $derived(documented.length ? (documented.length - missing.length) / documented.length : null);
+	const coverage = $derived(
+		documented.length ? (documented.length - missing.length) / documented.length : null
+	);
 
 	const matches = (f: Field) =>
-		(view === 'all' || (view === 'new' ? f.count > 0 && !f.documented : f.documented && f.count === 0)) &&
+		(view === 'all' ||
+			(view === 'new' ? f.count > 0 && !f.documented : f.documented && f.count === 0)) &&
 		`${f.source} ${f.event} ${f.path}`.toLowerCase().includes(filter.toLowerCase());
 
 	/** Shown fields grouped by source, then event, busiest events first. */
@@ -49,7 +52,9 @@
 				.sort((a, b) => b.count - a.count || a.event.localeCompare(b.event))
 		}));
 	});
-	const shown = $derived(groups.reduce((a, g) => a + g.events.reduce((b, e) => b + e.fields.length, 0), 0));
+	const shown = $derived(
+		groups.reduce((a, g) => a + g.events.reduce((b, e) => b + e.fields.length, 0), 0)
+	);
 </script>
 
 <svelte:head><title>Fields · GitPrompt</title></svelte:head>
@@ -60,15 +65,45 @@
 />
 
 <div class="tiles">
-	<StatTile label="Fields seen" icon={Eye} value={integer(seen.length)} hint="across {plural(new Set(seen.map((f) => `${f.source}|${f.event}`)).size, 'event type')}" />
-	<StatTile label="Documented and seen" icon={BookCheck} value={coverage === null ? '—' : percent(coverage)} hint="{integer(documented.length - missing.length)} of {integer(documented.length)} documented fields" />
-	<StatTile label="Seen, not documented" icon={Sparkles} value={integer(fresh.length)} hint="Metadata the docs don't list yet" />
-	<StatTile label="Documented, never seen" icon={EyeOff} value={integer(missing.length)} hint="Not sent in what was captured" />
+	<StatTile
+		label="Fields seen"
+		icon={Eye}
+		value={integer(seen.length)}
+		hint="across {plural(new Set(seen.map((f) => `${f.source}|${f.event}`)).size, 'event type')}"
+	/>
+	<StatTile
+		label="Documented and seen"
+		icon={BookCheck}
+		value={coverage === null ? '—' : percent(coverage)}
+		hint="{integer(documented.length - missing.length)} of {integer(
+			documented.length
+		)} documented fields"
+	/>
+	<StatTile
+		label="Seen, not documented"
+		icon={Sparkles}
+		value={integer(fresh.length)}
+		hint="Metadata the docs don't list yet"
+	/>
+	<StatTile
+		label="Documented, never seen"
+		icon={EyeOff}
+		value={integer(missing.length)}
+		hint="Not sent in what was captured"
+	/>
 </div>
 
 <div class="controls">
 	<div class="search">
-		<TextField label="Filter fields" hideLabel type="search" icon={Search} bind:value={filter} placeholder="Filter by source, event or field" clearable />
+		<TextField
+			label="Filter fields"
+			hideLabel
+			type="search"
+			icon={Search}
+			bind:value={filter}
+			placeholder="Filter by source, event or field"
+			clearable
+		/>
 	</div>
 	<SegmentedControl
 		label="Which fields"
@@ -95,7 +130,9 @@
 					{#snippet summary()}<span class="mono event">{e.event}</span>{/snippet}
 					{#snippet meta()}
 						<span class="coverage" aria-label="{e.seen} of {e.fields.length} fields seen">
-							<span class="bar"><span style:width="{(e.seen / e.fields.length) * 100}%"></span></span>
+							<span class="bar"
+								><span style:width="{(e.seen / e.fields.length) * 100}%"></span></span
+							>
 							<span class="num">{e.seen}/{e.fields.length}</span>
 						</span>
 						{#if e.count}<span class="num">{integer(e.count)}×</span>{/if}
@@ -104,7 +141,11 @@
 						<table>
 							<caption class="sr-only">Fields of {e.event}</caption>
 							<thead>
-								<tr><th scope="col">Field</th><th scope="col" class="n">Seen</th><th scope="col">Docs</th><th scope="col">Latest value</th></tr>
+								<tr
+									><th scope="col">Field</th><th scope="col" class="n">Seen</th><th scope="col"
+										>Docs</th
+									><th scope="col">Latest value</th></tr
+								>
 							</thead>
 							<tbody>
 								{#each e.fields as f (f.path)}
@@ -113,12 +154,16 @@
 										<td class="n num">{integer(f.count)}</td>
 										<td>
 											{#if f.documented}
-												<Badge size="sm" tone={f.count ? 'success' : 'neutral'}>{f.count ? 'Documented' : 'Documented, unseen'}</Badge>
+												<Badge size="sm" tone={f.count ? 'success' : 'neutral'}
+													>{f.count ? 'Documented' : 'Documented, unseen'}</Badge
+												>
 											{:else}
 												<Badge size="sm" tone="agent">Not documented</Badge>
 											{/if}
 										</td>
-										<td class="sample" title={f.sample == null ? '' : inline(f.sample)}>{f.sample == null ? '' : inline(f.sample)}</td>
+										<td class="sample" title={f.sample == null ? '' : inline(f.sample)}
+											>{f.sample == null ? '' : inline(f.sample)}</td
+										>
 									</tr>
 								{/each}
 							</tbody>
@@ -131,7 +176,10 @@
 {/each}
 
 <div class="grid">
-	<Panel title="Derived by GitPrompt" description="Computed on read from what was stored, so improvements apply to old prompts too.">
+	<Panel
+		title="Derived by GitPrompt"
+		description="Computed on read from what was stored, so improvements apply to old prompts too."
+	>
 		<dl class="glossary">
 			{#each Object.entries(data.catalog.derived) as [name, meaning] (name)}
 				<dt><code>{name}</code></dt>
@@ -199,6 +247,11 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	.coverage .num {
+		min-width: 3.25rem;
+		text-align: right;
 	}
 
 	.bar {
