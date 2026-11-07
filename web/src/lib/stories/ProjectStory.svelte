@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { FolderGit2, Folder } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { ProjectStory } from '#lib/api/types.ts';
@@ -10,13 +11,13 @@
 	import { diffstatText, span } from '#lib/stories/story.ts';
 
 	/** How a project got built, prompt by prompt: its phases, then each phase on a rail. */
-	let { story }: { story: ProjectStory } = $props();
+	let { story, actions }: { story: ProjectStory; actions?: Snippet } = $props();
 
 	const t = $derived(story.totals);
 	const changes = $derived(diffstatText(t.diffstat));
 </script>
 
-<PageHeader title={story.name}>
+<PageHeader title={story.name} {actions}>
 	{#snippet description()}
 		<p class="where">
 			{#if story.git}<FolderGit2 size={14} aria-hidden="true" />{:else}<Folder

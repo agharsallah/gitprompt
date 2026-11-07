@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { FolderGit2, GitBranch } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { Chapter as ChapterData, SessionStory } from '#lib/api/types.ts';
@@ -11,7 +12,7 @@
 	import { diffstatText, span as timeSpan } from '#lib/stories/story.ts';
 
 	/** A session told as chapters: each prompt you typed, with system activity folded between. */
-	let { story }: { story: SessionStory } = $props();
+	let { story, actions }: { story: SessionStory; actions?: Snippet } = $props();
 
 	const chapters = $derived(story.items.filter((i): i is ChapterData => i.kind === 'chapter'));
 	const turns = $derived(new Map(chapters.map((c) => [c.id, c.turn])));
@@ -25,7 +26,7 @@
 	const changes = $derived(diffstatText(t.diffstat));
 </script>
 
-<PageHeader {title}>
+<PageHeader {title} {actions}>
 	{#snippet description()}
 		<p class="where">
 			{#if story.project}
