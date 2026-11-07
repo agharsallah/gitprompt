@@ -5,7 +5,7 @@
  */
 import type { Event } from '#lib/api/types.ts';
 import { modelName } from '#lib/shared/format.ts';
-import { TOOL_KINDS, toolKind, toolLabel, type ToolKind } from '#lib/insights/tools.ts';
+import { TOOL_KINDS, kindOf, toolLabel, type ToolKind } from '#lib/insights/tools.ts';
 
 export type TimelineRow = 'model' | ToolKind;
 
@@ -66,7 +66,13 @@ export function toolDetail(input: unknown): string {
 	return typeof value === 'string' ? value.split('\n')[0] : '';
 }
 
-export function turnTimeline(events: Event[], startIso: string, responseS?: number): Timeline {
+/** `kinds`: the kind of each tool, as the daemon classified it (`summary.tool_kind_of`). */
+export function turnTimeline(
+	events: Event[],
+	startIso: string,
+	responseS?: number,
+	kinds?: Record<string, string>
+): Timeline {
 	const t0 = Date.parse(startIso);
 	const spans: Span[] = [];
 	for (const e of events) {
@@ -76,7 +82,7 @@ export function turnTimeline(events: Event[], startIso: string, responseS?: numb
 			const name = String(e.raw.tool_name ?? e.fields.tool_name ?? 'tool');
 			spans.push({
 				id: e.id,
-				row: toolKind(name),
+				row: kindOf(name, kinds),
 				label: toolLabel(name),
 				detail: toolDetail(e.raw.tool_input),
 				start: Math.max(0, end - duration),

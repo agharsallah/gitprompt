@@ -12,10 +12,20 @@
 	 * agent acting), each call a span from when it started to when it finished. Shows at a glance
 	 * whether a turn was mostly thinking, reading, editing or waiting on commands.
 	 */
-	let { events, start, responseS }: { events: Event[]; start: string; responseS?: number } =
-		$props();
+	let {
+		events,
+		start,
+		responseS,
+		kinds
+	}: {
+		events: Event[];
+		start: string;
+		responseS?: number;
+		/** The kind of each tool (`summary.tool_kind_of`). */
+		kinds?: Record<string, string>;
+	} = $props();
 
-	const timeline = $derived(turnTimeline(events, start, responseS));
+	const timeline = $derived(turnTimeline(events, start, responseS, kinds));
 	const ticks = $derived(durationTicks(timeline.end, 4).filter((t) => t <= timeline.end * 1.001));
 	const pct = (s: number) => `${(s / timeline.end) * 100}%`;
 

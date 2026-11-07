@@ -4,22 +4,22 @@ import {
 	KIND_INFO,
 	mcpParts,
 	TOOL_KINDS,
-	toolKind,
+	asKind,
+	kindOf,
 	toolLabel
 } from '#lib/insights/tools.ts';
 
-describe('toolKind', () => {
-	it.each([
-		['Read', 'read'],
-		['Grep', 'read'],
-		['Edit', 'write'],
-		['NotebookEdit', 'write'],
-		['Bash', 'shell'],
-		['WebFetch', 'web'],
-		['mcp__claude_ai_Figma__get_screenshot', 'mcp'],
-		['Agent', 'agent'],
-		['TodoWrite', 'other']
-	])('%s is %s', (name, kind) => expect(toolKind(name)).toBe(kind));
+describe('kindOf', () => {
+	it('takes the kind the daemon gave the tool', () => {
+		expect(kindOf('Bash', { Bash: 'shell' })).toBe('shell');
+		expect(kindOf('mcp__x__y', { mcp__x__y: 'mcp' })).toBe('mcp');
+	});
+
+	it('draws unknown tools and kinds as other', () => {
+		expect(kindOf('Bash', undefined)).toBe('other');
+		expect(kindOf('Bash', { Bash: 'teleport' })).toBe('other');
+		expect(asKind(null)).toBe('other');
+	});
 });
 
 describe('MCP names', () => {
@@ -39,11 +39,12 @@ describe('MCP names', () => {
 });
 
 describe('byKind', () => {
-	it('folds tools into kinds, in kind order, without empty kinds', () => {
-		expect(byKind({ Bash: 3, Read: 2, Grep: 1, mcp__x__y: 4 })).toEqual([
+	it('orders kinds, drops empty ones and folds unknown ones into other', () => {
+		expect(byKind({ shell: 3, read: 3, mcp: 4, teleport: 1, other: 1 })).toEqual([
 			{ kind: 'read', count: 3 },
 			{ kind: 'shell', count: 3 },
-			{ kind: 'mcp', count: 4 }
+			{ kind: 'mcp', count: 4 },
+			{ kind: 'other', count: 2 }
 		]);
 	});
 

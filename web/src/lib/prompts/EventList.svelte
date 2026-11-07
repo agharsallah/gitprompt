@@ -1,13 +1,22 @@
 <script lang="ts">
 	import type { Event } from '#lib/api/types.ts';
 	import { eventTime, toolDetail } from '#lib/insights/timeline.ts';
-	import { toolKind, KIND_INFO } from '#lib/insights/tools.ts';
+	import { kindOf, KIND_INFO } from '#lib/insights/tools.ts';
 	import { modelName } from '#lib/shared/format.ts';
 	import CodeBlock from '#lib/ui/CodeBlock.svelte';
 	import TextField from '#lib/ui/TextField.svelte';
 
 	/** Every event of the turn, in the order it happened, each with its full payload. */
-	let { events, start }: { events: Event[]; start: string } = $props();
+	let {
+		events,
+		start,
+		kinds
+	}: {
+		events: Event[];
+		start: string;
+		/** The kind of each tool (`summary.tool_kind_of`). */
+		kinds?: Record<string, string>;
+	} = $props();
 
 	let filter = $state('');
 	const sorted = $derived([...events].sort((a, b) => eventTime(a) - eventTime(b)));
@@ -37,7 +46,7 @@
 	}
 	const color = (e: Event) => {
 		const tool = (e.raw.tool_name ?? e.fields.tool_name) as string | undefined;
-		if (tool) return KIND_INFO[toolKind(tool)].color;
+		if (tool) return KIND_INFO[kindOf(tool, kinds)].color;
 		if (e.event === 'api_request') return 'var(--color-agent)';
 		if (e.event?.includes('Failure') || e.event === 'api_error') return 'var(--color-danger-solid)';
 		return 'var(--color-border-control)';

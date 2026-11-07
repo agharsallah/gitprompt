@@ -3,6 +3,8 @@ import { eventTime, toolDetail, turnTimeline } from '#lib/insights/timeline.ts';
 import { after, event } from '#lib/testing/builders.ts';
 
 const start = '2026-11-05T10:00:00.000Z';
+/** As the daemon classifies these tools (summary.tool_kind_of). */
+const KINDS = { Read: 'read', Edit: 'write', Write: 'write', Bash: 'shell' };
 
 describe('turnTimeline', () => {
 	it('places a tool call from its duration back from when it finished', () => {
@@ -14,7 +16,9 @@ describe('turnTimeline', () => {
 					raw: { tool_name: 'Bash', duration_ms: '4000', tool_input: { command: 'pnpm test' } }
 				})
 			],
-			start
+			start,
+			undefined,
+			{ Bash: 'shell' }
 		);
 		expect(t.spans).toEqual([
 			expect.objectContaining({
@@ -62,7 +66,9 @@ describe('turnTimeline', () => {
 					raw: { tool_name: 'Edit' }
 				})
 			],
-			start
+			start,
+			undefined,
+			KINDS
 		);
 		expect(t.spans[0]).toMatchObject({ row: 'write', failed: true });
 	});
@@ -74,7 +80,9 @@ describe('turnTimeline', () => {
 				event({ received_at: after(start, 2), raw: { tool_name: 'Read' } }),
 				event({ event: 'api_request', raw: { 'event.timestamp': after(start, 1) } })
 			],
-			start
+			start,
+			undefined,
+			KINDS
 		);
 		expect(t.rows).toEqual(['model', 'read', 'shell']);
 		expect(t.spans.map((s) => s.label)).toEqual(['Model call', 'Read', 'Bash']);

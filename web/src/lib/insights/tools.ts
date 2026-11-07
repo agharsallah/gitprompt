@@ -28,35 +28,21 @@ export const KIND_INFO: Record<ToolKind, { label: string; color: string; icon: L
 	other: { label: 'Other', color: 'var(--chart-other)', icon: Wrench }
 };
 
-const BY_NAME: Record<string, ToolKind> = {
-	Read: 'read',
-	Grep: 'read',
-	Glob: 'read',
-	LS: 'read',
-	NotebookRead: 'read',
-	LSP: 'read',
-	Write: 'write',
-	Edit: 'write',
-	MultiEdit: 'write',
-	NotebookEdit: 'write',
-	Bash: 'shell',
-	BashOutput: 'shell',
-	KillShell: 'shell',
-	PowerShell: 'shell',
-	Monitor: 'shell',
-	WebFetch: 'web',
-	WebSearch: 'web',
-	Task: 'agent',
-	Agent: 'agent',
-	Workflow: 'agent',
-	Skill: 'agent',
-	SendMessage: 'agent'
-};
+const isKind = (value: unknown): value is ToolKind => TOOL_KINDS.includes(value as ToolKind);
 
-export function toolKind(name: string): ToolKind {
-	if (name.startsWith('mcp__')) return 'mcp';
-	return BY_NAME[name] ?? 'other';
+/**
+ * The kind of a tool, as the daemon classified it (derivations.tool_kind, sent as
+ * `summary.tool_kind_of` on a prompt and as `detail` of a `tool` stats group). A kind this dashboard
+ * does not know draws as "other".
+ */
+export function kindOf(name: string, kinds?: Record<string, string> | null): ToolKind {
+	const kind = kinds?.[name];
+	return isKind(kind) ? kind : 'other';
 }
+
+/** A kind from the daemon (a `tool_kind` group key), or "other". */
+export const asKind = (kind: string | null | undefined): ToolKind =>
+	isKind(kind) ? kind : 'other';
 
 /** "mcp__claude_ai_Figma__get_screenshot" -> { server: "claude_ai_Figma", tool: "get_screenshot" }. */
 export function mcpParts(name: string): { server: string; tool: string } | null {
@@ -67,14 +53,13 @@ export function mcpParts(name: string): { server: string; tool: string } | null 
 /** A tool name short enough for a chip: MCP tools lose their prefix. */
 export const toolLabel = (name: string) => mcpParts(name)?.tool ?? name;
 
-/** Tool-call counts folded into kinds, in kind order, zeros dropped. */
+/** Tool calls by kind (`summary.tool_kinds`), in kind order, zeros dropped. */
 export function byKind(
-	calls: Record<string, number> | undefined
+	kinds: Record<string, number> | undefined
 ): { kind: ToolKind; count: number }[] {
 	const totals = new Map<ToolKind, number>();
-	for (const [name, n] of Object.entries(calls ?? {})) {
-		const kind = toolKind(name);
-		totals.set(kind, (totals.get(kind) ?? 0) + n);
+	for (const [kind, n] of Object.entries(kinds ?? {})) {
+		totals.set(asKind(kind), (totals.get(asKind(kind)) ?? 0) + n);
 	}
 	return TOOL_KINDS.filter((k) => totals.get(k)).map((kind) => ({
 		kind,

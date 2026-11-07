@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { FileCode, FilePen, Globe } from '@lucide/svelte';
 	import type { Prompt } from '#lib/api/types.ts';
-	import { byKind, KIND_INFO, toolKind, toolLabel } from '#lib/insights/tools.ts';
+	import { byKind, KIND_INFO, kindOf, toolLabel } from '#lib/insights/tools.ts';
 	import { count, integer, plural, relativePath } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
@@ -14,12 +14,12 @@
 
 	const s = $derived(prompt.summary);
 	const root = $derived(prompt.context.git_root ?? prompt.fields.cwd);
-	const kinds = $derived(byKind(s.tool_calls));
+	const kinds = $derived(byKind(s.tool_kinds));
 	const tools = $derived(
 		Object.entries(s.tool_calls ?? {})
 			.sort((a, b) => b[1] - a[1])
 			.map(([name, value]) => {
-				const info = KIND_INFO[toolKind(name)];
+				const info = KIND_INFO[kindOf(name, s.tool_kind_of)];
 				return {
 					key: name,
 					label: toolLabel(name),

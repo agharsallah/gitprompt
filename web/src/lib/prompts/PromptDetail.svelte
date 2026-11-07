@@ -254,7 +254,12 @@
 				</div>
 			{/each}
 		</dl>
-		<TurnTimeline events={prompt.events} start={prompt.received_at} responseS={s.response_s} />
+		<TurnTimeline
+			events={prompt.events}
+			start={prompt.received_at}
+			responseS={s.response_s}
+			kinds={s.tool_kind_of}
+		/>
 	</section>
 
 	{#if s.response}
@@ -296,7 +301,7 @@
 			{:else if id === 'session'}
 				<SessionPanel {prompt} />
 			{:else if id === 'events'}
-				<EventList events={prompt.events} start={prompt.received_at} />
+				<EventList events={prompt.events} start={prompt.received_at} kinds={s.tool_kind_of} />
 			{:else}
 				<div class="raw">
 					<section>
