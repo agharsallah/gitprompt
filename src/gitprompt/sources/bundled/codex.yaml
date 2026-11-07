@@ -43,7 +43,8 @@ x-sync-hook: &sync_hook
 
 install:
   # Codex reads $CODEX_HOME/hooks.json (default ~/.codex) next to config.toml, which stays untouched.
-  # Only events 0.150.1 knows: an unknown event name would make Codex skip the whole file.
+  # Only events 0.150.1 knows (it ignores unknown event names; any other unknown top-level key
+  # than `description` and `hooks` makes it reject the whole file).
   file: "${CODEX_HOME:-~/.codex}/hooks.json"
   merge:
     hooks:
@@ -142,6 +143,6 @@ documented:
 not_captured:
   PreToolUse: A decision point (can deny or rewrite a tool call). PostToolUse has the same data.
   PermissionRequest: A decision point (answers an approval prompt).
-  PreModelRequest / PostModelRequest: Not in 0.150.1 (documented for later versions, with token usage per model call); an unknown event name would make older versions skip the whole hooks file.
+  PreModelRequest / PostModelRequest: Not in 0.150.1 (documented for 0.167+, PostModelRequest with token usage per model call); not verified against an installed version, and their usage needs a mapping first.
   OpenTelemetry: Tokens and cost come only from Codex's OpenTelemetry export, configured in config.toml; not connected (docs/adr/0019-codex-connector.md).
   notify: A program Codex runs after each turn; Stop already reports the turn end and answer.
