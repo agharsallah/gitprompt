@@ -331,6 +331,8 @@ export type ConfigAction = 'connect' | 'disconnect';
 export type Updated = { updated: number };
 
 export type Field = {
+	/** Why GitPrompt deliberately leaves this field unused (the spec's `ignored`), if it does. */
+	unused?: string | null;
 	source: string;
 	event: string;
 	path: string;

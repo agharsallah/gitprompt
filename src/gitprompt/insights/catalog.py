@@ -21,6 +21,7 @@ class Field(BaseModel):
     count: int = 0
     sample: Any = None
     documented: bool = False
+    unused: str | None = None  # the spec's `ignored` reason: GitPrompt deliberately leaves it unused
 
 
 class NotCaptured(BaseModel):
@@ -64,11 +65,18 @@ def _mark_documented(seen: dict[Key, Field], spec: Spec) -> None:
                 seen[(spec.id, event, name)] = Field(source=spec.id, event=event, path=name, documented=True)
 
 
+def _mark_unused(seen: dict[Key, Field], spec: Spec) -> None:
+    for (source, _, path), f in seen.items():
+        if source == spec.id:
+            f.unused = next((why for name, why in spec.ignored.items() if _covers(name, path)), None)
+
+
 def build_catalog(samples: Iterable[tuple[str, str, dict]], specs: Iterable[Spec]) -> Catalog:
     specs = list(specs)
     seen = _seen(samples)
     for spec in specs:
         _mark_documented(seen, spec)
+        _mark_unused(seen, spec)
     return Catalog(
         fields=sorted(seen.values(), key=lambda f: (f.source, f.event, f.path)),
         not_captured=[NotCaptured(source=s.id, event=e, reason=r) for s in specs for e, r in (s.not_captured | s.drop_events).items()],

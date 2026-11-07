@@ -201,6 +201,9 @@
 													{:else}
 														<Badge size="sm" tone="agent">Not documented</Badge>
 													{/if}
+													{#if f.unused}
+														<Badge size="sm" variant="outline" title={f.unused}>Not used</Badge>
+													{/if}
 												</td>
 												<td class="sample" title={f.sample == null ? '' : inline(f.sample)}
 													>{f.sample == null ? '' : inline(f.sample)}</td

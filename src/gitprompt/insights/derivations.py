@@ -23,7 +23,7 @@ from functools import cached_property
 from typing import Any
 
 from gitprompt.core.payload import compact, pluck
-from gitprompt.insights import origin
+from gitprompt.insights import facts, origin
 from gitprompt.insights.redaction import find_secrets
 from gitprompt.sources.spec import Spec, ToolKind, Usage, by_name, tool_kind
 
@@ -474,6 +474,7 @@ DERIVED: dict[str, str] = {
     **PROMPT_STATS.docs,
     **TURN.docs,
     **SESSION.docs,
+    **facts.DOCS,
     "commits / diffstat": "commits made after the prompt, until the next prompt of the session",
     "context.git_*": "repository state when the prompt was sent",
     "context.tool_version": "tool version when the prompt was sent",

@@ -23,6 +23,7 @@ from test_conformance import TOOLS, cases, replay  # the fixtures and how they a
 from gitprompt.capture import pipeline
 from gitprompt.core.payload import flatten
 from gitprompt.insights import derivations, origin
+from gitprompt.insights.catalog import build_catalog
 from gitprompt.insights.indexer import prompt_facts
 from gitprompt.sources.spec import Spec, load_specs
 from gitprompt.storage.store import Store
@@ -131,6 +132,14 @@ def test_an_unknown_key_fails_coverage(settings, monkeypatch):
     static, reads = declared(spec), derived_reads(spec, settings, monkeypatch)
     payload = {**cases("codex")[1][1]["payload"], "brand_new_field": 1, "token_usage": {"input_tokens": 1, "new_kind": 2}}
     assert uncovered(payload, static, reads) == ["brand_new_field", "token_usage.new_kind"]
+
+
+def test_the_fields_page_says_why_a_field_is_not_used(settings):
+    specs = load_specs(settings)
+    sample = ("codex", "PostModelRequest", {"model": "gpt-6-luna", "token_usage": {"input_tokens": 1, "total_tokens": 2}})
+    fields = {f.path: f for f in build_catalog([sample], specs.values()).fields if f.source == "codex" and f.event == "PostModelRequest"}
+    assert fields["token_usage.total_tokens"].unused == specs["codex"].ignored["token_usage.total_tokens"]
+    assert fields["token_usage.input_tokens"].unused is None and fields["model"].unused is None
 
 
 def test_ignored_keys_have_a_reason(settings):
