@@ -76,7 +76,7 @@
 					label: modelName(g.key!),
 					value: m.value(g),
 					hint: usage
-						? `${integer(g.api_requests)} requests · ${compact(tokenTotal(g))} tokens · ${money(g.cost_usd)}`
+						? `${integer(g.api_requests)} requests · ${compact(tokenTotal(g))} tokens${g.cost_usd ? ` · ${money(g.cost_usd)}` : ''}`
 						: plural(g.prompts, 'prompt'),
 					href: link({ model: [g.key!] })
 				}))}

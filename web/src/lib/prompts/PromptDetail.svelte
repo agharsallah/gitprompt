@@ -122,7 +122,7 @@
 				hint: s.tool_failures ? `${s.tool_failures} failed` : undefined
 			},
 			{ label: 'Files changed', value: integer(s.files_written?.length ?? 0) },
-			s.api_requests && { label: 'Cost', value: money(s.cost_usd) },
+			s.cost_usd && { label: 'Cost', value: money(s.cost_usd) },
 			s.api_requests && { label: 'Tokens', value: compact(tokens) }
 		].filter((f) => !!f) as { label: string; value: string; hint?: string }[]
 	);

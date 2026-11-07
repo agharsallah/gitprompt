@@ -2,7 +2,7 @@
 	import { FileText, FolderInput, Settings2 } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { PromptDetail } from '#lib/api/types.ts';
-	import { duration, humanize, integer, relativePath } from '#lib/shared/format.ts';
+	import { duration, humanize, integer, plural, relativePath } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import KeyValue from '#lib/ui/KeyValue.svelte';
@@ -12,6 +12,18 @@
 	let { prompt }: { prompt: PromptDetail } = $props();
 
 	const s = $derived(prompt.session);
+	/** SessionStart.source, in words: how the session began, then how it was taken up again. */
+	const HOW: Record<string, string> = {
+		startup: 'new',
+		resume: 'resumed',
+		clear: 'cleared',
+		compact: 'compacted',
+		fork: 'forked'
+	};
+	const how = (source: string) => HOW[source] ?? humanize(source).toLowerCase();
+	const starts = $derived((s.starts ?? []).map(how));
+	const startedAs = $derived(starts.length ? ` (${starts[0]})` : '');
+	const again = $derived(starts.slice(1));
 	const id = $derived(prompt.fields.session_id);
 	const span = $derived(
 		s.first_event_at && s.last_event_at
@@ -51,7 +63,10 @@
 	<section class="block">
 		<div class="span-line">
 			{#if s.first_event_at}
-				<span>Started <RelativeTime iso={s.first_event_at} /></span>
+				<span>Started <RelativeTime iso={s.first_event_at} />{startedAs}</span>
+			{/if}
+			{#if again.length}
+				<span>taken up again {plural(again.length, 'time')}: {again.join(', ')}</span>
 			{/if}
 			{#if span !== null}<span>active over {duration(span)}</span>{/if}
 			{#if s.ended}<span>ended: {humanize(s.ended).toLowerCase()}</span>{/if}

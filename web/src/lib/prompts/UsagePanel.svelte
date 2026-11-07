@@ -18,7 +18,8 @@
 	import type { Availability } from '#lib/sources/capabilities.ts';
 
 	/**
-	 * What the turn cost, from telemetry: tokens by kind, cache reuse, models, time in the API.
+	 * What the turn cost: tokens by kind, cache reuse, models, and cost and time in the API when the
+	 * tool reports them (Codex's model-call hooks report tokens only).
 	 * Without usage, `availability` (of the prompt's tool) says which layer would report it, or that
 	 * its tool can't.
 	 */
@@ -41,22 +42,32 @@
 {:else}
 	<div class="usage">
 		<dl class="figures">
-			<div>
-				<dt>Cost</dt>
-				<dd>{money(s.cost_usd)}</dd>
-			</div>
+			{#if s.cost_usd}
+				<div>
+					<dt>Cost</dt>
+					<dd>{money(s.cost_usd)}</dd>
+				</div>
+			{/if}
 			<div>
 				<dt>Model requests</dt>
 				<dd>{integer(s.api_requests)}</dd>
 			</div>
-			<div>
-				<dt>Time in the API</dt>
-				<dd>{duration(s.api_time_s)}</dd>
-			</div>
+			{#if s.api_time_s}
+				<div>
+					<dt>Time in the API</dt>
+					<dd>{duration(s.api_time_s)}</dd>
+				</div>
+			{/if}
 			<div>
 				<dt>Tokens</dt>
 				<dd>{compact(tokenTotal(tokens))}</dd>
 			</div>
+			{#if s.reasoning_tokens}
+				<div>
+					<dt title="Output tokens the model spent reasoning, part of the output">Reasoning</dt>
+					<dd>{compact(s.reasoning_tokens)}</dd>
+				</div>
+			{/if}
 		</dl>
 
 		<section class="block">
