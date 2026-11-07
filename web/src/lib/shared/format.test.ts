@@ -88,7 +88,14 @@ describe('modelName', () => {
 		['claude-sonnet-4-5-20250929', 'Sonnet 4.5'],
 		['claude-opus-4-20250514', 'Opus 4'],
 		['claude-opus-5-5[1m]', 'Opus 5.5'],
-		['gpt-5', 'gpt-5']
+		['gpt-5', 'GPT-5'],
+		['gpt-6-luna', 'GPT-6 Luna'],
+		['gpt-5-codex', 'GPT-5 Codex'],
+		['gpt-5.1-codex-mini', 'GPT-5.1 Codex Mini'],
+		['gpt-4o', 'GPT-4o'],
+		['gpt-4o-2024-08-06', 'GPT-4o'],
+		['o3', 'o3'],
+		['some-local-model', 'some-local-model']
 	])('%s -> %s', (id, name) => expect(modelName(id)).toBe(name));
 });
 

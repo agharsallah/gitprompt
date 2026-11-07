@@ -130,15 +130,27 @@ export function dayLabel(key: string, now = new Date()): string {
 	});
 }
 
+const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+
 /**
- * A model id as people say it: "claude-opus-5-5" -> "Opus 5.5",
- * "claude-sonnet-4-5-20250929" -> "Sonnet 4.5". Unknown ids pass through.
+ * A model id as people say it: "claude-opus-5-5" -> "Opus 5.5", "claude-sonnet-4-5-20250929" ->
+ * "Sonnet 4.5", "gpt-6-luna" -> "GPT-6 Luna", "gpt-5.1-codex-mini" -> "GPT-5.1 Codex Mini",
+ * "gpt-4o-2024-08-06" -> "GPT-4o". Unknown ids pass through.
  */
 export function modelName(id: string): string {
-	const m = id.match(/^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(?:\[.*\])?$/i);
-	if (!m) return id.replace(/^claude-/, '');
-	const family = m[1][0].toUpperCase() + m[1].slice(1);
-	return m[3] ? `${family} ${m[2]}.${m[3]}` : `${family} ${m[2]}`;
+	const claude = id.match(/^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(?:\[.*\])?$/i);
+	if (claude) {
+		const family = capital(claude[1]);
+		return claude[3] ? `${family} ${claude[2]}.${claude[3]}` : `${family} ${claude[2]}`;
+	}
+	const gpt = id.match(
+		/^gpt-(\d+(?:\.\d+)?[a-z]?)((?:-[a-z][a-z0-9]*)*?)(?:-\d{4}-\d{2}-\d{2})?$/i
+	);
+	if (gpt) {
+		const words = gpt[2].split('-').filter(Boolean).map(capital);
+		return [`GPT-${gpt[1]}`, ...words].join(' ');
+	}
+	return id.replace(/^claude-/, '');
 }
 
 /**
