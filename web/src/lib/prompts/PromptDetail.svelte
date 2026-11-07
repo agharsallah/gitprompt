@@ -36,6 +36,8 @@
 	import SessionPanel from '#lib/prompts/SessionPanel.svelte';
 	import TurnTimeline from '#lib/prompts/TurnTimeline.svelte';
 	import UsagePanel from '#lib/prompts/UsagePanel.svelte';
+	import { projectId } from '#lib/stories/story.ts';
+	import VersionsPanel from '#lib/stories/VersionsPanel.svelte';
 
 	/**
 	 * One prompt as a story: what you asked, how the turn went, what the agent answered, and your
@@ -115,13 +117,14 @@
 		].filter((f) => !!f) as { label: string; value: string; hint?: string }[]
 	);
 
-	type TabId = 'activity' | 'usage' | 'git' | 'session' | 'events' | 'raw';
+	type TabId = 'activity' | 'usage' | 'git' | 'session' | 'versions' | 'events' | 'raw';
 	let tab = $state<TabId>('activity');
 	const tabs = $derived([
 		{ id: 'activity' as const, label: 'Activity', count: count(s.tool_calls) },
 		{ id: 'usage' as const, label: 'Usage' },
 		{ id: 'git' as const, label: 'Repository', count: prompt.commits.commits?.length },
 		{ id: 'session' as const, label: 'Session', disabled: !session },
+		{ id: 'versions' as const, label: 'Versions', disabled: origin.system },
 		{ id: 'events' as const, label: 'Events', count: prompt.events.length },
 		{ id: 'raw' as const, label: 'Raw' }
 	]);
@@ -145,10 +148,7 @@
 				><RelativeTime iso={prompt.received_at} /></span
 			>
 			{#if session && s.turn}
-				<a
-					href="{resolve('/prompts')}?session={encodeURIComponent(session)}&id={prompt.id}"
-					data-sveltekit-reset="false"
-				>
+				<a href="{resolve('/sessions/[id]', { id: session })}#prompt-{prompt.id}">
 					Turn {s.turn} of its session
 				</a>
 			{/if}
@@ -169,7 +169,9 @@
 
 	<div class="project-line">
 		{#if project.root}
-			<a class="project" href="{resolve('/prompts')}?repo={encodeURIComponent(project.root)}"
+			<a
+				class="project"
+				href="{resolve('/projects/[id]', { id: projectId(project.root) })}#prompt-{prompt.id}"
 				>{project.name}</a
 			>
 		{:else}
@@ -300,6 +302,8 @@
 				<GitPanel {prompt} />
 			{:else if id === 'session'}
 				<SessionPanel {prompt} />
+			{:else if id === 'versions'}
+				<VersionsPanel id={prompt.id} />
 			{:else if id === 'events'}
 				<EventList events={prompt.events} start={prompt.received_at} kinds={s.tool_kind_of} />
 			{:else}
