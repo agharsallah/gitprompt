@@ -10,7 +10,8 @@
 	import Sparkline from '#lib/ui/charts/Sparkline.svelte';
 
 	/** One project: how much you worked in it, when, on which branches, and what the agent did there. */
-	let { summary, share }: { summary: ProjectSummary; /** of all prompts, 0..1 */ share: number } = $props();
+	let { summary, share }: { summary: ProjectSummary; /** of all prompts, 0..1 */ share: number } =
+		$props();
 
 	const p = $derived(summary.project);
 	const BRANCHES = 3;
@@ -18,7 +19,10 @@
 
 <article class="project" aria-labelledby="project-{p.key}">
 	<div class="name">
-		{#if p.root}<FolderGit2 size={18} aria-hidden="true" />{:else}<Folder size={18} aria-hidden="true" />{/if}
+		{#if p.root}<FolderGit2 size={18} aria-hidden="true" />{:else}<Folder
+				size={18}
+				aria-hidden="true"
+			/>{/if}
 		<div class="titles">
 			<h2 id="project-{p.key}">
 				{#if p.root}
@@ -36,16 +40,39 @@
 			<span class="n">{integer(summary.prompts)}</span>
 			<span class="muted">{summary.prompts === 1 ? 'prompt' : 'prompts'}</span>
 		</p>
-		<div class="share" role="meter" aria-label="Share of your prompts" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(share * 100)}>
+		<div
+			class="share"
+			role="meter"
+			aria-label="Share of your prompts"
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={Math.round(share * 100)}
+		>
 			<span style:width="{share * 100}%"></span>
 		</div>
 	</div>
 
 	<dl class="facts">
-		<div><dt>Sessions</dt><dd><a href="{resolve('/sessions')}?project={encodeURIComponent(p.key)}">{integer(summary.sessions)}</a></dd></div>
-		<div><dt>Files changed</dt><dd>{integer(summary.filesWritten)}</dd></div>
-		{#if summary.cost}<div><dt>Cost</dt><dd>{money(summary.cost)}</dd></div>{/if}
-		<div><dt>Last prompt</dt><dd><RelativeTime iso={summary.lastAt} /></dd></div>
+		<div>
+			<dt>Sessions</dt>
+			<dd>
+				<a href="{resolve('/sessions')}?project={encodeURIComponent(p.key)}"
+					>{integer(summary.sessions)}</a
+				>
+			</dd>
+		</div>
+		<div>
+			<dt>Files changed</dt>
+			<dd>{integer(summary.filesWritten)}</dd>
+		</div>
+		{#if summary.cost}<div>
+				<dt>Cost</dt>
+				<dd>{money(summary.cost)}</dd>
+			</div>{/if}
+		<div>
+			<dt>Last prompt</dt>
+			<dd><RelativeTime iso={summary.lastAt} /></dd>
+		</div>
 	</dl>
 
 	<div class="trend">
@@ -58,7 +85,12 @@
 		{#if summary.kinds.length}
 			<SegmentedBar
 				label="Tool calls by kind in {p.name}"
-				parts={summary.kinds.map((k) => ({ key: k.kind, label: KIND_INFO[k.kind].label, value: k.count, color: KIND_INFO[k.kind].color }))}
+				parts={summary.kinds.map((k) => ({
+					key: k.kind,
+					label: KIND_INFO[k.kind].label,
+					value: k.count,
+					color: KIND_INFO[k.kind].color
+				}))}
 				format={(v) => plural(v, 'call')}
 			/>
 		{/if}
@@ -66,8 +98,12 @@
 			{#each summary.branches.slice(0, BRANCHES) as branch (branch)}
 				<span class="branch"><GitBranch size={12} aria-hidden="true" />{branch}</span>
 			{/each}
-			{#if summary.branches.length > BRANCHES}<span class="muted">{summary.branches.length - BRANCHES} more</span>{/if}
-			{#if summary.failed}<Badge tone="danger" size="sm">{plural(summary.failed, 'failed turn')}</Badge>{/if}
+			{#if summary.branches.length > BRANCHES}<span class="muted"
+					>{summary.branches.length - BRANCHES} more</span
+				>{/if}
+			{#if summary.failed}<Badge tone="danger" size="sm"
+					>{plural(summary.failed, 'failed turn')}</Badge
+				>{/if}
 			{#if p.host}<Badge size="sm" variant="outline">{p.host}</Badge>{/if}
 		</div>
 	</div>

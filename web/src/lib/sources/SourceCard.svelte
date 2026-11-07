@@ -73,7 +73,9 @@
 		</span>
 		<div class="titles">
 			<h2 id="source-{source.id}">{source.name}</h2>
-			<p class="version muted">{source.version ? `Version ${source.version}` : 'Version unknown'}</p>
+			<p class="version muted">
+				{source.version ? `Version ${source.version}` : 'Version unknown'}
+			</p>
 		</div>
 		<Badge tone={status.tone} dot>{status.label}</Badge>
 	</header>
@@ -81,14 +83,28 @@
 	<dl class="health">
 		<div>
 			<dt>Last event</dt>
-			<dd><span class="fresh is-{freshness}" aria-hidden="true"></span><RelativeTime iso={source.last_at} /></dd>
+			<dd>
+				<span class="fresh is-{freshness}" aria-hidden="true"></span><RelativeTime
+					iso={source.last_at}
+				/>
+			</dd>
 		</div>
-		{#if !telemetry}<div><dt>Prompts</dt><dd>{integer(source.total)}</dd></div>{/if}
-		<div><dt>Events</dt><dd>{compact(source.events)}</dd></div>
+		{#if !telemetry}<div>
+				<dt>Prompts</dt>
+				<dd>{integer(source.total)}</dd>
+			</div>{/if}
+		<div>
+			<dt>Events</dt>
+			<dd>{compact(source.events)}</dd>
+		</div>
 	</dl>
 
 	<p class="terms"><ShieldCheck size={16} aria-hidden="true" /><span>{source.terms}</span></p>
-	<p class="config"><FileCog size={14} aria-hidden="true" /><span class="mono">{relativePath(source.config_file)}</span></p>
+	<p class="config">
+		<FileCog size={14} aria-hidden="true" /><span class="mono"
+			>{relativePath(source.config_file)}</span
+		>
+	</p>
 
 	{#each source.blocks as block (block)}
 		<Callout tone="danger" title="Can't connect">{block}. GitPrompt won't change that.</Callout>
@@ -100,7 +116,9 @@
 		<Callout tone="warning" title="{integer(source.unmapped)} events had no prompt">
 			The tool may have changed its payload. Update the source spec, then re-map what is stored.
 			{#snippet actions()}
-				<Button size="sm" icon={RefreshCw} onclick={remap} loading={busy}>Re-map stored events</Button>
+				<Button size="sm" icon={RefreshCw} onclick={remap} loading={busy}
+					>Re-map stored events</Button
+				>
 			{/snippet}
 		</Callout>
 	{/if}
@@ -120,7 +138,12 @@
 				{/if}
 			</p>
 			{#if preview.change.diff}
-				<CodeBlock code={preview.change.diff} diff label={relativePath(preview.change.file)} maxHeight="22rem" />
+				<CodeBlock
+					code={preview.change.diff}
+					diff
+					label={relativePath(preview.change.file)}
+					maxHeight="22rem"
+				/>
 				<p class="muted note">Lines marked + are added, − removed. A backup of the file is kept.</p>
 			{/if}
 			<div class="actions">
@@ -130,7 +153,11 @@
 					disabled={!preview.change.diff}
 					loading={busy}
 				>
-					{preview.action === 'connect' ? (source.connected ? 'Update connection' : 'Connect') : 'Disconnect'}
+					{preview.action === 'connect'
+						? source.connected
+							? 'Update connection'
+							: 'Connect'
+						: 'Disconnect'}
 				</Button>
 				<Button variant="ghost" onclick={() => (preview = null)} disabled={busy}>Cancel</Button>
 			</div>
@@ -139,13 +166,28 @@
 		<div class="actions">
 			{#if source.connected}
 				{#if source.outdated}
-					<Button variant="primary" onclick={() => review('connect')} disabled={blocked} loading={busy}>
+					<Button
+						variant="primary"
+						onclick={() => review('connect')}
+						disabled={blocked}
+						loading={busy}
+					>
 						Review the update
 					</Button>
 				{/if}
-				<Button icon={Unplug} onclick={() => review('disconnect')} loading={busy && !source.outdated}>Disconnect</Button>
+				<Button
+					icon={Unplug}
+					onclick={() => review('disconnect')}
+					loading={busy && !source.outdated}>Disconnect</Button
+				>
 			{:else}
-				<Button variant="primary" icon={Plug} onclick={() => review('connect')} disabled={!source.detected || blocked} loading={busy}>
+				<Button
+					variant="primary"
+					icon={Plug}
+					onclick={() => review('connect')}
+					disabled={!source.detected || blocked}
+					loading={busy}
+				>
 					Review and connect
 				</Button>
 				{#if !source.detected}<span class="muted hint">Install the tool first.</span>{/if}

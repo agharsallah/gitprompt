@@ -4,7 +4,15 @@
 	import type { SessionSummary } from '#lib/insights/aggregate.ts';
 	import { outcome } from '#lib/insights/outcome.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
-	import { duration, excerpt, integer, modelName, money, plural, timeOfDay } from '#lib/shared/format.ts';
+	import {
+		duration,
+		excerpt,
+		integer,
+		modelName,
+		money,
+		plural,
+		timeOfDay
+	} from '#lib/shared/format.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
@@ -27,23 +35,45 @@
 			<h2 id="session-{s.id}-title" class="title">{title}</h2>
 			<p class="where">
 				<span class="project">{s.project.name}</span>
-				{#if s.branch}<span class="branch"><GitBranch size={12} aria-hidden="true" />{s.branch}</span>{/if}
-				<span><RelativeTime iso={s.startedAt} />, {timeOfDay(s.startedAt)} to {timeOfDay(s.endedAt)}</span>
+				{#if s.branch}<span class="branch"
+						><GitBranch size={12} aria-hidden="true" />{s.branch}</span
+					>{/if}
+				<span
+					><RelativeTime iso={s.startedAt} />, {timeOfDay(s.startedAt)} to {timeOfDay(
+						s.endedAt
+					)}</span
+				>
 			</p>
 		</div>
 		<div class="badges">
 			{#if s.failed}<Badge tone="danger" size="sm">{plural(s.failed, 'failed turn')}</Badge>{/if}
-			{#each s.permissionModes as mode (mode)}<Badge variant="outline" size="sm">{mode}</Badge>{/each}
+			{#each s.permissionModes as mode (mode)}<Badge variant="outline" size="sm">{mode}</Badge
+				>{/each}
 		</div>
 	</header>
 
 	<div class="body">
 		<dl class="figures">
-			<div><dt>Turns</dt><dd>{integer(s.prompts.length)}</dd></div>
-			<div><dt>Span</dt><dd>{duration(span)}</dd></div>
-			<div><dt>Tool calls</dt><dd>{integer(s.toolCalls)}</dd></div>
-			<div><dt>Files changed</dt><dd>{integer(s.filesWritten)}</dd></div>
-			{#if s.cost}<div><dt>Cost</dt><dd>{money(s.cost)}</dd></div>{/if}
+			<div>
+				<dt>Turns</dt>
+				<dd>{integer(s.prompts.length)}</dd>
+			</div>
+			<div>
+				<dt>Span</dt>
+				<dd>{span > 0 ? duration(span) : '—'}</dd>
+			</div>
+			<div>
+				<dt>Tool calls</dt>
+				<dd>{integer(s.toolCalls)}</dd>
+			</div>
+			<div>
+				<dt>Files changed</dt>
+				<dd>{integer(s.filesWritten)}</dd>
+			</div>
+			{#if s.cost}<div>
+					<dt>Cost</dt>
+					<dd>{money(s.cost)}</dd>
+				</div>{/if}
 		</dl>
 		<div class="strip">
 			<TurnStrip prompts={s.prompts} />
@@ -55,7 +85,9 @@
 
 	<Disclosure summary="Every turn">
 		{#snippet meta()}
-			{#if real}<a href="{resolve('/prompts')}?session={encodeURIComponent(s.id)}">Open in prompts</a>{/if}
+			{#if real}<a href="{resolve('/prompts')}?session={encodeURIComponent(s.id)}"
+					>Open in prompts</a
+				>{/if}
 		{/snippet}
 		<ol class="turns">
 			{#each s.prompts as p, i (p.id)}

@@ -44,7 +44,11 @@
 	{/each}
 	{#if active}
 		<Tooltip x={active.x} y={0} {width}>
-			<strong>Turn {active.p.summary.turn}{active.p.summary.response_s != null ? `, ${duration(active.p.summary.response_s)}` : ''}</strong>
+			<strong
+				>Turn {active.p.summary.turn}{active.p.summary.response_s != null
+					? `, ${duration(active.p.summary.response_s)}`
+					: ''}</strong
+			>
 			{excerpt(active.p.prompt, 90)}
 		</Tooltip>
 	{/if}

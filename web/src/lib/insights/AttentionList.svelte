@@ -62,7 +62,9 @@
 						<span class="n num">{integer(row.items.length)}</span>
 						{row.label}
 					</p>
-					<a class="latest truncate" href="{resolve('/prompts')}?id={latest.id}">{excerpt(latest.prompt, 90) || row.hint}</a>
+					<a class="latest truncate" href="{resolve('/prompts')}?id={latest.id}"
+						>{excerpt(latest.prompt, 90) || row.hint}</a
+					>
 				</div>
 				{#if row.href}<a class="review" href={row.href}>Review</a>{/if}
 			</li>

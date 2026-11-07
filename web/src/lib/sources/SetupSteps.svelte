@@ -49,7 +49,11 @@
 					<p class="body">{step.body}</p>
 				</div>
 				{#if step.action && !step.done}
-					<Button href={resolve('/sources')} variant={i === next ? 'primary' : 'secondary'} size="sm">{step.action}</Button>
+					<Button
+						href={resolve('/sources')}
+						variant={i === next ? 'primary' : 'secondary'}
+						size="sm">{step.action}</Button
+					>
 				{/if}
 			</li>
 		{/each}
