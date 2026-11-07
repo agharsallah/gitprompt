@@ -84,7 +84,8 @@ def test_expand_uses_env_default_and_user_home(settings, monkeypatch):
 def test_bundled_spec_inherits_default_map(settings):
     spec = load_specs(settings)["claude-code"]
     assert spec.map["prompt"][0] == "prompt"  # from _defaults.yaml
-    assert spec.map["permission_mode"] == ["permission_mode"]  # from the spec
+    assert spec.map["session_title"] == ["session_title"]  # from the spec
+    assert spec.usage.events == ["api_request"]  # from _defaults.yaml, replaced whole by a spec of its own
 
 
 def test_user_spec_overrides_bundled(settings):
@@ -117,3 +118,18 @@ def test_accept_events_apply_before_drop_events(settings):
 )
 def test_tool_version_is_the_first_dotted_number(output, version):
     assert probe.version_of(output) == version
+
+
+@pytest.mark.parametrize(
+    ("version", "missing"),
+    [
+        ("0.150.1", {"usage": "0.164.0"}),
+        ("0.164.0", {}),
+        ("0.169.0-alpha.2", {}),
+        ("0.163.0-alpha.10.1", {"usage": "0.164.0"}),
+        (None, {}),  # unknown: given the benefit of the doubt
+        ("nightly", {}),
+    ],
+)
+def test_capabilities_a_version_lacks_come_from_capability_since(settings, version, missing):
+    assert probe.missing_capabilities(load_specs(settings)["codex"], version) == missing

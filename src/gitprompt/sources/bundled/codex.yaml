@@ -2,7 +2,7 @@
 #   hooks      https://learn.chatgpt.com/docs/hooks (moved from developers.openai.com/codex/hooks)
 #   schemas    https://github.com/openai/codex/tree/main/codex-rs/hooks/schema/generated
 #   releases   https://github.com/openai/codex/releases
-# Re-checked 2026-11-07 against the docs (0.167.0) and live against codex-cli 0.150.1 (`codex exec`).
+# Re-checked 2026-11-07 against the docs and live (`codex exec`) against codex-cli 0.150.1 and 0.167.0.
 #
 # Codex copies Claude Code's hook shape (event -> matcher groups -> handlers), so this is the same
 # async curl command forwarder as claude-code.yaml: it pipes the event JSON (stdin) to the receiver,
@@ -16,7 +16,7 @@ id: codex
 name: OpenAI Codex CLI
 assistant: Codex
 layer: Hooks
-summary: Your prompts, the model, the tools each turn used, subagents and Codex's final answer.
+summary: Your prompts, the model and its tokens, the tools each turn used, subagents and Codex's final answer.
 detect: ["${CODEX_HOME:-~/.codex}"]
 version_cmd: [codex, --version]
 
@@ -43,8 +43,9 @@ x-sync-hook: &sync_hook
 
 install:
   # Codex reads $CODEX_HOME/hooks.json (default ~/.codex) next to config.toml, which stays untouched.
-  # Only events 0.150.1 knows (it ignores unknown event names; any other unknown top-level key
-  # than `description` and `hooks` makes it reject the whole file).
+  # Older versions ignore event names they don't know (PostModelRequest before 0.164; checked live
+  # with 0.150.1); any other unknown top-level key than `description` and `hooks` makes Codex reject
+  # the whole file.
   file: "${CODEX_HOME:-~/.codex}/hooks.json"
   merge:
     hooks:
@@ -55,6 +56,7 @@ install:
       SubagentStop: *hook
       PreCompact: *hook
       PostCompact: *hook
+      PostModelRequest: *hook  # 0.164+: one per model call, with its token usage
       Stop: *sync_hook
       Interrupt: *sync_hook
       SessionEnd: *sync_hook
@@ -66,18 +68,35 @@ after_connect: >-
 prompt_events: [UserPromptSubmit]
 
 # What this connector yields (docs/sources.md "Capabilities per tool"). Every hook payload carries
-# the model. Subagents: their SubagentStart, tool calls and SubagentStop carry the subagent's own
-# turn_id (seen live with 0.150.1), not the parent's, and fire no UserPromptSubmit, so they are
-# stored with the session but join no prompt. Not available: tokens and cost (Codex's OpenTelemetry export, not connected: see
-# docs/adr/0019-codex-connector.md), and per-session metrics.
-capabilities: [prompt, cwd, model, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+# the model; PostModelRequest (0.164+) the tokens of each model call. Subagents: their
+# SubagentStart, tool calls and SubagentStop carry the subagent's own turn_id (seen live with
+# 0.150.1), not the parent's, and fire no UserPromptSubmit, so they are stored with the session but
+# join no prompt. Not available: cost (no hook reports it; Codex's OpenTelemetry export only has an
+# estimate, see docs/adr/0019-codex-connector.md), and per-session metrics.
+capabilities: [prompt, cwd, model, usage, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+capability_since:
+  usage: 0.164.0  # PostModelRequest (rust-v0.163.0 has no model-request schema, rust-v0.164.0 does)
 
 # Every event of a turn carries `turn_id`: the prompt id. Events join their prompt by it.
 map:
   prompt_id: [turn_id]
-  permission_mode: [permission_mode]
-  # session_id, cwd, prompt, event, model, agent_id, agent_type, tool_name, tool_use_id,
-  # transcript_path: _defaults.yaml
+  # session_id, cwd, prompt, event, model, permission_mode, agent_id, agent_type, tool_name,
+  # tool_use_id, transcript_path: _defaults.yaml
+
+# Model calls: one PostModelRequest per attempt, joined to its turn by turn_id (seen live with
+# 0.167.0: their input tokens add up to `codex exec`'s own turn usage). OpenAI's input_tokens include
+# the cached ones; reasoning tokens are part of the output tokens. No cost and no duration.
+usage:
+  events: [PostModelRequest]
+  input_includes_cached: true
+  values:
+    model: model
+    input_tokens: token_usage.input_tokens
+    output_tokens: token_usage.output_tokens
+    cache_read_tokens: token_usage.cached_input_tokens
+    cache_creation_tokens: token_usage.cache_write_input_tokens
+    reasoning_tokens: token_usage.reasoning_output_tokens
+    error: error
 
 # What each tool does (insights/derivations.py). Hook payloads name the shell tool `Bash` (the
 # command is `tool_input.command`), file edits `apply_patch` (the patch text is `tool_input.command`),
@@ -125,8 +144,12 @@ terms: >-
   a prompt. It stores the transcript path Codex reports but never reads the transcript, and it does
   not read credentials, proxy traffic, or send anything off this machine.
 
-# From the hooks reference and the generated input schemas of 0.150.1 (checked 2026-11-07).
-# Shown on the Fields page next to what was seen.
+# From the hooks reference and the generated input schemas of 0.150.1 and 0.167.0 (checked
+# 2026-11-07; main had no other change). Shown on the Fields page next to what was seen.
+# SessionStart.source: startup, resume, clear, compact, fork (0.167.0 adds fork). SessionEnd.reason
+# is always "other". PreCompact/PostCompact.trigger: manual, auto. PostModelRequest.status:
+# completed, failed, cancelled. tool_response: Bash and apply_patch send the model-facing output as
+# text (no exit code or duration field; seen live, a failed command too), MCP tools the call result.
 documented:
   "*": [session_id, transcript_path, cwd, hook_event_name, model]
   SessionStart: [source, permission_mode]
@@ -139,10 +162,12 @@ documented:
   Stop: [turn_id, stop_hook_active, last_assistant_message, permission_mode]
   Interrupt: [turn_id, permission_mode]
   SessionEnd: [reason]
+  PostModelRequest: [turn_id, agent_id, agent_type, status, error, token_usage]
 
 not_captured:
   PreToolUse: A decision point (can deny or rewrite a tool call). PostToolUse has the same data.
   PermissionRequest: A decision point (answers an approval prompt).
-  PreModelRequest / PostModelRequest: Not in 0.150.1 (documented for 0.167+, PostModelRequest with token usage per model call); not verified against an installed version, and their usage needs a mapping first.
-  OpenTelemetry: Tokens and cost come only from Codex's OpenTelemetry export, configured in config.toml; not connected (docs/adr/0019-codex-connector.md).
-  notify: A program Codex runs after each turn; Stop already reports the turn end and answer.
+  PreModelRequest: Repeats PostModelRequest without its outcome and tokens (diagnostic only, can't block).
+  OpenTelemetry: Would add a cost estimate, reasoning effort and sandbox/approval policy, but must be written into config.toml and every record carries your account email (docs/adr/0019-codex-connector.md).
+  notify: A program Codex runs after each turn (one per config, often already yours); Stop already reports the turn end and answer.
+  config.toml: Reasoning effort, sandbox mode and approval policy are only in your config (and its profiles and -c overrides), not in any hook payload; the file says what a new session defaults to, not what a session ran with.
