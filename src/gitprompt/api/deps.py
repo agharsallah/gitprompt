@@ -8,6 +8,7 @@ from fastapi import Depends, Header, HTTPException, Request
 from gitprompt.api.bus import Bus
 from gitprompt.core.config import Settings
 from gitprompt.core.errors import NotFound
+from gitprompt.insights.indexer import Indexer
 from gitprompt.sources.connection import Connection
 from gitprompt.sources.spec import Spec, load_specs
 from gitprompt.storage.store import Store
@@ -35,6 +36,14 @@ def get_spec(source: str, specs: Annotated[dict[str, Spec], Depends(get_specs)])
     return specs[source]
 
 
+async def get_index(store: Annotated[Store, Depends(get_store)], specs: Annotated[dict[str, Spec], Depends(get_specs)]) -> Indexer:
+    """The prompt index, brought up to date first (a rules change rebuilds it). Async on purpose: it
+    runs on the event loop like ingest, so the two never interleave."""
+    indexer = Indexer(store, specs)
+    indexer.ensure()
+    return indexer
+
+
 def get_connection(spec: Annotated[Spec, Depends(get_spec)], settings: Annotated[Settings, Depends(get_settings)]) -> Connection:
     return Connection(spec, settings)
 
@@ -55,4 +64,5 @@ StoreDep = Annotated[Store, Depends(get_store)]
 BusDep = Annotated[Bus, Depends(get_bus)]
 SpecDep = Annotated[Spec, Depends(get_spec)]
 SpecsDep = Annotated[dict[str, Spec], Depends(get_specs)]
+IndexDep = Annotated[Indexer, Depends(get_index)]
 ConnectionDep = Annotated[Connection, Depends(get_connection)]

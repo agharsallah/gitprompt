@@ -1,5 +1,7 @@
 """SQLite storage. Raw payloads are always kept, so mapped fields can be rebuilt; everything else
-GitPrompt shows about a prompt is derived on read (see insights/derivations.py), so it never needs a migration."""
+GitPrompt shows about a prompt is derived on read (see insights/derivations.py), so it never needs a
+migration. The values filters and statistics need in SQL are cached in a rebuildable index
+(storage/index.py, filled by insights/indexer.py)."""
 
 import json
 import sqlite3
@@ -8,6 +10,8 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
+
+from gitprompt.storage.index import PromptIndex
 
 SCHEMA = """
 create table if not exists prompt (
@@ -21,6 +25,7 @@ create table if not exists prompt (
 );
 create unique index if not exists prompt_dedup on prompt (source, json_extract(fields, '$.prompt_id'));
 create index if not exists prompt_recent on prompt (received_at desc);
+create index if not exists prompt_turn on prompt (json_extract(fields, '$.prompt_id'));
 
 -- Every other event (tool calls, turn end, telemetry...). Joined to prompts by prompt_id/session_id.
 create table if not exists event (
@@ -50,18 +55,63 @@ window w as (partition by p.source, json_extract(p.fields, '$.session_id') order
 """
 
 JSON_COLUMNS = ("fields", "context", "raw", "annotation")
+CHUNK = 500  # values per `in (...)` query
 
-# Prompt list filters: query parameter -> SQL condition on prompt_view. To add a filter, add a line
-# here and the matching query parameter in api/routes/prompts.py.
-FILTERS = {
-    "q": "prompt like '%' || ? || '%'",
-    "source": "source = ?",
-    "before": "id < ?",
-    "session": "json_extract(fields, '$.session_id') = ?",
-    "repo": "json_extract(context, '$.git_root') = ?",
-    "tag": "exists (select 1 from json_each(annotation, '$.tags') where value = ?)",
-    "starred": "json_extract(annotation, '$.starred') = ?",
+# Prompts as filters see them: the index `i` with the user's annotation `a`.
+INDEXED = "prompt_index i left join annotation a on a.id = i.id"
+
+# Prompt filters, shared by the prompt list and statistics: query parameter -> SQL condition on the
+# prompt index `i` (storage/index.py) and the annotation `a`, with one `?` for the value. A list value
+# is passed as a JSON array (read it with json_each); a function builds a condition from the value.
+# To add a filter, add a line here and the matching field in api/filters.py.
+Filter = str | Callable[[Any], tuple[str, list[Any]]]
+
+TRIGRAM = 3  # FTS5's trigram tokenizer matches words of at least 3 characters
+
+
+def _words(q: str) -> tuple[str, list[Any]]:
+    """Every word must appear in the typed text, anywhere, ignoring case. Words of 3+ characters go
+    through the full-text index; shorter ones are checked on the rows it found (or on all rows)."""
+    words = q.split()
+    long, short = [w for w in words if len(w) >= TRIGRAM], [w for w in words if len(w) < TRIGRAM]
+    conditions = ["i.id in (select rowid from prompt_fts where prompt_fts match ?)"] if long else []
+    params: list[Any] = [" ".join('"' + w.replace('"', '""') + '"' for w in long)] if long else []
+    conditions += ["i.typed_text like '%' || ? || '%'"] * len(short)
+    return " and ".join(conditions) or "1=1", params + short
+
+
+FILTERS: dict[str, Filter] = {
+    "q": _words,
+    "origin": "i.origin in (select value from json_each(?))",
+    "model": "i.id in (select id from prompt_index_model where model in (select value from json_each(?)))",
+    "source": "i.source = ?",
+    "session": "i.session = ?",
+    "repo": "i.repo = ?",
+    "since": "i.received_at >= ?",  # ISO-8601 UTC, see api/filters.py
+    "until": "i.received_at < ?",
+    "before": "i.id < ?",  # paging cursor: prompts older than this id
+    "tag": "exists (select 1 from json_each(a.data, '$.tags') where value = ?)",
+    "starred": "json_extract(a.data, '$.starred') = ?",
 }
+EMPTY_FILTER = (None, "", False, [], ())
+
+
+def where(**filters: Any) -> tuple[str, list[Any]]:
+    """SQL conditions for FILTERS (empty values are ignored) and their parameters."""
+    if unknown := filters.keys() - FILTERS.keys():
+        raise ValueError(f"unknown prompt filters: {sorted(unknown)}")
+    conditions, params = ["1=1"], []
+    for key, value in filters.items():
+        if value in EMPTY_FILTER:
+            continue
+        condition = FILTERS[key]
+        if callable(condition):
+            sql, values = condition(value)
+        else:
+            sql, values = condition, [json.dumps(list(value)) if isinstance(value, list | tuple) else value]
+        conditions.append(sql)
+        params += values
+    return " and ".join(conditions), params
 
 
 def now() -> str:
@@ -75,6 +125,7 @@ class Store:
         self.db.row_factory = sqlite3.Row
         self.db.execute("pragma journal_mode = wal")
         self.db.executescript(SCHEMA)
+        self.index = PromptIndex(self.db)
         path.chmod(0o600)
 
     def close(self) -> None:
@@ -113,12 +164,35 @@ class Store:
 
     def search(self, limit: int = 50, **filters: Any) -> list[dict]:
         """Newest prompts first, narrowed by FILTERS (empty values are ignored)."""
-        if unknown := filters.keys() - FILTERS.keys():
-            raise ValueError(f"unknown prompt filters: {sorted(unknown)}")
-        active = {k: v for k, v in filters.items() if v not in (None, "", False)}
-        where = " and ".join(["1=1", *(FILTERS[k] for k in active)])
-        rows = self.db.execute(f"select * from prompt_view where {where} order by id desc limit ?", [*active.values(), limit])
-        return [_row(r) for r in rows]
+        sql, params = where(**filters)
+        ids = [r[0] for r in self.db.execute(f"select i.id from {INDEXED} where {sql} order by i.id desc limit ?", [*params, limit])]
+        return self._view(ids)
+
+    def _view(self, ids: list[int]) -> list[dict]:
+        """prompt_view rows (turn number, neighbours) of these prompts, in the order given."""
+        if not ids:
+            return []
+        rows = self.db.execute(f"select * from prompt_view where id in ({','.join('?' * len(ids))})", ids)
+        by_id = {r["id"]: _row(r) for r in rows}
+        return [by_id[i] for i in ids if i in by_id]
+
+    def prompts(self, ids: list[int]) -> list[dict]:
+        """Stored prompt rows (without the view's turn and neighbours), by id."""
+        return self._in("select * from prompt where id", ids)
+
+    def prompts_of_turns(self, prompt_ids: list[str]) -> list[int]:
+        """Ids of the prompts these prompt_ids belong to (of any source)."""
+        return [r["id"] for r in self._in("select id from prompt where json_extract(fields, '$.prompt_id')", prompt_ids)]
+
+    def prompt_ids(self) -> list[int]:
+        return [r[0] for r in self.db.execute("select id from prompt order by id")]
+
+    def _in(self, select: str, values: list) -> list[dict]:
+        out: list[dict] = []
+        for start in range(0, len(values), CHUNK):
+            chunk = values[start : start + CHUNK]
+            out += [_row(r) for r in self.db.execute(f"{select} in ({','.join('?' * len(chunk))})", chunk)]
+        return out
 
     def get(self, id: int) -> dict | None:
         row = self.db.execute("select * from prompt_view where id = ?", (id,)).fetchone()

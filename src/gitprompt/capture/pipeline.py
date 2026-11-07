@@ -3,6 +3,7 @@
     request body --decode (spec.format)--> payloads --map (spec.map)--> prompt or event --> store
 
 Events the spec does not keep (`accept_events`, `drop_events`) are discarded before storage.
+`Captured` says which turns got events, so the caller can mark them for the prompt index.
 A payload whose event is one of `spec.prompt_events` becomes a prompt, stamped with what GitPrompt
 observes on this machine at that moment (git state, tool version). Every other payload is stored
 as an event and attaches to its prompt by prompt_id / session_id.
@@ -12,7 +13,7 @@ To support a new wire format, add a decoder to DECODERS and its name to sources/
 
 import asyncio
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from gitprompt.capture import otlp
@@ -34,6 +35,7 @@ DECODERS: dict[str, Decoder] = {
 class Captured:
     prompts: int = 0
     events: int = 0
+    turns: set[str] = field(default_factory=set)  # prompt_ids that received events
 
     def __bool__(self) -> bool:
         return bool(self.prompts or self.events)
@@ -61,4 +63,6 @@ async def capture(spec: Spec, store: Store, body: dict[str, Any]) -> Captured:
         else:
             store.add_event(spec.id, fields, clip(payload))
             result.events += 1
+            if fields.get("prompt_id"):
+                result.turns.add(fields["prompt_id"])
     return result

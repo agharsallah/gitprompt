@@ -7,12 +7,13 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.sse import EventSourceResponse
 from pydantic import BaseModel
 
-from gitprompt.api.deps import BusDep, SpecsDep, StoreDep, require_dashboard
+from gitprompt.api.deps import BusDep, IndexDep, SpecsDep, StoreDep, require_dashboard
+from gitprompt.api.filters import FiltersQuery
 from gitprompt.core.errors import NotFound
 from gitprompt.core.git import commits
-from gitprompt.insights import derivations, origin
+from gitprompt.insights import derivations
 from gitprompt.insights.redaction import redact
-from gitprompt.sources.spec import Origin, Spec
+from gitprompt.sources.spec import Origin
 from gitprompt.storage.store import Store
 
 router = APIRouter(prefix="/api/prompts", tags=["prompts"])
@@ -57,15 +58,6 @@ class Updated(BaseModel):
     updated: int
 
 
-def derive(row: dict, events: list[dict], spec: Spec | None) -> dict:
-    """A stored prompt row plus the values derived from its text and its events."""
-    return (
-        row
-        | origin.classify(row, events, spec)
-        | {"stats": derivations.prompt_stats(row["prompt"] or ""), "summary": derivations.turn(row, events)}
-    )
-
-
 def get_row(id: int, store: StoreDep) -> dict:
     if not (row := store.get(id)):
         raise NotFound("prompt not found")
@@ -77,22 +69,14 @@ Row = Annotated[dict, Depends(get_row)]
 
 @router.get("")
 async def list_prompts(
-    store: StoreDep,
-    specs: SpecsDep,
-    q: str | None = None,
-    source: str | None = None,
-    session: str | None = None,
-    repo: str | None = None,
-    tag: str | None = None,
-    starred: bool = False,
-    before: int | None = None,
-    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    _index: IndexDep, store: StoreDep, specs: SpecsDep, filters: FiltersQuery, limit: Annotated[int, Query(ge=1, le=200)] = 50
 ) -> list[PromptOut]:
-    rows = store.search(limit, q=q, source=source, session=session, repo=repo, tag=tag, starred=starred, before=before)
+    """Newest first. Filters are applied in SQL on the prompt index (storage/index.py)."""
+    rows = store.search(limit, **filters.store_filters())
     by_prompt: defaultdict[str, list[dict]] = defaultdict(list)
     for e in store.events_for_prompts([pid for r in rows if (pid := r["fields"].get("prompt_id"))]):
         by_prompt[e["prompt_id"]].append(e)
-    return [derive(r, by_prompt[r["fields"].get("prompt_id")], specs.get(r["source"])) for r in rows]
+    return [derivations.derive(r, by_prompt[r["fields"].get("prompt_id")], specs.get(r["source"])) for r in rows]
 
 
 @router.get("/stream", response_class=EventSourceResponse)
@@ -119,7 +103,7 @@ def _session(store: Store, row: dict) -> dict[str, Any]:
 async def get_prompt(row: Row, store: StoreDep, specs: SpecsDep) -> PromptDetail:
     pid = row["fields"].get("prompt_id")
     events = store.events_for_prompts([pid]) if pid else []
-    derived = derive(row, events, specs.get(row["source"]))
+    derived = derivations.derive(row, events, specs.get(row["source"]))
     return derived | {"events": events, "session": _session(store, row), "commits": await _commits_after(row)}
 
 
@@ -130,6 +114,8 @@ async def annotate(row: Row, annotation: Annotation, store: StoreDep) -> Annotat
 
 
 @writes.post("/redact")
-async def hide_secrets(row: Row, store: StoreDep) -> Updated:
-    """Hide detected secrets in the stored prompt, its raw payload and its events."""
-    return Updated(updated=store.rewrite(row["id"], redact))
+async def hide_secrets(row: Row, store: StoreDep, index: IndexDep) -> Updated:
+    """Hide detected secrets in the stored prompt, its raw payload and its events (and the index)."""
+    updated = store.rewrite(row["id"], redact)
+    index.reindex([row["id"]])
+    return Updated(updated=updated)

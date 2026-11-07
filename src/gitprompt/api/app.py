@@ -1,5 +1,5 @@
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
 from pathlib import Path
@@ -12,7 +12,9 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from gitprompt.api.bus import Bus
 from gitprompt.api.routes import ROUTERS
 from gitprompt.core.config import Settings
-from gitprompt.core.errors import GitPromptError
+from gitprompt.core.errors import GitPromptError, SpecError
+from gitprompt.insights.indexer import Indexer
+from gitprompt.sources.spec import load_specs
 from gitprompt.storage.store import Store
 
 DASHBOARD = Path(__file__).parents[1] / "dashboard"  # built by `pnpm --dir web build`
@@ -33,6 +35,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
+        with suppress(SpecError):  # a broken spec is reported by the pages; the index waits for a fix
+            Indexer(store, load_specs(settings)).ensure()  # a rules change rebuilds it before the first page
         yield
         store.close()
 

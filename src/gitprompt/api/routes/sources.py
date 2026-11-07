@@ -5,7 +5,7 @@ import asyncio
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from gitprompt.api.deps import ConnectionDep, SettingsDep, SpecDep, SpecsDep, StoreDep, require_dashboard
+from gitprompt.api.deps import ConnectionDep, IndexDep, SettingsDep, SpecDep, SpecsDep, StoreDep, require_dashboard
 from gitprompt.core.config import Settings
 from gitprompt.core.payload import extract
 from gitprompt.sources import probe
@@ -72,6 +72,8 @@ async def disconnect(connection: ConnectionDep, dry_run: bool = False) -> Change
 
 
 @writes.post("/remap")
-async def remap(spec: SpecDep, store: StoreDep) -> Remapped:
-    """Rebuild mapped fields from stored raw payloads, e.g. after editing the spec."""
-    return Remapped(updated=store.remap(spec.id, lambda raw: extract(raw, spec.map)))
+async def remap(spec: SpecDep, store: StoreDep, index: IndexDep) -> Remapped:
+    """Rebuild mapped fields from stored raw payloads, e.g. after editing the spec, then the index."""
+    updated = store.remap(spec.id, lambda raw: extract(raw, spec.map))
+    index.rebuild()
+    return Remapped(updated=updated)

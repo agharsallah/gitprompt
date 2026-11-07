@@ -3,7 +3,8 @@
     noise    stored events the current specs would no longer keep (`accept_events`, `drop_events`)
     expired  raw events older than N days (prompts and annotations are never removed)
 
-`compact` plans by default and changes nothing; with `apply=True` it deletes, then VACUUMs.
+`compact` plans by default and changes nothing; with `apply=True` it deletes, rebuilds the prompt
+index (expired events change turn values), then VACUUMs.
 `gitprompt compact` is a thin wrapper; a retention setting can call `expired` / `compact` directly.
 """
 
@@ -12,6 +13,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
+from gitprompt.insights.indexer import Indexer
 from gitprompt.sources.spec import Spec
 from gitprompt.storage.store import Store
 
@@ -79,6 +81,7 @@ def compact(store: Store, specs: Mapping[str, Spec], older_than_days: int | None
     report = Report(removals, size_before=store.size())
     if apply:
         remove(store, removals)
+        Indexer(store, specs).rebuild()
         store.vacuum()
         report.size_after = store.size()
     return report

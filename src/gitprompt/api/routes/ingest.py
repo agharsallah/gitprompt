@@ -1,5 +1,7 @@
 """Receivers for hook calls and OpenTelemetry exports. Both decode the body by the source's
-`format` and run the same capture pipeline (capture/pipeline.py); only the reply differs."""
+`format` and run the same capture pipeline (capture/pipeline.py); only the reply differs. They do
+not derive anything: the turns that got events are marked, and the prompt index catches up on the
+next read (insights/indexer.py), so a long turn costs one recomputation per read, not per event."""
 
 from typing import Annotated, Any, Literal
 
@@ -18,6 +20,7 @@ async def ingest(spec: SpecDep, payload: Payload, store: StoreDep, bus: BusDep) 
     """Hook endpoint. Always an empty 2xx, which Claude Code treats as "no output": nothing is
     blocked, changed or added to the conversation."""
     if captured := await capture(spec, store, payload):
+        store.index.mark(captured.turns)  # recomputed on the next read (insights/indexer.py)
         bus.publish(captured.notice())
 
 
@@ -27,5 +30,6 @@ async def ingest_otlp(spec: SpecDep, signal: Literal["logs", "metrics"], payload
     if spec.format != "otlp":
         raise NotFound(f"source {spec.id!r} does not receive OpenTelemetry exports")
     if captured := await capture(spec, store, payload):
+        store.index.mark(captured.turns)  # recomputed on the next read (insights/indexer.py)
         bus.publish(captured.notice())
     return {}  # an empty ExportServiceResponse: everything accepted

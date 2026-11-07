@@ -1,4 +1,4 @@
-"""Command line entry point: `gitprompt serve` (default) and `gitprompt compact`."""
+"""Command line entry point: `gitprompt serve` (default), `gitprompt compact` and `gitprompt reindex`."""
 
 import argparse
 from dataclasses import replace
@@ -36,6 +36,22 @@ def compact(settings: Settings, args: argparse.Namespace) -> None:
         print(f"Done: database is now {_mb(report.size_after)}.")
 
 
+def reindex(settings: Settings, args: argparse.Namespace) -> None:
+    import time
+
+    from gitprompt.insights.indexer import Indexer
+    from gitprompt.sources.spec import load_specs
+    from gitprompt.storage.store import Store
+
+    store = Store(settings.db_path)
+    try:
+        start = time.perf_counter()
+        count = Indexer(store, load_specs(settings)).rebuild()
+    finally:
+        store.close()
+    print(f"Indexed {count:,} prompts in {time.perf_counter() - start:.1f} s.")
+
+
 def _mb(n: int) -> str:
     return f"{n / 1e6:,.1f} MB"
 
@@ -62,6 +78,9 @@ def main() -> None:
     p.add_argument("--apply", action="store_true", help="actually delete (default: dry run, show what would go)")
     p.add_argument("--events-older-than", type=_days, metavar="DAYS", help="also delete raw events older than DAYS days")
     p.set_defaults(run=compact)
+
+    p = commands.add_parser("reindex", help="rebuild the prompt index (filters, search, statistics) from the stored prompts")
+    p.set_defaults(run=reindex)
 
     args = parser.parse_args()
     args.run(Settings(), args)
