@@ -55,6 +55,16 @@ export type PromptStats = {
 	secrets?: string[];
 };
 
+/** Telemetry usage of some API requests (derivations._usage_of). */
+export type Usage = {
+	api_requests: number;
+	input_tokens: number;
+	output_tokens: number;
+	cache_read_tokens: number;
+	cache_creation_tokens: number;
+	cost_usd: number;
+};
+
 /** derivations.TURN: what happened while the tool worked on one prompt. */
 export type TurnSummary = {
 	turn?: number;
@@ -71,6 +81,8 @@ export type TurnSummary = {
 	bash_commands?: string[];
 	web?: string[];
 	mcp_tools?: string[];
+	/** Tool calls by kind (derivations.tool_kind): read, write, shell, web, mcp, agent, other. */
+	tool_kinds?: Record<string, number>;
 	slash_command?: string;
 	subagents?: Record<string, number>;
 	tasks?: string[];
@@ -85,6 +97,8 @@ export type TurnSummary = {
 	cache_read_tokens?: number;
 	cache_creation_tokens?: number;
 	cost_usd?: number;
+	/** Requests, tokens and cost per model. */
+	model_usage?: Record<string, Usage>;
 	api_time_s?: number;
 	api_errors?: number;
 	tool_rejections?: number;
@@ -189,6 +203,55 @@ export type Catalog = {
 	derived: Record<string, string>;
 };
 
-/** Prompt list filters (query parameters of GET /api/prompts). */
+/**
+ * Single-valued prompt filters the Prompts page keeps in its URL (api/filters.py PromptFilters).
+ * `origin` and `model` take several values and are handled on their own; `since`/`until` are
+ * ISO-8601 instants.
+ */
 export const FILTER_KEYS = ['q', 'tag', 'starred', 'session', 'repo', 'source', 'before'] as const;
 export type Filters = Partial<Record<(typeof FILTER_KEYS)[number], string>>;
+
+/** Every filter GET /api/prompts and GET /api/stats accept. Empty lists mean "any". */
+export type PromptQuery = Filters & {
+	origin?: Origin[];
+	model?: string[];
+	since?: string;
+	until?: string;
+};
+
+/** GET /api/stats groupings (storage/stats.py GROUPS). */
+export type GroupBy =
+	| 'day' // local calendar day of the daemon's machine, YYYY-MM-DD
+	| 'hour' // local hour, "00".."23"
+	| 'weekday' // ISO weekday, "1" = Monday
+	| 'weekday_hour' // "1-09"
+	| 'origin'
+	| 'source'
+	| 'session'
+	| 'repo'
+	| 'command'
+	| 'outcome' // Stop, StopFailure, or null: no end recorded
+	| 'model'
+	| 'tool'
+	| 'tool_kind';
+
+/** Measures of one group, or of all the prompts (`key` null). Mirrors api/routes/stats.py Bucket. */
+export type StatsBucket = Usage & {
+	key: string | null;
+	prompts: number;
+	sessions: number;
+	tool_calls: number;
+	tool_failures: number;
+	/** Prompts whose turn ended: the ones with a response time. */
+	ended: number;
+	response_s_p50: number | null;
+	response_s_p90: number | null;
+	first_at: string | null;
+	last_at: string | null;
+};
+
+/**
+ * GET /api/stats. For `model`, `tool` and `tool_kind` a prompt counts in each group it touched,
+ * with usage (model) or tool calls (tool, tool_kind) split exactly between the groups.
+ */
+export type Stats = { group_by: GroupBy | null; totals: StatsBucket; groups: StatsBucket[] };

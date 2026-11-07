@@ -7,8 +7,10 @@ import type {
 	Prompt,
 	PromptDetail,
 	Source,
+	Stats,
 	Updated
 } from '#lib/api/types.ts';
+import { queryParams, type StatsQuery } from '#lib/api/query.ts';
 
 type Fetch = typeof fetch;
 
@@ -44,6 +46,9 @@ export const api = {
 	annotate: (id: number, annotation: Annotation) =>
 		write<Annotation>(`/api/prompts/${id}/annotation`, 'PUT', annotation),
 	redact: (id: number) => write<Updated>(`/api/prompts/${id}/redact`, 'POST'),
+	/** Counts, sums and response-time quantiles over every prompt the filters keep. */
+	stats: (query: StatsQuery = {}, fetcher?: Fetch) =>
+		get<Stats>(`/api/stats?${queryParams(query)}`, fetcher),
 
 	sources: (fetcher?: Fetch) => get<Source[]>('/api/sources', fetcher),
 	/** Connect or disconnect; with `dryRun`, only returns the diff that would be written. */
