@@ -2,41 +2,23 @@
 	import { Check } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { Source } from '#lib/api/types.ts';
+	import { connectQuery, setupSteps } from '#lib/sources/setup.ts';
 	import Button from '#lib/ui/Button.svelte';
 
-	/** First run: the three steps from nothing to a captured prompt, each checked off as it happens. */
+	/**
+	 * First run: the steps from nothing to a captured prompt, each checked off as it happens. A
+	 * connect step opens that connector's consent review directly (one click, then one confirmation).
+	 */
 	let { sources }: { sources: Source[] } = $props();
 
-	const hooks = $derived(sources.find((s) => s.id === 'claude-code'));
-	const telemetry = $derived(sources.find((s) => s.id === 'claude-code-otel'));
-	const captured = $derived(sources.some((s) => s.total > 0));
-
-	const steps = $derived([
-		{
-			title: 'Connect Claude Code',
-			body: 'Review the exact change to your settings file, then confirm. A backup is kept.',
-			done: !!hooks?.connected,
-			action: 'Connect'
-		},
-		{
-			title: 'Add telemetry, if you want cost and tokens',
-			body: 'Optional. Applies to Claude Code sessions started afterwards.',
-			done: !!telemetry?.connected,
-			action: 'Add telemetry'
-		},
-		{
-			title: 'Send a prompt',
-			body: 'Type anything in a Claude Code session. It appears here as soon as you send it.',
-			done: captured
-		}
-	]);
-	const next = $derived(steps.findIndex((s) => !s.done));
+	const steps = $derived(setupSteps(sources));
+	const next = $derived(steps.findIndex((s) => !s.done && !s.optional));
 </script>
 
 <section class="setup" aria-labelledby="setup-title">
 	<h2 id="setup-title">Start capturing your prompts</h2>
 	<ol>
-		{#each steps as step, i (step.title)}
+		{#each steps as step, i (step.id)}
 			<li class={[step.done && 'done', i === next && 'next']}>
 				<span class="marker" aria-hidden="true">
 					{#if step.done}<Check size={14} />{:else}{i + 1}{/if}
@@ -44,13 +26,14 @@
 				<div class="text">
 					<p class="title">
 						{step.title}
+						{#if step.optional}<span class="optional">Optional</span>{/if}
 						{#if step.done}<span class="sr-only">(done)</span>{/if}
 					</p>
 					<p class="body">{step.body}</p>
 				</div>
-				{#if step.action && !step.done}
+				{#if step.connect && !step.done}
 					<Button
-						href={resolve('/sources')}
+						href="{resolve('/sources')}{connectQuery(step.connect)}"
 						variant={i === next ? 'primary' : 'secondary'}
 						size="sm">{step.action}</Button
 					>
@@ -121,6 +104,13 @@
 
 	.title {
 		font-weight: var(--weight-semibold);
+	}
+
+	.optional {
+		margin-left: var(--space-1);
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-medium);
 	}
 
 	.done .title {
