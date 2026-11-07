@@ -75,7 +75,8 @@
 			{/each}
 		{/each}
 		<span></span>
-		{#each columns as column, c (column)}<span class="col-label">{columnTick(column, c)}</span>{/each}
+		{#each columns as column, c (column)}<span class="col-label">{columnTick(column, c)}</span
+			>{/each}
 	</div>
 	{#if active}
 		<Tooltip x={active.x} y={active.y - 2} {width}>

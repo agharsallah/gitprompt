@@ -37,14 +37,22 @@
 	const DAY = 24 * HOUR;
 	/** Axis ticks on local hour/day boundaries, about six of them. */
 	const ticks = $derived.by(() => {
-		const step = [HOUR, 3 * HOUR, 6 * HOUR, 12 * HOUR, DAY, 2 * DAY, 7 * DAY, 14 * DAY, 30 * DAY].find(
-			(s) => span / s <= 7
-		)!;
+		const step = [
+			HOUR,
+			3 * HOUR,
+			6 * HOUR,
+			12 * HOUR,
+			DAY,
+			2 * DAY,
+			7 * DAY,
+			14 * DAY,
+			30 * DAY
+		].find((s) => span / s <= 7)!;
 		const first = new Date(start);
 		if (step < DAY) first.setMinutes(0, 0, 0);
 		else first.setHours(0, 0, 0, 0);
 		const out: { t: number; text: string }[] = [];
-		for (let t = first.getTime(); t <= end && out.length < 40; ) {
+		for (let t = first.getTime(); t <= end && out.length < 40;) {
 			if (t >= start) {
 				const d = new Date(t);
 				out.push({
@@ -91,19 +99,25 @@
 					{:else}
 						<span class="truncate" title={lane.label}>{lane.label}</span>
 					{/if}
-					<span class="count num" aria-label="{integer(lane.marks.length)} prompts{failed ? `, ${failed} failed` : ''}">
+					<span
+						class="count num"
+						aria-label="{integer(lane.marks.length)} prompts{failed ? `, ${failed} failed` : ''}"
+					>
 						{integer(lane.marks.length)}
 					</span>
 				</div>
 				<div class="track">
-					{#each ticks as tick (tick.t)}<span class="gridline" style:left={left(tick.t)}></span>{/each}
+					{#each ticks as tick (tick.t)}<span class="gridline" style:left={left(tick.t)}
+						></span>{/each}
 					{#each lane.marks as mark (mark.id)}
 						<a
 							class="mark {mark.outcome}"
 							href={hrefFor(mark.id)}
 							style:left={left(mark.at)}
 							tabindex="-1"
-							aria-label="{OUTCOMES[mark.outcome].label} at {timeOfDay(new Date(mark.at).toISOString())}: {excerpt(mark.text, 80)}"
+							aria-label="{OUTCOMES[mark.outcome].label} at {timeOfDay(
+								new Date(mark.at).toISOString()
+							)}: {excerpt(mark.text, 80)}"
 							onpointerenter={(e) => show(e, mark)}
 							onpointerleave={() => (active = null)}
 						></a>

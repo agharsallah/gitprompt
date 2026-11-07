@@ -30,7 +30,10 @@
 	const id = $props.id();
 </script>
 
-<section class={['panel', `tone-${tone}`, `pad-${pad}`, className]} aria-labelledby={title ? id : undefined}>
+<section
+	class={['panel', `tone-${tone}`, `pad-${pad}`, className]}
+	aria-labelledby={title ? id : undefined}
+>
 	{#if title || actions}
 		<header>
 			<div class="titles">

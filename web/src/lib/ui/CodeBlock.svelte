@@ -45,7 +45,10 @@
 	{/if}
 	<!-- tabindex: a scrollable region must be reachable by keyboard -->
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-	<pre class={[wrap && 'wrap', !label && copy && 'room']} style:max-height={maxHeight} tabindex="0">{#if diff}{#each code.split('\n') as line, i (i)}<span
+	<pre
+		class={[wrap && 'wrap', !label && copy && 'room']}
+		style:max-height={maxHeight}
+		tabindex="0">{#if diff}{#each code.split('\n') as line, i (i)}<span
 					class="line {lineKind(line)}">{line || ' '}</span
 				>{/each}{:else}{code}{/if}</pre>
 </div>

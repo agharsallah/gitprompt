@@ -5,7 +5,11 @@
 		text,
 		label = 'Copy',
 		ghost = false
-	}: { text: string; label?: string; /** No frame: for toolbars of icon buttons. */ ghost?: boolean } = $props();
+	}: {
+		text: string;
+		label?: string;
+		/** No frame: for toolbars of icon buttons. */ ghost?: boolean;
+	} = $props();
 
 	let copied = $state(false);
 	let timer: ReturnType<typeof setTimeout>;
@@ -22,8 +26,17 @@
 	}
 </script>
 
-<button type="button" class={['copy', ghost && 'ghost']} onclick={copy} aria-label={copied ? 'Copied' : label} title={label}>
-	{#if copied}<Check size={14} aria-hidden="true" />{:else}<Copy size={14} aria-hidden="true" />{/if}
+<button
+	type="button"
+	class={['copy', ghost && 'ghost']}
+	onclick={copy}
+	aria-label={copied ? 'Copied' : label}
+	title={label}
+>
+	{#if copied}<Check size={14} aria-hidden="true" />{:else}<Copy
+			size={14}
+			aria-hidden="true"
+		/>{/if}
 </button>
 <span class="sr-only" aria-live="polite">{copied ? 'Copied to clipboard' : ''}</span>
 

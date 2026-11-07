@@ -34,7 +34,13 @@
 		</span>
 	{/if}
 	{#if onremove}
-		<button class="remove" type="button" onclick={onremove} aria-label={removeLabel} title={removeLabel}>
+		<button
+			class="remove"
+			type="button"
+			onclick={onremove}
+			aria-label={removeLabel}
+			title={removeLabel}
+		>
 			<X size={12} aria-hidden="true" />
 		</button>
 	{/if}

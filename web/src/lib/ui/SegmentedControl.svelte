@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends string">
 	import type { LucideIcon } from '@lucide/svelte';
-	
+
 	type Option = {
 		value: T;
 		label: string;
@@ -52,7 +52,13 @@
 	<div class={['segmented', `size-${size}`]} role="radiogroup" aria-label={label}>
 		{#each options as o (o.value)}
 			<label class="segment" title={iconOnly ? o.label : undefined}>
-				<input type="radio" {name} value={o.value} bind:group={value} aria-label={iconOnly ? o.label : undefined} />
+				<input
+					type="radio"
+					{name}
+					value={o.value}
+					bind:group={value}
+					aria-label={iconOnly ? o.label : undefined}
+				/>
 				{#if o.icon}<o.icon size={14} aria-hidden="true" />{/if}
 				{#if !iconOnly}<span>{o.label}</span>{/if}
 			</label>

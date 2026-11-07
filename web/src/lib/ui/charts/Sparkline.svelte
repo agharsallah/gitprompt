@@ -9,19 +9,30 @@
 		height = 28,
 		color = 'var(--color-accent)',
 		label
-	}: { values: number[]; width?: number; height?: number; color?: string; label?: string } = $props();
+	}: {
+		values: number[];
+		width?: number;
+		height?: number;
+		color?: string;
+		label?: string;
+	} = $props();
 
 	const pad = 3;
 	const max = $derived(Math.max(...values, 0));
 	const points = $derived(
 		values.map((v, i) => [
-			pad + (values.length > 1 ? (i / (values.length - 1)) * (width - pad * 2) : (width - pad * 2) / 2),
+			pad +
+				(values.length > 1 ? (i / (values.length - 1)) * (width - pad * 2) : (width - pad * 2) / 2),
 			height - pad - (max ? (v / max) * (height - pad * 2) : 0)
 		])
 	);
-	const line = $derived(points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(''));
+	const line = $derived(
+		points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('')
+	);
 	const area = $derived(
-		points.length ? `${line}L${points.at(-1)![0]},${height - pad}L${points[0][0]},${height - pad}Z` : ''
+		points.length
+			? `${line}L${points.at(-1)![0]},${height - pad}L${points[0][0]},${height - pad}Z`
+			: ''
 	);
 	const last = $derived(points.at(-1));
 </script>

@@ -83,7 +83,7 @@
 		     readout is an enhancement: every value is also in the table view below. -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 		<svg
-			width={width}
+			{width}
 			height={TOP + height + AXIS_H}
 			role="img"
 			aria-label="{label}. Use arrow keys to read each value."
@@ -94,7 +94,9 @@
 		>
 			{#each ticks as t (t)}
 				<line class="grid" x1={AXIS_W} x2={width} y1={y(t)} y2={y(t)} />
-				<text class="axis" x={AXIS_W - 8} y={y(t)} dy="0.32em" text-anchor="end">{axisFormat(t)}</text>
+				<text class="axis" x={AXIS_W - 8} y={y(t)} dy="0.32em" text-anchor="end"
+					>{axisFormat(t)}</text
+				>
 			{/each}
 			{#each data as d, i (d.key)}
 				<path
@@ -103,7 +105,9 @@
 					style:fill={color}
 				/>
 				{#if i % every === 0 || i === data.length - 1}
-					<text class="axis" x={cx(i)} y={TOP + height + 15} text-anchor="middle">{d.tick ?? d.label}</text>
+					<text class="axis" x={cx(i)} y={TOP + height + 15} text-anchor="middle"
+						>{d.tick ?? d.label}</text
+					>
 				{/if}
 				<!-- The hit target is the whole band, not the painted column. -->
 				<rect
@@ -111,7 +115,7 @@
 					x={AXIS_W + band * i}
 					y={TOP}
 					width={band}
-					height={height}
+					{height}
 					role="presentation"
 					onpointerenter={() => (active = i)}
 					onclick={() => onselect?.(d)}
@@ -129,7 +133,8 @@
 	<table class="sr-only">
 		<caption>{label}</caption>
 		<tbody>
-			{#each data as d (d.key)}<tr><th scope="row">{d.label}</th><td>{format(d.value)}</td></tr>{/each}
+			{#each data as d (d.key)}<tr><th scope="row">{d.label}</th><td>{format(d.value)}</td></tr
+				>{/each}
 		</tbody>
 	</table>
 </figure>

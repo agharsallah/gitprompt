@@ -37,7 +37,10 @@
 	const Icon = $derived(icon ?? ICONS[tone]);
 </script>
 
-<div class={['callout', `tone-${tone}`]} role={live ? (tone === 'danger' ? 'alert' : 'status') : undefined}>
+<div
+	class={['callout', `tone-${tone}`]}
+	role={live ? (tone === 'danger' ? 'alert' : 'status') : undefined}
+>
 	<Icon size={16} aria-hidden="true" />
 	<div class="content">
 		{#if title}<p class="title">{title}</p>{/if}

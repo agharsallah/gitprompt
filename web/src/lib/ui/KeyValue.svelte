@@ -26,7 +26,9 @@
 
 <dl class={['kv', depth > 0 && 'nested']}>
 	{#each Object.entries(data) as [key, value] (key)}
-		<dt title={rawKeys ? undefined : key} class={[rawKeys && 'mono']}>{rawKeys ? key : humanize(key)}</dt>
+		<dt title={rawKeys ? undefined : key} class={[rawKeys && 'mono']}>
+			{rawKeys ? key : humanize(key)}
+		</dt>
 		<dd>
 			{#if value === null || value === undefined || value === ''}
 				<span class="muted">—</span>
@@ -42,9 +44,13 @@
 				{:else}
 					<ul class="tokens">
 						{#each value.slice(0, LIST_LIMIT) as item, i (i)}
-							<li class={[typeof item === 'string' && looksLikeCode(item) && 'mono']}>{String(item)}</li>
+							<li class={[typeof item === 'string' && looksLikeCode(item) && 'mono']}>
+								{String(item)}
+							</li>
 						{/each}
-						{#if value.length > LIST_LIMIT}<li class="more">{value.length - LIST_LIMIT} more</li>{/if}
+						{#if value.length > LIST_LIMIT}<li class="more">
+								{value.length - LIST_LIMIT} more
+							</li>{/if}
 					</ul>
 				{/if}
 			{:else if isPlainObject(value) && depth < 2}

@@ -25,7 +25,10 @@
 <label class="toggle">
 	<input type="checkbox" bind:checked {...rest} />
 	<span class="pill">
-		{#if checked}<Check size={13} aria-hidden="true" />{:else if Icon}<Icon size={13} aria-hidden="true" />{/if}
+		{#if checked}<Check size={13} aria-hidden="true" />{:else if Icon}<Icon
+				size={13}
+				aria-hidden="true"
+			/>{/if}
 		{@render children()}
 		{#if count !== undefined}<span class="count num">{count}</span>{/if}
 	</span>

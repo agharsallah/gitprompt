@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { X, type LucideIcon } from '@lucide/svelte';
-		import type { HTMLInputAttributes } from 'svelte/elements';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	/** A labelled text input. The label can be visually hidden, never missing. */
 	let {
@@ -56,6 +56,7 @@
 <style>
 	.field {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-1);
 		min-width: 0;
 	}

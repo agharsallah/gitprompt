@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { LucideIcon } from '@lucide/svelte';
-	
+
 	export type BarItem = {
 		key: string;
 		label: string;
@@ -48,7 +48,13 @@
 		const value = rest.reduce((a, i) => a + i.value, 0);
 		return [
 			...items.slice(0, max - 1),
-			{ key: '(other)', label: otherLabel, value, hint: `${rest.length} more`, color: 'var(--chart-other)' }
+			{
+				key: '(other)',
+				label: otherLabel,
+				value,
+				hint: `${rest.length} more`,
+				color: 'var(--chart-other)'
+			}
 		];
 	});
 	const top = $derived(Math.max(...rows.map((r) => r.value), 0));
@@ -60,17 +66,26 @@
 		<li>
 			<svelte:element this={row.href ? 'a' : 'div'} class="row" href={row.href}>
 				<span class="name">
-					{#if Icon}<Icon size={14} aria-hidden="true" style="color: {row.color ?? color}" />{:else if row.color}<span
+					{#if Icon}<Icon
+							size={14}
+							aria-hidden="true"
+							style="color: {row.color ?? color}"
+						/>{:else if row.color}<span
 							class="swatch"
 							style:background={row.color}
 							aria-hidden="true"
 						></span>{/if}
-					<span class={['text', 'truncate', row.mono && 'mono']} title={row.label}>{row.label}</span>
+					<span class={['text', 'truncate', row.mono && 'mono']} title={row.label}>{row.label}</span
+					>
 					{#if row.hint}<span class="hint">{row.hint}</span>{/if}
 				</span>
 				<span class="value num">{row.display ?? format(row.value)}</span>
 				<span class="track" aria-hidden="true">
-					<span class="bar" style:width="{top ? (row.value / top) * 100 : 0}%" style:background={row.color ?? color}></span>
+					<span
+						class="bar"
+						style:width="{top ? (row.value / top) * 100 : 0}%"
+						style:background={row.color ?? color}
+					></span>
 				</span>
 			</svelte:element>
 		</li>

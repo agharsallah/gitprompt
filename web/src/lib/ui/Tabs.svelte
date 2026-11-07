@@ -49,11 +49,18 @@
 				onkeydown={(e) => move(e, i)}
 			>
 				{tab.label}
-				{#if tab.count !== undefined && tab.count !== 0}<span class="count num">{tab.count}</span>{/if}
+				{#if tab.count !== undefined && tab.count !== 0}<span class="count num">{tab.count}</span
+					>{/if}
 			</button>
 		{/each}
 	</div>
-	<div class="panel" role="tabpanel" id="{id}-panel" aria-labelledby="{id}-tab-{selected}" tabindex="-1">
+	<div
+		class="panel"
+		role="tabpanel"
+		id="{id}-panel"
+		aria-labelledby="{id}-tab-{selected}"
+		tabindex="-1"
+	>
 		{@render panel(selected)}
 	</div>
 </div>

@@ -186,6 +186,11 @@ svg.lucide-icon {
 	border: 0;
 }
 
+/* Tables ignore height and overflow, so a hidden table twin would still take its full height. */
+table.sr-only {
+	display: block;
+}
+
 /* Numbers that line up in columns. Large standalone figures keep proportional digits. */
 .num {
 	font-variant-numeric: tabular-nums;

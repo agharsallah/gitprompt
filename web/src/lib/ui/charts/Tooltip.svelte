@@ -24,7 +24,13 @@
 	const left = $derived(Math.min(Math.max(x - box / 2, 0), Math.max(width - box, 0)));
 </script>
 
-<div class="tooltip" aria-hidden="true" bind:clientWidth={box} style:left="{left}px" style:top="{y}px">
+<div
+	class="tooltip"
+	aria-hidden="true"
+	bind:clientWidth={box}
+	style:left="{left}px"
+	style:top="{y}px"
+>
 	{@render children()}
 </div>
 
