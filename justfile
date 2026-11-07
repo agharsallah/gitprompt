@@ -26,3 +26,4 @@ test:
     uv run ruff check src tests
     uv run ruff format --check src tests
     pnpm --dir web check
+    pnpm --dir web test

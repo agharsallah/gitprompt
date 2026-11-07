@@ -1,6 +1,6 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const daemon = `http://127.0.0.1:${process.env.GITPROMPT_PORT || 7878}`;
 
@@ -16,5 +16,11 @@ export default defineConfig({
 			adapter: adapter({ pages: '../src/gitprompt/dashboard' })
 		})
 	],
-	server: { proxy: { '/api': daemon } }
+	server: { proxy: { '/api': daemon } },
+	test: {
+		include: ['src/**/*.test.ts'],
+		environment: 'node',
+		// Day grouping uses the local calendar: pin a zone with daylight saving to keep tests honest.
+		env: { TZ: 'Europe/Berlin' }
+	}
 });
