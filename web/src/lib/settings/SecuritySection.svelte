@@ -53,7 +53,7 @@
 		<section class="review" aria-label="Review the token rotation">
 			{#each preview.blocked as reason (reason)}
 				<Callout tone="danger" title="Can't rotate the token">
-					{reason}. Disconnect it on the Sources page first; GitPrompt won't work around that.
+					{reason}. Disconnect it on the Connectors page first; GitPrompt won't work around that.
 				</Callout>
 			{/each}
 			{#if !preview.blocked.length}

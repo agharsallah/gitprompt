@@ -1,40 +1,54 @@
 <script lang="ts">
-	import { refreshAll } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { refreshAll, replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
-	import SourceCard from '#lib/sources/SourceCard.svelte';
+	import { tools } from '#lib/sources/state.ts';
+	import ToolCard from '#lib/sources/ToolCard.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	$effect(() => liveUpdates(refreshAll, 2000));
+
+	const list = $derived(tools(data.sources));
+	// First run: /sources?connect=<id> opens that connector's consent review straight away. Read
+	// once, then dropped from the URL, so a reload doesn't reopen it.
+	const review = page.url.searchParams.get('connect');
+	onMount(() => {
+		if (!review) return;
+		const url = new URL(page.url.href);
+		url.searchParams.delete('connect');
+		replaceState(url, page.state);
+	});
 </script>
 
-<svelte:head><title>Sources · GitPrompt</title></svelte:head>
+<svelte:head><title>Connectors · GitPrompt</title></svelte:head>
 
 <PageHeader
-	title="Sources"
+	title="Connectors"
 	description="The tools GitPrompt captures from. It only uses each tool's documented extension points, and you review the exact change to its settings before anything is written."
 />
 
-<div class="sources">
-	{#each data.sources as source (source.id)}
-		<SourceCard {source} />
+<div class="tools">
+	{#each list as tool (tool.id)}
+		<ToolCard {tool} origins={data.origins} {review} />
 	{/each}
 </div>
 
 <aside class="help">
-	<h2>Adding or fixing a source</h2>
+	<h2>Adding or fixing a connector</h2>
 	<p>
-		Sources are YAML files bundled with GitPrompt. To patch one without a release, copy it to
+		Connectors are YAML files bundled with GitPrompt. To patch one without a release, copy it to
 		<code>~/.gitprompt/sources/</code>, edit it, then use <strong>Re-map stored events</strong> on its
 		card.
 	</p>
 </aside>
 
 <style>
-	.sources {
+	.tools {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr));
 		gap: var(--space-4);
 		align-items: start;
 	}
