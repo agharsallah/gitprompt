@@ -81,7 +81,7 @@ export type TurnSummary = {
 	bash_commands?: string[];
 	web?: string[];
 	mcp_tools?: string[];
-	/** Tool calls by kind (derivations.tool_kind): read, write, shell, web, mcp, agent, other. */
+	/** Tool calls by kind (the source spec's `tool_kinds`): read, write, shell, web, mcp, agent, other. */
 	tool_kinds?: Record<string, number>;
 	/** The kind of each tool the turn used, by tool name. */
 	tool_kind_of?: Record<string, string>;

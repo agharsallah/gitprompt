@@ -29,7 +29,7 @@ from gitprompt.core.payload import Mapping
 log = logging.getLogger(__name__)
 
 BUNDLED = files("gitprompt.sources") / "bundled"
-DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `origin` rules, `injected` tags
+DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `tool_kinds`, `origin` rules, `injected` tags
 
 Format = Literal["json", "otlp"]  # how a source's request bodies are decoded (see capture/pipeline.py DECODERS)
 
@@ -61,6 +61,11 @@ Capability = Literal[
 #              other event joins the latest prompt of its session received before it. Needs events
 #              to arrive in order, i.e. hooks the tool runs synchronously.
 Join = Literal["prompt_id", "session"]
+
+# What a tool call does (insights/derivations.py: files read and written, shell commands, URLs).
+# The dashboard reads the kind of each tool from the daemon and only decides how a kind is drawn
+# (web/src/lib/insights/tools.ts). A tool the spec does not map is "other".
+ToolKind = Literal["read", "write", "shell", "web", "mcp", "agent", "other"]
 
 
 class Install(BaseModel):
@@ -133,6 +138,7 @@ class Spec(BaseModel):
     injected: list[Tag] = []  # tags of context blocks a tool adds before or after what the user typed
     capabilities: list[Capability] = []  # what this connector yields (see Capability)
     join: Join = "prompt_id"  # how events find their prompt (see Join)
+    tool_kinds: dict[str, ToolKind] = {}  # tool name (a trailing * matches a prefix) -> kind (see ToolKind)
 
     @property
     def marker(self) -> re.Pattern[str]:
@@ -143,6 +149,13 @@ class Spec(BaseModel):
         if self.accept_events and event not in self.accept_events:
             return False
         return not any(matches(pattern, event) for pattern in self.drop_events)
+
+
+def tool_kind(kinds: dict[str, ToolKind], name: str | None) -> ToolKind:
+    """The kind of a tool: its exact name in `kinds`, else the first matching `prefix*` pattern."""
+    if name in kinds:
+        return kinds[name]
+    return next((kind for pattern, kind in kinds.items() if matches(pattern, name)), "other")
 
 
 def _parse(name: str, text: str) -> dict[str, Any]:
@@ -207,6 +220,7 @@ def parse_spec(name: str, text: str, defaults: dict[str, Any]) -> Spec:
     """One spec file on top of the shared defaults. Raises SpecError naming the file."""
     data = _parse(name, text)
     data["map"] = defaults.get("map", {}) | (data.get("map") or {})  # a spec replaces defaults per field
+    data["tool_kinds"] = (defaults.get("tool_kinds") or {}) | (data.get("tool_kinds") or {})  # ...and per tool
     data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
     data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
     try:
@@ -258,7 +272,7 @@ def load_specs(settings: Settings) -> dict[str, Spec]:
 
 
 def matches(pattern: str, event: str | None) -> bool:
-    """An event name pattern: exact, or a prefix when it ends with `*` (e.g. `hook_execution_*`)."""
+    """An event (or tool) name pattern: exact, or a prefix when it ends with `*` (e.g. `hook_execution_*`)."""
     if event is None:
         return False
     return event.startswith(pattern[:-1]) if pattern.endswith("*") else event == pattern

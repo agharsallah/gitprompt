@@ -60,6 +60,27 @@ map:
   stop_reason: [stop_reason, stopReason]
   # session_id, cwd, prompt, event, agent_id, agent_type, tool_name, transcript_path: _defaults.yaml
 
+# What each built-in tool does (insights/derivations.py). The hooks reference names no tools: bash,
+# edit and view are the names in our fixtures; the others are Copilot CLI's built-in tool names as
+# the CLI lists them, unverified against the docs. Inputs use `path` (file tools), `command` (bash)
+# and `url` (web_fetch). MCP tools are named `<server>-<tool>` with no fixed prefix, so they show
+# as "other" until a prefix pattern per server is added here.
+tool_kinds:
+  view: read
+  glob: read  # unverified
+  grep: read  # unverified
+  edit: write
+  create: write  # unverified
+  str_replace: write  # unverified
+  apply_patch: write  # unverified
+  bash: shell
+  read_bash: shell  # unverified
+  write_bash: shell  # unverified
+  stop_bash: shell  # unverified
+  list_bash: shell  # unverified
+  web_fetch: web  # unverified
+  task: agent  # unverified
+
 # Who produced a prompt (on top of the shared rules: agent_id / agent_type mean a subagent, and a
 # leading /command is a slash command).
 origin:

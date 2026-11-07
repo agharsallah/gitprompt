@@ -7,7 +7,7 @@ the prompt API returns (derivations.derive), so a value is computed in one place
     rebuild()     everything, e.g. after a remap, a compaction or `gitprompt reindex`
 
 The rules version hashes what the values depend on besides the raw rows: the source code of the
-modules that compute them, each spec's `origin` rules and `injected` tags, and the local timezone
+modules that compute them, each spec's `origin` rules, `injected` tags and `tool_kinds`, and the local timezone
 (day and hour buckets). Changing any of them rebuilds the index on next use, with no migration.
 """
 
@@ -41,7 +41,9 @@ CODE_VERSION = _code_version()
 
 
 def rules_version(specs: Mapping[str, Spec]) -> str:
-    rules = [(s.id, [r.model_dump(mode="json") for r in s.origin], s.injected) for s in sorted(specs.values(), key=lambda s: s.id)]
+    rules = [
+        (s.id, [r.model_dump(mode="json") for r in s.origin], s.injected, s.tool_kinds) for s in sorted(specs.values(), key=lambda s: s.id)
+    ]
     data = repr((CODE_VERSION, rules, time.tzname))
     return hashlib.sha256(data.encode()).hexdigest()[:16]
 
@@ -109,7 +111,8 @@ def entry(derived: dict[str, Any]) -> Entry:
         "rejections": summary.get("tool_rejections", 0),
     }
     models = [{"model": model, **{k: usage.get(k, 0) for k in USAGE}} for model, usage in summary.get("model_usage", {}).items()]
-    tools = [(name, derivations.tool_kind(name), n) for name, n in summary.get("tool_calls", {}).items()]
+    kinds = summary.get("tool_kind_of", {})
+    tools = [(name, kinds.get(name, "other"), n) for name, n in summary.get("tool_calls", {}).items()]
     work = [
         {"work": derivations.work_kind(source), "query_source": source, **{k: usage.get(k, 0) for k in USAGE}}
         for source, usage in summary.get("work_usage", {}).items()

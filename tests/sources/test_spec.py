@@ -23,8 +23,15 @@ MINIMAL = "id: mytool\nname: My tool\ndetect: [~/.mytool]\ninstall: {file: ~/.my
 
 @pytest.mark.parametrize(
     "text",
-    ["id: [unclosed\n", "- a list\n", "id: mytool\n", MINIMAL + "capabilities: [telepathy]\n", MINIMAL + "join: guess\n"],
-    ids=["not yaml", "not a mapping", "missing keys", "unknown capability", "unknown join"],
+    [
+        "id: [unclosed\n",
+        "- a list\n",
+        "id: mytool\n",
+        MINIMAL + "capabilities: [telepathy]\n",
+        MINIMAL + "join: guess\n",
+        MINIMAL + "tool_kinds: {Run: teleport}\n",
+    ],
+    ids=["not yaml", "not a mapping", "missing keys", "unknown capability", "unknown join", "unknown tool kind"],
 )
 def test_a_broken_user_file_is_reported_and_skipped(settings, text):
     settings.user_sources.mkdir(parents=True)

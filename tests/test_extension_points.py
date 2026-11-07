@@ -33,7 +33,7 @@ def test_every_turn_value_is_documented_on_the_fields_page():
         {"event": "PostToolUse", "received_at": "2026-11-03T10:00:01+00:00", "raw": {"tool_name": "mcp__x__y", "duration_ms": 900}},
         {"event": "Stop", "received_at": "2026-11-03T10:00:02+00:00", "raw": {"last_assistant_message": "ok"}},
     ]
-    summary = derivations.turn({"received_at": "2026-11-03T10:00:00+00:00", "turn": 1}, events)
+    summary = derivations.turn({"received_at": "2026-11-03T10:00:00+00:00", "turn": 1}, events, {"mcp__*": "mcp"})
     documented = " / ".join(k for k in derivations.DERIVED if k.startswith("summary."))
     assert all(key in documented for key in summary), summary.keys()
 
