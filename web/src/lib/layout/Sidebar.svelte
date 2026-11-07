@@ -231,4 +231,22 @@
 			border: 0;
 		}
 	}
+
+	/* Phones: icons only, the label stays the link's accessible name (and its tooltip). */
+	@media (max-width: 40rem) {
+		nav a span {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip: rect(0, 0, 0, 0);
+			white-space: nowrap;
+		}
+
+		nav a {
+			width: var(--control-md);
+			justify-content: center;
+			padding: 0;
+		}
+	}
 </style>

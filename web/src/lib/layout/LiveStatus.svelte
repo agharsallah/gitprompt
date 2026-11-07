@@ -13,7 +13,11 @@
 		api
 			.sources()
 			.then((sources) => {
-				const latest = sources.map((s) => s.last_at).filter((t): t is string => !!t).sort().at(-1);
+				const latest = sources
+					.map((s) => s.last_at)
+					.filter((t): t is string => !!t)
+					.sort()
+					.at(-1);
 				if (latest && (!lastCapture || latest > lastCapture)) lastCapture = latest;
 			})
 			.catch(() => {});
@@ -22,7 +26,8 @@
 
 	const STATES = {
 		open: { label: 'Listening', tone: 'on' },
-		connecting: { label: 'Reconnecting', tone: 'wait' },
+		connecting: { label: 'Connecting', tone: 'wait' },
+		reconnecting: { label: 'Reconnecting', tone: 'wait' },
 		closed: { label: 'Not listening', tone: 'off' }
 	} as const;
 	const status = $derived(STATES[live.state]);

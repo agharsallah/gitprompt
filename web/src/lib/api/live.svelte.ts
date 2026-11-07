@@ -6,7 +6,7 @@ import { invalidateRecent } from '#lib/api/recent.ts';
  * opened while anything listens. `state` and `lastNotice` are reactive (the sidebar shows them).
  */
 class Live {
-	state = $state<'connecting' | 'open' | 'closed'>('closed');
+	state = $state<'connecting' | 'open' | 'reconnecting' | 'closed'>('closed');
 	/** When the last notice arrived (ms), null before the first one. */
 	lastNotice = $state<number | null>(null);
 
@@ -18,10 +18,11 @@ class Live {
 		this.state = 'connecting';
 		const source = new EventSource(STREAM_URL);
 		source.onopen = () => (this.state = 'open');
-		// EventSource reconnects on its own; report it as connecting meanwhile.
+		// EventSource reconnects on its own; report it as reconnecting meanwhile.
 		source.onerror = () =>
-			(this.state = source.readyState === EventSource.CLOSED ? 'closed' : 'connecting');
+			(this.state = source.readyState === EventSource.CLOSED ? 'closed' : 'reconnecting');
 		source.onmessage = () => {
+			this.state = 'open';
 			this.lastNotice = Date.now();
 			invalidateRecent();
 			for (const listener of this.#listeners) listener();
