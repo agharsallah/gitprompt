@@ -72,6 +72,15 @@ def test_the_index_stores_what_the_api_derives(store, index, berlin):
     assert [tuple(t) for t in tools] == [("Edit", "write", 1), ("mcp__gh__issue", "mcp", 1)]
 
 
+def test_a_hook_model_counts_its_prompt_when_telemetry_reports_none(store, index):
+    """Hooks that carry the model (Codex) still group prompts by model, with no usage; telemetry wins."""
+    hooks_only = add_prompt(store, "a", "p1", model="gpt-5-codex")
+    with_telemetry = add_prompt(store, "b", "p2", model="ignored")
+    add_event(store, "api_request", "p2", source="claude-code-otel", model="opus", cost_usd=0.5)
+    index.ensure()
+    rows = store.db.execute("select id, model, api_requests from prompt_index_model order by id").fetchall()
+    assert [tuple(r) for r in rows] == [(hooks_only, "gpt-5-codex", 0), (with_telemetry, "opus", 1)]
+
 def test_a_later_event_updates_its_prompt_only_once_read(store, index):
     id = add_prompt(store, "Fix it", "p1")
     other = add_prompt(store, "Other", "p2")

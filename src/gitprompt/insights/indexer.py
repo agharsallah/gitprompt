@@ -111,7 +111,10 @@ def entry(derived: dict[str, Any]) -> Entry:
         "denials": len(summary.get("permission_denied", [])),
         "rejections": summary.get("tool_rejections", 0),
     }
-    models = [{"model": model, **{k: usage.get(k, 0) for k in USAGE}} for model, usage in summary.get("model_usage", {}).items()]
+    # Models with usage come from telemetry; without it, the model the tool reported with the prompt
+    # (hooks that carry one) still counts the prompt for that model, with no usage.
+    model_usage = summary.get("model_usage") or ({fields["model"]: {}} if fields.get("model") else {})
+    models = [{"model": model, **{k: usage.get(k, 0) for k in USAGE}} for model, usage in model_usage.items()]
     kinds = summary.get("tool_kind_of", {})
     tools = [(name, kinds.get(name, "other"), n) for name, n in summary.get("tool_calls", {}).items()]
     work = [
