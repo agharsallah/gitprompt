@@ -51,7 +51,7 @@
 	title="Sessions"
 	description="Each session is one conversation with the agent: its turns in order, how long each took and how it ended."
 >
-	{#snippet actions()}<RangePicker range={data.range} />{/snippet}
+	{#snippet actions()}<RangePicker range={data.range} fallback={data.defaultRange} />{/snippet}
 </PageHeader>
 
 <div class="controls">

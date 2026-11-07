@@ -164,6 +164,8 @@ describe('weekHours', () => {
 		expect(grid).toHaveLength(7);
 		expect(grid[3][11]).toBe(1);
 		expect(grid.flat().reduce((a, b) => a + b)).toBe(1);
+		const fromSunday = weekHours([prompt({ received_at: '2026-11-05T10:00:00Z' })], 'sunday');
+		expect(fromSunday[4][11]).toBe(1);
 	});
 });
 

@@ -6,6 +6,7 @@
 import type { Prompt } from '#lib/api/types.ts';
 import { dayKey } from '#lib/shared/format.ts';
 import { outcome, supersededIds, type Outcome } from '#lib/insights/outcome.ts';
+import { weekRow, type WeekStart } from '#lib/insights/week.ts';
 import { mergeProject, projectOf, type ProjectRef } from '#lib/insights/project.ts';
 import { byKind, toolKind, type ToolKind } from '#lib/insights/tools.ts';
 import { typedText } from '#lib/prompts/origin.ts';
@@ -169,12 +170,12 @@ export function byHour(prompts: Prompt[], start: Date, end: Date): Day[] {
 	return hours;
 }
 
-/** Prompt counts by weekday (rows, Monday first) and local hour (columns). */
-export function weekHours(prompts: Prompt[]): number[][] {
+/** Prompt counts by weekday (rows, from `start`, see week.ts) and local hour (columns). */
+export function weekHours(prompts: Prompt[], start: WeekStart = 'monday'): number[][] {
 	const grid = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
 	for (const p of prompts) {
 		const d = new Date(p.received_at);
-		grid[(d.getDay() + 6) % 7][d.getHours()]++;
+		grid[weekRow(d, start)][d.getHours()]++;
 	}
 	return grid;
 }
