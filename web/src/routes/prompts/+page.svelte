@@ -6,6 +6,11 @@
 	import { api } from '#lib/api/client.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import type { PromptDetail as Detail, Origin, Prompt } from '#lib/api/types.ts';
+	import Deferred from '#lib/async/Deferred.svelte';
+	import Lazy from '#lib/async/Lazy.svelte';
+	import Loading from '#lib/async/Loading.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
+	import ErrorView from '#lib/errors/ErrorView.svelte';
 	import { isAll } from '#lib/prompts/originFilter.svelte.ts';
 	import { outcome, supersededIds } from '#lib/insights/outcome.ts';
 	import { eventTime } from '#lib/insights/timeline.ts';
@@ -13,11 +18,10 @@
 	import { plural } from '#lib/shared/format.ts';
 	import ExportButton from '#lib/export/ExportButton.svelte';
 	import Button from '#lib/ui/Button.svelte';
-	import Callout from '#lib/ui/Callout.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
-	import Spinner from '#lib/ui/Spinner.svelte';
-	import PromptDetail from '#lib/prompts/PromptDetail.svelte';
+	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import PromptFilters, {
 		isQuick,
 		PREDICATES,
@@ -30,19 +34,24 @@
 
 	let { data }: PageProps = $props();
 
+	// The prompts stream in; the empty defaults are never shown (Deferred waits for the first list).
+	const listing = new Resource(() => data.listing);
+	const prompts = $derived(listing.value?.prompts ?? []);
+	const originCounts = $derived(listing.value?.originCounts ?? {});
+
 	const selectedId = $derived(Number(page.url.searchParams.get('id')) || null);
 	const show = $derived(page.url.searchParams.getAll('show').filter(isQuick));
-	const shown = $derived(data.prompts.filter((p) => show.every((q) => PREDICATES[q](p))));
+	const shown = $derived(prompts.filter((p) => show.every((q) => PREDICATES[q](p))));
 	const counts = $derived(
 		Object.fromEntries(
-			(Object.keys(QUICK) as Quick[]).map((q) => [q, data.prompts.filter(PREDICATES[q]).length])
+			(Object.keys(QUICK) as Quick[]).map((q) => [q, prompts.filter(PREDICATES[q]).length])
 		) as Record<Quick, number>
 	);
-	const superseded = $derived(supersededIds(data.prompts));
+	const superseded = $derived(supersededIds(prompts));
 	// Prompts the server-side filters keep over every page (counts from /api/stats): of any
 	// origin, and of the origins shown.
 	const counted = (keep: (o: Origin) => boolean) =>
-		Object.entries(data.originCounts)
+		Object.entries(originCounts)
 			.filter(([o]) => keep(o as Origin))
 			.reduce((n, [, count]) => n + (count ?? 0), 0);
 	const anyOrigin = $derived(counted(() => true));
@@ -69,7 +78,7 @@
 
 	// The selected prompt's detail: fetched on selection, refetched on live updates.
 	let detail = $state.raw<Detail | null>(null);
-	let detailError = $state('');
+	let detailError = $state.raw<unknown>(null);
 	let version = $state(0);
 	$effect(() => {
 		const id = selectedId;
@@ -84,12 +93,16 @@
 			.then((d) => {
 				if (!current) return;
 				detail = d;
-				detailError = '';
+				detailError = null;
 			})
-			.catch((e) => current && (detailError = e instanceof Error ? e.message : String(e)));
+			.catch((e) => current && (detailError = e));
 		return () => (current = false);
 	});
 	const loadingDetail = $derived(!!selectedId && detail?.id !== selectedId && !detailError);
+	const retryDetail = () => {
+		detailError = null;
+		version++;
+	};
 
 	const lastEvent = (d: Detail) =>
 		d.events.length ? Math.max(...d.events.map(eventTime)) : undefined;
@@ -100,11 +113,28 @@
 	};
 	$effect(() => liveUpdates(reload));
 
-	const full = $derived(data.prompts.length >= data.limit);
-	const last = $derived(data.prompts.at(-1));
+	const full = $derived(prompts.length >= data.limit);
+	const last = $derived(prompts.at(-1));
 </script>
 
 <svelte:head><title>Prompts · GitPrompt</title></svelte:head>
+
+{#snippet detailSkeleton()}
+	<div class="detail-skeleton">
+		<div class="detail-head">
+			<Skeleton width="5rem" height="1.25rem" shape="block" />
+			<Skeleton width="7rem" height="0.8rem" />
+		</div>
+		<Skeleton lines={4} height="1rem" />
+		<Skeleton shape="block" height="7rem" />
+		<div class="detail-head">
+			{#each ['5rem', '6rem', '4.5rem', '5.5rem'] as width, i (i)}
+				<Skeleton {width} height="1.75rem" shape="block" />
+			{/each}
+		</div>
+		<Skeleton lines={3} />
+	</div>
+{/snippet}
 
 <div class={['page', selectedId && 'has-detail']}>
 	<div class="list-column">
@@ -121,86 +151,113 @@
 				/>
 			{/snippet}
 		</PageHeader>
-		<PromptFilters
-			filters={data.filters}
-			lists={data.lists}
-			{show}
-			{counts}
-			origins={data.origins}
-			originCounts={data.originCounts}
-		/>
+		<Deferred resource={listing} label="Loading prompts" what="the prompts">
+			{#snippet pending()}
+				<div class="listing">
+					<div class="filter-skeleton">
+						<Skeleton height="2.25rem" shape="block" />
+						<Skeleton width="70%" height="1.5rem" shape="block" />
+					</div>
+					<Skeleton width="9rem" height="0.8rem" />
+					<ListSkeleton variant="rows" rows={8} />
+				</div>
+			{/snippet}
+			{#snippet children()}
+				<div class="listing">
+					<PromptFilters
+						filters={data.filters}
+						lists={data.lists}
+						{show}
+						{counts}
+						origins={data.origins}
+						{originCounts}
+					/>
 
-		<p class="summary muted" aria-live="polite">
-			{#if show.length}
-				{plural(shown.length, 'prompt')} match, among the {data.prompts.length} loaded
-			{:else if data.filters.before || data.prompts.length >= matching}
-				{plural(data.prompts.length, 'prompt')}{data.filters.before ? ', older ones' : ''}
-			{:else}
-				Newest {data.prompts.length} of {plural(matching, 'prompt')}
-			{/if}
-		</p>
+					<p class="summary muted" aria-live="polite">
+						{#if show.length}
+							{plural(shown.length, 'prompt')} match, among the {prompts.length} loaded
+						{:else if data.filters.before || prompts.length >= matching}
+							{plural(prompts.length, 'prompt')}{data.filters.before ? ', older ones' : ''}
+						{:else}
+							Newest {prompts.length} of {plural(matching, 'prompt')}
+						{/if}
+					</p>
 
-		<div class="list">
-			{#if shown.length}
-				<PromptList prompts={shown} {selectedId} {hrefFor} />
-			{:else if filtered}
-				<EmptyState title="No prompts match these filters">
-					Try fewer words, another tag or more origins, or
-					<a href={resolve('/prompts')}>clear all filters</a>.
-				</EmptyState>
-			{:else}
-				<EmptyState title="No prompts yet">
-					Connect a source, then type a prompt in it: it shows up here as soon as you send it.
-					{#snippet actions()}
-						<Button variant="primary" href={resolve('/sources')}>Connect a source</Button>
-					{/snippet}
-				</EmptyState>
-			{/if}
-		</div>
+					<div class="list">
+						{#if shown.length}
+							<PromptList prompts={shown} {selectedId} {hrefFor} />
+						{:else if filtered}
+							<EmptyState title="No prompts match these filters">
+								Try fewer words, another tag or more origins, or
+								<a href={resolve('/prompts')}>clear all filters</a>.
+							</EmptyState>
+						{:else}
+							<EmptyState title="No prompts yet">
+								Connect a source, then type a prompt in it: it shows up here as soon as you send it.
+								{#snippet actions()}
+									<Button variant="primary" href={resolve('/sources')}>Connect a source</Button>
+								{/snippet}
+							</EmptyState>
+						{/if}
+					</div>
 
-		{#if full || data.filters.before}
-			<nav class="pager" aria-label="More prompts">
-				{#if data.filters.before}
-					<Button href={url({ before: null, limit: null, id: null })} size="sm"
-						>Newest prompts</Button
-					>
-				{/if}
-				{#if full && data.limit < MAX_LIMIT}
-					<Button
-						href={url({ limit: String(data.limit + PAGE) })}
-						size="sm"
-						data-sveltekit-reset="false"
-					>
-						Show {PAGE} more
-					</Button>
-				{:else if full && last}
-					<Button href={url({ before: String(last.id), limit: null, id: null })} size="sm"
-						>Older prompts</Button
-					>
-				{/if}
-			</nav>
-		{/if}
+					{#if full || data.filters.before}
+						<nav class="pager" aria-label="More prompts">
+							{#if data.filters.before}
+								<Button href={url({ before: null, limit: null, id: null })} size="sm"
+									>Newest prompts</Button
+								>
+							{/if}
+							{#if full && data.limit < MAX_LIMIT}
+								<Button
+									href={url({ limit: String(data.limit + PAGE) })}
+									size="sm"
+									data-sveltekit-reset="false"
+								>
+									Show {PAGE} more
+								</Button>
+							{:else if full && last}
+								<Button href={url({ before: String(last.id), limit: null, id: null })} size="sm"
+									>Older prompts</Button
+								>
+							{/if}
+						</nav>
+					{/if}
+				</div>
+			{/snippet}
+		</Deferred>
 	</div>
 
-	<div class="detail-column" aria-live="polite" aria-busy={loadingDetail}>
+	<div
+		class={['detail-column', !selectedId && !shown.length && 'idle']}
+		aria-live="polite"
+		aria-busy={loadingDetail}
+	>
 		{#if selectedId}
 			<a class="back" href={url({ id: null })} data-sveltekit-reset="false"
 				><ArrowLeft size={14} aria-hidden="true" />All prompts</a
 			>
 		{/if}
 		{#if detailError}
-			<Callout tone="danger" title="This prompt could not be loaded">{detailError}</Callout>
+			<ErrorView error={detailError} what="this prompt" onretry={retryDetail} />
 		{:else if detail}
 			<div class={['detail', loadingDetail && 'stale']}>
-				<PromptDetail
-					prompt={detail}
-					outcome={outcome(detail, clock.now, superseded.has(detail.id), lastEvent(detail))}
-					closeHref={url({ id: null })}
-					onchange={reload}
+				<!-- The detail's code loads with the first prompt you open, not with the list. -->
+				<Lazy
+					load={() => import('#lib/prompts/PromptDetail.svelte')}
+					props={{
+						prompt: detail,
+						outcome: outcome(detail, clock.now, superseded.has(detail.id), lastEvent(detail)),
+						closeHref: url({ id: null }),
+						onchange: reload
+					}}
+					label="Loading the prompt"
+					what="this prompt"
+					pending={detailSkeleton}
 				/>
 			</div>
 		{:else if loadingDetail}
-			<div class="loading"><Spinner size={18} /> Loading the prompt</div>
+			<Loading label="Loading the prompt">{@render detailSkeleton()}</Loading>
 		{:else if shown.length}
 			<div class="placeholder">
 				<EmptyState title="Select a prompt">
@@ -260,7 +317,8 @@
 		box-shadow: inset 0 0 0 1px var(--color-border);
 	}
 
-	.detail-column:empty {
+	/* Nothing selected and nothing listed (yet): no empty frame next to the list. */
+	.detail-column.idle {
 		display: none;
 	}
 
@@ -272,12 +330,27 @@
 		opacity: 0.55;
 	}
 
-	.loading {
-		display: flex;
-		align-items: center;
+	.listing {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: var(--space-4);
+	}
+
+	.filter-skeleton {
+		display: grid;
 		gap: var(--space-2);
-		padding: var(--space-8);
-		color: var(--color-text-secondary);
+	}
+
+	.detail-skeleton {
+		display: grid;
+		gap: var(--space-5);
+	}
+
+	.detail-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3);
 	}
 
 	.placeholder {

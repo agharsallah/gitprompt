@@ -1,7 +1,12 @@
 import { api } from '#lib/api/client.ts';
+import { defer } from '#lib/async/resource.svelte.ts';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ fetch }) => {
-	const [catalog, sources] = await Promise.all([api.fields(fetch), api.sources(fetch)]);
-	return { catalog, sources };
-};
+export const load: PageLoad = ({ fetch }) => ({
+	content: defer(
+		Promise.all([api.fields(fetch), api.sources(fetch)]).then(([catalog, sources]) => ({
+			catalog,
+			sources
+		}))
+	)
+});

@@ -1,5 +1,6 @@
 import { api } from '#lib/api/client.ts';
 import { queryParams } from '#lib/api/query.ts';
+import { defer } from '#lib/async/resource.svelte.ts';
 import {
 	FILTER_KEYS,
 	type Filters,
@@ -19,7 +20,9 @@ import type { PageLoad } from './$types';
 //
 // Origins: the URL's `origin` values when it has some, else the remembered choice (default: what
 // you typed and slash commands). The daemon itself shows every origin when none is sent.
-export const load: PageLoad = async ({ fetch, url }) => {
+//
+// The filters are read here and returned at once; the prompts and their counts stream in.
+export const load: PageLoad = ({ fetch, url }) => {
 	const filters: Filters = {};
 	for (const key of FILTER_KEYS) {
 		const value = url.searchParams.get(key);
@@ -37,17 +40,14 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const params = queryParams({ ...filters, ...lists, origin: origins });
 	params.set('limit', String(limit));
 	const { before: _, ...counted } = filters; // counts cover every page, not just older prompts
-	const [prompts, byOrigin] = await Promise.all([
+	const listing = Promise.all([
 		api.prompts(params, fetch),
 		api.stats({ ...counted, ...lists, group_by: 'origin' }, fetch)
-	]);
-	const originCounts = Object.fromEntries(byOrigin.groups.map((g) => [g.key, g.prompts]));
-	return {
+	]).then(([prompts, byOrigin]) => ({
 		prompts,
-		filters,
-		lists,
-		origins,
-		originCounts: originCounts as Partial<Record<Origin, number>>,
-		limit
-	};
+		originCounts: Object.fromEntries(byOrigin.groups.map((g) => [g.key, g.prompts])) as Partial<
+			Record<Origin, number>
+		>
+	}));
+	return { listing: defer(listing), filters, lists, origins, limit };
 };

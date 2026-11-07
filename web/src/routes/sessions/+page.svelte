@@ -4,6 +4,8 @@
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
+	import Deferred from '#lib/async/Deferred.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
 	import { rangePhrase } from '#lib/insights/range.ts';
 	import { SESSION_PAGE, SORTS, type Sort } from '#lib/sessions/load.ts';
@@ -12,13 +14,16 @@
 	import Button from '#lib/ui/Button.svelte';
 	import Chip from '#lib/ui/Chip.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
+	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import TextField from '#lib/ui/TextField.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	$effect(() => liveUpdates(refreshAll, 3000));
+	const content = new Resource(() => data.content);
 
 	/** This page's URL with some parameters changed (null removes one). */
 	function url(changes: Record<string, string | null>) {
@@ -31,9 +36,8 @@
 		return `${resolve('/sessions')}${query ? `?${query}` : ''}`;
 	}
 	const filtered = $derived(!!(data.q || data.project));
-	const more = $derived(data.sessions.length >= data.limit && data.total > data.limit);
 	const projectName = (key: string) =>
-		data.projects.find((p) => p.key === key)?.detail ?? folder(key) ?? key;
+		content.value?.projects.find((p) => p.key === key)?.detail ?? folder(key) ?? key;
 </script>
 
 <svelte:head><title>Sessions · GitPrompt</title></svelte:head>
@@ -85,52 +89,61 @@
 	/>
 </div>
 
-{#if data.projects.length > 1 || data.project}
-	<div class="projects" role="group" aria-label="Filter by project">
-		{#if data.project}
-			<Chip
-				onremove={() => goto(url({ project: null, limit: null }))}
-				removeLabel="Show all projects">{projectName(data.project)}</Chip
-			>
-		{:else}
-			{#each data.projects as p (p.key)}
-				<a class="project" href={url({ project: p.key, limit: null })}
-					>{p.detail ?? folder(p.key) ?? p.key}</a
-				>
-			{/each}
+<Deferred resource={content} label="Loading sessions" what="the sessions">
+	{#snippet pending()}
+		<Skeleton width="11rem" height="0.8rem" />
+		<div class="list skeleton"><ListSkeleton rows={5} height="1.5rem" /></div>
+	{/snippet}
+	{#snippet children({ projects, sessions, total })}
+		{@const more = sessions.length >= data.limit && total > data.limit}
+		{#if projects.length > 1 || data.project}
+			<div class="projects" role="group" aria-label="Filter by project">
+				{#if data.project}
+					<Chip
+						onremove={() => goto(url({ project: null, limit: null }))}
+						removeLabel="Show all projects">{projectName(data.project)}</Chip
+					>
+				{:else}
+					{#each projects as p (p.key)}
+						<a class="project" href={url({ project: p.key, limit: null })}
+							>{p.detail ?? folder(p.key) ?? p.key}</a
+						>
+					{/each}
+				{/if}
+			</div>
 		{/if}
-	</div>
-{/if}
 
-<p class="summary muted" aria-live="polite">
-	{#if data.total > data.sessions.length}
-		Showing {data.sessions.length} of {plural(data.total, 'session')}{filtered ? ' that match' : ''}
-	{:else}
-		{plural(data.total, 'session')}{filtered ? ' match' : ''}
-	{/if}
-	{rangePhrase(data.filters.range)}
-</p>
+		<p class="summary muted" aria-live="polite">
+			{#if total > sessions.length}
+				Showing {sessions.length} of {plural(total, 'session')}{filtered ? ' that match' : ''}
+			{:else}
+				{plural(total, 'session')}{filtered ? ' match' : ''}
+			{/if}
+			{rangePhrase(data.filters.range)}
+		</p>
 
-{#if data.sessions.length}
-	<div class="list">
-		{#each data.sessions as session (session.id)}<SessionCard {session} />{/each}
-	</div>
-	{#if more}
-		<nav class="pager" aria-label="More sessions">
-			<Button
-				href={url({ limit: String(data.limit + SESSION_PAGE) })}
-				size="sm"
-				data-sveltekit-noscroll>Show {SESSION_PAGE} more</Button
-			>
-		</nav>
-	{/if}
-{:else if filtered}
-	<EmptyState title="No sessions match">Try other words, or another project.</EmptyState>
-{:else}
-	<EmptyState title="No sessions {rangePhrase(data.filters.range)}">
-		Pick a longer range, or <a href={resolve('/sources')}>check that a source is connected</a>.
-	</EmptyState>
-{/if}
+		{#if sessions.length}
+			<div class="list">
+				{#each sessions as session (session.id)}<SessionCard {session} />{/each}
+			</div>
+			{#if more}
+				<nav class="pager" aria-label="More sessions">
+					<Button
+						href={url({ limit: String(data.limit + SESSION_PAGE) })}
+						size="sm"
+						data-sveltekit-noscroll>Show {SESSION_PAGE} more</Button
+					>
+				</nav>
+			{/if}
+		{:else if filtered}
+			<EmptyState title="No sessions match">Try other words, or another project.</EmptyState>
+		{:else}
+			<EmptyState title="No sessions {rangePhrase(data.filters.range)}">
+				Pick a longer range, or <a href={resolve('/sources')}>check that a source is connected</a>.
+			</EmptyState>
+		{/if}
+	{/snippet}
+</Deferred>
 
 <style>
 	.controls {
@@ -179,6 +192,10 @@
 	.list {
 		display: grid;
 		gap: var(--space-3);
+	}
+
+	.skeleton {
+		margin-top: var(--space-3);
 	}
 
 	.pager {

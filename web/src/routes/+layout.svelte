@@ -6,7 +6,8 @@
 	import '#lib/design/tokens.css';
 	import '#lib/design/base.css';
 	import { setLucideProps } from '@lucide/svelte';
-	import { navigating } from '$app/state';
+	import { navigating, page } from '$app/state';
+	import Boundary from '#lib/errors/Boundary.svelte';
 	import Sidebar from '#lib/layout/Sidebar.svelte';
 	import type { LayoutProps } from './$types';
 
@@ -24,9 +25,15 @@
 {#if navigating.to}<div class="progress" aria-hidden="true"></div>{/if}
 
 <div class="shell">
-	<Sidebar />
+	<!-- Each part fails on its own: a crash in the page leaves the sidebar to navigate away, and the
+	     page's boundary starts afresh on the next page. -->
+	<div class="sidebar">
+		<Boundary what="the navigation"><Sidebar /></Boundary>
+	</div>
 	<main id="main" tabindex="-1" class={[navigating.to && 'loading']}>
-		{@render children()}
+		{#key page.url.pathname}
+			<Boundary what="this page" variant="page">{@render children()}</Boundary>
+		{/key}
 	</main>
 </div>
 
@@ -35,6 +42,10 @@
 		display: grid;
 		grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 		min-height: 100dvh;
+	}
+
+	.sidebar {
+		display: contents;
 	}
 
 	main {

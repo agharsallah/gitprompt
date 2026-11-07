@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { BookCheck, Eye, EyeOff, Search, Sparkles } from '@lucide/svelte';
 	import type { Field } from '#lib/api/types.ts';
+	import Deferred from '#lib/async/Deferred.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
 	import { inline, integer, percent, plural } from '#lib/shared/format.ts';
 	import { CAPABILITIES, CAPABILITY_IDS } from '#lib/sources/capabilities.ts';
 	import { tools } from '#lib/sources/state.ts';
@@ -8,7 +10,9 @@
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
+	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
+	import PanelSkeleton from '#lib/ui/PanelSkeleton.svelte';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
 	import StatTile from '#lib/ui/StatTile.svelte';
 	import TextField from '#lib/ui/TextField.svelte';
@@ -20,14 +24,17 @@
 	let filter = $state('');
 	let view = $state<View>('all');
 
-	const fields = $derived(data.catalog.fields);
+	const content = new Resource(() => data.content);
+	// Empty until the catalog arrives (Deferred shows a skeleton meanwhile).
+	const fields = $derived(content.value?.catalog.fields ?? []);
+	const sources = $derived(content.value?.sources ?? []);
 	// Which tool each value comes from: the connector's name, and what it can't provide at all.
-	const byId = $derived(new Map(data.sources.map((s) => [s.id, s])));
+	const byId = $derived(new Map(sources.map((s) => [s.id, s])));
 	const nameOf = (id: string) => byId.get(id)?.name ?? (id === 'gitprompt' ? 'GitPrompt' : id);
 	// What the connector's tool can't provide from any of its layers (a hooks layer isn't
 	// blamed for what its telemetry layer adds).
 	const lacks = (id: string) => {
-		const tool = tools(data.sources).find((t) => t.layers.some((l) => l.id === id));
+		const tool = tools(sources).find((t) => t.layers.some((l) => l.id === id));
 		const has = new Set(tool?.layers.flatMap((l) => l.capabilities) ?? []);
 		return has.size
 			? CAPABILITY_IDS.filter((c) => !has.has(c)).map((c) => CAPABILITIES[c].what)
@@ -78,146 +85,160 @@
 	description="Every field seen in captured payloads, next to what each tool documents. Use it to decide which metadata to build on. Nothing here leaves this machine."
 />
 
-<div class="tiles">
-	<StatTile
-		label="Fields seen"
-		icon={Eye}
-		value={integer(seen.length)}
-		hint="across {plural(new Set(seen.map((f) => `${f.source}|${f.event}`)).size, 'event type')}"
-	/>
-	<StatTile
-		label="Documented and seen"
-		icon={BookCheck}
-		value={coverage === null ? '—' : percent(coverage)}
-		hint="{integer(documented.length - missing.length)} of {integer(
-			documented.length
-		)} documented fields"
-	/>
-	<StatTile
-		label="Seen, not documented"
-		icon={Sparkles}
-		value={integer(fresh.length)}
-		hint="Metadata the docs don't list yet"
-	/>
-	<StatTile
-		label="Documented, never seen"
-		icon={EyeOff}
-		value={integer(missing.length)}
-		hint="Not sent in what was captured"
-	/>
-</div>
-
-<div class="controls">
-	<div class="search">
-		<TextField
-			label="Filter fields"
-			hideLabel
-			type="search"
-			icon={Search}
-			bind:value={filter}
-			placeholder="Filter by source, event or field"
-			clearable
-		/>
-	</div>
-	<SegmentedControl
-		label="Which fields"
-		bind:value={view}
-		options={[
-			{ value: 'all', label: 'All' },
-			{ value: 'new', label: 'Not documented' },
-			{ value: 'missing', label: 'Never seen' }
-		]}
-	/>
-	<span class="muted count" aria-live="polite">{plural(shown, 'field')}</span>
-</div>
-
-{#if !groups.length}
-	<EmptyState title="No fields match">Try another word, or show all fields.</EmptyState>
-{/if}
-
-{#each groups as group (group.source)}
-	<section class="source" aria-labelledby="fields-{group.source}">
-		<h2 id="fields-{group.source}">
-			{nameOf(group.source)}
-			{#if nameOf(group.source) !== group.source}<span class="mono id">{group.source}</span>{/if}
-		</h2>
-		{#if lacks(group.source).length}
-			<p class="muted lacks">
-				Not available from this tool: {lacks(group.source).join(', ')}.
-			</p>
-		{/if}
-		<div class="events">
-			{#each group.events as e (e.event)}
-				<Disclosure open={filter.length > 0 || view !== 'all'}>
-					{#snippet summary()}<span class="mono event">{e.event}</span>{/snippet}
-					{#snippet meta()}
-						<span class="coverage" aria-label="{e.seen} of {e.fields.length} fields seen">
-							<span class="bar"
-								><span style:width="{(e.seen / e.fields.length) * 100}%"></span></span
-							>
-							<span class="num">{e.seen}/{e.fields.length}</span>
-						</span>
-						{#if e.count}<span class="num">{integer(e.count)}×</span>{/if}
-					{/snippet}
-					<div class="table-wrap">
-						<table>
-							<caption class="sr-only">Fields of {e.event}</caption>
-							<thead>
-								<tr
-									><th scope="col">Field</th><th scope="col" class="n">Seen</th><th scope="col"
-										>Docs</th
-									><th scope="col">Latest value</th></tr
-								>
-							</thead>
-							<tbody>
-								{#each e.fields as f (f.path)}
-									<tr class={[f.count === 0 && 'unseen']}>
-										<td><code>{f.path}</code></td>
-										<td class="n num">{integer(f.count)}</td>
-										<td>
-											{#if f.documented}
-												<Badge size="sm" tone={f.count ? 'success' : 'neutral'}
-													>{f.count ? 'Documented' : 'Documented, unseen'}</Badge
-												>
-											{:else}
-												<Badge size="sm" tone="agent">Not documented</Badge>
-											{/if}
-										</td>
-										<td class="sample" title={f.sample == null ? '' : inline(f.sample)}
-											>{f.sample == null ? '' : inline(f.sample)}</td
-										>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</Disclosure>
-			{/each}
+<Deferred resource={content} label="Loading the field catalog" what="the field catalog">
+	{#snippet pending()}
+		<div class="tiles">
+			{#each { length: 4 }, i (i)}<PanelSkeleton body="figures" rows={1} title={false} />{/each}
 		</div>
-	</section>
-{/each}
+		<ListSkeleton variant="rows" rows={8} />
+	{/snippet}
+	{#snippet children({ catalog })}
+		<div class="tiles">
+			<StatTile
+				label="Fields seen"
+				icon={Eye}
+				value={integer(seen.length)}
+				hint="across {plural(
+					new Set(seen.map((f) => `${f.source}|${f.event}`)).size,
+					'event type'
+				)}"
+			/>
+			<StatTile
+				label="Documented and seen"
+				icon={BookCheck}
+				value={coverage === null ? '—' : percent(coverage)}
+				hint="{integer(documented.length - missing.length)} of {integer(
+					documented.length
+				)} documented fields"
+			/>
+			<StatTile
+				label="Seen, not documented"
+				icon={Sparkles}
+				value={integer(fresh.length)}
+				hint="Metadata the docs don't list yet"
+			/>
+			<StatTile
+				label="Documented, never seen"
+				icon={EyeOff}
+				value={integer(missing.length)}
+				hint="Not sent in what was captured"
+			/>
+		</div>
 
-<div class="grid">
-	<Panel
-		title="Derived by GitPrompt"
-		description="Computed on read from what was stored, so improvements apply to old prompts too."
-	>
-		<dl class="glossary">
-			{#each Object.entries(data.catalog.derived) as [name, meaning] (name)}
-				<dt><code>{name}</code></dt>
-				<dd>{meaning}</dd>
-			{/each}
-		</dl>
-	</Panel>
-	<Panel title="Not captured, and why">
-		<dl class="glossary">
-			{#each data.catalog.not_captured as n (`${n.source}|${n.event}`)}
-				<dt><code>{n.event}</code> <span class="muted">{nameOf(n.source)}</span></dt>
-				<dd>{n.reason}</dd>
-			{/each}
-		</dl>
-	</Panel>
-</div>
+		<div class="controls">
+			<div class="search">
+				<TextField
+					label="Filter fields"
+					hideLabel
+					type="search"
+					icon={Search}
+					bind:value={filter}
+					placeholder="Filter by source, event or field"
+					clearable
+				/>
+			</div>
+			<SegmentedControl
+				label="Which fields"
+				bind:value={view}
+				options={[
+					{ value: 'all', label: 'All' },
+					{ value: 'new', label: 'Not documented' },
+					{ value: 'missing', label: 'Never seen' }
+				]}
+			/>
+			<span class="muted count" aria-live="polite">{plural(shown, 'field')}</span>
+		</div>
+
+		{#if !groups.length}
+			<EmptyState title="No fields match">Try another word, or show all fields.</EmptyState>
+		{/if}
+
+		{#each groups as group (group.source)}
+			<section class="source" aria-labelledby="fields-{group.source}">
+				<h2 id="fields-{group.source}">
+					{nameOf(group.source)}
+					{#if nameOf(group.source) !== group.source}<span class="mono id">{group.source}</span
+						>{/if}
+				</h2>
+				{#if lacks(group.source).length}
+					<p class="muted lacks">
+						Not available from this tool: {lacks(group.source).join(', ')}.
+					</p>
+				{/if}
+				<div class="events">
+					{#each group.events as e (e.event)}
+						<Disclosure open={filter.length > 0 || view !== 'all'}>
+							{#snippet summary()}<span class="mono event">{e.event}</span>{/snippet}
+							{#snippet meta()}
+								<span class="coverage" aria-label="{e.seen} of {e.fields.length} fields seen">
+									<span class="bar"
+										><span style:width="{(e.seen / e.fields.length) * 100}%"></span></span
+									>
+									<span class="num">{e.seen}/{e.fields.length}</span>
+								</span>
+								{#if e.count}<span class="num">{integer(e.count)}×</span>{/if}
+							{/snippet}
+							<div class="table-wrap">
+								<table>
+									<caption class="sr-only">Fields of {e.event}</caption>
+									<thead>
+										<tr
+											><th scope="col">Field</th><th scope="col" class="n">Seen</th><th scope="col"
+												>Docs</th
+											><th scope="col">Latest value</th></tr
+										>
+									</thead>
+									<tbody>
+										{#each e.fields as f (f.path)}
+											<tr class={[f.count === 0 && 'unseen']}>
+												<td><code>{f.path}</code></td>
+												<td class="n num">{integer(f.count)}</td>
+												<td>
+													{#if f.documented}
+														<Badge size="sm" tone={f.count ? 'success' : 'neutral'}
+															>{f.count ? 'Documented' : 'Documented, unseen'}</Badge
+														>
+													{:else}
+														<Badge size="sm" tone="agent">Not documented</Badge>
+													{/if}
+												</td>
+												<td class="sample" title={f.sample == null ? '' : inline(f.sample)}
+													>{f.sample == null ? '' : inline(f.sample)}</td
+												>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						</Disclosure>
+					{/each}
+				</div>
+			</section>
+		{/each}
+
+		<div class="grid">
+			<Panel
+				title="Derived by GitPrompt"
+				description="Computed on read from what was stored, so improvements apply to old prompts too."
+			>
+				<dl class="glossary">
+					{#each Object.entries(catalog.derived) as [name, meaning] (name)}
+						<dt><code>{name}</code></dt>
+						<dd>{meaning}</dd>
+					{/each}
+				</dl>
+			</Panel>
+			<Panel title="Not captured, and why">
+				<dl class="glossary">
+					{#each catalog.not_captured as n (`${n.source}|${n.event}`)}
+						<dt><code>{n.event}</code> <span class="muted">{nameOf(n.source)}</span></dt>
+						<dd>{n.reason}</dd>
+					{/each}
+				</dl>
+			</Panel>
+		</div>
+	{/snippet}
+</Deferred>
 
 <style>
 	.tiles {

@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Deferred from '#lib/async/Deferred.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
+	import Boundary from '#lib/errors/Boundary.svelte';
 	import BrowserSection from '#lib/settings/BrowserSection.svelte';
 	import CaptureSection from '#lib/settings/CaptureSection.svelte';
 	import ConnectorsSection from '#lib/settings/ConnectorsSection.svelte';
@@ -8,11 +11,14 @@
 	import SecuritySection from '#lib/settings/SecuritySection.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
+	import PanelSkeleton from '#lib/ui/PanelSkeleton.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
-	const prefs = $derived('error' in data.settings ? null : data.settings);
+	const content = new Resource(() => data.content);
+	const settings = $derived(content.value?.settings);
+	const prefs = $derived(settings && !('error' in settings) ? settings : null);
 	const SECTIONS = [
 		['general', 'General'],
 		['connectors', 'Connectors'],
@@ -39,28 +45,58 @@
 	{#each SECTIONS as [id, label] (id)}<a href="#{id}">{label}</a>{/each}
 </nav>
 
-{#if 'error' in data.settings}
-	<Callout tone="danger" title="Your preferences can't be read">
-		{data.settings.error}. GitPrompt uses the defaults until the file is fixed or deleted.
-	</Callout>
-{/if}
+<!-- Each section fails on its own: a broken one leaves the others usable. -->
+<Deferred resource={content} label="Loading settings" what="your settings">
+	{#snippet pending()}
+		<div class="sections">
+			<PanelSkeleton body="rows" rows={3} />
+			<PanelSkeleton body="rows" rows={4} />
+			<PanelSkeleton body="rows" rows={3} />
+		</div>
+	{/snippet}
+	{#snippet children(c)}
+		{#if 'error' in c.settings}
+			<Callout tone="danger" title="Your preferences can't be read">
+				{c.settings.error}. GitPrompt uses the defaults until the file is fixed or deleted.
+			</Callout>
+		{/if}
 
-<div class="sections">
-	{#if prefs}<div id="general"><GeneralSection {prefs} /></div>{/if}
-	<div id="connectors"><ConnectorsSection sources={data.sources} problems={data.problems} /></div>
-	{#if prefs}
-		<div id="capture"><CaptureSection {prefs} /></div>
-		<div id="privacy"><PrivacySection {prefs} /></div>
-	{/if}
-	<div id="data">
-		<DataSection
-			data={data.data}
-			retentionDays={prefs?.settings.event_retention_days.value ?? null}
-		/>
-	</div>
-	<div id="security"><SecuritySection security={data.security} /></div>
-	<div id="browser"><BrowserSection /></div>
-</div>
+		<div class="sections">
+			{#if prefs}
+				<div id="general">
+					<Boundary what="the general settings"><GeneralSection {prefs} /></Boundary>
+				</div>
+			{/if}
+			<div id="connectors">
+				<Boundary what="the connector settings">
+					<ConnectorsSection sources={c.sources} problems={c.problems} />
+				</Boundary>
+			</div>
+			{#if prefs}
+				<div id="capture">
+					<Boundary what="the capture settings"><CaptureSection {prefs} /></Boundary>
+				</div>
+				<div id="privacy">
+					<Boundary what="the privacy settings"><PrivacySection {prefs} /></Boundary>
+				</div>
+			{/if}
+			<div id="data">
+				<Boundary what="the data settings">
+					<DataSection
+						data={c.data}
+						retentionDays={prefs?.settings.event_retention_days.value ?? null}
+					/>
+				</Boundary>
+			</div>
+			<div id="security">
+				<Boundary what="the security settings"><SecuritySection security={c.security} /></Boundary>
+			</div>
+			<div id="browser">
+				<Boundary what="the browser settings"><BrowserSection /></Boundary>
+			</div>
+		</div>
+	{/snippet}
+</Deferred>
 
 <style>
 	.file {

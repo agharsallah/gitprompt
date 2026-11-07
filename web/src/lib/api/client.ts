@@ -28,9 +28,21 @@ async function errorText(response: Response): Promise<string> {
 	return detail ?? response.statusText;
 }
 
+/** The daemon answered with an error status. The message keeps the status and path first. */
+export class ApiError extends Error {
+	constructor(
+		readonly status: number,
+		readonly path: string,
+		detail: string
+	) {
+		super(`${status} ${path}: ${detail}`);
+		this.name = 'ApiError';
+	}
+}
+
 async function request<T>(path: string, init?: RequestInit, fetcher: Fetch = fetch): Promise<T> {
 	const response = await fetcher(path, init);
-	if (!response.ok) throw new Error(`${response.status} ${path}: ${await errorText(response)}`);
+	if (!response.ok) throw new ApiError(response.status, path, await errorText(response));
 	return response.json();
 }
 

@@ -2,6 +2,8 @@
 	import { Search, Tag } from '@lucide/svelte';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import Deferred from '#lib/async/Deferred.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
 	import { rangePhrase } from '#lib/insights/range.ts';
 	import OriginChips from '#lib/prompts/OriginChips.svelte';
@@ -9,6 +11,7 @@
 	import SearchHit from '#lib/stories/SearchHit.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Select from '#lib/ui/Select.svelte';
 	import TextField from '#lib/ui/TextField.svelte';
@@ -18,8 +21,10 @@
 	let form: HTMLFormElement;
 	const submit = () => form.requestSubmit();
 
-	const r = $derived(data.results);
-	const more = $derived(!!r && r.hits.length < r.total && data.limit < 200);
+	const results = new Resource(() => data.results);
+	// The form is usable at once; project choices and origin counts fill in when they arrive.
+	const facets = new Resource(() => data.facets);
+	const projects = $derived(facets.value?.projects ?? []);
 	const range = $derived(page.url.searchParams.get('range'));
 	function moreHref() {
 		const params = new URLSearchParams(page.url.search);
@@ -68,7 +73,7 @@
 			name="repo"
 			anyLabel="All projects"
 			value={data.filters.repo ?? ''}
-			options={data.projects.map((p) => ({
+			options={projects.map((p) => ({
 				value: p.key!,
 				label: p.detail ?? folder(p.key) ?? p.key!
 			}))}
@@ -86,7 +91,11 @@
 		</div>
 		<Button type="submit" variant="primary">Search</Button>
 	</div>
-	<OriginChips origins={data.filters.origins} counts={data.originCounts} onchange={submit} />
+	<OriginChips
+		origins={data.filters.origins}
+		counts={facets.value?.originCounts ?? {}}
+		onchange={submit}
+	/>
 </form>
 
 {#if !data.q}
@@ -94,25 +103,34 @@
 		Search covers the text of every prompt, without the context the tool added. Short words work
 		too.
 	</EmptyState>
-{:else if r && r.hits.length}
-	<p class="summary muted" aria-live="polite">
-		{r.total > r.hits.length
-			? `Newest ${integer(r.hits.length)} of ${plural(r.total, 'prompt')}`
-			: plural(r.total, 'prompt')}
-		{rangePhrase(data.filters.range)}
-	</p>
-	<ol class="hits" aria-label="Search results">
-		{#each r.hits as hit (hit.id)}<SearchHit {hit} />{/each}
-	</ol>
-	{#if more}
-		<nav class="pager" aria-label="More results">
-			<Button href={moreHref()} size="sm" data-sveltekit-noscroll>Show {data.page} more</Button>
-		</nav>
-	{/if}
 {:else}
-	<EmptyState title="No prompt has all these words">
-		Try fewer words, another project, a longer range or more origins.
-	</EmptyState>
+	<Deferred resource={results} label="Searching" what="the search results">
+		{#snippet pending()}<ListSkeleton variant="rows" rows={6} />{/snippet}
+		{#snippet children(r)}
+			{#if r && r.hits.length}
+				<p class="summary muted" aria-live="polite">
+					{r.total > r.hits.length
+						? `Newest ${integer(r.hits.length)} of ${plural(r.total, 'prompt')}`
+						: plural(r.total, 'prompt')}
+					{rangePhrase(data.filters.range)}
+				</p>
+				<ol class="hits" aria-label="Search results">
+					{#each r.hits as hit (hit.id)}<SearchHit {hit} />{/each}
+				</ol>
+				{#if r.hits.length < r.total && data.limit < 200}
+					<nav class="pager" aria-label="More results">
+						<Button href={moreHref()} size="sm" data-sveltekit-noscroll
+							>Show {data.page} more</Button
+						>
+					</nav>
+				{/if}
+			{:else}
+				<EmptyState title="No prompt has all these words">
+					Try fewer words, another project, a longer range or more origins.
+				</EmptyState>
+			{/if}
+		{/snippet}
+	</Deferred>
 {/if}
 
 <style>

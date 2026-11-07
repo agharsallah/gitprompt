@@ -3,31 +3,28 @@
 	import { resolve } from '$app/paths';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import type { Capability, PromptQuery } from '#lib/api/types.ts';
+	import Deferred from '#lib/async/Deferred.svelte';
+	import Lazy from '#lib/async/Lazy.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
+	import Boundary from '#lib/errors/Boundary.svelte';
 	import ExportButton from '#lib/export/ExportButton.svelte';
 	import FilterBar from '#lib/insights/FilterBar.svelte';
 	import { promptsHref } from '#lib/insights/filters.ts';
+	import type { Overview } from '#lib/insights/overview.ts';
 	import { rangePhrase } from '#lib/insights/range.ts';
 	import { chartStart, timeSlots } from '#lib/insights/series.ts';
+	// The first screen is part of the page; the panels further down load as they come into view.
 	import ActivityPanel from '#lib/insights/panels/ActivityPanel.svelte';
-	import AgentPanel from '#lib/insights/panels/AgentPanel.svelte';
-	import CommandsPanel from '#lib/insights/panels/CommandsPanel.svelte';
-	import DelegationPanel from '#lib/insights/panels/DelegationPanel.svelte';
 	import KeyFigures from '#lib/insights/panels/KeyFigures.svelte';
-	import ModelsPanel from '#lib/insights/panels/ModelsPanel.svelte';
-	import OriginPanel from '#lib/insights/panels/OriginPanel.svelte';
-	import OutcomesPanel from '#lib/insights/panels/OutcomesPanel.svelte';
-	import PerformancePanel from '#lib/insights/panels/PerformancePanel.svelte';
-	import ReusePanel from '#lib/insights/panels/ReusePanel.svelte';
 	import RhythmPanel from '#lib/insights/panels/RhythmPanel.svelte';
 	import SessionsPanel from '#lib/insights/panels/SessionsPanel.svelte';
-	import SpendPanel from '#lib/insights/panels/SpendPanel.svelte';
-	import StarredPanel from '#lib/insights/panels/StarredPanel.svelte';
-	import WritingPanel from '#lib/insights/panels/WritingPanel.svelte';
 	import { plural } from '#lib/shared/format.ts';
 	import { availability } from '#lib/sources/capabilities.ts';
 	import SetupSteps from '#lib/sources/SetupSteps.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
+	import PanelSkeleton from '#lib/ui/PanelSkeleton.svelte';
+	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -35,100 +32,219 @@
 	// Refetch once capture goes quiet, not on every event.
 	$effect(() => liveUpdates(refreshAll, 3000));
 
-	const o = $derived(data.overview);
-	const t = $derived(o.activity.totals);
-	const link = $derived((extra: PromptQuery = {}) =>
-		promptsHref(resolve('/prompts'), o.query, extra)
-	);
-	const slots = $derived(
-		timeSlots(o.activity.groups, chartStart(o.start, t.first_at, o.now), new Date(o.now), o.hourly)
-	);
-	// Which connectors can provide what the panels show (spec capabilities), so a panel says
-	// "not available for <tool>" instead of showing zeros.
-	const can = $derived((c: Capability) => availability(data.sources, c));
-	const hooked = $derived(data.sources.some((s) => s.connected));
-	const ever = $derived(data.sources.some((s) => s.total > 0));
+	const content = new Resource(() => data.content);
+	const totals = $derived(content.value?.overview.activity.totals);
 	const summary = $derived(
-		`${plural(t.prompts, 'prompt')} in ${plural(t.sessions, 'session')} ${rangePhrase(o.filters.range)}.`
+		totals?.prompts
+			? `${plural(totals.prompts, 'prompt')} in ${plural(totals.sessions, 'session')} ${rangePhrase(data.filters.range)}.`
+			: 'Your prompting, at a glance.'
 	);
+
+	const linkFor =
+		(o: Overview) =>
+		(extra: PromptQuery = {}) =>
+			promptsHref(resolve('/prompts'), o.query, extra);
+	const slotsFor = (o: Overview) =>
+		timeSlots(
+			o.activity.groups,
+			chartStart(o.start, o.activity.totals.first_at, o.now),
+			new Date(o.now),
+			o.hourly
+		);
 </script>
 
 <svelte:head><title>Overview · GitPrompt</title></svelte:head>
 
-<PageHeader title="Overview" description={t.prompts ? summary : 'Your prompting, at a glance.'}>
+<PageHeader title="Overview" description={summary}>
 	{#snippet actions()}
-		{#if t.prompts}<ExportButton target={{ kind: 'overview', query: o.query }} />{/if}
+		{#if content.value && totals?.prompts}
+			<ExportButton target={{ kind: 'overview', query: content.value.overview.query }} />
+		{/if}
 	{/snippet}
 </PageHeader>
 
-<div class="overview">
-	{#if !hooked || !ever}
-		<SetupSteps sources={data.sources} />
-	{/if}
+{#snippet panel()}<PanelSkeleton />{/snippet}
+{#snippet rows()}<PanelSkeleton body="rows" rows={3} />{/snippet}
 
-	<FilterBar
-		filters={o.filters}
-		fallback={data.defaultRange}
-		origins={o.origins}
-		options={o.options}
-	/>
-
-	{#if !t.prompts}
-		{#if ever}
-			<EmptyState title="Nothing {rangePhrase(o.filters.range)} for these filters">
-				Pick a longer range, more origins or fewer filters, or open the
-				<a href={resolve('/prompts')}>full list of prompts</a>.
-			</EmptyState>
-		{/if}
-	{:else}
-		<KeyFigures data={o} {slots} {link} cost={can('cost')} />
-
-		<section aria-labelledby="activity">
-			<h2 id="activity" class="section">Activity</h2>
-			<div class="grid two">
-				<ActivityPanel data={o} {slots} {link} />
-				<RhythmPanel data={o} weekStart={data.weekStart} {link} />
+<Deferred resource={content} label="Loading the overview" what="the overview">
+	{#snippet pending()}
+		<div class="overview">
+			<div class="filters">
+				{#each ['7rem', '6rem', '8rem', '6rem'] as width, i (i)}
+					<Skeleton {width} height="2rem" shape="block" />
+				{/each}
 			</div>
-			<SessionsPanel data={o} />
-		</section>
-
-		<section aria-labelledby="types">
-			<h2 id="types" class="section">Prompt types</h2>
+			<PanelSkeleton body="figures" rows={4} title={false} />
 			<div class="grid two">
-				<OriginPanel data={o} {link} />
-				<CommandsPanel data={o} {link} availability={can('session_metrics')} />
-				<WritingPanel data={o} {link} />
-				<ReusePanel data={o} {link} />
+				{@render panel()}
+				{@render panel()}
 			</div>
-		</section>
+		</div>
+	{/snippet}
 
-		<section aria-labelledby="cost">
-			<h2 id="cost" class="section">Models and cost</h2>
-			<div class="grid two">
-				<ModelsPanel data={o} {link} availability={can('model')} />
-				<SpendPanel data={o} {link} availability={can('cost')} />
-			</div>
-		</section>
+	{#snippet children({ overview: o, sources })}
+		{@const t = o.activity.totals}
+		{@const link = linkFor(o)}
+		{@const slots = slotsFor(o)}
+		{@const can = (c: Capability) => availability(sources, c)}
+		{@const ever = sources.some((s) => s.total > 0)}
+		<div class="overview">
+			{#if !sources.some((s) => s.connected) || !ever}
+				<SetupSteps {sources} />
+			{/if}
 
-		<section aria-labelledby="work">
-			<h2 id="work" class="section">Performance and agentic work</h2>
-			<div class="grid two">
-				<PerformancePanel data={o} {link} />
-				<AgentPanel data={o} {link} />
-				<DelegationPanel data={o} {link} />
-				<OutcomesPanel data={o} {link} availability={can('session_metrics')} />
-			</div>
-		</section>
+			<FilterBar
+				filters={o.filters}
+				fallback={data.defaultRange}
+				origins={o.origins}
+				options={o.options}
+			/>
 
-		<StarredPanel prompts={o.starred} href={link({ starred: 'true' })} />
-	{/if}
-</div>
+			{#if !t.prompts}
+				{#if ever}
+					<EmptyState title="Nothing {rangePhrase(o.filters.range)} for these filters">
+						Pick a longer range, more origins or fewer filters, or open the
+						<a href={resolve('/prompts')}>full list of prompts</a>.
+					</EmptyState>
+				{/if}
+			{:else}
+				<Boundary what="the key figures">
+					<KeyFigures data={o} {slots} {link} cost={can('cost')} />
+				</Boundary>
+
+				<section aria-labelledby="activity">
+					<h2 id="activity" class="section">Activity</h2>
+					<div class="grid two">
+						<Boundary what="the activity panel"><ActivityPanel data={o} {slots} {link} /></Boundary>
+						<Boundary what="the rhythm panel">
+							<RhythmPanel data={o} weekStart={data.weekStart} {link} />
+						</Boundary>
+					</div>
+					<Boundary what="the sessions panel"><SessionsPanel data={o} /></Boundary>
+				</section>
+
+				<section aria-labelledby="types">
+					<h2 id="types" class="section">Prompt types</h2>
+					<div class="grid two">
+						<Lazy
+							load={() => import('#lib/insights/panels/OriginPanel.svelte')}
+							props={{ data: o, link }}
+							when="visible"
+							label="Loading who wrote the prompts"
+							what="the origins panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/CommandsPanel.svelte')}
+							props={{ data: o, link, availability: can('session_metrics') }}
+							when="visible"
+							label="Loading slash commands"
+							what="the commands panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/WritingPanel.svelte')}
+							props={{ data: o, link }}
+							when="visible"
+							label="Loading prompt sizes"
+							what="the writing panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/ReusePanel.svelte')}
+							props={{ data: o, link }}
+							when="visible"
+							label="Loading reused prompts"
+							what="the reuse panel"
+							pending={panel}
+						/>
+					</div>
+				</section>
+
+				<section aria-labelledby="cost">
+					<h2 id="cost" class="section">Models and cost</h2>
+					<div class="grid two">
+						<Lazy
+							load={() => import('#lib/insights/panels/ModelsPanel.svelte')}
+							props={{ data: o, link, availability: can('model') }}
+							when="visible"
+							label="Loading models"
+							what="the models panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/SpendPanel.svelte')}
+							props={{ data: o, link, availability: can('cost') }}
+							when="visible"
+							label="Loading spend"
+							what="the spend panel"
+							pending={panel}
+						/>
+					</div>
+				</section>
+
+				<section aria-labelledby="work">
+					<h2 id="work" class="section">Performance and agentic work</h2>
+					<div class="grid two">
+						<Lazy
+							load={() => import('#lib/insights/panels/PerformancePanel.svelte')}
+							props={{ data: o, link }}
+							when="visible"
+							label="Loading performance"
+							what="the performance panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/AgentPanel.svelte')}
+							props={{ data: o, link }}
+							when="visible"
+							label="Loading agent work"
+							what="the agent panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/DelegationPanel.svelte')}
+							props={{ data: o, link }}
+							when="visible"
+							label="Loading delegation"
+							what="the delegation panel"
+							pending={panel}
+						/>
+						<Lazy
+							load={() => import('#lib/insights/panels/OutcomesPanel.svelte')}
+							props={{ data: o, link, availability: can('session_metrics') }}
+							when="visible"
+							label="Loading outcomes"
+							what="the outcomes panel"
+							pending={panel}
+						/>
+					</div>
+				</section>
+
+				<Lazy
+					load={() => import('#lib/insights/panels/StarredPanel.svelte')}
+					props={{ prompts: o.starred, href: link({ starred: 'true' }) }}
+					when="visible"
+					label="Loading starred prompts"
+					what="the starred prompts"
+					pending={rows}
+				/>
+			{/if}
+		</div>
+	{/snippet}
+</Deferred>
 
 <style>
 	.overview {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		gap: var(--space-5);
+	}
+
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
 	}
 
 	section {

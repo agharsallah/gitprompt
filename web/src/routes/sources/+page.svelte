@@ -3,16 +3,20 @@
 	import { refreshAll, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
+	import Deferred from '#lib/async/Deferred.svelte';
+	import { Resource } from '#lib/async/resource.svelte.ts';
+	import Boundary from '#lib/errors/Boundary.svelte';
 	import { tools } from '#lib/sources/state.ts';
 	import SpecProblems from '#lib/sources/SpecProblems.svelte';
 	import ToolCard from '#lib/sources/ToolCard.svelte';
+	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	$effect(() => liveUpdates(refreshAll, 2000));
 
-	const list = $derived(tools(data.sources));
+	const connectors = new Resource(() => data.connectors);
 	// First run: /sources?connect=<id> opens that connector's consent review straight away. Read
 	// once, then dropped from the URL, so a reload doesn't reopen it.
 	const review = page.url.searchParams.get('connect');
@@ -31,15 +35,24 @@
 	description="The tools GitPrompt captures from. It only uses each tool's documented extension points, and you review the exact change to its settings before anything is written."
 />
 
-{#if data.problems.length}
-	<div class="problems"><SpecProblems problems={data.problems} /></div>
-{/if}
+<Deferred resource={connectors} label="Loading connectors" what="the connectors">
+	{#snippet pending()}
+		<div class="tools">
+			<ListSkeleton rows={2} height="9rem" /><ListSkeleton rows={2} height="9rem" />
+		</div>
+	{/snippet}
+	{#snippet children({ sources, origins, problems })}
+		{#if problems.length}
+			<div class="problems"><SpecProblems {problems} /></div>
+		{/if}
 
-<div class="tools">
-	{#each list as tool (tool.id)}
-		<ToolCard {tool} origins={data.origins} {review} />
-	{/each}
-</div>
+		<div class="tools">
+			{#each tools(sources) as tool (tool.id)}
+				<Boundary what="the {tool.name} connector"><ToolCard {tool} {origins} {review} /></Boundary>
+			{/each}
+		</div>
+	{/snippet}
+</Deferred>
 
 <aside class="help">
 	<h2>Adding or fixing a connector</h2>
