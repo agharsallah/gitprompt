@@ -186,7 +186,7 @@ def session(data: dict[str, Any], options: Options) -> Built:
                 Figure("Prompts you typed", integer(t["chapters"])),
                 Figure("System items", integer(t["markers"])),
                 Figure("Span", duration(seconds)),
-                Figure("Cost", money(t["cost_usd"])),
+                *([Figure("Cost", money(t["cost_usd"]))] if t["cost_usd"] else []),  # as on the page: no usage, no cost
                 Figure("Tool calls", integer(t["tool_calls"])),
                 Figure("Files written", integer(t["files_written"])),
                 Figure("Retries", integer(t["retries"])),
@@ -354,8 +354,8 @@ def overview(data: dict[str, Any], options: Options) -> Built:
         [
             Figure("Prompts", integer(t["prompts"])),
             Figure("Sessions", integer(t["sessions"])),
-            Figure("Cost", money(t["cost_usd"])),
-            Figure("Tokens", integer(tokens)),
+            # Only tools with telemetry report usage: without any, cost and tokens are left out, not zero.
+            *([Figure("Cost", money(t["cost_usd"])), Figure("Tokens", integer(tokens))] if t.get("api_requests") else []),
             Figure("Tool calls", integer(t["tool_calls"])),
             Figure("Failed turns", integer(t["failed"])),
             Figure("Median response", duration(t.get("response_s_p50"))),
@@ -434,7 +434,7 @@ def prompts(data: dict[str, Any], options: Options) -> Built:
                 [
                     Figure("Prompts", shown),
                     Figure("Sessions", integer(len({p["session"] for p in items if p.get("session")}))),
-                    Figure("Cost", money(sum(p.get("cost_usd") or 0 for p in items))),
+                    *([Figure("Cost", money(cost))] if (cost := sum(p.get("cost_usd") or 0 for p in items)) else []),
                     Figure("Tool calls", integer(sum(p.get("tool_calls") or 0 for p in items))),
                 ]
             ),

@@ -92,3 +92,6 @@ def test_a_turn_joins_its_prompt_by_turn_id_and_counts_its_model(client, setting
     assert (model["key"], model["prompts"], model["api_requests"]) == ("gpt-5-codex", 1, 0)  # from the hooks, no usage
     story = client.get(f"/api/stories/session/{SESSION}").json()
     assert story["items"][0]["files"] == ["/work/app/upload.py"]
+    overview = client.get("/api/export/overview?source=codex&format=md").text
+    assert "**Prompts:** 1" in overview and "gpt-5-codex" in overview
+    assert "**Cost:**" not in overview and "**Tokens:**" not in overview  # no tool reported usage: left out, not $0
