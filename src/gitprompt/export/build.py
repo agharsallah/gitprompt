@@ -21,7 +21,14 @@ BUILDERS: dict[str, Builder] = {}
 RAW_CHARS = 2000  # of a stored payload, in a document (the JSON and CSV rows have all of it)
 TOP = 10  # items in a bar chart
 
-OUTCOMES = {"done": "Done", "failed": "Failed", "superseded": "Superseded", "running": "Running", "open": "No end seen"}
+OUTCOMES = {
+    "done": "Done",
+    "failed": "Failed",
+    "interrupted": "Interrupted",
+    "superseded": "Superseded",
+    "running": "Running",
+    "open": "No end seen",
+}
 ORIGINS = {
     "typed": "Typed",
     "slash_command": "Slash command",

@@ -96,11 +96,13 @@ def _words(q: str) -> tuple[str, list[Any]]:
 # A later prompt in the same session (any origin): the user (or the tool) went on after this turn.
 FOLLOWED = "exists (select 1 from prompt_index n where n.session = i.session and n.id > i.id)"
 # How a turn ended, in the dashboard's words (web/src/lib/insights/outcome.ts): done, failed,
-# superseded (no end, and a later prompt came), running (no end, sent in the last hour), open.
-OUTCOME = f"""(case when i.ended_by = 'StopFailure' then 'failed' when i.ended_by is not null then 'done'
+# interrupted (you stopped it), superseded (no end, and a later prompt came), running (no end, sent
+# in the last hour), open.
+OUTCOME = f"""(case when i.ended_by = 'StopFailure' then 'failed' when i.ended_by = 'Interrupt' then 'interrupted'
+  when i.ended_by is not null then 'done'
   when {FOLLOWED} then 'superseded'
   when i.received_at >= strftime('%Y-%m-%dT%H:%M:%f', 'now', '-1 hour') then 'running' else 'open' end)"""
-OUTCOMES = ("done", "failed", "superseded", "running", "open")
+OUTCOMES = ("done", "failed", "interrupted", "superseded", "running", "open")
 
 
 def buckets(value: str, bounds: tuple[int, ...]) -> str:

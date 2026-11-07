@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from gitprompt.sources.spec import Origin
 
-Outcome = Literal["done", "failed", "superseded", "running", "open"]  # storage.store.OUTCOMES
+Outcome = Literal["done", "failed", "interrupted", "superseded", "running", "open"]  # storage.store.OUTCOMES
 Has = Literal[
     "code", "url", "mention", "secret", "commit", "subagent", "tool_failure", "api_error", "denial", "compaction", "no_follow_up"
 ]  # storage.store.HAS

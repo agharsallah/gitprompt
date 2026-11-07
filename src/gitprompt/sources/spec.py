@@ -29,7 +29,7 @@ from gitprompt.core.payload import Mapping
 log = logging.getLogger(__name__)
 
 BUNDLED = files("gitprompt.sources") / "bundled"
-DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `tool_kinds`, `origin` rules, `injected` tags
+DEFAULTS = "_defaults.yaml"  # shared settings every spec inherits: the field `map`, `tool_kinds`, `origin` rules, `injected` tags, `usage`
 
 Format = Literal["json", "otlp"]  # how a source's request bodies are decoded (see capture/pipeline.py DECODERS)
 
@@ -66,6 +66,34 @@ Join = Literal["prompt_id", "session"]
 # The dashboard reads the kind of each tool from the daemon and only decides how a kind is drawn
 # (web/src/lib/insights/tools.ts). A tool the spec does not map is "other".
 ToolKind = Literal["read", "write", "shell", "web", "mcp", "agent", "other"]
+
+
+# What one model call reported (insights/derivations.py `_usage`): GitPrompt's name -> the path of the
+# value in the event's payload.
+UsageValue = Literal[
+    "model",
+    "input_tokens",  # input tokens not read from the cache
+    "output_tokens",
+    "cache_read_tokens",
+    "cache_creation_tokens",
+    "reasoning_tokens",  # part of the output tokens, when the tool says how many
+    "cost_usd",
+    "duration_ms",
+    "query_source",  # who the call worked for: the main thread, a subagent, a system call
+    "error",  # set when the call failed
+]
+
+
+class Usage(BaseModel):
+    """Which events report a model call each, and where their usage is. Defaults: _defaults.yaml."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    events: list[str] = []
+    values: dict[UsageValue, str] = {}  # GitPrompt's name -> payload path
+    # The tool counts cached input in its input tokens (OpenAI's `input_tokens` includes
+    # `cached_input_tokens`); GitPrompt's input_tokens leave them out, as Anthropic's do.
+    input_includes_cached: bool = False
 
 
 class Install(BaseModel):
@@ -139,11 +167,15 @@ class Spec(BaseModel):
     origin: list[OriginRule] = []  # first matching rule wins; the spec's own rules, then the shared ones
     injected: list[Tag] = []  # tags of context blocks a tool adds before or after what the user typed
     capabilities: list[Capability] = []  # what this connector yields (see Capability)
+    # Capability -> the first tool version that yields it. An older installed version doesn't have it,
+    # and pages say which version to update to (api/routes/sources.py).
+    capability_since: dict[Capability, str] = {}
     join: Join = "prompt_id"  # how events find their prompt (see Join)
     tool_kinds: dict[str, ToolKind] = {}  # tool name (a trailing * matches a prefix) -> kind (see ToolKind)
     # Tool name (as above) -> pattern over the tool's text inputs whose first group is a file the call
     # touched, for tools that name files inside a text (a patch) instead of a path input.
     tool_files: dict[str, re.Pattern[str]] = {}
+    usage: Usage = Usage()  # which events report model calls and their tokens (see Usage)
 
     @property
     def marker(self) -> re.Pattern[str]:
@@ -233,6 +265,7 @@ def parse_spec(name: str, text: str, defaults: dict[str, Any]) -> Spec:
     data["tool_kinds"] = (defaults.get("tool_kinds") or {}) | (data.get("tool_kinds") or {})  # ...and per tool
     data["origin"] = (data.get("origin") or []) + (defaults.get("origin") or [])  # own markers first
     data["injected"] = list(dict.fromkeys((defaults.get("injected") or []) + (data.get("injected") or [])))
+    data["usage"] = data.get("usage") or defaults.get("usage") or {}  # a spec replaces the default whole
     try:
         return Spec(**data)
     except (ValidationError, TypeError) as e:

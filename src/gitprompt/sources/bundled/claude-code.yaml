@@ -56,7 +56,6 @@ prompt_events: [UserPromptSubmit]
 capabilities: [prompt, cwd, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
 
 map:
-  permission_mode: [permission_mode]
   session_title: [session_title]
 
 # What each tool does (insights/derivations.py): files read and written, shell commands and git

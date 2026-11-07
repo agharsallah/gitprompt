@@ -28,12 +28,12 @@ def test_a_registered_derivation_is_computed_and_documented():
     assert registry.docs == {"stats.shouting": "prompt is all caps"}
 
 
-def test_every_turn_value_is_documented_on_the_fields_page():
+def test_every_turn_value_is_documented_on_the_fields_page(settings):
     events = [
         {"event": "PostToolUse", "received_at": "2026-11-03T10:00:01+00:00", "raw": {"tool_name": "mcp__x__y", "duration_ms": 900}},
         {"event": "Stop", "received_at": "2026-11-03T10:00:02+00:00", "raw": {"last_assistant_message": "ok"}},
     ]
-    summary = derivations.turn({"received_at": "2026-11-03T10:00:00+00:00", "turn": 1}, events, {"mcp__*": "mcp"})
+    summary = derivations.turn({"received_at": "2026-11-03T10:00:00+00:00", "turn": 1}, events, load_specs(settings)["claude-code"])
     documented = " / ".join(k for k in derivations.DERIVED if k.startswith("summary."))
     assert all(key in documented for key in summary), summary.keys()
 

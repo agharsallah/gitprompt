@@ -22,10 +22,10 @@ from datetime import datetime
 from functools import cached_property
 from typing import Any
 
-from gitprompt.core.payload import compact
+from gitprompt.core.payload import compact, pluck
 from gitprompt.insights import origin
 from gitprompt.insights.redaction import find_secrets
-from gitprompt.sources.spec import Spec, ToolKind, by_name, tool_kind
+from gitprompt.sources.spec import Spec, ToolKind, Usage, by_name, tool_kind
 
 
 class Derivations[Context]:
@@ -113,7 +113,7 @@ def prompt_stats(text: str) -> dict[str, Any]:
 # Event names below are Claude Code's; tools that copy its hook shape get these for free. What each
 # tool does comes from the source spec (`tool_kinds`), and its inputs are read by generic names.
 
-TURN_END = ("Stop", "StopFailure")
+TURN_END = ("Stop", "StopFailure", "Interrupt")  # Interrupt: you stopped the turn (Codex)
 TOOL_RESULTS = ("PostToolUse", "PostToolUseFailure")
 USAGE_TOKENS = ("input_tokens", "output_tokens", "cache_read_tokens", "cache_creation_tokens")
 FILE_INPUTS = ("file_path", "notebook_path", "path")  # tool inputs naming the file a tool touched
@@ -143,6 +143,7 @@ class Turn:
     events: list[dict[str, Any]]  # event rows, in arrival order
     tool_kinds: dict[str, ToolKind] = field(default_factory=dict)  # the source spec's `tool_kinds`
     tool_files: dict[str, re.Pattern[str]] = field(default_factory=dict)  # ...and its `tool_files`
+    usage: Usage = field(default_factory=Usage)  # ...and its `usage`
 
     def raws(self, *names: str) -> list[dict[str, Any]]:
         """Raw payloads of the events with one of these names."""
@@ -150,7 +151,7 @@ class Turn:
 
     @cached_property
     def end(self) -> dict[str, Any] | None:
-        """The last Stop/StopFailure event, if the turn has finished."""
+        """The last Stop/StopFailure/Interrupt event, if the turn has finished."""
         return next((e for e in reversed(self.events) if e["event"] in TURN_END), None)
 
     @cached_property
@@ -186,7 +187,7 @@ def _position(t: Turn) -> dict[str, Any]:
 
 @TURN(
     {
-        "response_s / ended_by / error": "time until Stop or StopFailure, and why it ended",
+        "response_s / ended_by / error": "time until Stop, StopFailure or Interrupt, and how it ended",
         "response": "the agent's final answer (Stop.last_assistant_message)",
     }
 )
@@ -250,24 +251,34 @@ def _agent_activity(t: Turn) -> dict[str, Any]:
 
 @TURN(
     {
-        "api_requests / models / *_tokens / cost_usd / api_time_s / api_errors": "usage from telemetry (needs the telemetry source)",
-        "model_usage": "requests, tokens and cost per model (telemetry)",
+        "api_requests / models / *_tokens / cost_usd / api_time_s / api_errors": "model calls (the spec's `usage` events)",
+        "reasoning_tokens": "output tokens spent reasoning, when the tool reports them",
+        "model_usage": "requests, tokens and cost per model",
         "work_usage": "requests, tokens and cost per query_source: the main thread, a subagent, or a system call (telemetry)",
         "tool_rejections": "tool calls you rejected (telemetry)",
     }
 )
 def _usage(t: Turn) -> dict[str, Any]:
-    api = t.raws("api_request")
-    by_model = _by(api, "model")
+    calls = model_calls(t.raws(*t.usage.events), t.usage)
     return {
-        **_usage_of(api),
-        "models": dict(Counter(e.get("model") for e in api)),
-        "model_usage": {model: _usage_of(requests) for model, requests in by_model.items()},
-        "work_usage": {source: _usage_of(requests) for source, requests in _by(api, "query_source").items()},
-        "api_time_s": round(sum(_num(e.get("duration_ms")) for e in api) / 1000, 1),
-        "api_errors": len(t.raws("api_error")),
+        **_usage_of(calls),
+        "reasoning_tokens": int(sum(_num(c.get("reasoning_tokens")) for c in calls)),
+        "models": dict(Counter(c.get("model") for c in calls)),
+        "model_usage": {model: _usage_of(group) for model, group in _by(calls, "model").items()},
+        "work_usage": {source: _usage_of(group) for source, group in _by(calls, "query_source").items()},
+        "api_time_s": round(sum(_num(c.get("duration_ms")) for c in calls) / 1000, 1),
+        "api_errors": len(t.raws("api_error")) + sum(bool(c.get("error")) for c in calls),
         "tool_rejections": sum(e.get("decision") == "reject" for e in t.raws("tool_decision")),
     }
+
+
+def model_calls(payloads: list[dict[str, Any]], usage: Usage) -> list[dict[str, Any]]:
+    """Model call events in GitPrompt's names (spec `usage`), input tokens without cached ones."""
+    calls = [{name: pluck(p, path) for name, path in usage.values.items()} for p in payloads]
+    if usage.input_includes_cached:
+        for c in calls:
+            c["input_tokens"] = max(0.0, _num(c.get("input_tokens")) - _num(c.get("cache_read_tokens")))
+    return calls
 
 
 def _by(payloads: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, Any]]]:
@@ -292,23 +303,21 @@ def work_kind(query_source: str | None) -> str:
     return "subagent" if str(query_source).startswith(SUBAGENT_PREFIX) else "system"
 
 
-def _usage_of(api: list[dict[str, Any]]) -> dict[str, Any]:
-    """Requests, tokens and cost of some api_request payloads."""
+def _usage_of(calls: list[dict[str, Any]]) -> dict[str, Any]:
+    """Requests, tokens and cost of some model calls."""
     return {
-        "api_requests": len(api),
-        **{k: int(sum(_num(e.get(k)) for e in api)) for k in USAGE_TOKENS},
-        "cost_usd": round(sum(_num(e.get("cost_usd")) for e in api), 4),
+        "api_requests": len(calls),
+        **{k: int(sum(_num(c.get(k)) for c in calls)) for k in USAGE_TOKENS},
+        "cost_usd": round(sum(_num(c.get("cost_usd")) for c in calls), 4),
     }
 
 
-def turn(
-    prompt: dict[str, Any],
-    events: list[dict[str, Any]],
-    tool_kinds: dict[str, ToolKind] | None = None,
-    tool_files: dict[str, re.Pattern[str]] | None = None,
-) -> dict[str, Any]:
-    """What happened while the tool worked on one prompt. Without `tool_kinds` every tool is "other"."""
-    return TURN.derive(Turn(prompt, events, tool_kinds or {}, tool_files or {}))
+def turn(prompt: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None = None) -> dict[str, Any]:
+    """What happened while the tool worked on one prompt. Without a spec every tool is "other" and
+    no event counts as a model call."""
+    if not spec:
+        return TURN.derive(Turn(prompt, events))
+    return TURN.derive(Turn(prompt, events, spec.tool_kinds, spec.tool_files, spec.usage))
 
 
 # --- the whole session: every event that shares the prompt's session_id ----------------------
@@ -332,9 +341,15 @@ def _activity(events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-@SESSION({"ended / instructions_loaded / cwd_changes / config_changes": "end reason, instruction files, directory and config changes"})
+@SESSION(
+    {
+        "starts": "how the session started, then each time it was taken up again (SessionStart.source: startup, resume...)",
+        "ended / instructions_loaded / cwd_changes / config_changes": "end reason, instruction files, directory and config changes",
+    }
+)
 def _lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
     return {
+        "starts": [r["source"] for r in _raws(events, "SessionStart") if r.get("source")],
         "ended": next((r.get("reason") for r in reversed(_raws(events, "SessionEnd"))), None),
         "instructions_loaded": sorted({r.get("file_path") for r in _raws(events, "InstructionsLoaded")} - {None}),
         "cwd_changes": [r.get("new_cwd") for r in _raws(events, "CwdChanged")],
@@ -389,11 +404,7 @@ def derive(row: dict[str, Any], events: list[dict[str, Any]], spec: Spec | None)
     """A stored prompt row plus every value derived from it: origin and typed text (from the spec's
     rules), stats from its text, summary from the events of its turn. The prompt API returns this,
     and the prompt index (insights/indexer.py) stores a projection of it."""
-    return (
-        row
-        | origin.classify(row, events, spec)
-        | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec and spec.tool_kinds, spec and spec.tool_files)}
-    )
+    return row | origin.classify(row, events, spec) | {"stats": prompt_stats(row["prompt"] or ""), "summary": turn(row, events, spec)}
 
 
 # --- shown on the Fields page ----------------------------------------------------------------
