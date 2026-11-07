@@ -165,7 +165,7 @@ export function explain(id: ConnectorStateId, s: Source, now: number): string {
 		case 'available':
 			return `Review the exact change to ${file}, then confirm; a backup is kept and Disconnect undoes it.`;
 		case 'warning':
-			return 'You can connect, but a setting listed below may stop GitPrompt’s entries from running.';
+			return 'You can connect, but another setting may stop GitPrompt’s entries from running: read it before you do.';
 		case 'blocked_by_policy':
 			return s.connected
 				? 'A setting GitPrompt won’t override now turns this off, so its entries don’t run.'

@@ -5,7 +5,7 @@
 	import Sparkline from '#lib/ui/charts/Sparkline.svelte';
 
 	/** Is anything arriving? The last event, and prompts + events per hour over the last day. */
-	let { source }: { source: Source } = $props();
+	let { source, now }: { source: Source; now?: number } = $props();
 
 	const day = $derived(source.hourly.reduce((a, b) => a + b, 0));
 	const telemetry = $derived(source.total === 0 && source.events > 0);
@@ -14,9 +14,9 @@
 <dl class="heartbeat">
 	<div>
 		<dt>Last event</dt>
-		<dd><RelativeTime iso={source.last_at} /></dd>
+		<dd><RelativeTime iso={source.last_at} {now} /></dd>
 	</div>
-	<div class="spark">
+	<div>
 		<dt>Last 24 hours</dt>
 		<dd>
 			<Sparkline
