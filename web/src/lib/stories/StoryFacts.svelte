@@ -1,27 +1,34 @@
 <script lang="ts">
-	import { FilePen, GitCommitHorizontal, Timer, Wrench } from '@lucide/svelte';
-	import type { StoryCommit } from '#lib/api/types.ts';
-	import { duration, integer, money, plural } from '#lib/shared/format.ts';
+	import { Bot, Coins, FilePen, GitCommitHorizontal, Timer, Wrench } from '@lucide/svelte';
+	import type { Facts, StoryCommit } from '#lib/api/types.ts';
+	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
+	import { factsView } from '#lib/prompts/facts.ts';
+	import { duration, integer, plural } from '#lib/shared/format.ts';
 	import { diffstatText } from '#lib/stories/story.ts';
 
 	/**
 	 * What one turn of a story amounted to, in a quiet line: how long, tool calls, files, commits,
-	 * cost. Each fact has an icon and words for screen readers (the same facts as TurnFacts, from a
-	 * story's data instead of a prompt's).
+	 * tokens and cost when reported, and the model. Each fact has an icon and words for screen
+	 * readers (the same facts as TurnFacts, from a story's data instead of a prompt's). `tool`: also
+	 * name the tool, where a story mixes several (a project).
 	 */
 	let {
-		turn
+		turn,
+		tool = false
 	}: {
 		turn: {
 			response_s: number | null;
 			tool_calls: number;
 			tool_failures: number;
 			files_written: number;
-			cost_usd: number;
 			commits: StoryCommit[];
 			git_commits: number;
+			facts: Facts;
 		};
+		tool?: boolean;
 	} = $props();
+
+	const view = $derived(factsView(turn.facts));
 
 	const changes = $derived(
 		diffstatText({
@@ -33,6 +40,7 @@
 </script>
 
 <span class="facts">
+	{#if tool}<ConnectorBadge connector={turn.facts.connector} />{/if}
 	{#if turn.response_s != null}
 		<span class="fact" title="Time until the tool finished"
 			><Timer size={13} aria-hidden="true" /><span class="sr-only">Worked for </span>{duration(
@@ -66,8 +74,21 @@
 			><GitCommitHorizontal size={13} aria-hidden="true" />Ran git commit</span
 		>
 	{/if}
-	{#if turn.cost_usd}
-		<span class="fact" title="Cost of this turn (telemetry)">{money(turn.cost_usd)}</span>
+	{#if view.tokens}
+		<span class="fact" title={view.tokens.hint}
+			><Coins size={13} aria-hidden="true" />{view.tokens.total}<span class="sr-only">
+				tokens</span
+			></span
+		>
+	{/if}
+	{#if view.cost}
+		<span class="fact" title="Cost of this turn">{view.cost}</span>
+	{/if}
+	{#if view.model}
+		<span class="fact model" title={view.model.hint}
+			><Bot size={13} aria-hidden="true" /><span class="sr-only">Model </span>{view.model
+				.name}</span
+		>
 	{/if}
 </span>
 
@@ -100,6 +121,11 @@
 		background: var(--color-danger-soft);
 		color: var(--color-danger-text);
 		font-weight: var(--weight-semibold);
+	}
+
+	.model,
+	.model :global(svg) {
+		color: var(--color-agent-text);
 	}
 
 	.changes {

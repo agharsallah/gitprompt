@@ -3,13 +3,14 @@
  * the fields the test is about. Deep-merges the nested objects so a test can say
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
-import type { Event, Prompt, Source, StatsBucket } from '#lib/api/types.ts';
+import type { Event, Facts, Prompt, Source, StatsBucket } from '#lib/api/types.ts';
 
 let nextId = 1;
 
 type PromptOverrides = Partial<
-	Omit<Prompt, 'fields' | 'context' | 'stats' | 'summary' | 'annotation'>
+	Omit<Prompt, 'fields' | 'context' | 'stats' | 'summary' | 'annotation' | 'facts'>
 > & {
+	facts?: Partial<Facts>;
 	fields?: Partial<Prompt['fields']>;
 	context?: Partial<Prompt['context']>;
 	stats?: Partial<Prompt['stats']>;
@@ -37,7 +38,37 @@ export function prompt(overrides: PromptOverrides = {}): Prompt {
 		context: { git_root: '/work/app', git_branch: 'main', ...overrides.context },
 		stats: { words: 4, chars: 20, ...overrides.stats },
 		summary: { ...overrides.summary },
-		annotation: { starred: false, rating: 0, tags: [], note: '', ...overrides.annotation }
+		annotation: { starred: false, rating: 0, tags: [], note: '', ...overrides.annotation },
+		facts: facts(overrides.facts)
+	};
+}
+
+/** A prompt's facts: a finished Claude Code turn with no usage reported. */
+export function facts(overrides: Partial<Facts> = {}): Facts {
+	return {
+		connector: {
+			id: 'claude-code',
+			name: 'Claude Code',
+			label: 'Claude Code',
+			assistant: 'Claude'
+		},
+		model: null,
+		models: [],
+		model_source: null,
+		tokens: null,
+		cost_usd: null,
+		api_requests: 0,
+		outcome: 'done',
+		permission_mode: null,
+		tool_version: null,
+		response_s: null,
+		answered: false,
+		tool_calls: 0,
+		tool_failures: 0,
+		files_written: 0,
+		git_commits: 0,
+		subagents: 0,
+		...overrides
 	};
 }
 

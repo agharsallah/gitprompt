@@ -96,6 +96,16 @@ export type TurnSummary = {
 	permission_denied?: string[];
 	compactions?: number;
 	model_switches?: string[];
+	/** What started each compaction: auto or manual. */
+	compaction_triggers?: Record<string, number>;
+	/** What the failed tool calls reported. */
+	tool_errors?: string[];
+	/** What each subagent was asked (agent tools' inputs). */
+	subagent_tasks?: { task?: string | null; brief?: string | null }[];
+	/** Errors the tool reported during the turn (Copilot's ErrorOccurred). */
+	errors?: { name?: string; message?: string; context?: string; recoverable?: boolean }[];
+	/** Model calls per status the tool reported: completed, failed, cancelled. */
+	model_call_status?: Record<string, number>;
 	api_requests?: number;
 	models?: Record<string, number>;
 	input_tokens?: number;
@@ -127,6 +137,13 @@ export type SessionFacts = {
 	config_changes?: string[];
 	metric_totals?: Record<string, number>;
 	environment?: Record<string, unknown>;
+	/** Each subagent that finished (SubagentStop): its type, how it stopped, its last message. */
+	subagent_results?: {
+		agent_id?: string;
+		agent_type?: string;
+		stop_reason?: string;
+		answer?: string;
+	}[];
 };
 
 /** Who produced a prompt's text (insights/origin.py, docs/adr/0010-prompt-origin.md). */
@@ -142,6 +159,53 @@ export type Origin =
 /** A context block a tool added before or after what the user typed, e.g. an IDE selection. */
 export type Injected = { kind: string; chars: number };
 
+/** The tool that sent a prompt (insights/facts.py connector). */
+export type Connector = {
+	id: string;
+	/** e.g. "OpenAI Codex CLI" */
+	name: string;
+	/** The name on a badge, e.g. "Codex" (spec `short_name`). */
+	label: string;
+	/** Who answers, e.g. "Codex". */
+	assistant: string;
+};
+
+/** Tokens of a turn's model calls (input without cached ones; reasoning is part of output). */
+export type TurnTokens = {
+	input: number;
+	output: number;
+	cache_read: number;
+	cache_creation: number;
+	reasoning: number;
+	total: number;
+};
+
+/**
+ * What every page shows about a turn, computed once by the daemon (insights/facts.py, ADR-0021).
+ * `tokens` and `cost_usd` are null when no model call reported them: say why (capabilities.ts),
+ * never show zeros.
+ */
+export type Facts = {
+	connector: Connector;
+	model: string | null;
+	models: string[];
+	/** usage: from model calls; hook: the model the tool's hooks reported. */
+	model_source: 'usage' | 'hook' | null;
+	tokens: TurnTokens | null;
+	cost_usd: number | null;
+	api_requests: number;
+	outcome: TurnOutcome | null;
+	permission_mode: string | null;
+	tool_version: string | null;
+	response_s: number | null;
+	answered: boolean;
+	tool_calls: number;
+	tool_failures: number;
+	files_written: number;
+	git_commits: number;
+	subagents: number;
+};
+
 export type Prompt = {
 	id: number;
 	source: string;
@@ -155,6 +219,7 @@ export type Prompt = {
 	annotation: Annotation;
 	stats: PromptStats & Meta; // derived from the prompt text
 	summary: TurnSummary & Meta; // derived from the prompt's events
+	facts: Facts; // what every page shows about the turn
 };
 
 export type Event = {
@@ -453,6 +518,7 @@ export type Chapter = {
 	diffstat: Diffstat | null;
 	/** An earlier chapter this one rewords or repeats. */
 	retry_of: number | null;
+	facts: Facts;
 };
 
 /** Something in a session you did not type: a system prompt, a subagent's brief, a compaction. */
@@ -476,6 +542,10 @@ export type SessionStory = {
 	session: string;
 	title: string | null;
 	source: string | null;
+	/** The tool of the session. */
+	connector: Connector | null;
+	/** Prompts per main model. */
+	models: Record<string, number>;
 	project: StoryProject | null;
 	branches: string[];
 	started_at: string | null;
@@ -513,6 +583,7 @@ export type StoryEntry = {
 	git_commits: number;
 	commits: StoryCommit[];
 	retry_of: number | null;
+	facts: Facts;
 };
 
 export type StoryMeasures = {
@@ -583,6 +654,7 @@ export type SearchHit = {
 	origin: Origin;
 	outcome: TurnOutcome;
 	cost_usd: number;
+	facts: Facts;
 	snippet: Segment[];
 };
 

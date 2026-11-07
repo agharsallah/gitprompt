@@ -35,7 +35,7 @@
 				>{/if}
 		</p>
 		<a class="text clamp-2" href="{resolve('/prompts')}?id={e.id}">{e.text}</a>
-		<StoryFacts turn={e} />
+		<StoryFacts turn={e} tool />
 		{#if e.commits.length}<CommitList commits={e.commits} />{/if}
 	</div>
 </li>

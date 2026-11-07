@@ -5,6 +5,7 @@
 	import { projectOf } from '#lib/insights/project.ts';
 	import { timeOfDay } from '#lib/shared/format.ts';
 	import RailNode from '#lib/ui/RailNode.svelte';
+	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import OriginBadge from '#lib/prompts/OriginBadge.svelte';
 	import { isSystem, typedText } from '#lib/prompts/origin.ts';
 	import TurnFacts from '#lib/prompts/TurnFacts.svelte';
@@ -48,6 +49,7 @@
 	<span class="body">
 		<span class="meta">
 			<time datetime={prompt.received_at}>{timeOfDay(prompt.received_at)}</time>
+			<ConnectorBadge connector={prompt.facts.connector} />
 			{#if showProject}
 				<span class="project truncate">{project.name}</span>
 			{/if}

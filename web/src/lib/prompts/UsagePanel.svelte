@@ -118,6 +118,14 @@
 			</section>
 		{/if}
 
+		{#if s.model_call_status && Object.keys(s.model_call_status).some((k) => k !== 'completed')}
+			<p class="note">
+				Model calls: {Object.entries(s.model_call_status)
+					.map(([status, n]) => `${integer(n)} ${status}`)
+					.join(', ')}.
+			</p>
+		{/if}
+
 		{#if s.api_errors || s.tool_rejections}
 			<Callout tone="warning">
 				{#if s.api_errors}{plural(s.api_errors, 'API error')}.

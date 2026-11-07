@@ -2,9 +2,11 @@
 	import { GitBranch } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { SearchHit } from '#lib/api/types.ts';
+	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
+	import { factsView } from '#lib/prompts/facts.ts';
 	import OriginBadge from '#lib/prompts/OriginBadge.svelte';
 	import { isSystem } from '#lib/prompts/origin.ts';
-	import { money, shortDate, timeOfDay } from '#lib/shared/format.ts';
+	import { shortDate, timeOfDay } from '#lib/shared/format.ts';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import OutcomeLabel from '#lib/stories/OutcomeLabel.svelte';
 	import Snippet from '#lib/stories/Snippet.svelte';
@@ -15,6 +17,7 @@
 
 	const h = $derived(hit);
 	const system = $derived(isSystem(h));
+	const view = $derived(factsView(h.facts));
 </script>
 
 <li class={['hit', system && 'system']}>
@@ -22,12 +25,14 @@
 	<div class="body">
 		<p class="meta">
 			<time datetime={h.received_at}>{shortDate(h.received_at)}, {timeOfDay(h.received_at)}</time>
+			<ConnectorBadge connector={h.facts.connector} />
 			{#if h.project}<span class="project">{h.project.name}</span>{/if}
 			{#if h.branch}<span class="branch"><GitBranch size={12} aria-hidden="true" />{h.branch}</span
 				>{/if}
 			<OriginBadge prompt={h} />
 			<OutcomeLabel outcome={h.outcome} />
-			{#if h.cost_usd}<span>{money(h.cost_usd)}</span>{/if}
+			{#if view.model}<span class="model" title={view.model.hint}>{view.model.name}</span>{/if}
+			{#if view.cost}<span>{view.cost}</span>{/if}
 		</p>
 		<a class="text" href="{resolve('/prompts')}?id={h.id}"><Snippet segments={h.snippet} /></a>
 		<p class="links">
@@ -65,6 +70,10 @@
 		display: grid;
 		gap: var(--space-1);
 		min-width: 0;
+	}
+
+	.model {
+		color: var(--color-agent-text);
 	}
 
 	.meta {

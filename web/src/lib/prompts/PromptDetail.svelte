@@ -1,11 +1,13 @@
 <script lang="ts">
 	import {
 		AtSign,
+		Bot,
 		Braces,
 		CircleHelp,
 		GitBranch,
 		Link2,
 		ShieldAlert,
+		ShieldCheck,
 		TextCursorInput,
 		X
 	} from '@lucide/svelte';
@@ -13,10 +15,9 @@
 	import { resolve } from '$app/paths';
 	import { api } from '#lib/api/client.ts';
 	import type { Annotation, PromptDetail, Source } from '#lib/api/types.ts';
-	import { tokensOf, tokenTotal } from '#lib/insights/aggregate.ts';
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
-	import { compact, count, duration, integer, money, plural, when } from '#lib/shared/format.ts';
+	import { compact, count, duration, integer, plural, when } from '#lib/shared/format.ts';
 	import { Task } from '#lib/shared/task.svelte.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
@@ -29,6 +30,8 @@
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import ActivityPanel from '#lib/prompts/ActivityPanel.svelte';
 	import AnnotationActions from '#lib/prompts/AnnotationActions.svelte';
+	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
+	import { factsView, missingTokens } from '#lib/prompts/facts.ts';
 	import EventList from '#lib/prompts/EventList.svelte';
 	import GitPanel from '#lib/prompts/GitPanel.svelte';
 	import NotesEditor from '#lib/prompts/NotesEditor.svelte';
@@ -37,7 +40,7 @@
 	import SessionPanel from '#lib/prompts/SessionPanel.svelte';
 	import TurnTimeline from '#lib/prompts/TurnTimeline.svelte';
 	import UsagePanel from '#lib/prompts/UsagePanel.svelte';
-	import { assistantOf, availability, toolOf } from '#lib/sources/capabilities.ts';
+	import { availability, toolOf } from '#lib/sources/capabilities.ts';
 	import { projectId } from '#lib/stories/story.ts';
 	import VersionsPanel from '#lib/stories/VersionsPanel.svelte';
 
@@ -52,24 +55,26 @@
 		onchange
 	}: { prompt: PromptDetail; outcome: Outcome; closeHref: string; onchange: () => void } = $props();
 
-	// The prompt's tool, from the connectors (spec data): who answers, and whether it can report usage.
+	// The prompt's tool, from the connectors (spec data): whether it can report usage.
 	let sources = $state<Source[]>([]);
 	onMount(() => {
 		api.sources().then(
 			(list) => (sources = list),
-			() => {} // the names fall back to "Agent"; nothing else depends on them
+			() => {} // only the note on missing tokens depends on them
 		);
 	});
 	const tool = $derived(toolOf(sources, prompt.source));
-	const agent = $derived(assistantOf(tool));
 	const usage = $derived(tool && availability(tool.layers, 'usage'));
+	const f = $derived(prompt.facts);
+	const view = $derived(factsView(f));
+	const agent = $derived(view.assistant);
+	const noTokens = $derived(missingTokens(f, usage));
 
 	const s = $derived(prompt.summary);
 	const st = $derived(prompt.stats);
 	const project = $derived(projectOf(prompt));
 	const session = $derived(prompt.fields.session_id);
 	const secrets = $derived(st.secrets ?? []);
-	const tokens = $derived(tokenTotal(tokensOf(prompt)));
 	const origin = $derived(originOf(prompt));
 	const text = $derived(typedText(prompt));
 	const injected = $derived(injectedSummary(prompt.injected ?? []));
@@ -122,9 +127,20 @@
 				hint: s.tool_failures ? `${s.tool_failures} failed` : undefined
 			},
 			{ label: 'Files changed', value: integer(s.files_written?.length ?? 0) },
-			s.cost_usd && { label: 'Cost', value: money(s.cost_usd) },
-			s.api_requests && { label: 'Tokens', value: compact(tokens) }
-		].filter((f) => !!f) as { label: string; value: string; hint?: string }[]
+			view.tokens && {
+				label: 'Tokens',
+				value: view.tokens.total,
+				note: f.tokens?.reasoning ? `${compact(f.tokens.reasoning)} reasoning` : undefined,
+				title: view.tokens.hint
+			},
+			view.cost && { label: 'Cost', value: view.cost }
+		].filter((f) => !!f) as {
+			label: string;
+			value: string;
+			hint?: string;
+			note?: string;
+			title?: string;
+		}[]
 	);
 
 	type TabId = 'activity' | 'usage' | 'git' | 'session' | 'versions' | 'events' | 'raw';
@@ -178,6 +194,9 @@
 	</header>
 
 	<div class="project-line">
+		<ConnectorBadge connector={f.connector} size="md" />
+		{#if view.model}<Badge tone="agent" icon={Bot} title={view.model.hint}>{view.model.name}</Badge
+			>{/if}
 		{#if project.root}
 			<a
 				class="project"
@@ -192,8 +211,11 @@
 				><GitBranch size={13} aria-hidden="true" />{prompt.context.git_branch}</span
 			>
 		{/if}
-		{#if prompt.fields.permission_mode}<Badge size="sm" variant="outline"
-				>{prompt.fields.permission_mode} mode</Badge
+		{#if view.permissionMode}<Badge
+				size="sm"
+				variant="outline"
+				icon={ShieldCheck}
+				title="Permission mode the tool reported with the prompt">{view.permissionMode} mode</Badge
 			>{/if}
 		{#if s.slash_command ?? st.slash_command}<Badge size="sm" tone="accent"
 				>{s.slash_command ?? st.slash_command}</Badge
@@ -257,15 +279,18 @@
 
 	<section class="turn" aria-label="How the turn went">
 		<dl class="figures">
-			{#each figures as f (f.label)}
-				<div>
-					<dt>{f.label}</dt>
+			{#each figures as fig (fig.label)}
+				<div title={fig.title}>
+					<dt>{fig.label}</dt>
 					<dd>
-						{f.value}{#if f.hint}<span class="hint">{f.hint}</span>{/if}
+						{fig.value}{#if fig.hint}<span class="hint">{fig.hint}</span>{/if}{#if fig.note}<span
+								class="hint quiet">{fig.note}</span
+							>{/if}
 					</dd>
 				</div>
 			{/each}
 		</dl>
+		{#if noTokens}<p class="no-tokens muted">{noTokens}</p>{/if}
 		<TurnTimeline
 			events={prompt.events}
 			start={prompt.received_at}
@@ -542,6 +567,15 @@
 		color: var(--color-danger-text);
 		font-size: var(--text-xs);
 		font-weight: var(--weight-medium);
+	}
+
+	.hint.quiet {
+		color: var(--color-text-muted);
+	}
+
+	.no-tokens {
+		margin: calc(-1 * var(--space-2)) 0 0;
+		font-size: var(--text-sm);
 	}
 
 	.notes {

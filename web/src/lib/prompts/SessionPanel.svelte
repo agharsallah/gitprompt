@@ -107,6 +107,34 @@
 		</section>
 	{/each}
 
+	{#if s.subagent_results?.length}
+		<section class="block">
+			<h3>Subagents that finished <span class="muted num">{s.subagent_results.length}</span></h3>
+			<ul class="results">
+				{#each s.subagent_results as r, i (i)}
+					<li>
+						<span class="who"
+							>{r.agent_type || 'Subagent'}{#if r.stop_reason}<span class="muted"
+									>, {humanize(r.stop_reason).toLowerCase()}</span
+								>{/if}</span
+						>
+						{#if r.answer}<span class="answer">{r.answer}</span>{/if}
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
+	{#if prompt.fields.transcript_path}
+		<p class="transcript muted">
+			<FileText size={14} aria-hidden="true" />Transcript kept by the tool (never read by
+			GitPrompt):
+			<span class="mono" title={prompt.fields.transcript_path}
+				>{relativePath(prompt.fields.transcript_path)}</span
+			>
+		</p>
+	{/if}
+
 	{#if events.length}
 		<Disclosure summary="Events received for this session">
 			{#snippet meta()}<span class="num">{integer(events.reduce((a, e) => a + e.value, 0))}</span
@@ -137,6 +165,41 @@
 	.block {
 		display: grid;
 		gap: var(--space-2);
+	}
+
+	.results {
+		display: grid;
+		gap: var(--space-2);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.results li {
+		display: grid;
+		gap: 2px;
+		padding-left: var(--space-3);
+		box-shadow: inset 2px 0 0 var(--color-agent-border);
+	}
+
+	.who {
+		font-size: var(--text-sm);
+		font-weight: var(--weight-medium);
+	}
+
+	.answer {
+		color: var(--color-text-secondary);
+		font-size: var(--text-sm);
+	}
+
+	.transcript {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1);
+		margin: 0;
+		font-size: var(--text-sm);
+		overflow-wrap: anywhere;
 	}
 
 	h3 {

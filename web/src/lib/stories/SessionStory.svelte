@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { FolderGit2, GitBranch } from '@lucide/svelte';
+	import { Bot, FolderGit2, GitBranch } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { Chapter as ChapterData, SessionStory } from '#lib/api/types.ts';
-	import { duration, excerpt, integer, money, plural } from '#lib/shared/format.ts';
+	import { duration, excerpt, integer, modelName, money, plural } from '#lib/shared/format.ts';
+	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
+	import Badge from '#lib/ui/Badge.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Chapter from '#lib/stories/Chapter.svelte';
@@ -24,11 +26,19 @@
 	);
 	const t = $derived(story.totals);
 	const changes = $derived(diffstatText(t.diffstat));
+	const models = $derived(
+		Object.entries(story.models ?? {})
+			.sort((a, b) => b[1] - a[1])
+			.map(([m]) => m)
+	);
 </script>
 
 <PageHeader {title} {actions}>
 	{#snippet description()}
 		<p class="where">
+			{#if story.connector}<ConnectorBadge connector={story.connector} size="md" />{/if}
+			{#each models as m (m)}<Badge tone="agent" icon={Bot} title="Model: {m}">{modelName(m)}</Badge
+				>{/each}
 			{#if story.project}
 				<a class="project" href={resolve('/projects/[id]', { id: story.project.id })}
 					><FolderGit2 size={14} aria-hidden="true" />{story.project.name}</a

@@ -1,51 +1,61 @@
 <script lang="ts">
-	import { FilePen, GitCommitHorizontal, Timer, Wrench } from '@lucide/svelte';
+	import { Bot, Coins, FilePen, GitCommitHorizontal, Timer, Wrench } from '@lucide/svelte';
 	import type { Prompt } from '#lib/api/types.ts';
-	import { count, duration, modelName, money } from '#lib/shared/format.ts';
+	import { factsView } from '#lib/prompts/facts.ts';
+	import { duration } from '#lib/shared/format.ts';
 
 	/**
 	 * What a turn amounted to, in a single quiet line: how long the tool worked, how many tool calls,
-	 * files changed, cost and model. Each fact carries an icon and a tooltip that says what it is.
+	 * files changed, tokens and cost when the tool reported them, and the model. Each fact carries an
+	 * icon and a tooltip that says what it is. Read from the daemon's `facts` (prompts/facts.ts).
 	 */
 	let { prompt, models = true }: { prompt: Prompt; models?: boolean } = $props();
 
-	const s = $derived(prompt.summary);
-	const tools = $derived(count(s.tool_calls));
-	const files = $derived(s.files_written?.length ?? 0);
-	const mainModel = $derived(Object.entries(s.models ?? {}).sort((a, b) => b[1] - a[1])[0]?.[0]);
+	const f = $derived(prompt.facts);
+	const view = $derived(factsView(f));
 </script>
 
 <span class="facts">
-	{#if s.response_s != null}
+	{#if f.response_s != null}
 		<span class="fact" title="Time until the tool finished">
 			<Timer size={13} aria-hidden="true" /><span class="sr-only">Worked for</span>{duration(
-				s.response_s
+				f.response_s
 			)}
 		</span>
 	{/if}
-	{#if tools}
-		<span class="fact" title="Tool calls{s.tool_failures ? `, ${s.tool_failures} failed` : ''}">
-			<Wrench size={13} aria-hidden="true" />{tools}<span class="sr-only"> tool calls</span>
-			{#if s.tool_failures}<span class="failures"
-					>{s.tool_failures}<span class="sr-only"> failed</span></span
+	{#if f.tool_calls}
+		<span class="fact" title="Tool calls{f.tool_failures ? `, ${f.tool_failures} failed` : ''}">
+			<Wrench size={13} aria-hidden="true" />{f.tool_calls}<span class="sr-only"> tool calls</span>
+			{#if f.tool_failures}<span class="failures"
+					>{f.tool_failures}<span class="sr-only"> failed</span></span
 				>{/if}
 		</span>
 	{/if}
-	{#if files}
+	{#if f.files_written}
 		<span class="fact" title="Files edited or written">
-			<FilePen size={13} aria-hidden="true" />{files}<span class="sr-only"> files changed</span>
+			<FilePen size={13} aria-hidden="true" />{f.files_written}<span class="sr-only">
+				files changed</span
+			>
 		</span>
 	{/if}
-	{#if s.bash_commands?.some((c) => /\bgit\s+commit\b/.test(c))}
+	{#if f.git_commits}
 		<span class="fact" title="Ran git commit">
 			<GitCommitHorizontal size={13} aria-hidden="true" /><span class="sr-only">Committed</span>
 		</span>
 	{/if}
-	{#if s.cost_usd}
-		<span class="fact" title="Cost of this turn (telemetry)">{money(s.cost_usd)}</span>
+	{#if view.tokens}
+		<span class="fact" title={view.tokens.hint}>
+			<Coins size={13} aria-hidden="true" />{view.tokens.total}<span class="sr-only"> tokens</span>
+		</span>
 	{/if}
-	{#if models && mainModel}
-		<span class="fact model" title="Model used for most requests">{modelName(mainModel)}</span>
+	{#if view.cost}
+		<span class="fact" title="Cost of this turn">{view.cost}</span>
+	{/if}
+	{#if models && view.model}
+		<span class="fact model" title={view.model.hint}
+			><Bot size={13} aria-hidden="true" /><span class="sr-only">Model </span>{view.model
+				.name}</span
+		>
 	{/if}
 </span>
 
@@ -80,7 +90,8 @@
 		font-weight: var(--weight-semibold);
 	}
 
-	.model {
+	.model,
+	.model :global(svg) {
 		color: var(--color-agent-text);
 	}
 </style>

@@ -49,7 +49,26 @@
 				],
 			s.permission_denied?.length && ['Permission denied', s.permission_denied],
 			s.tool_rejections && ['Tool calls you rejected', [String(s.tool_rejections)]],
-			s.compactions && ['Context compactions', [String(s.compactions)]],
+			s.subagent_tasks?.length && [
+				'What subagents were asked',
+				s.subagent_tasks.map((t) => [t.task, t.brief].filter(Boolean).join(': '))
+			],
+			s.tool_errors?.length && ['Tool errors', s.tool_errors],
+			s.errors?.length && [
+				'Errors the tool reported',
+				s.errors.map(
+					(e) =>
+						[e.name, e.message].filter(Boolean).join(': ') +
+						(e.context ? ` (during ${e.context.replaceAll('_', ' ')})` : '') +
+						(e.recoverable ? ', recovered' : '')
+				)
+			],
+			s.compactions && [
+				'Context compactions',
+				s.compaction_triggers && count(s.compaction_triggers)
+					? Object.entries(s.compaction_triggers).map(([k, v]) => `${k} × ${v}`)
+					: [String(s.compactions)]
+			],
 			s.model_switches?.length && ['Model switches', s.model_switches]
 		].filter((x): x is [string, string[]] => Array.isArray(x))
 	);
