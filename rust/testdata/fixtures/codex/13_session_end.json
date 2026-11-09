@@ -1,0 +1,18 @@
+{
+  "about": "SessionEnd, the documented example's fields (reason other, no model, no turn_id): joins no prompt. Synthetic values (https://learn.chatgpt.com/docs/hooks).",
+  "payload": {
+    "session_id": "0190a1b2-0000-7000-8000-000000000001",
+    "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+    "cwd": "/work/app",
+    "hook_event_name": "SessionEnd",
+    "reason": "other"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "SessionEnd",
+      "session_id": "0190a1b2-0000-7000-8000-000000000001"
+    },
+    "turn": null
+  }
+}

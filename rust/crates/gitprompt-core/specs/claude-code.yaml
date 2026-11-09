@@ -1,0 +1,211 @@
+# Claude Code: documented hooks (https://code.claude.com/docs/en/hooks) on observational events,
+# only reporting what happened.
+#
+# Each entry is an async command hook that pipes the event JSON (stdin) to the receiver with curl,
+# discards all output and always exits 0. Not an HTTP hook: Claude Code shows "hook error" on every
+# event when an HTTP hook gets no 2xx, so a stopped, crashed or broken GitPrompt would put an error
+# in every session. With this forwarder, delivery failures are silent and nothing is ever blocked,
+# changed or added to the conversation. To see whether events are still arriving, check the
+# source's `last_at` on the dashboard. `async` keeps GitPrompt off Claude Code's critical path.
+id: claude-code
+name: Claude Code
+assistant: Claude
+layer: Hooks
+summary: Your prompts, the tools each turn used, files touched and how the turn ended.
+detect: ["${CLAUDE_CONFIG_DIR:-~/.claude}"]
+version_cmd: [claude, --version]
+
+x-hook: &hook
+  - hooks:
+      - type: command
+        command: >-
+          curl -s -m 2 -H 'Content-Type: application/json' -H 'Authorization: Bearer {{token}}'
+          --data-binary @- '{{receiver}}/ingest/{{source}}' >/dev/null 2>&1 || true
+        async: true
+        timeout: 5
+
+install:
+  file: "${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json"
+  merge:
+    hooks:
+      UserPromptSubmit: *hook
+      UserPromptExpansion: *hook
+      PostToolUse: *hook
+      PostToolUseFailure: *hook
+      PermissionDenied: *hook
+      Notification: *hook
+      SubagentStart: *hook
+      SubagentStop: *hook
+      TaskCreated: *hook
+      TaskCompleted: *hook
+      Stop: *hook
+      StopFailure: *hook
+      InstructionsLoaded: *hook
+      ConfigChange: *hook
+      CwdChanged: *hook
+      DirectoryAdded: *hook
+      PreCompact: *hook
+      PostCompact: *hook
+      PostModelSwitch: *hook
+      SessionEnd: *hook
+
+prompt_events: [UserPromptSubmit]
+
+# What this connector yields (docs/sources.md "Capabilities per tool"). Model, tokens, cost and
+# per-session metrics come from the telemetry layer. Events join their prompt by prompt_id.
+capabilities: [prompt, cwd, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+
+map:
+  session_title: [session_title]
+
+# What each tool does (insights/derivations.py): files read and written, shell commands and git
+# commits, URLs and searches. Unmapped tools are "other". The telemetry layer uses this mapping too.
+tool_kinds:
+  Read: read
+  Grep: read
+  Glob: read
+  LS: read
+  NotebookRead: read
+  LSP: read
+  Write: write
+  Edit: write
+  MultiEdit: write
+  NotebookEdit: write
+  Bash: shell
+  BashOutput: shell
+  KillShell: shell
+  PowerShell: shell
+  Monitor: shell
+  WebFetch: web
+  WebSearch: web
+  Task: agent
+  Agent: agent
+  Workflow: agent
+  Skill: agent
+  SendMessage: agent
+  "mcp__*": mcp
+
+# Who produced a prompt (on top of the shared rules in _defaults.yaml; see ADR-0010).
+origin:
+  # Started by another program (`claude -p`, the Agent SDK). Needs the telemetry source: its
+  # user_prompt event shares the prompt's prompt_id and carries the entrypoint. The IDE
+  # extensions report their own entrypoint (claude-vscode), not sdk-cli.
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-cli}
+    origin: programmatic
+  # Added by Claude Code itself when a background task ends, or sent by another agent.
+  - when: {text_prefix: "<task-notification>"}
+    origin: task_notification
+  - when: {text_prefix: "<agent-message"}
+    origin: agent_message
+  - when: {event: UserPromptExpansion}
+    origin: slash_command
+  - when: {event: user_prompt, path: command_name}
+    origin: slash_command
+
+# Where a prompt was typed (ADR-0022). Hook payloads don't say; the telemetry layer does: its
+# `user_prompt` event shares the prompt's prompt_id and carries the OTel resource. Documented
+# (https://code.claude.com/docs/en/monitoring-usage, checked 2026-11-07): `service.name` is
+# `claude-code-desktop` for local Code tab sessions of Claude Desktop, and `app.entrypoint` names the
+# client (cli, sdk-cli, sdk-ts, sdk-py, claude-vscode, claude-in-slack; the Desktop app's own
+# entrypoints claude-desktop and claude-desktop-3p). Without telemetry, or for another value, the
+# surface stays unknown. `cursor_version` is on payloads Cursor sends when it runs these hooks as
+# third-party hooks (unverified that it adds it to Claude-shaped payloads).
+surface:
+  - when: {event: user_prompt, path: service.name, equals: claude-code-desktop}
+    surface: desktop
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-desktop}
+    surface: desktop
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-desktop-3p}
+    surface: desktop
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-vscode}
+    surface: vscode
+  - when: {event: user_prompt, path: app.entrypoint, equals: claude-in-slack}
+    surface: slack
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-cli}
+    surface: sdk
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-ts}
+    surface: sdk
+  - when: {event: user_prompt, path: app.entrypoint, equals: sdk-py}
+    surface: sdk
+  - when: {event: user_prompt, path: app.entrypoint, equals: cli}
+    surface: cli
+  - when: {path: cursor_version}
+    surface: cursor
+
+# Shown on the Connectors page: the apps whose prompts reach these hooks, and those that can't.
+captures:
+  cli: Claude Code in a terminal.
+  vscode: The VS Code extension (Cursor and other VS Code forks run the same extension).
+  desktop: >-
+    The Code tab of Claude Desktop: it runs the hooks in ~/.claude/settings.json. Told apart from the
+    CLI only with the telemetry layer (Desktop may only export telemetry set in managed settings:
+    unverified for user settings).
+  sdk: claude -p and the Agent SDK (also marked as programmatic).
+cannot_capture:
+  Claude Desktop chat: >-
+    Chat conversations have no hooks, telemetry or local API. The only export is the account data
+    export (Settings > Privacy, sent by email), and GitPrompt never reads the app's local storage.
+  Cowork: Configured through your claude.ai account, not ~/.claude, so these hooks don't run there.
+
+# Context Claude Code (and its IDE extensions) attach to what you typed.
+injected: [ide_selection, ide_opened_file, ide_diagnostics, local-command-stdout, local-command-stderr, local-command-caveat]
+
+# Org policy can turn user hooks off. GitPrompt then reports it and does not install anything.
+policy:
+  files:
+    - "/Library/Application Support/ClaudeCode/managed-settings.json"
+    - "/Library/Application Support/ClaudeCode/managed-settings.d/*.json"
+    - "/etc/claude-code/managed-settings.json"
+    - "/etc/claude-code/managed-settings.d/*.json"
+    - "C:/Program Files/ClaudeCode/managed-settings.json"
+    - "${CLAUDE_CONFIG_DIR:-~/.claude}/settings.json"
+  block_if:
+    allowManagedHooksOnly: [true]
+    disableAllHooks: [true]
+    strictPluginOnlyCustomization: [true, hooks]
+  # No URL allowlist warning: allowedHttpHookUrls only restricts HTTP hooks, not command hooks.
+
+terms: >-
+  Uses Claude Code's documented hooks feature in your own user settings. GitPrompt only receives
+  the hook payloads Claude Code sends to it on this machine and always answers "no output". It does
+  not read credentials, proxy or inspect API traffic, change your prompts, or send anything off
+  this machine.
+
+# From the hooks reference (checked 2026-11-03). Shown on the Fields page next to what was seen.
+documented:
+  "*": [session_id, prompt_id, transcript_path, cwd, scratchpad_dir, permission_mode, effort, hook_event_name, agent_id, agent_type]
+  UserPromptSubmit: [prompt, session_title]
+  UserPromptExpansion: [expansion_type, command_name, command_args, command_source, prompt]
+  PostToolUse: [tool_name, tool_input, tool_response, tool_use_id, duration_ms, mcp_server]
+  PostToolUseFailure: [tool_name, tool_input, tool_use_id, error, is_interrupt, duration_ms]
+  PermissionDenied: [tool_name, tool_input, tool_use_id, reason]
+  Notification: [message, title, notification_type]
+  SubagentStart: [agent_id, agent_type]
+  SubagentStop: [stop_hook_active, agent_id, agent_type, agent_transcript_path, last_assistant_message, background_tasks, session_crons]
+  TaskCreated: [task_id, task_subject, task_description, teammate_name, team_name]
+  TaskCompleted: [task_id, task_subject, task_description, teammate_name, team_name]
+  Stop: [stop_hook_active, last_assistant_message, background_tasks, session_crons]
+  StopFailure: [error, error_details, last_assistant_message]
+  InstructionsLoaded: [file_path, memory_type, load_reason, globs, trigger_file_path, parent_file_path]
+  ConfigChange: [source, file_path]
+  CwdChanged: [old_cwd, new_cwd]
+  DirectoryAdded: [directory, source]
+  PreCompact: [trigger, custom_instructions]
+  PostCompact: [trigger, compact_summary]
+  PostModelSwitch: [from_model, to_model, requested_model, source, context_tokens, prompt_cache_warm, cache_ttl, estimated_cache_write_usd, pricing]
+  SessionEnd: [reason]
+
+not_captured:
+  SessionStart: Model and start type come from the telemetry source.
+  Setup: Runs only command hooks.
+  PreToolUse: A decision point (allow or deny a tool). GitPrompt stays out of decisions; PostToolUse has the same data.
+  PermissionRequest: A decision point (answer a permission prompt). Notification and PermissionDenied report the outcome.
+  PreModelSwitch: A decision point (can block a switch). PostModelSwitch reports the change.
+  Elicitation: A decision point (answers an MCP server's question).
+  ElicitationResult: Can rewrite your answer to an MCP server; may hold values you typed into MCP forms.
+  WorktreeCreate: A hook here replaces Claude Code's own worktree creation.
+  WorktreeRemove: Only fires for worktrees that a WorktreeCreate hook made.
+  MessageDisplay: Fires for every streamed text chunk; Stop carries the final answer.
+  PostToolBatch: Repeats what PostToolUse already sends.
+  FileChanged: Needs a list of files to watch.
+  TeammateIdle: A decision point for agent teams.

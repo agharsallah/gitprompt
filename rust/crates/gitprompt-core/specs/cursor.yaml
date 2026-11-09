@@ -1,0 +1,168 @@
+# Cursor (the IDE): documented agent hooks on observational events, plus the one prompt event.
+#   hooks   https://cursor.com/docs/hooks (moved from /docs/agent/hooks), checked 2026-11-07
+#
+# Cursor runs each hook `command` with the event JSON on stdin and reads a JSON answer from stdout
+# (exit 0: the JSON is used; exit 2: the action is blocked; any other failure, crash or timeout fails
+# open unless `failClosed` is set, which GitPrompt never sets). The forwarder is the same curl
+# command as claude-code.yaml: it pipes stdin to the receiver, discards curl's output and always
+# exits 0, then prints the answer that changes nothing:
+#   beforeSubmitPrompt  {"continue":true}   the documented "let the prompt through"
+#   every other event   {}                  no followup_message, no additional_context, no env
+# `beforeSubmitPrompt` is the only subscribed event that can block; it is the only one that carries
+# the prompt. Permission hooks (beforeShellExecution, beforeMCPExecution, beforeReadFile, preToolUse,
+# subagentStart) block on any answer that isn't valid JSON of their schema, so GitPrompt never
+# subscribes to them. Unverified: that the command runs through a shell (the docs say "the script
+# path or command"; Cursor's own examples are script paths).
+id: cursor
+name: Cursor
+assistant: Cursor
+layer: Hooks
+summary: Your prompts in Cursor's agent, the model, the tools each turn used, the final answer and how the turn ended.
+detect: ["~/.cursor"]
+
+x-hook: &hook
+  - command: >-
+      curl -s -m 2 -H 'Content-Type: application/json' -H 'Authorization: Bearer {{token}}'
+      --data-binary @- '{{receiver}}/ingest/{{source}}' >/dev/null 2>&1; printf '%s' '{}'
+    timeout: 5
+
+x-prompt-hook: &prompt_hook
+  - command: >-
+      curl -s -m 2 -H 'Content-Type: application/json' -H 'Authorization: Bearer {{token}}'
+      --data-binary @- '{{receiver}}/ingest/{{source}}' >/dev/null 2>&1; printf '%s' '{"continue":true}'
+    timeout: 5
+
+install:
+  # The user hooks file. Enterprise (/Library/Application Support/Cursor/hooks.json), team and
+  # project hooks files are other layers; all matching hooks run.
+  file: "~/.cursor/hooks.json"
+  merge:
+    version: 1
+    hooks:
+      sessionStart: *hook
+      beforeSubmitPrompt: *prompt_hook
+      postToolUse: *hook
+      postToolUseFailure: *hook
+      subagentStop: *hook
+      afterAgentResponse: *hook
+      stop: *hook
+      sessionEnd: *hook
+
+after_connect: Restart Cursor (or reload its window) so it reads the new hooks.
+
+# Cursor's camelCase events under GitPrompt's names, so the shared derivations read them. A stop
+# reports how the turn ended in `status`: aborted = you stopped it, error = it failed.
+event_names:
+  - {from: beforeSubmitPrompt, to: UserPromptSubmit}
+  - {from: sessionStart, to: SessionStart}
+  - {from: sessionEnd, to: SessionEnd}
+  - {from: postToolUse, to: PostToolUse}
+  - {from: postToolUseFailure, to: PostToolUseFailure}
+  - {from: subagentStop, to: SubagentStop}
+  - {from: afterAgentResponse, to: AgentResponse}
+  - {from: stop, path: status, equals: aborted, to: Interrupt}
+  - {from: stop, path: status, equals: error, to: StopFailure}
+  - {from: stop, to: Stop}
+
+prompt_events: [UserPromptSubmit]
+
+# What this connector yields (docs/sources.md "Capabilities per tool"). Not available: tokens and
+# cost (no hook reports them), per-session metrics, telemetry. Subagents: only subagentStop (their
+# start is a permission hook), so no `subagents` capability.
+capabilities: [prompt, cwd, model, turn_end, answer, tools, transcript_path, session_lifecycle]
+
+# Every event carries generation_id ("changes with every user message"): the prompt id. The
+# conversation is the session. The first workspace root is the prompt's folder (its git root is the
+# project); every root of a multi-root workspace is kept in `workspace_roots`.
+map:
+  session_id: [conversation_id]
+  prompt_id: [generation_id]
+  cwd: ["workspace_roots[0]", cwd]
+  workspace_roots: [workspace_roots]
+  tool_version: [cursor_version]
+  agent_type: [subagent_type]
+  # model, transcript_path, tool_name, tool_use_id, event (hook_event_name): _defaults.yaml
+
+# The final answer is afterAgentResponse.text; stop carries none.
+answer:
+  AgentResponse: text
+
+# Where prompts are typed (ADR-0022). No field tells the IDE from the Cursor CLI, which (per forum
+# reports, not the docs) reads the same user hooks but often skips beforeSubmitPrompt: no `surface`
+# rules, so Cursor prompts show the Cursor badge with no surface.
+captures:
+  cursor: >-
+    Agent chats in the Cursor app (the IDE), in every window and workspace. Claude Code's extension
+    inside Cursor is captured by the Claude Code connector instead.
+cannot_capture:
+  Cursor CLI: >-
+    The docs list hooks for the app; forum reports say cursor-agent skips beforeSubmitPrompt and stop
+    (always with -p). Prompts that do arrive can't be told apart from the IDE.
+  Tab completions: Not prompts; their hooks (beforeTabFileRead, afterTabFileEdit) aren't subscribed.
+# Tool names as the docs list them for matchers: Shell, Read, Write, Grep, Delete, Task, MCP:<tool>.
+# Inputs are unverified beyond the docs' examples (command for Shell, file_path for file tools).
+tool_kinds:
+  Shell: shell
+  Read: read
+  Grep: read
+  Write: write
+  Delete: write
+  Task: agent
+  "MCP:*": mcp
+
+# The account email Cursor adds to every payload is removed before anything is stored.
+discard:
+  user_email: Your Cursor account email, on every event. GitPrompt never needs who you are, so it is never stored.
+
+# Org policy: enterprise and team hooks only add hooks; no documented key turns user hooks off.
+
+terms: >-
+  Uses Cursor's documented hooks in your user hooks file (~/.cursor/hooks.json). GitPrompt only
+  receives the hook payloads Cursor sends to it on this machine (without your account email, which
+  is removed before storing) and always answers "continue" or nothing, so it cannot block or change
+  a prompt. It stores the transcript path Cursor reports but never reads the transcript, and it does
+  not read Cursor's own data, credentials or traffic, or send anything off this machine.
+
+# From the hooks reference (checked 2026-11-07), by GitPrompt's event names. Shown on the Fields page.
+documented:
+  "*": [conversation_id, generation_id, model, model_id, model_params, hook_event_name, cursor_version, workspace_roots, user_email, transcript_path]
+  SessionStart: [session_id, is_background_agent, composer_mode]
+  UserPromptSubmit: [prompt, attachments]
+  PostToolUse: [tool_name, tool_input, tool_output, tool_use_id, cwd, duration]
+  PostToolUseFailure: [tool_name, tool_input, tool_use_id, cwd, error_message, failure_type, duration, is_interrupt]
+  SubagentStop: [subagent_type, status, task, description, summary, duration_ms, message_count, tool_call_count, loop_count, modified_files, agent_transcript_path]
+  AgentResponse: [text]
+  Stop: [status, loop_count]
+  SessionEnd: [reason, duration_ms, is_background_agent, final_status, error_message]
+
+not_captured:
+  preToolUse: A permission hook (can deny or rewrite a tool call; invalid JSON blocks). postToolUse has the same data.
+  beforeShellExecution / beforeMCPExecution / beforeReadFile: Permission hooks; an answer that isn't valid JSON blocks the action.
+  subagentStart: A permission hook (allow or deny a subagent). subagentStop reports each subagent.
+  afterShellExecution / afterMCPExecution / afterFileEdit: Repeat what postToolUse already sends (afterFileEdit with the edited text).
+  afterAgentThought: The model's thinking text; not needed for the turn's outcome.
+  preCompact: Observational, but its payload is not documented beyond token counts of the context.
+  beforeTabFileRead / afterTabFileEdit: Tab completions, not prompts.
+  workspaceOpen: Fires when a window opens; says nothing about prompts.
+
+# Keys Cursor sends that GitPrompt does not use (on top of _defaults.yaml's), and why.
+ignored:
+  model_id: The model's internal id; `model` names it.
+  model_params: Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet.
+  attachments: Files and rules attached to the prompt; kept in the stored payload (Events tab).
+  session_id: The id of the agent session on sessionStart; GitPrompt's session is the conversation.
+  tool_output: The tool's output as a JSON string; kept in the stored event (clipped), not summarized.
+  duration: A tool call's duration, in a unit the docs don't state; Cursor's tool timings are not summed.
+  failure_type: Why a tool call failed (error, timeout, permission_denied); its error_message is shown.
+  is_interrupt: Whether a failed tool call was interrupted; the turn's stop says how it ended.
+  loop_count: How many automatic follow-ups ran before this stop; GitPrompt sends none.
+  task: What a subagent was asked; kept in the SubagentStop event.
+  description: A subagent's short description; kept in the SubagentStop event.
+  duration_ms: How long a subagent or session ran; kept in the stored event.
+  message_count: Messages in a subagent's run; kept in the stored event.
+  tool_call_count: Tool calls of a subagent's run; kept in the stored event.
+  modified_files: Files a subagent changed; kept in the stored event.
+  agent_transcript_path: The subagent's transcript; GitPrompt stores transcript paths but never reads them.
+  final_status: How the session ended; `reason` is shown.
+  tool_input.contents: The text a Write call wrote (unverified name); kept in the stored event, never summarized.
+  tool_input.query: An MCP tool's own argument (MCP inputs differ per tool); kept in the stored event.

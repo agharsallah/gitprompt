@@ -1,0 +1,21 @@
+{
+  "about": "PostModelRequest for a model call that failed: status failed, an error message and no token usage. Counts as an API error of its turn. Synthetic values (https://learn.chatgpt.com/docs/hooks).",
+  "payload": {
+    "session_id": "0190a1b2-0000-7000-8000-000000000001",
+    "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+    "cwd": "/work/app",
+    "hook_event_name": "PostModelRequest",
+    "model": "gpt-5-codex",
+    "turn_id": "0190a1b2-0000-7000-8000-0000000000a3",
+    "status": "failed",
+    "error": "stream disconnected before completion",
+    "token_usage": null
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PostModelRequest"
+    },
+    "turn": "09_user_prompt_submit_stdin"
+  }
+}

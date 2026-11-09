@@ -1,0 +1,21 @@
+{
+  "about": "Stop: the turn end, with Codex's final answer in last_assistant_message. Synthetic values (https://learn.chatgpt.com/docs/hooks).",
+  "payload": {
+    "session_id": "0190a1b2-0000-7000-8000-000000000001",
+    "transcript_path": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+    "cwd": "/work/app",
+    "hook_event_name": "Stop",
+    "model": "gpt-5-codex",
+    "turn_id": "0190a1b2-0000-7000-8000-0000000000a1",
+    "permission_mode": "default",
+    "stop_hook_active": false,
+    "last_assistant_message": "Added a retry with backoff around send(); the upload tests pass."
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "Stop"
+    },
+    "turn": "02_user_prompt_submit"
+  }
+}

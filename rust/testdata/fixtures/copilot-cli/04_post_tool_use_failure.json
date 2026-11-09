@@ -1,0 +1,22 @@
+{
+  "about": "PostToolUseFailure: the error is a string.",
+  "payload": {
+    "hook_event_name": "PostToolUseFailure",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:00:12.000Z",
+    "cwd": "/work/app",
+    "tool_name": "edit",
+    "tool_input": {
+      "path": "client.py"
+    },
+    "error": "File not found"
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PostToolUseFailure",
+      "tool_name": "edit"
+    },
+    "turn": "02_user_prompt_submit"
+  }
+}

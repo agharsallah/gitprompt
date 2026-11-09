@@ -1,0 +1,32 @@
+[package]
+name = "gitprompt-cli"
+description = "The gitprompt command: serve, compact, reindex, check, hook (forwarder), spool."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "gitprompt"
+path = "src/main.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+gitprompt-core.workspace = true
+gitprompt-store.workspace = true
+gitprompt-capture.workspace = true
+gitprompt-insights.workspace = true
+gitprompt-server.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true
+assert_cmd.workspace = true
+predicates.workspace = true
+
+[lints]
+workspace = true

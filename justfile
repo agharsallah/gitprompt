@@ -27,3 +27,17 @@ test:
     uv run ruff format --check src tests
     pnpm --dir web check
     pnpm --dir web test
+
+# --- Rust backend (rust/) ---
+
+# Rust tests (all crates)
+rust-test:
+    cd rust && cargo test --workspace
+
+# Rust lint: formatting and clippy with warnings as errors
+rust-lint:
+    cd rust && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings
+
+# Rust line coverage; fails under 100% (needs: cargo install cargo-llvm-cov)
+rust-cov:
+    cd rust && cargo llvm-cov --workspace --fail-under-lines 100 --ignore-filename-regex '(tests/|main\.rs)' --html

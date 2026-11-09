@@ -1,0 +1,150 @@
+# GitHub Copilot CLI: documented hooks on observational events only.
+#   reference  https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference
+#   tutorial   https://docs.github.com/en/copilot/tutorials/copilot-cli-hooks
+# Re-checked 2026-11-07 (Copilot CLI 1.0.107). "Unverified" below = the docs don't say.
+#
+# Event names are the PascalCase (VS Code-compatible) form on purpose: the casing in the config
+# selects the payload format, and only this form sends `hook_event_name` and snake_case fields,
+# which the shared _defaults.yaml map already reads. The camelCase form has no event-name field.
+#
+# Command hooks, like claude-code.yaml: an HTTP hook to 127.0.0.1 is refused unless the user sets
+# COPILOT_HOOK_ALLOW_LOCALHOST=1, which GitPrompt must not set for them. The forwarder reads the
+# payload on stdin (the tutorial's scripts do `INPUT="$(cat)"`), discards all output and always
+# exits 0, so nothing is ever blocked or changed. Copilot runs hooks synchronously ("Hooks run
+# synchronously and can block execution"); curl gives up after 2 s.
+id: copilot-cli
+name: GitHub Copilot CLI
+short_name: Copilot CLI
+assistant: Copilot
+layer: Hooks
+summary: Your prompts, the tools each turn used, subagents and how the turn ended. Also captures the Copilot agent in VS Code, which reads the same hooks folder.
+detect: ["${COPILOT_HOME:-~/.copilot}"]
+version_cmd: [copilot, --version]
+
+x-hook: &hook
+  - type: command
+    bash: >-
+      curl -s -m 2 -H 'Content-Type: application/json' -H 'Authorization: Bearer {{token}}'
+      --data-binary @- '{{receiver}}/ingest/{{source}}' >/dev/null 2>&1 || true
+    timeoutSec: 5  # no `async` option is documented
+    # No `powershell` entry yet: Windows is not supported by GitPrompt's forwarders.
+
+install:
+  # A file of our own: Copilot loads every ~/.copilot/hooks/*.json (or $COPILOT_HOME/hooks/), so
+  # nothing of the user's is edited. Disconnecting leaves it as `{}`.
+  file: "${COPILOT_HOME:-~/.copilot}/hooks/gitprompt.json"
+  merge:
+    version: 1
+    hooks:
+      UserPromptSubmit: *hook
+      PostToolUse: *hook
+      PostToolUseFailure: *hook
+      SubagentStop: *hook
+      Stop: *hook  # = agentStop
+      PreCompact: *hook
+      SessionStart: *hook
+      SessionEnd: *hook
+      ErrorOccurred: *hook
+
+prompt_events: [UserPromptSubmit]
+
+# Where prompts are typed (ADR-0022): the payloads don't say whether the CLI or VS Code sent them,
+# so there are no `surface` rules.
+captures:
+  cli: GitHub Copilot CLI.
+  vscode: The Copilot agent in VS Code, which reads the same hooks folder (Preview). Shown with no surface.
+
+# What this connector yields (docs/sources.md "Capabilities per tool"). Not available from hooks:
+# model, usage, cost (Copilot's OpenTelemetry export only), the final answer (Stop carries none)
+# and per-session metrics.
+capabilities: [prompt, cwd, turn_end, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+
+# Copilot hooks carry no prompt id: each prompt gets one from GitPrompt, and every other event joins
+# the latest prompt of its session (safe because Copilot runs hooks synchronously, in order).
+join: session
+
+map:
+  parent_agent_id: [parent_agent_id, parentAgentId]
+  stop_reason: [stop_reason, stopReason]
+  # session_id, cwd, prompt, event, agent_id, agent_type, tool_name, transcript_path: _defaults.yaml
+
+# What each built-in tool does (insights/derivations.py). The hooks reference names no tools: bash,
+# edit and view are the names in our fixtures; the others are Copilot CLI's built-in tool names as
+# the CLI lists them, unverified against the docs. Inputs use `path` (file tools), `command` (bash)
+# and `url` (web_fetch). MCP tools are named `<server>-<tool>` with no fixed prefix, so they show
+# as "other" until a prefix pattern per server is added here.
+tool_kinds:
+  view: read
+  glob: read  # unverified
+  grep: read  # unverified
+  edit: write
+  create: write  # unverified
+  str_replace: write  # unverified
+  apply_patch: write  # unverified
+  bash: shell
+  read_bash: shell  # unverified
+  write_bash: shell  # unverified
+  stop_bash: shell  # unverified
+  list_bash: shell  # unverified
+  web_fetch: web  # unverified
+  task: agent  # unverified
+
+# Who produced a prompt (on top of the shared rules: agent_id / agent_type mean a subagent, and a
+# leading /command is a slash command).
+origin:
+  - when: {field: parent_agent_id}
+    origin: subagent
+# userPromptSubmitted "never [runs] for system notifications" (reference), so no task-notification
+# rule is needed. Unverified: whether `prompt` holds expanded @-mentions (userPromptTransformed has
+# the expanded form), so no `injected` tags yet.
+
+# Org policy: policy files hold hooks of their own; `disableAllHooks` skips one hooks file, or (in
+# a repository's settings.json) every non-policy hook. Registry policy
+# (HKLM\Software\Policies\GitHub\Copilot) and enterprise-managed settings can't be read from disk.
+policy:
+  files:
+    - "/etc/github-copilot/policy.d/*.json"
+    - "C:/ProgramData/GitHub/Copilot/policy.d/*.json"
+    - "${COPILOT_HOME:-~/.copilot}/settings.json"  # unverified: whether disableAllHooks applies here
+    - "${COPILOT_HOME:-~/.copilot}/hooks/gitprompt.json"
+  block_if:
+    disableAllHooks: [true]
+
+terms: >-
+  Uses GitHub Copilot CLI's documented hooks, in a hooks file of your own
+  (~/.copilot/hooks/gitprompt.json); none of your files are edited. Copilot drops the output of
+  prompt hooks from config files, so GitPrompt cannot change or block a prompt. It does not read
+  credentials, proxy traffic, or send anything off this machine. The Copilot agent in VS Code reads
+  the same folder, so its prompts are captured too.
+
+# From the hooks reference, VS Code-compatible form (checked 2026-11-07). Shown on the Fields page.
+documented:
+  "*": [hook_event_name, session_id, timestamp, cwd, agent_id, agent_type, parent_agent_id]
+  UserPromptSubmit: [prompt]
+  PostToolUse: [tool_name, tool_input, tool_result]
+  PostToolUseFailure: [tool_name, tool_input, error]
+  SubagentStop: [transcript_path, agent_name, agent_display_name, last_assistant_message, stop_reason]
+  Stop: [transcript_path, stop_reason, stop_hook_active]
+  PreCompact: [transcript_path, trigger, custom_instructions]
+  SessionStart: [source, initial_prompt]
+  SessionEnd: [reason]
+  ErrorOccurred: [error, error_context, recoverable]
+
+not_captured:
+  PreToolUse: A decision point (can deny a tool call, fail-closed). PostToolUse has the same data.
+  PermissionRequest: A decision point (answers a permission prompt).
+  subagentStart: Documented only in the camelCase form, which has no event name; SubagentStop reports each subagent.
+  userPromptTransformed: Holds the runtime-expanded prompt (injected context); the typed text comes from UserPromptSubmit.
+  Notification: UI notices only.
+  sessionStart prompt hooks: A `prompt` hook would add text to the session.
+
+# Keys Copilot sends that GitPrompt does not use (on top of _defaults.yaml's), and why.
+ignored:
+  timestamp: >-
+    When Copilot sent the event. GitPrompt times events by when it received them, which the
+    synchronous hooks keep within the hook's delivery time.
+  tool_result: >-
+    Copilot's tool output: result_type repeats which event fired (PostToolUse or PostToolUseFailure)
+    and text_result_for_llm is the output, kept in the stored event (Events tab) but not summarized.
+  agent_name: The same value as agent_type on every payload seen.
+  custom_instructions: What you typed after /compact; kept in the PreCompact event, not a prompt.

@@ -1,0 +1,192 @@
+# OpenAI Codex CLI: documented hooks on observational events, only reporting what happened.
+#   hooks      https://learn.chatgpt.com/docs/hooks (moved from developers.openai.com/codex/hooks)
+#   schemas    https://github.com/openai/codex/tree/main/codex-rs/hooks/schema/generated
+#   releases   https://github.com/openai/codex/releases
+# Re-checked 2026-11-07 against the docs and live (`codex exec`) against codex-cli 0.150.1 and 0.167.0.
+#
+# Codex copies Claude Code's hook shape (event -> matcher groups -> handlers), so this is the same
+# async curl command forwarder as claude-code.yaml: it pipes the event JSON (stdin) to the receiver,
+# discards all output and always exits 0, so nothing is ever blocked, changed or added to the
+# conversation (Codex adds a hook's plain stdout to the context on SessionStart and
+# UserPromptSubmit; ours prints nothing). Empty stdout is "success" on every event, Stop included.
+#
+# Codex runs a user's hook only once it is trusted (`/hooks` in the CLI), and the trust is tied to
+# a hash of the hook, which includes the command and so GitPrompt's token: see `after_connect`.
+id: codex
+name: OpenAI Codex CLI
+short_name: Codex
+assistant: Codex
+layer: Hooks
+summary: Your prompts, the model and its tokens, the tools each turn used, subagents and Codex's final answer.
+detect: ["${CODEX_HOME:-~/.codex}"]
+version_cmd: [codex, --version]
+
+x-hook: &hook
+  - hooks:
+      - type: command
+        command: >-
+          curl -s -m 2 -H 'Content-Type: application/json' -H 'Authorization: Bearer {{token}}'
+          --data-binary @- '{{receiver}}/ingest/{{source}}' >/dev/null 2>&1 || true
+        async: true  # runs in the background; up to 8 at a time per session
+        timeout: 3  # curl gives up after 2 s; Interrupt and SessionEnd allow at most 3 s
+
+# Synchronous: the events that end a turn or a session. Codex cancels unfinished async hooks when a
+# session ends, which `codex exec` does right after Stop, so an async Stop is lost (seen live with
+# 0.150.1). SessionEnd always runs synchronously (an async one gets a warning in every session).
+# A stopped GitPrompt costs nothing (connection refused); a hung one at most curl's 2 s.
+x-sync-hook: &sync_hook
+  - hooks:
+      - type: command
+        command: >-
+          curl -s -m 2 -H 'Content-Type: application/json' -H 'Authorization: Bearer {{token}}'
+          --data-binary @- '{{receiver}}/ingest/{{source}}' >/dev/null 2>&1 || true
+        timeout: 3
+
+install:
+  # Codex reads $CODEX_HOME/hooks.json (default ~/.codex) next to config.toml, which stays untouched.
+  # Older versions ignore event names they don't know (PostModelRequest before 0.164; checked live
+  # with 0.150.1); any other unknown top-level key than `description` and `hooks` makes Codex reject
+  # the whole file.
+  file: "${CODEX_HOME:-~/.codex}/hooks.json"
+  merge:
+    hooks:
+      SessionStart: *hook
+      UserPromptSubmit: *hook
+      PostToolUse: *hook
+      SubagentStart: *hook
+      SubagentStop: *hook
+      PreCompact: *hook
+      PostCompact: *hook
+      PostModelRequest: *hook  # 0.164+: one per model call, with its token usage
+      Stop: *sync_hook
+      Interrupt: *sync_hook
+      SessionEnd: *sync_hook
+
+after_connect: >-
+  Codex runs a new or changed hook only after you trust it: open Codex, type /hooks and trust
+  GitPrompt's hooks (once after connecting, and again after an update or a token rotation).
+
+prompt_events: [UserPromptSubmit]
+
+# Where prompts are typed (ADR-0022). The CLI, the IDE extension and the Codex desktop app share
+# $CODEX_HOME (~/.codex) and its hooks (https://learn.chatgpt.com/docs/hooks; the app has Settings >
+# Hooks), so this connector receives all three. No hook payload says which one sent it (no client,
+# originator or entrypoint field; SessionStart.source is startup/resume/clear/compact/fork), so
+# there are no `surface` rules: Codex prompts show no surface rather than a guessed one.
+captures:
+  cli: The Codex CLI (codex, codex exec).
+  desktop: The Codex desktop app, which reads the same hooks file. Shown as Codex with no surface.
+  vscode: The Codex IDE extension (unverified that it runs hooks). Shown as Codex with no surface.
+
+# What this connector yields (docs/sources.md "Capabilities per tool"). Every hook payload carries
+# the model; PostModelRequest (0.164+) the tokens of each model call. Subagents: their
+# SubagentStart, tool calls and SubagentStop carry the subagent's own turn_id (seen live with
+# 0.150.1), not the parent's, and fire no UserPromptSubmit, so they are stored with the session but
+# join no prompt. Not available: cost (no hook reports it; Codex's OpenTelemetry export only has an
+# estimate, see docs/adr/0019-codex-connector.md), and per-session metrics.
+capabilities: [prompt, cwd, model, usage, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+capability_since:
+  usage: 0.164.0  # PostModelRequest (rust-v0.163.0 has no model-request schema, rust-v0.164.0 does)
+
+# Every event of a turn carries `turn_id`: the prompt id. Events join their prompt by it.
+map:
+  prompt_id: [turn_id]
+  # session_id, cwd, prompt, event, model, permission_mode, agent_id, agent_type, tool_name,
+  # tool_use_id, transcript_path: _defaults.yaml
+
+# Model calls: one PostModelRequest per attempt, joined to its turn by turn_id (seen live with
+# 0.167.0: their input tokens add up to `codex exec`'s own turn usage). OpenAI's input_tokens include
+# the cached ones; reasoning tokens are part of the output tokens. No cost and no duration.
+usage:
+  events: [PostModelRequest]
+  input_includes_cached: true
+  values:
+    model: model
+    input_tokens: token_usage.input_tokens
+    output_tokens: token_usage.output_tokens
+    cache_read_tokens: token_usage.cached_input_tokens
+    cache_creation_tokens: token_usage.cache_write_input_tokens
+    reasoning_tokens: token_usage.reasoning_output_tokens
+    error: error
+    status: status  # completed, failed, cancelled: the Usage tab counts each
+
+# What each tool does (insights/derivations.py). Hook payloads name the shell tool `Bash` (the
+# command is `tool_input.command`), file edits `apply_patch` (the patch text is `tool_input.command`),
+# MCP tools `mcp__<server>__<tool>` and other local tools by their function name. Seen live with
+# 0.150.1: Bash, apply_patch, and the subagent tools as namespace + name with no separator
+# (collaborationspawn_agent, collaborationwait_agent; the docs say spawn_agent). Hosted tools such
+# as web search fire no tool hooks.
+tool_kinds:
+  Bash: shell
+  apply_patch: write
+  view_image: read
+  spawn_agent: agent
+  "collaboration*": agent
+  "mcp__*": mcp
+
+# apply_patch names its files inside the patch: "*** Add File: <path>", "*** Update File: <path>",
+# "*** Delete File: <path>", "*** Move to: <path>".
+tool_files:
+  apply_patch: '(?m)^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+)$'
+
+# Who produced a prompt (on top of the shared rules: agent_id / agent_type mean a subagent, and a
+# leading /command is a slash command). Codex sends its own context (<environment_context>, AGENTS.md
+# instructions) as separate messages, so `prompt` holds only what was submitted; `codex exec` adds
+# piped stdin after the prompt as a <stdin> block.
+injected: [stdin]
+
+# Org and user settings that turn hooks off (TOML; GitPrompt reports them, never overrides them).
+# macOS MDM-managed requirements can't be read from disk.
+policy:
+  files:
+    - "/etc/codex/requirements.toml"
+    - "/etc/codex/managed_config.toml"  # legacy, read as requirements.toml
+    - "C:/ProgramData/OpenAI/Codex/requirements.toml"
+    - "/etc/codex/config.toml"
+    - "${CODEX_HOME:-~/.codex}/config.toml"
+  block_if:
+    features.hooks: [false]
+    features.codex_hooks: [false]  # deprecated alias of features.hooks
+    allow_managed_hooks_only: [true]
+
+terms: >-
+  Uses Codex's documented hooks in your own hooks file ($CODEX_HOME/hooks.json, usually
+  ~/.codex/hooks.json); your config.toml is not changed. GitPrompt only receives the hook payloads
+  Codex sends to it on this machine and always answers with no output, so it cannot change or block
+  a prompt. It stores the transcript path Codex reports but never reads the transcript, and it does
+  not read credentials, proxy traffic, or send anything off this machine.
+
+# From the hooks reference and the generated input schemas of 0.150.1 and 0.167.0 (checked
+# 2026-11-07; main had no other change). Shown on the Fields page next to what was seen.
+# SessionStart.source: startup, resume, clear, compact, fork (0.167.0 adds fork). SessionEnd.reason
+# is always "other". PreCompact/PostCompact.trigger: manual, auto. PostModelRequest.status:
+# completed, failed, cancelled. tool_response: Bash and apply_patch send the model-facing output as
+# text (no exit code or duration field; seen live, a failed command too), MCP tools the call result.
+documented:
+  "*": [session_id, transcript_path, cwd, hook_event_name, model]
+  SessionStart: [source, permission_mode]
+  UserPromptSubmit: [turn_id, prompt, permission_mode, agent_id, agent_type]
+  PostToolUse: [turn_id, tool_name, tool_use_id, tool_input, tool_response, permission_mode, agent_id, agent_type]
+  SubagentStart: [turn_id, agent_id, agent_type, permission_mode]
+  SubagentStop: [turn_id, agent_id, agent_type, agent_transcript_path, stop_hook_active, last_assistant_message, permission_mode]
+  PreCompact: [turn_id, trigger, agent_id, agent_type]
+  PostCompact: [turn_id, trigger, agent_id, agent_type]
+  Stop: [turn_id, stop_hook_active, last_assistant_message, permission_mode]
+  Interrupt: [turn_id, permission_mode]
+  SessionEnd: [reason]
+  PostModelRequest: [turn_id, agent_id, agent_type, status, error, token_usage]
+
+# Keys Codex sends that GitPrompt does not use (on top of _defaults.yaml's), and why.
+ignored:
+  token_usage.total_tokens: Input plus output tokens; GitPrompt adds up the kinds itself.
+  agent_transcript_path: >-
+    The subagent's own transcript (SubagentStop). GitPrompt stores transcript paths but never reads
+    transcripts, and Codex's subagent events join no prompt.
+
+not_captured:
+  PreToolUse: A decision point (can deny or rewrite a tool call). PostToolUse has the same data.
+  PermissionRequest: A decision point (answers an approval prompt).
+  PreModelRequest: Repeats PostModelRequest without its outcome and tokens (diagnostic only, can't block).
+  OpenTelemetry: Would add a cost estimate, reasoning effort and sandbox/approval policy, but must be written into config.toml and every record carries your account email (docs/adr/0019-codex-connector.md).
+  notify: A program Codex runs after each turn (one per config, often already yours); Stop already reports the turn end and answer.
+  config.toml: Reasoning effort, sandbox mode and approval policy are only in your config (and its profiles and -c overrides), not in any hook payload; the file says what a new session defaults to, not what a session ran with.

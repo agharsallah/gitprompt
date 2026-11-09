@@ -1,0 +1,38 @@
+{
+  "about": "A failed MCP tool call.",
+  "payload": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0001-aaaa",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "postToolUseFailure",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "user_email": "someone@example.test",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "tool_name": "MCP:search_issues",
+    "tool_input": {
+      "query": "coupon"
+    },
+    "tool_use_id": "tool-04",
+    "cwd": "/work/shop",
+    "error_message": "connection refused",
+    "failure_type": "error",
+    "duration": 40,
+    "is_interrupt": false
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PostToolUseFailure",
+      "tool_name": "MCP:search_issues"
+    },
+    "turn": "02_before_submit_prompt"
+  }
+}

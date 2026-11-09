@@ -1,0 +1,21 @@
+{
+  "about": "Stop (= agentStop): the turn ended.",
+  "payload": {
+    "hook_event_name": "Stop",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "2026-11-07T10:00:31.000Z",
+    "cwd": "/work/app",
+    "transcript_path": "/work/.copilot/transcript.jsonl",
+    "stop_reason": "end_turn",
+    "stop_hook_active": false
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "Stop",
+      "stop_reason": "end_turn",
+      "transcript_path": "/work/.copilot/transcript.jsonl"
+    },
+    "turn": "02_user_prompt_submit"
+  }
+}

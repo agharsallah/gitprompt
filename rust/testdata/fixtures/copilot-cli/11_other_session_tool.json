@@ -1,0 +1,21 @@
+{
+  "about": "An event of another session with no prompt yet joins nothing (never a prompt of a different session).",
+  "payload": {
+    "hook_event_name": "PostToolUse",
+    "session_id": "other-session",
+    "timestamp": "2026-11-07T10:01:30.000Z",
+    "cwd": "/work/app",
+    "tool_name": "view",
+    "tool_input": {
+      "path": "README.md"
+    }
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PostToolUse",
+      "session_id": "other-session"
+    },
+    "turn": null
+  }
+}

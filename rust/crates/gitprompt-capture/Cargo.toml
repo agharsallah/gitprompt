@@ -1,0 +1,30 @@
+[package]
+name = "gitprompt-capture"
+description = "Capture pipeline (JSON hooks, OTLP), tool probing, connect/disconnect, token rotation, offline spool."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+jiff.workspace = true
+tracing.workspace = true
+gitprompt-core.workspace = true
+gitprompt-store.workspace = true
+fancy-regex.workspace = true
+tokio.workspace = true
+toml.workspace = true
+glob.workspace = true
+similar.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true
+proptest.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+[lints]
+workspace = true

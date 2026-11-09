@@ -1,0 +1,36 @@
+{
+  "about": "A shell command.",
+  "payload": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0001-aaaa",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "postToolUse",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "user_email": "someone@example.test",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "tool_name": "Shell",
+    "tool_input": {
+      "command": "pnpm test"
+    },
+    "tool_output": "{\"exit_code\":0}",
+    "tool_use_id": "tool-03",
+    "cwd": "/work/shop",
+    "duration": 3100
+  },
+  "expect": {
+    "stored_as": "event",
+    "fields": {
+      "event": "PostToolUse",
+      "tool_name": "Shell"
+    },
+    "turn": "02_before_submit_prompt"
+  }
+}

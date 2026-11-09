@@ -1,0 +1,24 @@
+[package]
+name = "gitprompt-core"
+description = "Shared kernel: settings, preferences, errors, JSON payload helpers, git facts, secrets, connector specs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_norway.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+jiff.workspace = true
+fancy-regex.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true
+proptest.workspace = true
+
+[lints]
+workspace = true

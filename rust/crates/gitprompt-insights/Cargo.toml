@@ -1,0 +1,26 @@
+[package]
+name = "gitprompt-insights"
+description = "Values derived on read: origin, surface, turn derivations, facts, lineage, stories, snippets, field catalog, the indexer."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+jiff.workspace = true
+tracing.workspace = true
+gitprompt-core.workspace = true
+gitprompt-store.workspace = true
+fancy-regex.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true
+proptest.workspace = true
+
+[lints]
+workspace = true
