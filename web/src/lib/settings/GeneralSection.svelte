@@ -4,7 +4,7 @@
 	import type { WeekStart } from '#lib/insights/week.ts';
 	import ThemeToggle from '#lib/layout/ThemeToggle.svelte';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
-	import { remembering } from '#lib/settings/remembering.svelte.ts';
+	import { views } from '#lib/settings/views.svelte.ts';
 	import SettingRow from '#lib/settings/SettingRow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
@@ -28,7 +28,7 @@
 
 	<SettingRow
 		label="Default time range"
-		description="The window Overview, Sessions, Projects and Search start with. Once you pick another range there, it is remembered in this browser (below); saving this setting starts from it again."
+		description="The window Overview, Sessions, Projects and Search start with. Prompts starts with all time, so a link to a session, tag or project finds every prompt. Saving this setting drops the range remembered in this browser."
 		setting={s.default_range}
 		file={prefs.file}
 		value={rangeLabel(s.default_range.value)}
@@ -44,12 +44,12 @@
 
 	<SettingRow
 		label="Remember filters"
-		description="Reopen pages with the time range and filters you last used (Overview's tool, app, project and model; Sessions' project and sort). Kept in this browser only; the Prompts page always starts from its link."
-		value={remembering.on ? 'On' : 'Off'}
+		description="Pages you open from the sidebar show the time range you last picked (one for every page) and the filters you last left each page with. A link from another page, such as an Overview chart, shows exactly what it links to. Kept in this browser only."
+		value={views.on ? 'On' : 'Off'}
 	>
 		<SegmentedControl
 			label="Remember filters"
-			bind:value={() => (remembering.on ? 'on' : 'off'), (v: string) => remembering.set(v === 'on')}
+			bind:value={() => (views.on ? 'on' : 'off'), (v: string) => views.set(v === 'on')}
 			options={[
 				{ value: 'on', label: 'On' },
 				{ value: 'off', label: 'Off' }

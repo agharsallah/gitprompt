@@ -8,7 +8,8 @@ import { updates } from '#lib/layout/updates.svelte.ts';
 import { DISMISS_KEY } from '#lib/sources/updates.ts';
 import { ORIGINS } from '#lib/prompts/origin.ts';
 import { isAll, originFilter } from '#lib/prompts/originFilter.svelte.ts';
-import { describe, forget as forgetScope, SCOPES, type Scope } from '#lib/settings/remembered.ts';
+import { describeRange, describeView, RANGE_KEY, VIEW_PAGES, VIEWS } from '#lib/settings/views.ts';
+import { views } from '#lib/settings/views.svelte.ts';
 
 export type BrowserPreference = {
 	key: string;
@@ -76,14 +77,18 @@ export const BROWSER_PREFERENCES: BrowserPreference[] = [
 			read(DISMISS_KEY) ? 'Hidden until another connection needs an update' : 'Shown',
 		reset: () => updates.reset()
 	},
-	...(Object.keys(SCOPES) as Scope[]).map((scope) => ({
-		key: SCOPES[scope].key,
-		label: `Remembered ${SCOPES[scope].label.toLowerCase()}`,
-		where:
-			scope === 'range'
-				? 'The range picker on every insight page'
-				: `The filters on ${scope === 'overview' ? 'Overview' : 'Sessions'}`,
-		current: () => describe(scope),
-		reset: () => forgetScope(scope)
+	{
+		key: RANGE_KEY,
+		label: 'Time range',
+		where: 'The range picker, the same on every page',
+		current: describeRange,
+		reset: () => views.forgetRange()
+	},
+	...VIEW_PAGES.map((page) => ({
+		key: VIEWS[page].key,
+		label: `Filters on ${VIEWS[page].label}`,
+		where: `The filters on ${VIEWS[page].label}`,
+		current: () => describeView(page),
+		reset: () => views.forget(page)
 	}))
 ];

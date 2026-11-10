@@ -101,14 +101,20 @@ export function without(query: StatsQuery, key: Dimension | 'origin'): StatsQuer
 }
 
 /**
- * A link to the Prompts page that lists the prompts behind a number: these filters plus `extra`
- * (a day, an outcome, a tool...). `extra` wins over the range (e.g. a day's own since/until).
+ * A link to the Prompts page that lists the prompts behind a number: the same range (as `range`,
+ * so the Prompts page's range picker shows it) and filters, plus `extra` (a day, an outcome, a
+ * tool...). A day's own `since`/`until` narrow the range there.
  */
-export function promptsHref(base: string, query: StatsQuery, extra: PromptQuery = {}): string {
+export function promptsHref(
+	base: string,
+	filters: InsightFilters,
+	extra: PromptQuery = {}
+): string {
+	const { since: _, ...query } = toQuery(filters, Date.now());
 	// The Prompts page reads no origin as "the remembered choice": name every origin instead.
 	const origin = query.origin?.length ? query.origin : ALL_ORIGINS;
-	const search = queryParams({ ...query, origin, ...extra }).toString();
-	return `${base}${search ? `?${search}` : ''}`;
+	const params = queryParams({ ...query, origin, ...extra });
+	return `${base}?${new URLSearchParams([['range', filters.range.id], ...params])}`;
 }
 
 /** A link to the prompts behind a number, under the page's filters (see promptsHref). */

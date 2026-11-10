@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { facetChoices, promptsHref, readFilters, toQuery, without } from '#lib/insights/filters.ts';
+import { parseRange } from '#lib/insights/range.ts';
 import { bucket } from '#lib/testing/builders.ts';
 import { ALL_ORIGINS } from '#lib/prompts/originFilter.svelte.ts';
 
@@ -51,22 +52,33 @@ describe('toQuery', () => {
 });
 
 describe('promptsHref', () => {
-	it('links to the prompts behind a number, with the same filters', () => {
-		const href = promptsHref(
-			'/prompts',
-			{ since: 'S', origin: ['typed'], repo: '/r' },
-			{ outcome: ['failed'] }
-		);
-		expect(new URLSearchParams(href.split('?')[1]).toString()).toBe(
-			'since=S&origin=typed&repo=%2Fr&outcome=failed'
+	const query = (href: string) => new URLSearchParams(href.split('?')[1]);
+
+	it('links to the prompts behind a number, with the same range and filters', () => {
+		const filters = { range: parseRange('30d'), origins: ['typed' as const], repo: '/r' };
+		expect(query(promptsHref('/prompts', filters, { outcome: ['failed'] })).toString()).toBe(
+			'range=30d&origin=typed&repo=%2Fr&outcome=failed'
 		);
 	});
 
-	it('names every origin when the view shows them all, and lets the extra filters win', () => {
-		const params = new URLSearchParams(
-			promptsHref('/prompts', { since: 'S' }, { since: 'D' }).split('?')[1]
+	it('sends the range by name, never as a fixed start the Prompts page would show as a filter', () => {
+		const params = query(promptsHref('/prompts', { range: parseRange('7d'), origins: [] }));
+		expect([params.get('range'), params.has('since')]).toEqual(['7d', false]);
+	});
+
+	it('keeps a day’s own since and until next to the range', () => {
+		const params = query(
+			promptsHref('/prompts', { range: parseRange('all'), origins: [] }, { since: 'D', until: 'E' })
 		);
-		expect(params.get('since')).toBe('D');
+		expect([params.get('range'), params.get('since'), params.get('until')]).toEqual([
+			'all',
+			'D',
+			'E'
+		]);
+	});
+
+	it('names every origin when the view shows them all', () => {
+		const params = query(promptsHref('/prompts', { range: parseRange('7d'), origins: [] }));
 		expect(params.getAll('origin')).toEqual(ALL_ORIGINS);
 	});
 });

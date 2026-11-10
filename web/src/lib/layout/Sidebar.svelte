@@ -18,6 +18,8 @@
 	import ThemeToggle from '#lib/layout/ThemeToggle.svelte';
 	import UpdateHint from '#lib/layout/UpdateHint.svelte';
 	import { updates } from '#lib/layout/updates.svelte.ts';
+	import { isViewPage } from '#lib/settings/views.ts';
+	import { views } from '#lib/settings/views.svelte.ts';
 
 	// Re-read on every navigation (an update done on Connectors clears the hint once you leave)
 	// and when the window comes back into focus (GitPrompt may have been upgraded meanwhile).
@@ -48,12 +50,16 @@
 			]
 		}
 	] as const;
+	type Route = (typeof groups)[number]['links'][number]['route'];
+
+	/** A filtering page opens in the view you left it in (its kept query, lib/settings/views.ts). */
+	const href = (route: Route) => resolve(route) + (isViewPage(route) ? views.search[route] : '');
 </script>
 
 <svelte:window onfocus={() => updates.refresh()} />
 
 <aside class="sidebar">
-	<a class="brand" href={resolve('/')}>
+	<a class="brand" href={href('/')}>
 		<BrandMark />
 		<span class="wordmark">GitPrompt</span>
 	</a>
@@ -66,7 +72,7 @@
 					{#each group.links as link (link.route)}
 						<li>
 							<a
-								href={resolve(link.route)}
+								href={href(link.route)}
 								aria-current={page.route.id === link.route ||
 								(link.route !== '/' && page.route.id?.startsWith(`${link.route}/`))
 									? 'page'

@@ -28,3 +28,17 @@ export function rangeStart(range: Range, now = Date.now()): Date | null {
 export function rangePhrase(range: Range): string {
 	return range.days == null ? 'so far' : `in the last ${range.label}`;
 }
+
+/**
+ * Where a window starts when a filter sets its own start too (a day picked on the Overview): the
+ * later of the two, so both hold. ISO text, or undefined when neither sets one.
+ */
+export function windowStart(
+	range: Range,
+	since: string | undefined,
+	now = Date.now()
+): string | undefined {
+	const start = rangeStart(range, now)?.toISOString();
+	if (!start || !since) return start ?? since;
+	return Date.parse(since) > Date.parse(start) ? since : start;
+}

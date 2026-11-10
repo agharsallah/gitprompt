@@ -43,7 +43,7 @@
 	const linkFor =
 		(o: Overview) =>
 		(extra: PromptQuery = {}) =>
-			promptsHref(resolve('/prompts'), o.query, extra);
+			promptsHref(resolve('/prompts'), o.filters, extra);
 	const slotsFor = (o: Overview) =>
 		timeSlots(
 			o.activity.groups,

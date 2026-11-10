@@ -3,7 +3,6 @@ import { defer } from '#lib/async/resource.svelte.ts';
 import { readFilters, toQuery } from '#lib/insights/filters.ts';
 import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
 import { preferences } from '#lib/settings/preferences.ts';
-import { rememberView } from '#lib/settings/remembered.ts';
 import type { PageLoad } from './$types';
 
 // Every project of the window, from the daemon's statistics (no cap): one grouping by project,
@@ -11,11 +10,7 @@ import type { PageLoad } from './$types';
 // statistics stream in.
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range } = await preferences(fetch);
-	const filters = readFilters(
-		rememberView(url.searchParams, ['range']),
-		default_range,
-		originFilter.origins
-	);
+	const filters = readFilters(url.searchParams, default_range, originFilter.origins);
 	const now = Date.now();
 	const query = { ...toQuery(filters, now), group_by: 'repo' as const, limit: 500 };
 	const stats = Promise.all([

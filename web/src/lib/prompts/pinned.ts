@@ -67,6 +67,16 @@ export function pins(filters: Filters, lists: Lists): Pin[] {
 	return out;
 }
 
+/** The chip label of one pinned value, or undefined for a key that is not a pinned filter. */
+export function pinLabel(key: string, value: string): string | undefined {
+	const lists: Lists = { model: [], surface: [], outcome: [], has: [] };
+	const filters: Filters = {};
+	if (key in lists) lists[key as keyof Lists].push(value as never);
+	else if (key in LABELS) filters[key as keyof Filters] = value;
+	else return undefined;
+	return pins(filters, lists)[0]?.label;
+}
+
 /** A query string without one pinned value (and without the selection). */
 export function unpin(search: string, pin: Pin): string {
 	const params = new URLSearchParams(search);

@@ -40,6 +40,8 @@
 	import ToggleChip from '#lib/ui/ToggleChip.svelte';
 
 	let {
+		range,
+		cleared,
 		filters,
 		lists,
 		show,
@@ -48,6 +50,10 @@
 		originCounts,
 		facetOptions
 	}: {
+		/** The URL's `?range=`, kept when the form is sent (the picker is in the page header). */
+		range: string | null;
+		/** The page with every filter cleared ("Clear all"). */
+		cleared: string;
 		filters: Filters;
 		/** The multi-valued filters besides origin. */
 		lists: Lists;
@@ -118,6 +124,7 @@
 	role="search"
 	aria-label="Filter prompts"
 >
+	{#if range}<input type="hidden" name="range" value={range} />{/if}
 	<div class="fields">
 		<div class="search">
 			<TextField
@@ -181,7 +188,7 @@
 			</Chip>
 		{/each}
 
-		{#if active}<a class="clear" href={resolve('/prompts')}>Clear all</a>{/if}
+		{#if active}<a class="clear" href={cleared}>Clear all</a>{/if}
 	</div>
 </form>
 

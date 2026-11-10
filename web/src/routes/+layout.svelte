@@ -9,9 +9,18 @@
 	import { navigating, page } from '$app/state';
 	import Boundary from '#lib/errors/Boundary.svelte';
 	import Sidebar from '#lib/layout/Sidebar.svelte';
+	import { isViewPage } from '#lib/settings/views.ts';
+	import { views } from '#lib/settings/views.svelte.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+
+	// The one place a page's view is kept (lib/settings/views.ts): when the URL you are on changes,
+	// never in a load (links preloaded on hover run loads too).
+	$effect(() => {
+		const route = page.route.id;
+		if (isViewPage(route)) views.keep(route, page.url);
+	});
 
 	setLucideProps({ size: 16, strokeWidth: 1.75 });
 </script>

@@ -12,6 +12,7 @@ import {
 	type TurnOutcome
 } from '#lib/api/types.ts';
 import type { Facet } from '#lib/insights/filters.ts';
+import { parseRange, windowStart, type RangeId } from '#lib/insights/range.ts';
 import { originFilter, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
 import { MAX_LIMIT, PAGE } from '#lib/prompts/paging.ts';
 import type { PageLoad } from './$types';
@@ -25,7 +26,12 @@ import type { PageLoad } from './$types';
 // Origins: the URL's `origin` values when it has some, else the remembered choice (default: what
 // you typed and slash commands). The daemon itself shows every origin when none is sent.
 //
+// Range: `?range=`, all time without it, so a link to a session, a tag or a project finds every
+// prompt. A filter's own `since` (a day picked on the Overview) narrows it.
+//
 // The filters are read here and returned at once; the prompts and their counts stream in.
+const PROMPTS_RANGE: RangeId = 'all';
+
 export const load: PageLoad = ({ fetch, url }) => {
 	const filters: Filters = {};
 	for (const key of FILTER_KEYS) {
@@ -41,10 +47,15 @@ export const load: PageLoad = ({ fetch, url }) => {
 	const inUrl = url.searchParams.getAll('origin');
 	const origins: Origin[] = inUrl.length ? parseOrigins(inUrl) : originFilter.origins;
 	const limit = Math.min(MAX_LIMIT, Math.max(PAGE, Number(url.searchParams.get('limit')) || PAGE));
+	const range = parseRange(url.searchParams.get('range'), PROMPTS_RANGE);
+	// What the daemon is asked: the filters with the window's start.
+	const query: Filters = { ...filters };
+	const since = windowStart(range, filters.since);
+	if (since) query.since = since;
 
-	const params = queryParams({ ...filters, ...lists, origin: origins });
+	const params = queryParams({ ...query, ...lists, origin: origins });
 	params.set('limit', String(limit));
-	const { before: _, ...counted } = filters; // counts cover every page, not just older prompts
+	const { before: _, ...counted } = query; // counts cover every page, not just older prompts
 	// Each select's choices are counted with the other filters applied, not its own.
 	const facet = (key: Facet) => {
 		const { [key]: _, ...others } = { ...counted, ...lists, origin: origins } as PromptQuery;
@@ -64,5 +75,5 @@ export const load: PageLoad = ({ fetch, url }) => {
 			Stats
 		>
 	}));
-	return { listing: defer(listing), filters, lists, origins, limit };
+	return { listing: defer(listing), range, filters, query, lists, origins, limit };
 };

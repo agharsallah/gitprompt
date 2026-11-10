@@ -4,7 +4,7 @@
  */
 import { settingsApi, type Preferences, type SettingsState } from '#lib/api/settings.ts';
 import { DEFAULT_RANGE } from '#lib/insights/range.ts';
-import { forget } from '#lib/settings/remembered.ts';
+import { views } from '#lib/settings/views.svelte.ts';
 
 type Fetch = typeof fetch;
 
@@ -43,7 +43,7 @@ export function preferences(fetcher: Fetch = fetch): Promise<Preferences> {
 export async function save(changes: Parameters<typeof settingsApi.save>[0]) {
 	try {
 		const saved = await settingsApi.save(changes);
-		if ('default_range' in changes) forget('range');
+		if ('default_range' in changes) views.forgetRange();
 		return saved;
 	} finally {
 		cache = null;

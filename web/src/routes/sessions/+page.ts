@@ -5,7 +5,6 @@ import { sessions } from '#lib/insights/aggregate.ts';
 import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
 import { isSort, promptsOf, SESSION_PAGE, SORTS } from '#lib/sessions/load.ts';
 import { preferences } from '#lib/settings/preferences.ts';
-import { rememberView } from '#lib/settings/remembered.ts';
 import type { PageLoad } from './$types';
 
 // URL: ?range=, ?q= (sessions with a prompt matching every word), ?project= (a repo filter value),
@@ -13,8 +12,7 @@ import type { PageLoad } from './$types';
 // The controls come from the URL at once; the sessions stream in.
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range } = await preferences(fetch);
-	// Range, project and sort: without them in the URL, the ones last used in this browser.
-	const params = rememberView(url.searchParams, ['range', 'sessions']);
+	const params = url.searchParams;
 	const filters = readFilters(params, default_range, originFilter.origins);
 	const sort = isSort(params.get('sort')) ? params.get('sort')! : 'recent';
 	const q = params.get('q') ?? '';

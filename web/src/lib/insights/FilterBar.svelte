@@ -12,9 +12,7 @@
 	/**
 	 * The Overview's filters in one row above the charts: time range, origins, tool, app, project and
 	 * model. A plain GET form, so the URL holds the view (linkable) and the page's load refetches.
-	 * Each choice is counted without its own filter. The page fills in the filters last used in this
-	 * browser when the URL has none (lib/settings/remembered.ts), so "Clear filters" sets each one to
-	 * "every …" explicitly rather than leaving it out.
+	 * Each choice is counted without its own filter. "Clear filters" keeps the range and origins.
 	 */
 	let {
 		filters,
@@ -45,8 +43,9 @@
 	const filtered = $derived(DIMENSIONS.some((d) => filters[d]));
 	const cleared = $derived.by(() => {
 		const params = new URLSearchParams(page.url.search);
-		for (const d of DIMENSIONS) params.set(d, '');
-		return `${page.url.pathname}?${params}`;
+		for (const d of DIMENSIONS) params.delete(d);
+		const query = params.toString();
+		return `${page.url.pathname}${query ? `?${query}` : ''}`;
 	});
 </script>
 

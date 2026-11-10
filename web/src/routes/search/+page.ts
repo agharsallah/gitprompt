@@ -3,7 +3,6 @@ import { defer } from '#lib/async/resource.svelte.ts';
 import { readFilters, toQuery, without } from '#lib/insights/filters.ts';
 import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
 import { preferences } from '#lib/settings/preferences.ts';
-import { rememberView } from '#lib/settings/remembered.ts';
 import type { PageLoad } from './$types';
 
 /** Results shown at first, and added by "Show more". */
@@ -14,7 +13,7 @@ const PAGE = 50;
 // results, counts and projects stream in.
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range } = await preferences(fetch);
-	const params = rememberView(url.searchParams, ['range']);
+	const params = url.searchParams;
 	const filters = readFilters(params, default_range, originFilter.origins);
 	const q = params.get('q')?.trim() ?? '';
 	const tag = params.get('tag')?.trim() || undefined;

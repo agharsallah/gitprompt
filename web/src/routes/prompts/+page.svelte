@@ -17,6 +17,7 @@
 	import { clock } from '#lib/shared/clock.svelte.ts';
 	import { plural } from '#lib/shared/format.ts';
 	import ExportButton from '#lib/export/ExportButton.svelte';
+	import RangePicker from '#lib/insights/RangePicker.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
@@ -76,6 +77,10 @@
 		return `${resolve('/prompts')}${query ? `?${query}` : ''}`;
 	}
 	const hrefFor = (p: Prompt) => url({ id: String(p.id) });
+	/** Every filter cleared; the time range stays, as on the other pages. */
+	const cleared = $derived(
+		`${resolve('/prompts')}${page.url.searchParams.has('range') ? `?range=${data.range.id}` : ''}`
+	);
 
 	// The selected prompt's detail: fetched on selection, refetched on live updates.
 	let detail = $state.raw<Detail | null>(null);
@@ -144,10 +149,11 @@
 			description="Everything you asked, newest first. Prompts of one session share a line; select one to see how the turn went."
 		>
 			{#snippet actions()}
+				<RangePicker range={data.range} />
 				<ExportButton
 					target={{
 						kind: 'prompts',
-						query: { ...data.filters, ...data.lists, origin: data.origins }
+						query: { ...data.query, ...data.lists, origin: data.origins }
 					}}
 				/>
 			{/snippet}
@@ -166,6 +172,8 @@
 			{#snippet children()}
 				<div class="listing">
 					<PromptFilters
+						range={page.url.searchParams.get('range')}
+						{cleared}
 						filters={data.filters}
 						lists={data.lists}
 						{show}
@@ -191,7 +199,7 @@
 						{:else if filtered}
 							<EmptyState title="No prompts match these filters">
 								Try fewer words, another tool, model or outcome, more origins, or
-								<a href={resolve('/prompts')}>clear all filters</a>.
+								<a href={cleared}>clear all filters</a>.
 							</EmptyState>
 						{:else}
 							<EmptyState title="No prompts yet">

@@ -4,15 +4,16 @@
 	import { RANGES, type Range } from '#lib/insights/range.ts';
 
 	/**
-	 * The time window of an insight page, as links that set `?range=` (the URL is the state).
-	 * Always set, even to the default: a page without `?range=` shows the range last used
-	 * (lib/settings/remembered.ts), so leaving it out can't mean "the default".
+	 * The time window of a filtering page, as links that set `?range=` (the URL is the state).
+	 * The other parameters stay, except paging (`limit`, `before`): a new window starts from its first page.
 	 */
 	let { range }: { range: Range } = $props();
 
 	function href(id: string) {
 		const params = new URLSearchParams(page.url.search);
 		params.set('range', id);
+		params.delete('limit');
+		params.delete('before');
 		const query = params.toString();
 		return `${page.url.pathname}${query ? `?${query}` : ''}`;
 	}

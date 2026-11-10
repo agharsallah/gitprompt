@@ -97,7 +97,7 @@
 			<div class="projects" role="group" aria-label="Filter by project">
 				{#if data.project}
 					<Chip
-						onremove={() => goto(url({ project: '', limit: null }))}
+						onremove={() => goto(url({ project: null, limit: null }))}
 						removeLabel="Show all projects">{projectName(data.project)}</Chip
 					>
 				{:else}
