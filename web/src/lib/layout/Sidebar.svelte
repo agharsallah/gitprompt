@@ -16,6 +16,16 @@
 	import BrandMark from '#lib/layout/BrandMark.svelte';
 	import LiveStatus from '#lib/layout/LiveStatus.svelte';
 	import ThemeToggle from '#lib/layout/ThemeToggle.svelte';
+	import UpdateHint from '#lib/layout/UpdateHint.svelte';
+	import { updates } from '#lib/layout/updates.svelte.ts';
+
+	// Re-read on every navigation (an update done on Connectors clears the hint once you leave)
+	// and when the window comes back into focus (GitPrompt may have been upgraded meanwhile).
+	$effect(() => {
+		void page.url.pathname;
+		updates.refresh();
+	});
+	const onConnectors = $derived(page.route.id === '/sources');
 
 	const groups = [
 		{
@@ -40,6 +50,8 @@
 	] as const;
 </script>
 
+<svelte:window onfocus={() => updates.refresh()} />
+
 <aside class="sidebar">
 	<a class="brand" href={resolve('/')}>
 		<BrandMark />
@@ -62,6 +74,11 @@
 							>
 								<link.icon size={16} aria-hidden="true" />
 								<span>{link.label}</span>
+								{#if link.route === '/sources' && updates.list.length}
+									<span class="update-dot" title="Update available">
+										<span class="visually-hidden">(update available)</span>
+									</span>
+								{/if}
 							</a>
 						</li>
 					{/each}
@@ -71,6 +88,7 @@
 	</nav>
 
 	<div class="footer">
+		<div class="update"><UpdateHint hidden={onConnectors} /></div>
 		<LiveStatus />
 		<p class="local">
 			<ShieldCheck size={14} aria-hidden="true" />
@@ -170,6 +188,27 @@
 		background: var(--color-accent);
 	}
 
+	.update-dot {
+		width: 7px;
+		height: 7px;
+		margin-left: auto;
+		border-radius: 50%;
+		background: var(--color-info-solid);
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+	}
+
+	.update:empty {
+		display: none;
+	}
+
 	.footer {
 		display: grid;
 		gap: var(--space-3);
@@ -203,6 +242,7 @@
 		.wordmark,
 		.group-label,
 		.local,
+		.update,
 		.footer :global(.live .text) {
 			display: none;
 		}
@@ -241,7 +281,7 @@
 
 	/* Phones: icons only, the label stays the link's accessible name (and its tooltip). */
 	@media (max-width: 40rem) {
-		nav a span {
+		nav a span:not(.update-dot, .visually-hidden) {
 			position: absolute;
 			width: 1px;
 			height: 1px;
@@ -254,6 +294,12 @@
 			width: var(--control-md);
 			justify-content: center;
 			padding: 0;
+		}
+
+		.update-dot {
+			position: absolute;
+			top: 6px;
+			right: 6px;
 		}
 	}
 </style>

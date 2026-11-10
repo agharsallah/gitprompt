@@ -4,6 +4,8 @@
  * localStorage key, a key with its own reactive state (the theme) provides its own `current`/`reset`.
  */
 import { theme } from '#lib/layout/theme.svelte.ts';
+import { updates } from '#lib/layout/updates.svelte.ts';
+import { DISMISS_KEY } from '#lib/sources/updates.ts';
 import { ORIGINS } from '#lib/prompts/origin.ts';
 import { isAll, originFilter } from '#lib/prompts/originFilter.svelte.ts';
 import { describe, forget as forgetScope, SCOPES, type Scope } from '#lib/settings/remembered.ts';
@@ -65,6 +67,14 @@ export const BROWSER_PREFERENCES: BrowserPreference[] = [
 				? 'Every origin'
 				: originFilter.origins.map((o) => ORIGINS[o].label).join(', '),
 		reset: () => originFilter.reset()
+	},
+	{
+		key: DISMISS_KEY,
+		label: 'Hidden update hint',
+		where: '“Later” on the update hint in the sidebar',
+		current: () =>
+			read(DISMISS_KEY) ? 'Hidden until another connection needs an update' : 'Shown',
+		reset: () => updates.reset()
 	},
 	...(Object.keys(SCOPES) as Scope[]).map((scope) => ({
 		key: SCOPES[scope].key,
