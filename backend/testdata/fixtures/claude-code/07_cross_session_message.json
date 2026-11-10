@@ -1,0 +1,17 @@
+{
+  "about": "A message another Claude Code session sent to this one (as captured live, shortened): not typed.",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "0b1d2c3e-0000-4000-8000-000000000007",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "auto",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<cross-session-message from=\"uds:/tmp/cc-socks/1234.sock\" from-name=\"app-63\" from-mode=\"prompting\">\nDesign-system session: the <summary> trigger uses `border border-border`; please use `border-border-strong`. Ping me when you're done.\n</cross-session-message>"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {},
+    "origin": "agent_message"
+  }
+}

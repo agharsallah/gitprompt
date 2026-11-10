@@ -80,13 +80,100 @@ fn a_telemetry_prompt_with_an_empty_command_name_stays_typed() {
 }
 
 #[test]
-fn a_task_notification_is_recognised_by_its_prefix() {
+fn a_task_notification_is_recognised_by_its_block() {
     assert_eq!(claude_origin("<task-notification><task-id>t1</task-id></task-notification>", &[]), Origin::TaskNotification);
 }
 
 #[test]
-fn an_agent_message_is_recognised_by_its_prefix() {
+fn an_agent_message_is_recognised_by_its_block() {
     assert_eq!(claude_origin(r#"<agent-message from="worker">done</agent-message>"#, &[]), Origin::AgentMessage);
+}
+
+// --- what Claude Code sends on its own, which the Typed filter must not count ---------------------
+
+/// A message another Claude Code session sent to this one, as captured live.
+const CROSS_SESSION_MESSAGE: &str = "<cross-session-message from=\"uds:/tmp/cc-socks/1234.sock\" from-name=\"app-63\" \
+     from-mode=\"prompting\">\nDesign note: the <summary> trigger uses `border-border`.\nPing me when done.\n</cross-session-message>";
+
+/// Claude Code's notice that a session it watches went idle, as captured live.
+const IDLE_NOTICE: &str = "[Cross-session idle notice] \"app-57\", which you asked to be notified about, is idle now — it \
+     finished a turn at 18:01. This is an automated notice from that session's harness — not a message from a person.";
+
+#[test]
+fn a_message_from_another_session_is_an_agent_message() {
+    assert_eq!(claude_origin(CROSS_SESSION_MESSAGE, &[]), Origin::AgentMessage);
+}
+
+#[test]
+fn an_idle_notice_about_another_session_is_a_task_notification() {
+    assert_eq!(claude_origin(IDLE_NOTICE, &[]), Origin::TaskNotification);
+}
+
+#[test]
+fn a_machine_message_after_injected_context_is_still_recognised() {
+    let text = format!("<system-reminder>be brief</system-reminder>\n{CROSS_SESSION_MESSAGE}");
+    assert_eq!(claude_origin(&text, &[]), Origin::AgentMessage);
+}
+
+#[test]
+fn typed_text_that_quotes_a_machine_message_is_typed() {
+    let quoted = [
+        format!("Why did I get this? {CROSS_SESSION_MESSAGE}"),
+        format!("Explain this notice: {IDLE_NOTICE}"),
+        "Why did I get <agent-message from=\"w\">hi</agent-message>?".to_string(),
+    ];
+    let origins: Vec<Origin> = quoted.iter().map(|text| claude_origin(text, &[])).collect();
+    assert_eq!(origins, [Origin::Typed; 3]);
+}
+
+#[test]
+fn a_tag_that_only_starts_like_a_machine_envelope_is_typed() {
+    let lookalikes = [
+        "<cross-session-messages>my notes</cross-session-messages>",
+        "<agent-messages>my notes</agent-messages>",
+        "<task-notifications>my notes</task-notifications>",
+    ];
+    let origins: Vec<Origin> = lookalikes.iter().map(|text| claude_origin(text, &[])).collect();
+    assert_eq!(origins, [Origin::Typed; 3]);
+}
+
+#[test]
+fn an_unclosed_machine_envelope_is_typed() {
+    assert_eq!(claude_origin("<cross-session-message from=\"x\">I pasted only half of it", &[]), Origin::Typed);
+}
+
+// --- the text_block condition, from a spec's YAML ----------------------------------------------------
+
+/// The origin a spec with one `text_block` rule (for `build-report` and `deploy-report`) gives `text`.
+fn block_rule_origin(text: &str) -> Origin {
+    let custom = custom_spec(&spec_yaml("origin: [{when: {text_block: [build-report, deploy-report]}, origin: programmatic}]\n"));
+    classify(&prompt(text).row(), &[], Some(&custom)).origin
+}
+
+#[test]
+fn a_text_block_rule_matches_a_prompt_that_opens_with_a_whole_block_of_a_listed_tag() {
+    let opening = [
+        "<build-report>ok</build-report>",
+        "<deploy-report id=\"7\" env=\"prod\">\nok\n</deploy-report>",
+        "  <build-report>ok</build-report>\nand what follows it",
+        "<build-report>a <b>bold</b> line</build-report>",
+    ];
+    let origins: Vec<Origin> = opening.iter().map(|text| block_rule_origin(text)).collect();
+    assert_eq!(origins, [Origin::Programmatic; 4]);
+}
+
+#[test]
+fn a_text_block_rule_needs_the_whole_block_at_the_start() {
+    let not_opening = [
+        "see <build-report>ok</build-report>",
+        "<build-report>never closed",
+        "<build-reports>ok</build-reports>",
+        "<build-report-v2>ok</build-report-v2>",
+        "<other>ok</other>",
+        "build-report: ok",
+    ];
+    let origins: Vec<Origin> = not_opening.iter().map(|text| block_rule_origin(text)).collect();
+    assert_eq!(origins, [Origin::Typed; 6]);
 }
 
 #[test]

@@ -94,7 +94,7 @@ fn every_prompt_fixture_of_every_connector_is_checked() {
         .collect();
     assert_eq!(
         found,
-        vec![("claude-code".to_string(), 3), ("codex".to_string(), 3), ("copilot-cli".to_string(), 3), ("cursor".to_string(), 3)]
+        vec![("claude-code".to_string(), 6), ("codex".to_string(), 3), ("copilot-cli".to_string(), 3), ("cursor".to_string(), 3)]
     );
 }
 

@@ -546,6 +546,10 @@ fn invalid_specs() -> Vec<(&'static str, String)> {
         ("surface info extra key", with("surfaces: {app: {name: A, color: red}}")),
         ("injected tag starting with a digit", with("injected: [1abc]")),
         ("injected tag with a space", with("injected: [a b]")),
+        ("text_block with no tag", with("origin: [{when: {text_block: []}, origin: agent_message}]")),
+        ("text_block tag starting with a digit", with("origin: [{when: {text_block: [1msg]}, origin: agent_message}]")),
+        ("text_block tag with a bracket", with("origin: [{when: {text_block: ['<msg>']}, origin: agent_message}]")),
+        ("text_block that is not a list", with("origin: [{when: {text_block: msg}, origin: agent_message}]")),
     ]
 }
 
@@ -578,6 +582,7 @@ fn valid_specs() -> Vec<(&'static str, String)> {
         ("text_regex with look-ahead", with("origin: [{when: {text_regex: '/(?!x)\\w+'}, origin: slash_command}]")),
         ("surface id with digits and dashes", with("surfaces: {my-app2: {name: Mine}}\nsurface: [{when: {path: a}, surface: my-app2}]")),
         ("injected tags with dashes and colons", with("injected: [local-command-stdout, ns:tag, A_b]")),
+        ("when with only a text_block", with("origin: [{when: {text_block: [agent-message, ns:msg]}, origin: agent_message}]")),
         ("cannot_capture any name", with("cannot_capture: {Claude Desktop chat: no hooks}")),
     ]
 }
@@ -672,6 +677,7 @@ fn claude_code_origin_rules_are_its_own_then_the_shared_ones() {
     let origins: Vec<Origin> = bundled_spec("claude-code").origin.iter().map(|r| r.origin).collect();
     let expected = [
         Origin::Programmatic,
+        Origin::TaskNotification,
         Origin::TaskNotification,
         Origin::AgentMessage,
         Origin::SlashCommand,

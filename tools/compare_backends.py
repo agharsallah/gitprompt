@@ -18,7 +18,9 @@ group with no name (`"None"` was a Python artifact; Rust writes `"null"`), and a
 
 Not normalized: a prompt's model. Rust shows the main thread's model; Python the model of most calls
 of any kind, so it differs (in facts, stats by model, stories, search and exports) on turns where
-background or subagent calls on another model outnumber the main thread's (ADR-0023).
+background or subagent calls on another model outnumber the main thread's (ADR-0023). Nor a prompt's
+origin for Claude Code's cross-session messages and idle notices: Rust counts them as agent messages
+and task notifications, Python's frozen specs as typed.
 
 Each line also shows how long each daemon took (ms); the totals are printed at the end.
 """

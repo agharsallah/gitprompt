@@ -1,0 +1,17 @@
+{
+  "about": "A message another agent of the session sent: not typed.",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "0b1d2c3e-0000-4000-8000-000000000006",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "default",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "<agent-message from=\"worker\">The parser tests pass.</agent-message>"
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {},
+    "origin": "agent_message"
+  }
+}

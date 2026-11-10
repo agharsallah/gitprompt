@@ -69,6 +69,12 @@ pub fn split_context(text: &str, tags: &[String]) -> (String, Vec<Injected>) {
     (trim(rest).to_owned(), leading)
 }
 
+/// Whether `text` opens (after whitespace) with a whole `<tag ...>...</tag>` block of one of `tags`.
+pub fn opens_with_block(text: &str, tags: &[String]) -> bool {
+    let tags: Vec<&str> = tags.iter().map(String::as_str).collect();
+    leading_block(text, &tags).is_some()
+}
+
 fn injected(tag: &str, block: &str) -> Injected {
     Injected { kind: tag.to_owned(), chars: block.chars().count() }
 }
@@ -144,6 +150,8 @@ fn closing(text: &str, body: usize, tag: &str, accept: impl Fn(usize) -> bool) -
 /// rules share them). Every condition given must hold:
 ///
 /// * `text_prefix`: `typed` starts with it; `text_regex`: matches at the start of `typed`
+/// * `text_block`: `typed` opens with a whole block of one of its tags, as [`split_context`] reads
+///   blocks (so `<tag-more>`, an unclosed block or one after other text don't count)
 /// * `field`: the prompt's mapped field has a value (not null, `""` or `[]`)
 /// * without `event`: `path` (when given) of the prompt's raw payload has a value, or equals `equals`
 /// * with `event`: some event of the turn with that name satisfies the `path`/`equals` condition
@@ -158,6 +166,9 @@ pub(crate) fn matches_in(when: &When, prompt: &PromptRow, raw: &Raw<'_>, events:
         return false;
     }
     if when.text_regex.as_ref().is_some_and(|regex| !regex.matches_start(typed)) {
+        return false;
+    }
+    if when.text_block.as_ref().is_some_and(|tags| !opens_with_block(typed, tags)) {
         return false;
     }
     if when.field.as_ref().is_some_and(|field| prompt.fields.get(field).is_none_or(is_no_value)) {

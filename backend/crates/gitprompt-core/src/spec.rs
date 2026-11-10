@@ -213,7 +213,8 @@ pub struct Policy {
 }
 
 /// Conditions of an origin or surface rule; every condition given must hold. At least one
-/// condition besides `equals` is required, and `equals` needs `path`.
+/// condition besides `equals` is required, `equals` needs `path`, and `text_block` names at least
+/// one tag (each like an `injected` tag).
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct When {
@@ -223,6 +224,9 @@ pub struct When {
     pub equals: Option<Json>,
     pub text_prefix: Option<String>,
     pub text_regex: Option<Pattern>,
+    /// The typed text opens with a whole `<tag ...>...</tag>` block of one of these tags: how a tool
+    /// wraps a message it sends on its own (`<task-notification>`, `<agent-message from="...">`).
+    pub text_block: Option<Vec<String>>,
 }
 
 /// The tool's event `from` is stored under GitPrompt's name `to`, when the payload has `equals` at
@@ -614,10 +618,23 @@ fn validate(spec: &Spec) -> std::result::Result<(), String> {
 }
 
 fn check_when(when: &When) -> std::result::Result<(), String> {
-    let has_condition =
-        when.event.is_some() || when.field.is_some() || when.path.is_some() || when.text_prefix.is_some() || when.text_regex.is_some();
+    let has_condition = when.event.is_some()
+        || when.field.is_some()
+        || when.path.is_some()
+        || when.text_prefix.is_some()
+        || when.text_regex.is_some()
+        || when.text_block.is_some();
     if !has_condition {
         return Err("a rule needs at least one condition".into());
+    }
+    match when.text_block.as_deref() {
+        Some([]) => return Err("`text_block` needs at least one tag".into()),
+        Some(tags) => {
+            if let Some(tag) = tags.iter().find(|tag| !is_tag(tag)) {
+                return Err(format!("text_block tag {tag:?} must match ^[A-Za-z][\\w:-]*$"));
+            }
+        }
+        None => {}
     }
     match &when.equals {
         Some(_) if when.path.is_none() => Err("`equals` needs a `path`".into()),

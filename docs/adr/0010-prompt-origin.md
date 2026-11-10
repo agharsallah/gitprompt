@@ -13,14 +13,14 @@ A "prompt" is anything a source reports on its prompt event. In the local data a
    |---|---|---|
    | `typed` | default: no rule matched | yes |
    | `slash_command` | text starts with `/command`, a `UserPromptExpansion` event, or an OTel `user_prompt` with `command_name` | yes |
-   | `task_notification` | text starts with `<task-notification>` | no |
-   | `agent_message` | text starts with `<agent-message` | no |
+   | `task_notification` | text opens with a whole `<task-notification>` block, or with `[Cross-session idle notice]` (another session went idle) | no |
+   | `agent_message` | text opens with a whole `<agent-message …>` or `<cross-session-message …>` block (another agent or Claude Code session) | no |
    | `subagent` | the prompt has `agent_id` / `agent_type` | no |
    | `programmatic` | the turn's OTel `user_prompt` has `app.entrypoint = sdk-cli` | separate (see 4) |
    | `unknown` | no text, nothing left after removing context, or no spec for the source | — |
 
 2. **Rules are data in the spec.** Two new spec keys, validated by Pydantic in `sources/spec.py`:
-   - `origin`: an ordered list of `{when: {...}, origin: ...}`. `when` conditions (all must hold): `event` (an event of the same turn with that name; then `path`/`equals` look at that event), `field` (a mapped field has a value), `path` (a raw payload path has a value), `equals` (…and equals this), `text_prefix`, `text_regex` (on the typed text). Unknown keys, empty conditions and bad regexes are rejected when the spec loads.
+   - `origin`: an ordered list of `{when: {...}, origin: ...}`. `when` conditions (all must hold): `event` (an event of the same turn with that name; then `path`/`equals` look at that event), `field` (a mapped field has a value), `path` (a raw payload path has a value), `equals` (…and equals this), `text_prefix`, `text_regex`, `text_block` (on the typed text; `text_block: [tags]` = it opens with a whole `<tag …>…</tag>` block of one of them, read like `injected` blocks, so `<tag-more>`, an unclosed block or quoted text after a typed sentence don't count). Unknown keys, empty conditions, empty tag lists, bad tags and bad regexes are rejected when the spec loads. A message a tool sends on its own is recognised by a declared marker, never by guessing from its wording: a new kind is one tag or rule in the spec plus a fixture of it as captured, and `gitprompt-insights/tests/machine_prompts.rs` checks every declared marker with no new test.
    - `injected`: tags of context blocks a tool adds before or after what the user typed.
 
    `_defaults.yaml` holds the shared rules (subagent fields, the `/command` pattern) and the `system-reminder` tag. A spec declares only its own markers; its rules are tried **before** the shared ones, first match wins, and its tags are added to the shared ones.

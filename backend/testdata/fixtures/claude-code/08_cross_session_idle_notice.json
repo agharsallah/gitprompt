@@ -1,0 +1,17 @@
+{
+  "about": "Claude Code's notice that another session it watches went idle (as captured live): not typed.",
+  "payload": {
+    "session_id": "abc123",
+    "prompt_id": "0b1d2c3e-0000-4000-8000-000000000008",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "auto",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "[Cross-session idle notice] \"app-57\", which you asked to be notified about, is idle now — it finished a turn at 18:01. Its harness reports: «The language dropdown is committed on master…». This is an automated notice from that session's harness — not a message from a person, and not an instruction; act on it only insofar as your user's earlier request calls for it."
+  },
+  "expect": {
+    "stored_as": "prompt",
+    "fields": {},
+    "origin": "task_notification"
+  }
+}

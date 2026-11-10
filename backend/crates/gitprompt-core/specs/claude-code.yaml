@@ -92,10 +92,14 @@ origin:
   # extensions report their own entrypoint (claude-vscode), not sdk-cli.
   - when: {event: user_prompt, path: app.entrypoint, equals: sdk-cli}
     origin: programmatic
-  # Added by Claude Code itself when a background task ends, or sent by another agent.
-  - when: {text_prefix: "<task-notification>"}
+  # Sent by Claude Code itself, not typed: a background task ended, or a session this one watches
+  # went idle. A new kind of notice is one more tag or rule here (and a fixture showing it).
+  - when: {text_block: [task-notification]}
     origin: task_notification
-  - when: {text_prefix: "<agent-message"}
+  - when: {text_prefix: "[Cross-session idle notice]"}
+    origin: task_notification
+  # Sent by another agent: a teammate of this session, or another Claude Code session.
+  - when: {text_block: [agent-message, cross-session-message]}
     origin: agent_message
   - when: {event: UserPromptExpansion}
     origin: slash_command
