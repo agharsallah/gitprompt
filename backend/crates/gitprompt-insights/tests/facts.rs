@@ -22,16 +22,16 @@ fn codex_row(model: Option<&str>) -> IndexRow {
 }
 
 #[test]
-fn the_main_model_is_the_one_of_most_model_calls() {
-    assert_eq!(
-        main_model(&summary_with_models(&[(Some("gpt-a"), 1), (Some("gpt-b"), 3)]), &obj(json!({"model": "gpt-a"}))).as_deref(),
-        Some("gpt-b")
-    );
+fn the_main_model_is_the_main_threads_not_the_one_of_most_model_calls() {
+    // The derivation picks the main thread's model (tests/main_model.rs); more calls on another
+    // model (background work, subagents) don't change it, nor does the hook-reported model.
+    let summary = TurnSummary { main_model: Some("gpt-a".into()), ..summary_with_models(&[(Some("gpt-a"), 1), (Some("gpt-b"), 3)]) };
+    assert_eq!(main_model(&summary, &obj(json!({"model": "gpt-c"}))).as_deref(), Some("gpt-a"));
 }
 
 #[test]
-fn a_tie_between_models_goes_to_the_greatest_name() {
-    assert_eq!(main_model(&summary_with_models(&[(Some("alpha"), 2), (Some("beta"), 2)]), &obj(json!({}))).as_deref(), Some("beta"));
+fn model_calls_that_are_all_background_work_name_no_model() {
+    assert_eq!(main_model(&summary_with_models(&[(Some("haiku"), 5)]), &obj(json!({}))), None);
 }
 
 #[test]

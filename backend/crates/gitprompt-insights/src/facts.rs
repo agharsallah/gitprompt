@@ -19,7 +19,10 @@ use crate::text::{round, text_of};
 pub const DOCS: &[(&str, &str)] = &[
     ("facts.connector", "the tool that sent the prompt: spec id, name, short name for badges, and who answers"),
     ("facts.surface", "where the prompt was typed: id, name and icon of the app or client (spec `surface` rules); null when unknown"),
-    ("facts.model / model_source", "the turn's main model, from its model calls (usage) or the model its hooks reported (hook)"),
+    (
+        "facts.model / model_source",
+        "the model that answered: of the main thread's model calls, the one of most calls (usage; never a background or subagent call's model), else the model its hooks reported (hook)",
+    ),
     ("facts.models", "every model the turn used"),
     ("facts.tokens", "input, output, cache read, cache write, reasoning and total tokens; null when no model call reported any"),
     ("facts.cost_usd", "the turn's cost; null unless a model call reported one"),
@@ -97,16 +100,12 @@ pub struct Facts {
     pub subagents: i64,
 }
 
-/// The model of most model calls of a turn (ties: the greatest name), ignoring calls without a
-/// model; else the non-empty `model` field the tool reported with the prompt.
+/// The model that answered: the main thread's model ([`TurnSummary::main_model`]), else the
+/// non-empty `model` field the tool reported with the prompt. Background calls (titles, web search
+/// helpers, summaries, compaction) and subagents often run another, cheaper model and can outnumber
+/// the main thread's calls, so they never decide it; a turn that has only those shows no model.
 pub fn main_model(summary: &TurnSummary, fields: &JsonMap) -> Option<String> {
-    let busiest = summary
-        .models
-        .iter()
-        .filter_map(|(model, calls)| Some((*calls, model.as_deref().filter(|m| !m.is_empty())?)))
-        .max()
-        .map(|(_, model)| model.to_owned());
-    busiest.or_else(|| fields.get("model").and_then(text_of).filter(|m| !m.is_empty()))
+    summary.main_model.clone().or_else(|| fields.get("model").and_then(text_of).filter(|m| !m.is_empty()))
 }
 
 /// The connector of a source: from its spec, else named by the source id everywhere (assistant `""`).

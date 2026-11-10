@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Coverage report (pnpm test:coverage)
+/coverage/

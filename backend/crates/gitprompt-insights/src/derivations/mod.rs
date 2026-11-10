@@ -59,7 +59,8 @@ pub const METRIC_PREFIX: &str = "claude_code.";
 pub const ENVIRONMENT: &[&str] = &["app.", "terminal.", "os.", "host.", "service.", "vcs.", "user.", "organization."];
 /// Slash commands in telemetry: a `user_prompt` event with a `command_name`.
 pub const COMMAND_EVENT: &str = "user_prompt";
-/// `query_source` values of model calls made for the main thread (plus no value at all).
+/// `query_source` values of model calls made for the main thread (plus no value at all, and
+/// `repl_main_thread:<qualifier>`, e.g. with a custom output style).
 pub const MAIN_QUERY_SOURCES: &[&str] = &["repl_main_thread", "sdk"];
 /// `query_source` of a model call made by a subagent, e.g. `agent:builtin:Explore`.
 pub const SUBAGENT_PREFIX: &str = "agent:";
@@ -278,6 +279,11 @@ pub struct TurnSummary {
     pub model_call_status: IndexMap<String, u64>,
     /// Calls per model.
     pub models: IndexMap<Option<String>, u64>,
+    /// The model that answered: of the main thread's calls ([`WorkKind::Main`]) with a model, the
+    /// model of most calls, a tie going to the one called last. Background and subagent calls never
+    /// count, however many there are. `None` without such calls. Not serialized: `facts.model`
+    /// shows it (falling back to the model the hooks reported).
+    pub main_model: Option<String>,
     /// Requests, tokens and cost per model.
     pub model_usage: IndexMap<Option<String>, UsageTotals>,
     /// Requests, tokens and cost per `query_source`.

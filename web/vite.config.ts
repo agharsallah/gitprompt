@@ -23,6 +23,11 @@ export default defineConfig({
 		include: ['src/**/*.test.ts'],
 		environment: 'node',
 		// Day grouping uses the local calendar: pin a zone with daylight saving to keep tests honest.
-		env: { TZ: 'Europe/Berlin' }
+		env: { TZ: 'Europe/Berlin' },
+		coverage: {
+			include: ['src/lib/**/*.ts'],
+			// The display helpers are pure and every branch is a corner case someone hit: keep them whole.
+			thresholds: { 'src/lib/shared/{format,model-name}.ts': { 100: true } }
+		}
 	}
 });

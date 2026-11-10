@@ -42,7 +42,7 @@ create table if not exists prompt_index (
   compactions   integer not null,
   denials       integer not null,      -- tool calls the permission system denied
   rejections    integer not null,      -- tool calls you rejected (telemetry)
-  model         text,                  -- the turn's main model: most model calls, else the one its hooks reported
+  model         text,                  -- the model that answered: most main-thread model calls, else the one its hooks reported
   permission_mode text,                -- as the tool reported it with the prompt
   tool_version  text,                  -- the tool's version when the prompt was sent
   reasoning_tokens integer not null,   -- output tokens spent reasoning, when the tool reports them

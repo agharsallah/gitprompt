@@ -11,13 +11,29 @@ default:
 
 # --- everyday ---
 
+# Cargo caches build-script output keyed by paths relative to the workspace, but Tauri's build
+# scripts write absolute paths into it: after the checkout is moved or renamed (e.g. rust/ ->
+# backend/) a build fails on files under the old path. Every Cargo recipe runs this first; it
+# remembers where backend/target was built and starts clean when that changes.
+[private]
+target-guard:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    stamp=backend/target/.checkout-path
+    here="$(pwd)/backend"
+    if [ -d backend/target ] && [ -f "$stamp" ] && [ "$(cat "$stamp")" != "$here" ]; then
+        echo "backend/ moved from $(cat "$stamp"): cleaning backend/target (cached absolute paths)"
+        (cd backend && cargo clean)
+    fi
+    mkdir -p backend/target && printf '%s' "$here" > "$stamp"
+
 # Install the web dependencies and fetch the Rust crates
-setup:
+setup: target-guard
     pnpm --dir web install
     cd backend && cargo fetch
 
 # Build the dashboard, then the release `gitprompt` binary that embeds it
-build:
+build: target-guard
     pnpm --dir web build
     cd backend && cargo build --release -p gitprompt-cli
 
@@ -26,7 +42,7 @@ serve: build
     {{ bin }} serve
 
 # Develop: the Rust daemon (debug; restarts on change with cargo-watch if installed) + Vite with hot reload on http://127.0.0.1:5173
-dev:
+dev: target-guard
     #!/usr/bin/env bash
     set -euo pipefail
     cd backend
@@ -41,7 +57,7 @@ dev:
     cd .. && pnpm --dir web dev
 
 # Install `gitprompt` into ~/.cargo/bin (with the dashboard embedded)
-install:
+install: target-guard
     pnpm --dir web build
     cargo install --locked --path backend/crates/gitprompt-cli
 
@@ -52,28 +68,28 @@ verify: lint test
     pnpm --dir web build
 
 # Rust tests (all crates, end-to-end included) and web tests
-test:
+test: target-guard
     cd backend && cargo test --workspace
     pnpm --dir web check
     pnpm --dir web test
 
 # Formatting and lints, warnings are errors
-lint:
+lint: target-guard
     cd backend && cargo fmt --all --check
     cd backend && cargo clippy --workspace --all-targets -- -D warnings
     pnpm --dir web lint
 
 # Format Rust and web code in place
-fmt:
+fmt: target-guard
     cd backend && cargo fmt --all
     pnpm --dir web format
 
 # Rust line coverage report in backend/target/llvm-cov/html (needs: cargo install cargo-llvm-cov)
-cov:
+cov: target-guard
     cd backend && cargo llvm-cov --workspace --ignore-filename-regex '(tests/|examples/|main\.rs)' --html
 
 # Load benchmark: ingest throughput and dashboard read latencies on synthetic data (pass e.g. --prompts 5000)
-bench *args:
+bench *args: target-guard
     cd backend && cargo run --release -q -p gitprompt-server --example load -- {{ args }}
 
 # Compare the legacy Python daemon and the Rust daemon endpoint by endpoint on a copy of a database
@@ -97,12 +113,12 @@ gp *args:
 # --- desktop app (backend/apps/desktop, Tauri v2) ---
 
 # Desktop app in debug, with the `gitprompt` hook forwarder built next to it
-desktop-dev:
+desktop-dev: target-guard
     pnpm --dir web build
     cd backend && cargo build -p gitprompt-cli && cargo run -p gitprompt-desktop
 
 # Desktop installers in backend/target/release/bundle; tauri builds the dashboard first (needs: cargo install tauri-cli --version "^2")
-desktop-build:
+desktop-build: target-guard
     cd backend && cargo build --release -p gitprompt-cli
     cd backend && mkdir -p apps/desktop/binaries && cp target/release/gitprompt{{ if os_family() == "windows" { ".exe" } else { "" } }} apps/desktop/binaries/gitprompt-$(rustc -vV | sed -n 's/^host: //p'){{ if os_family() == "windows" { ".exe" } else { "" } }}
     cd backend/apps/desktop && cargo tauri build --config tauri.bundle.conf.json

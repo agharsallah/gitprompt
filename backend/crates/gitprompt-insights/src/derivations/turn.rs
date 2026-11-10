@@ -245,12 +245,26 @@ fn usage(t: &Turn<'_>, out: &mut TurnSummary) {
     for call in &calls {
         *out.models.entry(call.model.clone()).or_default() += 1;
     }
+    out.main_model = main_thread_model(&calls);
     out.model_usage = grouped(&calls, |c| c.model.clone());
     out.work_usage = grouped(&calls, |c| c.query_source.clone());
     out.api_time_s = round(calls.iter().map(|c| c.duration_ms).sum::<f64>() / 1000.0, 1);
     out.api_errors = count(t.raws(&["api_error"])) + count(calls.iter().filter(|c| c.error));
     out.tool_rejections =
         count(t.raws(&["tool_decision"]).filter(|r| r.get("decision").is_some_and(|d| d.json().as_str() == Some("reject"))));
+}
+
+/// [`TurnSummary::main_model`]: decided by who each call worked for (`query_source`), never by
+/// model names, so models and versions that don't exist yet need no change here.
+fn main_thread_model(calls: &[ModelCall]) -> Option<String> {
+    // model -> (calls, position of its latest call)
+    let mut seen: IndexMap<&str, (usize, usize)> = IndexMap::new();
+    let main = calls.iter().filter(|c| work_kind(c.query_source.as_deref()) == WorkKind::Main);
+    for (at, model) in main.filter_map(|c| c.model.as_deref().filter(|m| !m.is_empty())).enumerate() {
+        let entry = seen.entry(model).or_default();
+        *entry = (entry.0 + 1, at);
+    }
+    seen.into_iter().max_by_key(|(_, rank)| *rank).map(|(model, _)| model.to_owned())
 }
 
 /// Usage per key, keys in first-seen order.
@@ -340,6 +354,7 @@ pub(super) fn work_kind(query_source: Option<&str>) -> WorkKind {
     match query_source {
         None => WorkKind::Main,
         Some(source) if MAIN_QUERY_SOURCES.contains(&source) => WorkKind::Main,
+        Some(source) if source.starts_with("repl_main_thread:") => WorkKind::Main,
         Some(source) if source.starts_with(SUBAGENT_PREFIX) => WorkKind::Subagent,
         Some(_) => WorkKind::System,
     }
