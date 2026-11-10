@@ -3,7 +3,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .DS_Store
-# built dashboard (just build)
-src/gitprompt/dashboard/
 # rust workspace
-rust/target/
+backend/target/
+# coverage runs (just cov)
+*.profraw

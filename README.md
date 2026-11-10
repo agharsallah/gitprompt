@@ -2,14 +2,20 @@
 
 Keep every prompt you write to an AI tool, with its metadata, **locally**.
 
-Iteration 1 supports **Claude Code** (terminal, IDE extensions, desktop app). See [PLAN.md](PLAN.md) for the design and roadmap, and [ADR-0008](docs/adr/0008-universal-capture-declarative-sources.md) for why it works this way.
+It captures **Claude Code** (terminal, IDE extensions, the Code tab of Claude Desktop), **OpenAI Codex**, **GitHub Copilot CLI** and **Cursor**. See [PLAN.md](PLAN.md) for the design and roadmap, and [ADR-0008](docs/adr/0008-universal-capture-declarative-sources.md) for why it works this way.
+
+The daemon is written in Rust ([`backend/`](backend/README.md), [ADR-0023](docs/adr/0023-rust-backend.md)) and runs either as the `gitprompt` command or inside the desktop app; the dashboard is [`web/`](web/), embedded in the binary. The original Python daemon is deprecated and kept in [`legacy/python/`](legacy/python/README.md) for comparisons only.
 
 ## Quick start
 
+Needs Rust (stable), Node with pnpm, and [just](https://just.systems).
+
 ```bash
 just setup
-just serve          # opens on http://127.0.0.1:7878
+just serve          # builds the dashboard and the release binary, then runs on http://127.0.0.1:7878
 ```
+
+Or install the binary (dashboard included) and run it from anywhere: `just install`, then `gitprompt serve`. For the desktop app, see [Desktop app](#desktop-app).
 
 1. On the Overview, click **Connect**. The **Connectors** page opens with the exact change to `~/.claude/settings.json` in front of you; confirm it (a backup goes to `~/.gitprompt/backups/`).
 2. Optionally add Claude Code's **Telemetry** layer too, for model, tokens and cost (applies to sessions started afterwards).
@@ -58,24 +64,24 @@ Every prompt shows its tool and, when the tool says, the app it was typed in, af
 
 The connector cards list, under **Where your prompts come from**, the apps each connector captures and the ones it can't, with why. A prompt sent from a git worktree (Claude Desktop, Claude Code and the Codex app can run sessions in one) belongs to its main repository's project; the worktree and its branch are kept. A Cursor window with several folders uses the first one as the prompt's folder and keeps the others.
 
-**Check it live:** type one prompt in each app, then run `uv run gitprompt check` (or open **Recent captures** at the top of the Connectors page). For each tool it says whether each layer is connected and lists, per app, the newest prompt: when, project and branch, session, model, how many prompts, and what the app rules read (`app.entrypoint=…`). No row means nothing arrived; "surface unknown" means the tool doesn't say where it was typed.
+**Check it live:** type one prompt in each app, then run `gitprompt check` (or open **Recent captures** at the top of the Connectors page). For each tool it says whether each layer is connected and lists, per app, the newest prompt: when, project and branch, session, model, how many prompts, and what the app rules read (`app.entrypoint=…`). No row means nothing arrived; "surface unknown" means the tool doesn't say where it was typed.
 
 ### Adding or fixing a connector
 
-Connectors are YAML files in `src/gitprompt/sources/bundled/`. To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on its card. A spec that adds a layer to another tool names it with `part_of`, plus a short `layer` name and a one-line `summary` ([ADR-0015](docs/adr/0015-connector-layers-and-states.md)). It declares what it yields in `capabilities`, and a tool that sends no prompt id sets `join: session` ([ADR-0017](docs/adr/0017-connector-capabilities.md)). `assistant` names who answers in the tool, `after_connect` says what the user still does in the tool once connected, and `tool_files` finds the files a tool names inside a text input such as a patch ([ADR-0019](docs/adr/0019-codex-connector.md)). `usage` names the events that report model calls and where their tokens are, and `capability_since` the tool version that adds a capability ([ADR-0020](docs/adr/0020-model-call-usage-and-version-capabilities.md)). `surface` rules say which app a prompt was typed in, `captures` and `cannot_capture` which apps the connector reaches; `event_names` maps a tool's own event names to GitPrompt's, `answer` says where the final answer is, and `discard` drops payload keys before storing ([ADR-0022](docs/adr/0022-surfaces-and-desktop-apps.md)).
+Connectors are YAML files in `backend/crates/gitprompt-core/specs/` (compiled into the binary). To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on its card. A spec that adds a layer to another tool names it with `part_of`, plus a short `layer` name and a one-line `summary` ([ADR-0015](docs/adr/0015-connector-layers-and-states.md)). It declares what it yields in `capabilities`, and a tool that sends no prompt id sets `join: session` ([ADR-0017](docs/adr/0017-connector-capabilities.md)). `assistant` names who answers in the tool, `after_connect` says what the user still does in the tool once connected, and `tool_files` finds the files a tool names inside a text input such as a patch ([ADR-0019](docs/adr/0019-codex-connector.md)). `usage` names the events that report model calls and where their tokens are, and `capability_since` the tool version that adds a capability ([ADR-0020](docs/adr/0020-model-call-usage-and-version-capabilities.md)). `surface` rules say which app a prompt was typed in, `captures` and `cannot_capture` which apps the connector reaches; `event_names` maps a tool's own event names to GitPrompt's, `answer` says where the final answer is, and `discard` drops payload keys before storing ([ADR-0022](docs/adr/0022-surfaces-and-desktop-apps.md)).
 
 A spec file that can't be read is listed at the top of the Connectors page and in Settings with its error; it is skipped, every other connector (and capture) keeps working, and a broken copy of a bundled spec falls back to the bundled one.
 
-A connector is done when its conformance fixtures pass: synthetic payloads from the tool's documented examples in `tests/sources/fixtures/<id>/`, each with the fields, origin and turn it must map to (`tests/sources/test_conformance.py`).
+A connector is done when its conformance fixtures pass: synthetic payloads from the tool's documented examples in `backend/testdata/fixtures/<id>/`, each with the fields, origin and turn it must map to (replayed by `backend/crates/gitprompt-capture/tests/conformance.rs` and `backend/crates/gitprompt-insights/tests/conformance.rs`; `tests/coverage.rs` there fails on any payload key nobody decided about). Where every other kind of change goes: [docs/extending.md](docs/extending.md).
 
 ## Keeping the database small
 
 Telemetry start-up events (`hook_registered`, `plugin_loaded`, `hook_execution_*`, ...) are no longer stored: the spec lists them under `drop_events`, and the Fields page shows them as not stored. To remove those stored before, and optionally old raw events:
 
 ```bash
-uv run gitprompt compact                          # dry run: rows and MB per event, nothing changes
-uv run gitprompt compact --apply                  # delete them, then VACUUM
-uv run gitprompt compact --events-older-than 30   # also raw events older than 30 days
+gitprompt compact                          # dry run: rows and MB per event, nothing changes
+gitprompt compact --apply                  # delete them, then VACUUM
+gitprompt compact --events-older-than 30   # also raw events older than 30 days
 ```
 
 Prompts and your notes are never removed. Removing the dropped events changes nothing on any page. Expired events take their turn details with them (tools, usage, timeline) for prompts older than the cutoff. Compact can run while the daemon is running.
@@ -95,34 +101,61 @@ Preferences are stored in `~/.gitprompt/preferences.json` (written atomically, m
 | `event_retention_days` (1–3650 or `null`) | `GITPROMPT_EVENT_RETENTION_DAYS` | `null` (keep) | Raw events older than this are deleted at start-up and every 6 hours |
 | `hide_secrets_on_ingest` | `GITPROMPT_HIDE_SECRETS_ON_INGEST` | `false` | Replace detected secrets before a payload is stored |
 
-All of them apply without a restart. `GITPROMPT_HOME`, `GITPROMPT_PORT` and `GITPROMPT_LOG_LEVEL` stay environment-only ([ADR-0013](docs/adr/0013-preferences.md)). Theme stays in the browser (`localStorage`).
+All of them apply without a restart. `GITPROMPT_HOME`, `GITPROMPT_PORT`, `GITPROMPT_LOG_LEVEL`, `GITPROMPT_LOG_FORMAT` and `GITPROMPT_DASHBOARD` stay environment-only ([ADR-0013](docs/adr/0013-preferences.md)). Theme stays in the browser (`localStorage`).
+
 ## The prompt index
 
 Filters, search and statistics run in SQL on a prompt index: one row per prompt with the values GitPrompt derives (origin, typed text, local day and hour, usage per model, tools, outcome), plus a full-text index of the typed text. It is a cache of the stored prompts and events: it updates itself as events arrive and rebuilds itself when the rules or the code that compute it change (a running daemon reads its code once: restart it after an update to see new derived values). To rebuild it by hand (for example after restoring a backup):
 
 ```bash
-uv run gitprompt reindex
+gitprompt reindex
 ```
 
 Day and hour buckets use this machine's timezone; changing the timezone rebuilds the index on next use.
 
+## Desktop app
+
+`backend/apps/desktop` is a Tauri v2 app that runs the same daemon in-process: its window shows the dashboard, closing the window keeps capturing (it hides to the tray: **Open GitPrompt**, **Start at login**, **Quit**), and only one copy runs. If a `gitprompt serve` already runs for the same data folder, the app uses it. Tools it connects call the bundled `gitprompt hook` forwarder, which queues prompts while the app is closed; they are ingested, with their original time, when it starts.
+
+```bash
+just desktop-dev      # run it from source
+just desktop-build    # installers in backend/target/release/bundle (needs: cargo install tauri-cli --version "^2")
+```
+
+Browser and app show the same data: they talk to the same daemon on `127.0.0.1:7878` and its one database, with live updates in both.
+
+## Verifying, debugging, measuring
+
+```bash
+just verify           # what CI runs: fmt, clippy, every Rust test (unit, integration, end-to-end of the real binary), web checks and build
+just doctor           # paths, daemon and lock, database and index, each connector (form, state, last event), spool; one-line fix per problem
+just bench            # ingest throughput and dashboard read latencies on synthetic data
+just compare          # while the legacy daemon exists: every endpoint, Python vs Rust, on a copy of ~/.gitprompt/gitprompt.db
+```
+
+`GITPROMPT_LOG_LEVEL=debug gitprompt serve` logs each request with its status and duration (slow ones are warnings at the default level). More in [docs/extending.md](docs/extending.md#debugging).
+
 ## Layout
 
 ```
-src/gitprompt/            FastAPI daemon, one package per domain (see PLAN.md §5)
-  core/                   shared kernel: settings, preferences, domain errors, atomic writes, JSON payload helpers, git facts
-  sources/                tool specs, probing, connect/disconnect; bundled/ holds the YAML specs
-  capture/                ingest pipeline, the OTLP decoder, compact (dropped events and retention), the retention pass
-  storage/                SQLite store, the rebuildable prompt index (FTS5) and statistics over it
-  insights/               values derived on read, prompt origin, the indexer, secret redaction, field catalog
-  export/                 exports: one redaction pass, report builders, one renderer per format
-  api/                    FastAPI app, dependencies, live-update bus, routes/
-  cli.py                  `gitprompt serve`, `gitprompt compact`, `gitprompt reindex`, `gitprompt check`
-web/src/lib/              SvelteKit dashboard (built into src/gitprompt/dashboard)
+backend/                     the backend: a Cargo workspace (backend/README.md, docs/extending.md)
+  crates/gitprompt-core       settings, preferences, errors, JSON payload helpers, git facts, secrets, connector specs (specs/*.yaml)
+  crates/gitprompt-store      SQLite store, the rebuildable prompt index (FTS5), statistics, housekeeping
+  crates/gitprompt-capture    ingest pipeline (hooks, OTLP), probing and policy, connect/disconnect, token rotation, spool, forwarder
+  crates/gitprompt-insights   values derived on read: origin, surface, turn and session, facts, lineage, stories, field catalog, the indexer
+  crates/gitprompt-export     exports: one redaction pass, report builders, one renderer per format
+  crates/gitprompt-server     the Service (one method per use case), axum routes, live-update bus, the Daemon
+  crates/gitprompt-dashboard  the built dashboard, embedded
+  crates/gitprompt-cli        the `gitprompt` binary
+  crates/gitprompt-tauri      Tauri plugin: the daemon in-process, native commands
+  apps/desktop                the desktop app
+  testdata/fixtures/<tool>/   conformance fixtures, shared by the crates' tests
+web/src/lib/              SvelteKit dashboard (built into web/build)
   design/                 design tokens (tokens.css: primitives, semantic, scales) and base styles
   ui/                     generic components (Button, Badge, Panel, Tabs...); ui/charts/ for charts
   insights/               stories computed from prompts (sessions, projects, timelines), unit tested
   settings/               Settings page sections (one component per section), preference cache
   api/ layout/ prompts/ sessions/ projects/ sources/ shared/ testing/
-tests/                    pytest, mirroring src/ (temp dirs only, never touches real tool configs)
+tools/                    compare-backends.sh: legacy Python vs Rust on the same data
+legacy/python/            the deprecated FastAPI daemon (frozen)
 ```

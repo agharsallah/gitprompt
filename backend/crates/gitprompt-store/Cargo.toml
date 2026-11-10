@@ -1,0 +1,24 @@
+[package]
+name = "gitprompt-store"
+description = "SQLite storage: raw prompts and events, the rebuildable prompt index (FTS5), statistics, housekeeping."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+jiff.workspace = true
+tracing.workspace = true
+gitprompt-core.workspace = true
+rusqlite = { workspace = true, features = ["backup"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true
+proptest.workspace = true
+
+[lints]
+workspace = true

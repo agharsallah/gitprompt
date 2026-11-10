@@ -1,0 +1,27 @@
+[package]
+name = "gitprompt-export"
+description = "Exports: one redaction pass, report builders, renderers (Markdown, HTML, CSV, JSON, SVG)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
+jiff.workspace = true
+tracing.workspace = true
+gitprompt-core.workspace = true
+gitprompt-store.workspace = true
+gitprompt-insights.workspace = true
+fancy-regex.workspace = true
+resvg.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+pretty_assertions.workspace = true
+
+
+[lints]
+workspace = true

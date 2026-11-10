@@ -27,3 +27,4 @@ Status values: `proposed` → `accepted` → (`superseded by NNNN`). 0008 is the
 | [0020](0020-model-call-usage-and-version-capabilities.md) | Model-call usage from a spec `usage` block, capabilities by tool version, interrupted turns | accepted |
 | [0021](0021-turn-facts-and-field-coverage.md) | Turn facts computed once, `ignored` payload keys and a field-coverage test, a display contract, filters by tool, model and outcome | accepted |
 | [0022](0022-surfaces-and-desktop-apps.md) | Surfaces (where a prompt was typed) as spec rules, desktop apps, a Cursor connector, worktrees resolved to their repository, `gitprompt check` | accepted |
+| [0023](0023-rust-backend.md) | The backend is Rust (one crate per domain, wire compatible, `event_stats`, dashboard embedded, offline spool); the Python daemon is deprecated in `legacy/python` | accepted |

@@ -1,0 +1,12 @@
+[package]
+name = "gitprompt-dashboard"
+description = "The built SvelteKit dashboard (web/build) compiled into the binary; read from disk in debug builds."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rust-embed.workspace = true
+
+[lints]
+workspace = true

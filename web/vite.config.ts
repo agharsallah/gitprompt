@@ -12,10 +12,10 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			// The daemon serves the built dashboard from its package; story pages (/sessions/<id>/,
-			// /projects/<id>/) have no file of their own and get the fallback page, which routes in
-			// the browser.
-			adapter: adapter({ pages: '../src/gitprompt/dashboard', fallback: '200.html' })
+			// Built into web/build, which the Rust daemon embeds (backend/crates/gitprompt-dashboard) and
+			// the desktop app ships. Story pages (/sessions/<id>/, /projects/<id>/) have no file of
+			// their own and get the fallback page, which routes in the browser.
+			adapter: adapter({ pages: 'build', fallback: '200.html' })
 		})
 	],
 	server: { proxy: { '/api': daemon } },

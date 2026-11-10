@@ -57,7 +57,7 @@ What a connector can feed into the dashboard. Panels show "not available for X" 
 
 **Third connector: Codex CLI (shipped, see [below](#the-third-connector-is-codex-cli-shipped)).** Its hooks copy Claude Code almost field for field (`session_id`, `turn_id`, `model`, `transcript_path`, `async`, `Stop.last_assistant_message`), so it is mostly data (`prompt_id: [turn_id]`); running it live needed a few generic additions ([ADR-0019](adr/0019-codex-connector.md)).
 
-### Spec: `src/gitprompt/sources/bundled/copilot-cli.yaml`
+### Spec: `backend/crates/gitprompt-core/specs/copilot-cli.yaml`
 
 Shipped (E6). Re-verified 2026-11-07 against the [reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference) and the [tutorial](https://docs.github.com/en/copilot/tutorials/copilot-cli-hooks). Changes from the draft below:
 - **`SubagentStart` dropped:** the reference gives no PascalCase form for it (only `subagentStart`, which has no event name); `SubagentStop` reports each subagent.
@@ -164,9 +164,9 @@ not_captured:
   sessionStart prompt hooks (type prompt): Would inject text into the session.
 ```
 
-### Conformance fixtures: `tests/sources/fixtures/copilot-cli/` (shipped)
+### Conformance fixtures: `backend/testdata/fixtures/copilot-cli/` (shipped)
 
-Shipped as `01_…13_*.json`, replayed in order by `tests/sources/test_conformance.py`; subagent start is not a fixture (not subscribed, see above). Synthetic payloads built from the documented schemas (the docs give TypeScript types, not literal samples), all in the PascalCase/snake_case form unless noted. Each file pairs a payload with the expected mapped fields and origin.
+Shipped as `01_…13_*.json`, replayed in order by the conformance tests (`backend/crates/gitprompt-capture/tests/conformance.rs`, `backend/crates/gitprompt-insights/tests/conformance.rs`); subagent start is not a fixture (not subscribed, see above). Synthetic payloads built from the documented schemas (the docs give TypeScript types, not literal samples), all in the PascalCase/snake_case form unless noted. Each file pairs a payload with the expected mapped fields and origin.
 
 | File | Checks |
 |---|---|
@@ -185,7 +185,7 @@ Shipped as `01_…13_*.json`, replayed in order by `tests/sources/test_conforman
 
 ## The third connector is Codex CLI (shipped)
 
-Spec `src/gitprompt/sources/bundled/codex.yaml`, fixtures `tests/sources/fixtures/codex/`, decisions in [ADR-0019](adr/0019-codex-connector.md). Checked against the docs (0.167.0, 2026-11-07), the generated hook input schemas at the `rust-v0.150.1` and `rust-v0.167.0` tags, and **live** against the installed codex-cli 0.150.1.
+Spec `backend/crates/gitprompt-core/specs/codex.yaml`, fixtures `backend/testdata/fixtures/codex/`, decisions in [ADR-0019](adr/0019-codex-connector.md). Checked against the docs (0.167.0, 2026-11-07), the generated hook input schemas at the `rust-v0.150.1` and `rust-v0.167.0` tags, and **live** against the installed codex-cli 0.150.1.
 
 **How it was tested live (2026-11-07).** A scratch GitPrompt daemon (`GITPROMPT_HOME` in a temp folder, port 7890) and a scratch `CODEX_HOME` (only `auth.json` linked in; the real `~/.codex` never written). Connected through GitPrompt's own API (dry run, then confirm), which merged into a scratch `hooks.json` that already held a user hook. Five `codex exec` runs in a scratch git repository (`-s workspace-write`, `approval_policy="never"`), each making Codex use tools: list files, create a file, `apply_patch` an edit, spawn a subagent, and `exec resume --last` for a second turn. Disconnecting restored the scratch `hooks.json` byte for byte.
 
@@ -239,14 +239,14 @@ Every key path Codex sent in the live runs (0.150.1 and 0.167.0, a scratch datab
 | `notify` payload (`type`, `thread-id`, `turn-id`, `cwd`, `input-messages`, `last-assistant-message`) | docs | not used | | one program per config, often the user's; Stop already has it |
 | OTel (`codex.turn_cost`, `codex.tool_result` duration and success, `codex.sse_event` tokens) | docs | not connected | | must be written into `config.toml`; every record has `user.email` (ADR-0019) |
 
-Every key above is either mapped, derived, shown or listed in the spec's `ignored` with its reason; `tests/sources/test_field_coverage.py` fails on a fixture key that is none of these ([ADR-0021](adr/0021-turn-facts-and-field-coverage.md)). The same holds for Claude Code (`tool_response`, `stop_hook_active` ignored) and Copilot CLI (`timestamp`, `tool_result`, `agent_name`, `custom_instructions` ignored; `error` of PostToolUseFailure becomes `summary.tool_errors`, ErrorOccurred's `error`, `error_context` and `recoverable` become `summary.errors`, SubagentStop's answer and `stop_reason` become `session.subagent_results`).
+Every key above is either mapped, derived, shown or listed in the spec's `ignored` with its reason; `backend/crates/gitprompt-insights/tests/coverage.rs` fails on a fixture key that is none of these ([ADR-0021](adr/0021-turn-facts-and-field-coverage.md)). The same holds for Claude Code (`tool_response`, `stop_hook_active` ignored) and Copilot CLI (`timestamp`, `tool_result`, `agent_name`, `custom_instructions` ignored; `error` of PostToolUseFailure becomes `summary.tool_errors`, ErrorOccurred's `error`, `error_context` and `recoverable` become `summary.errors`, SubagentStop's answer and `stop_reason` become `session.subagent_results`).
 
 **Should you upgrade?** Yes, if you want tokens for Codex: 0.164.0 or later (0.167.0 is the latest release, 2026-11-06) adds `PostModelRequest`, which GitPrompt already subscribes to; on 0.150.1 the pages say "Needs OpenAI Codex CLI 0.164.0 or later". After upgrading, trust the hooks again with `/hooks` if Codex asks.
 
 
 ## Check: does one broken user override take down the Sources page? It did; fixed
 
-`load_specs` (`src/gitprompt/sources/spec.py`) raises `SpecError` on the first file that is not YAML or fails validation. The API resolves specs per request through `get_specs` (`src/gitprompt/api/deps.py`), and `SpecError` is answered with HTTP 500 by the shared handler in `api/app.py`. Only start-up indexing suppresses it.
+Each spec file loads on its own (`load_spec_set` in `backend/crates/gitprompt-core/src/spec.rs`): a file that is not YAML or fails validation is reported (`GET /api/sources/problems`, the Connectors page, `gitprompt doctor`) and skipped, and a broken override falls back to the bundled spec. The daemon keeps the loaded set in a `SpecCache` and reloads it when a file in `~/.gitprompt/sources/` changes.
 
 Reproduced on 2026-11-07 with the test client in a temp dir: one `~/.gitprompt/sources/broken.yaml` (either invalid YAML, or valid YAML missing `detect`/`install`) makes **every** spec-dependent route return 500 with the file's error as `detail`:
 
@@ -314,7 +314,7 @@ Answers: `beforeSubmitPrompt` → `{"continue":true}`, every other event → `{}
 - Settings files are strict JSON (comments are a Settings Error), so the installer refuses to write a file it can't parse.
 
 **Verified 2026-11-03 (D + L, Claude Code 2.1.317), used by iteration 1b:**
-- HTTP hooks run on every event except `SessionStart` and `Setup` ("Only `type: \"command\"` and `type: \"mcp_tool\"` hooks are supported"). The common fields also include `scratchpad_dir`, `effort.level`, `agent_id` and `agent_type`. `Stop` carries `last_assistant_message`, and `PostToolUse` carries `tool_input`, `tool_response`, `tool_use_id` and `duration_ms`. The full per-event list is in `src/gitprompt/sources/bundled/claude-code.yaml` (`documented`).
+- HTTP hooks run on every event except `SessionStart` and `Setup` ("Only `type: \"command\"` and `type: \"mcp_tool\"` hooks are supported"). The common fields also include `scratchpad_dir`, `effort.level`, `agent_id` and `agent_type`. `Stop` carries `last_assistant_message`, and `PostToolUse` carries `tool_input`, `tool_response`, `tool_use_id` and `duration_ms`. The full per-event list is in `backend/crates/gitprompt-core/specs/claude-code.yaml` (`documented`).
 - `strictPluginOnlyCustomization` (`true` or a list containing `"hooks"`, managed only) also blocks user hooks.
 - OpenTelemetry: `CLAUDE_CODE_ENABLE_TELEMETRY=1` and `OTEL_{LOGS,METRICS}_EXPORTER=otlp` with `OTEL_EXPORTER_OTLP_PROTOCOL=http/json` are accepted in user `settings.json` `env` (and ignored in project settings).
   - Precedence: the launch environment wins over settings files, and a managed endpoint or headers remove developer-set endpoints.

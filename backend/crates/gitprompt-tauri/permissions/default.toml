@@ -1,0 +1,19 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Everything the GitPrompt desktop shell needs: daemon status, opening the data folder and revealing
+backups, connecting and toggling sources, token rotation, compaction and exporting to a file.
+"""
+permissions = [
+  "allow-status",
+  "allow-open-data-folder",
+  "allow-reveal-backup",
+  "allow-connect",
+  "allow-disconnect",
+  "allow-enable",
+  "allow-disable",
+  "allow-rotate-token",
+  "allow-compact",
+  "allow-export-to-file",
+]

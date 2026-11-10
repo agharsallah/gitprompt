@@ -1,0 +1,3 @@
+# The `gitprompt` sidecar, copied here as `gitprompt-<target triple>` by `just desktop-build`.
+*
+!.gitignore

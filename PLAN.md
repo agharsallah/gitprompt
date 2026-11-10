@@ -62,6 +62,8 @@ These are hard rules for every source, enforced in code and review. They are eng
 
 ## 5. Architecture
 
+> **Since [ADR-0023](docs/adr/0023-rust-backend.md) the code is the Rust workspace in `backend/`.** The module paths in this section are the Python originals (now `legacy/python/src/gitprompt/`); ADR-0023 maps each to its crate, and [docs/extending.md](docs/extending.md) lists the Rust extension points. The design is unchanged.
+
 ```
  CLI / IDE tools                               Web LLMs (iteration 3)
  Claude Code ─hooks+OTLP─┐                    ┌── generic extension: Enter/Send in a text box
@@ -151,11 +153,11 @@ drop_events: { "hook_execution_*": "Not stored. …" }  # received but not store
 
 **Run it**
 ```bash
-just setup      # uv sync + pnpm install
-just build      # builds the dashboard into src/gitprompt/dashboard
+just setup      # pnpm install + cargo fetch
+just build      # builds the dashboard into web/build and the release binary that embeds it
 just serve      # http://127.0.0.1:7878
-just test       # pytest + ruff + svelte-check
-just dev        # API with reload + Vite dev server (proxy to the API)
+just verify     # fmt + clippy + cargo test (incl. end-to-end) + svelte-check + vitest + web build
+just dev        # the Rust daemon (restarts on change with cargo-watch) + Vite dev server (proxy to the API)
 ```
 
 **Verified**
@@ -193,11 +195,11 @@ The **Fields** page lists every field path seen per source and event, with count
 
 | Area | Standard |
 |---|---|
-| Python | 3.12+, uv, FastAPI (routers per domain, `Annotated` dependencies, Pydantic response models, native SSE), ruff, pytest. Stdlib `sqlite3` behind the `Store` class |
+| Rust | Stable, edition 2024, one crate per domain (`backend/`), axum + tokio, rusqlite (bundled SQLite with FTS5), `cargo fmt` and clippy with warnings as errors, `cargo test` (unit, integration, end-to-end). Side effects behind traits so tests inject them ([ADR-0023](docs/adr/0023-rust-backend.md); the former Python stack is in `legacy/python`) |
 | Web | pnpm, SvelteKit 3 + Svelte 5 runes per [svelte.dev/llms.txt](https://svelte.dev/llms.txt): `$derived` over `$effect`, `load` functions for data, `$app/state`, keyed `#each`, `onclick` attributes, `refreshAll`, `#lib` imports |
 | Tests | Synthetic payloads only (built from documented examples). Tests run in temp dirs and never touch real tool configs |
 | Specs | Each spec links the vendor doc it relies on and carries a `terms` text shown before consent |
-| Code size | Prefer data over code; a new source should need no Python |
+| Code size | Prefer data over code; a new source should need no code, only a spec and fixtures |
 
 ## 10. Risks
 
