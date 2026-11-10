@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
-	import { DEFAULT_RANGE, RANGES, type Range, type RangeId } from '#lib/insights/range.ts';
+	import { RANGES, type Range } from '#lib/insights/range.ts';
 
 	/**
 	 * The time window of an insight page, as links that set `?range=` (the URL is the state).
-	 * `fallback` is the window the page shows without `?range=` (the default_range setting).
+	 * Always set, even to the default: a page without `?range=` shows the range last used
+	 * (lib/settings/remembered.ts), so leaving it out can't mean "the default".
 	 */
-	let { range, fallback = DEFAULT_RANGE }: { range: Range; fallback?: RangeId } = $props();
+	let { range }: { range: Range } = $props();
 
 	function href(id: string) {
 		const params = new URLSearchParams(page.url.search);
-		if (id === fallback) params.delete('range');
-		else params.set('range', id);
+		params.set('range', id);
 		const query = params.toString();
 		return `${page.url.pathname}${query ? `?${query}` : ''}`;
 	}

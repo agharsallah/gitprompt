@@ -46,10 +46,7 @@
 	title="Sessions"
 	description="Each session is one conversation with the agent: its turns in order, how long each took and how it ended."
 >
-	{#snippet actions()}<RangePicker
-			range={data.filters.range}
-			fallback={data.defaultRange}
-		/>{/snippet}
+	{#snippet actions()}<RangePicker range={data.filters.range} />{/snippet}
 </PageHeader>
 
 <div class="controls">
@@ -84,7 +81,7 @@
 		options={(Object.keys(SORTS) as Sort[]).map((s) => ({
 			value: s,
 			label: SORTS[s].label,
-			href: url({ sort: s === 'recent' ? null : s, limit: null })
+			href: url({ sort: s, limit: null })
 		}))}
 	/>
 </div>
@@ -100,7 +97,7 @@
 			<div class="projects" role="group" aria-label="Filter by project">
 				{#if data.project}
 					<Chip
-						onremove={() => goto(url({ project: null, limit: null }))}
+						onremove={() => goto(url({ project: '', limit: null }))}
 						removeLabel="Show all projects">{projectName(data.project)}</Chip
 					>
 				{:else}

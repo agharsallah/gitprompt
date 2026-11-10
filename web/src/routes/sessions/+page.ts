@@ -5,6 +5,7 @@ import { sessions } from '#lib/insights/aggregate.ts';
 import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
 import { isSort, promptsOf, SESSION_PAGE, SORTS } from '#lib/sessions/load.ts';
 import { preferences } from '#lib/settings/preferences.ts';
+import { rememberView } from '#lib/settings/remembered.ts';
 import type { PageLoad } from './$types';
 
 // URL: ?range=, ?q= (sessions with a prompt matching every word), ?project= (a repo filter value),
@@ -12,11 +13,12 @@ import type { PageLoad } from './$types';
 // The controls come from the URL at once; the sessions stream in.
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range } = await preferences(fetch);
-	const params = url.searchParams;
+	// Range, project and sort: without them in the URL, the ones last used in this browser.
+	const params = rememberView(url.searchParams, ['range', 'sessions']);
 	const filters = readFilters(params, default_range, originFilter.origins);
 	const sort = isSort(params.get('sort')) ? params.get('sort')! : 'recent';
 	const q = params.get('q') ?? '';
-	const project = params.get('project') ?? undefined;
+	const project = params.get('project') || undefined;
 	const limit = Math.min(500, Math.max(SESSION_PAGE, Number(params.get('limit')) || SESSION_PAGE));
 	const base = { ...toQuery(filters, Date.now()), repo: project };
 
@@ -38,7 +40,6 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	})();
 	return {
 		filters,
-		defaultRange: default_range,
 		sort,
 		q,
 		project,

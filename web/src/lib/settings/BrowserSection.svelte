@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { RotateCcw } from '@lucide/svelte';
 	import { BROWSER_PREFERENCES } from '#lib/settings/browser.ts';
+	import { remembering } from '#lib/settings/remembering.svelte.ts';
 	import Button from '#lib/ui/Button.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
 
@@ -8,6 +9,7 @@
 	let version = $state(0);
 	const rows = $derived.by(() => {
 		void version;
+		void remembering.version;
 		return BROWSER_PREFERENCES.map((p) => ({ ...p, value: p.current() }));
 	});
 </script>

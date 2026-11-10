@@ -93,12 +93,7 @@
 				<SetupSteps {sources} />
 			{/if}
 
-			<FilterBar
-				filters={o.filters}
-				fallback={data.defaultRange}
-				origins={o.origins}
-				options={o.options}
-			/>
+			<FilterBar filters={o.filters} origins={o.origins} options={o.options} />
 
 			{#if !t.prompts}
 				{#if ever}

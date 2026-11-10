@@ -6,6 +6,7 @@
 import { theme } from '#lib/layout/theme.svelte.ts';
 import { ORIGINS } from '#lib/prompts/origin.ts';
 import { isAll, originFilter } from '#lib/prompts/originFilter.svelte.ts';
+import { describe, forget as forgetScope, SCOPES, type Scope } from '#lib/settings/remembered.ts';
 
 export type BrowserPreference = {
 	key: string;
@@ -64,5 +65,15 @@ export const BROWSER_PREFERENCES: BrowserPreference[] = [
 				? 'Every origin'
 				: originFilter.origins.map((o) => ORIGINS[o].label).join(', '),
 		reset: () => originFilter.reset()
-	}
+	},
+	...(Object.keys(SCOPES) as Scope[]).map((scope) => ({
+		key: SCOPES[scope].key,
+		label: `Remembered ${SCOPES[scope].label.toLowerCase()}`,
+		where:
+			scope === 'range'
+				? 'The range picker on every insight page'
+				: `The filters on ${scope === 'overview' ? 'Overview' : 'Sessions'}`,
+		current: () => describe(scope),
+		reset: () => forgetScope(scope)
+	}))
 ];

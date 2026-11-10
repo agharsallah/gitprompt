@@ -37,10 +37,7 @@
 	title="Projects"
 	description="Where you worked with the agent: each repository or folder you sent prompts from, busiest first."
 >
-	{#snippet actions()}<RangePicker
-			range={data.filters.range}
-			fallback={data.defaultRange}
-		/>{/snippet}
+	{#snippet actions()}<RangePicker range={data.filters.range} />{/snippet}
 </PageHeader>
 
 <Deferred resource={stats} label="Loading projects" what="the projects">

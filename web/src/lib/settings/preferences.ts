@@ -4,6 +4,7 @@
  */
 import { settingsApi, type Preferences, type SettingsState } from '#lib/api/settings.ts';
 import { DEFAULT_RANGE } from '#lib/insights/range.ts';
+import { forget } from '#lib/settings/remembered.ts';
 
 type Fetch = typeof fetch;
 
@@ -35,10 +36,15 @@ export function preferences(fetcher: Fetch = fetch): Promise<Preferences> {
 	return cache;
 }
 
-/** Save some preferences and drop the shared copy, so every page reads the new values. */
+/**
+ * Save some preferences and drop the shared copy, so every page reads the new values. A new
+ * default range also drops the range remembered in this browser, so pages open with it.
+ */
 export async function save(changes: Parameters<typeof settingsApi.save>[0]) {
 	try {
-		return await settingsApi.save(changes);
+		const saved = await settingsApi.save(changes);
+		if ('default_range' in changes) forget('range');
+		return saved;
 	} finally {
 		cache = null;
 	}

@@ -39,10 +39,7 @@
 	title="Search"
 	description="Find what you asked, word for word: every word must appear in the text you typed. Each result opens the prompt or its place in a story."
 >
-	{#snippet actions()}<RangePicker
-			range={data.filters.range}
-			fallback={data.defaultRange}
-		/>{/snippet}
+	{#snippet actions()}<RangePicker range={data.filters.range} />{/snippet}
 </PageHeader>
 
 <form
