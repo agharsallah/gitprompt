@@ -38,7 +38,7 @@ pub const BATCH: usize = 500;
 /// Bump whenever a derivation, a projection in [`entry`] or the index schema changes what is
 /// stored: every index is then rebuilt on next use. (Python hashed its source files; a Rust binary
 /// has none to hash.)
-pub const CODE_VERSION: &str = "rust-2";
+pub const CODE_VERSION: &str = "rust-3";
 
 /// 16 hex characters of a SHA-256 over `code_version`, the zone's name and the rules of every spec
 /// (in id order): `origin`, `surface`, `injected`, `tool_kinds`, `tool_files` (pattern sources) and

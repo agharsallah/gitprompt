@@ -34,7 +34,7 @@ use gitprompt_insights::indexer::{CODE_VERSION, Indexer, entry, prompt_facts, ru
 use gitprompt_insights::zone::MachineZone;
 use gitprompt_store::filter::PromptFilter;
 use gitprompt_store::index::{ModelUsage, ToolCalls, UsageTotals, WorkUsage};
-use gitprompt_store::{EventRow, Store};
+use gitprompt_store::{EventRow, Outcome, Store};
 
 fn claude_derived(view: gitprompt_store::PromptView, events: &[EventRow]) -> Derived {
     derive(&view, events, Some(&spec("claude-code")))
@@ -386,6 +386,21 @@ fn a_later_event_updates_its_prompt_only_once_read() {
     assert_eq!(index.ensure(&store).unwrap(), 1, "the next read recomputes it, once, and nothing else");
     assert_eq!((row(&store, id).ended_by.as_deref(), row(&store, id).usage.cost_usd), (Some("Stop"), 1.5));
     assert_eq!((row(&store, other).ended_by, index.ensure(&store).unwrap()), (None, 0));
+}
+
+#[test]
+fn a_turn_stopped_by_quitting_the_session_stops_showing_as_working() {
+    let store = Store::open_in_memory().unwrap();
+    let index = indexer();
+    let id = add_prompt(&store, "Run the long job", "p1", Some("s1"));
+    add_event(&store, "claude-code", "PostToolUse", "p1", json!({"tool_name": "Bash"}));
+    index.ensure(&store).unwrap();
+    assert_eq!(store.outcomes(&[id]).unwrap()[&id], Outcome::Running, "no end yet, sent just now");
+
+    // Ctrl+C: Claude Code sends no Stop, and quitting sends SessionEnd with the turn's prompt id.
+    add_event(&store, "claude-code", "SessionEnd", "p1", json!({"reason": "prompt_input_exit"}));
+    index.ensure(&store).unwrap();
+    assert_eq!(store.outcomes(&[id]).unwrap()[&id], Outcome::Interrupted);
 }
 
 #[test]

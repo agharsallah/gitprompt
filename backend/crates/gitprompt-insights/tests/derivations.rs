@@ -203,6 +203,51 @@ fn an_unfinished_turn_has_no_ending() {
 }
 
 #[test]
+fn a_turn_whose_session_ended_before_the_turn_did_was_interrupted() {
+    // Claude Code sends no Stop when you stop a turn (Esc, Ctrl+C). Quitting then (Ctrl+C twice,
+    // /exit, /clear) sends SessionEnd with the last prompt's id: the turn will never end.
+    let events = [
+        tool("Bash", json!({"command": "sleep 600"})),
+        event_at("SessionEnd", "2026-11-03T10:31:00+00:00", json!({"reason": "prompt_input_exit"})),
+    ];
+    let summary = claude_turn(&events);
+    assert_eq!(
+        (summary.ended_by.as_deref(), summary.response_s, summary.error),
+        (Some("Interrupt"), None, None),
+        "when you stopped it is unknown, so no response time"
+    );
+}
+
+#[test]
+fn a_tool_call_you_interrupted_ends_its_turn_there() {
+    let events = [event_at(
+        "PostToolUseFailure",
+        "2026-11-03T10:00:07+00:00",
+        json!({"tool_name": "Bash", "error": "Interrupted by user", "is_interrupt": true}),
+    )];
+    let summary = claude_turn(&events);
+    assert_eq!((summary.ended_by.as_deref(), summary.response_s, summary.error), (Some("Interrupt"), Some(7.0), None));
+    assert_eq!(summary.tool_failures, 1, "still a failed tool call");
+}
+
+#[test]
+fn a_tool_call_that_failed_on_its_own_does_not_end_the_turn() {
+    let summary = claude_turn(&[event("PostToolUseFailure", json!({"tool_name": "Bash", "error": "exit 1", "is_interrupt": false}))]);
+    assert_eq!(summary.ended_by, None);
+}
+
+#[test]
+fn a_turn_end_wins_over_a_session_end_in_either_order() {
+    // Async hooks can arrive out of order (`claude -p` sends Stop and SessionEnd milliseconds apart).
+    let stop = event_at("Stop", "2026-11-03T10:00:10+00:00", json!({"last_assistant_message": "Done."}));
+    let end = event_at("SessionEnd", "2026-11-03T10:00:11+00:00", json!({"reason": "other"}));
+    for events in [[stop.clone(), end.clone()], [end, stop]] {
+        let summary = claude_turn(&events);
+        assert_eq!((summary.ended_by.as_deref(), summary.response_s), (Some("Stop"), Some(10.0)));
+    }
+}
+
+#[test]
 fn the_last_turn_ending_event_says_how_and_when_it_ended() {
     let events = [
         event_at("Stop", "2026-11-03T10:00:10+00:00", json!({})),

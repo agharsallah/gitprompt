@@ -12,8 +12,8 @@ use gitprompt_store::PromptView;
 use gitprompt_store::index::UsageTotals;
 
 use super::{
-    BRIEF_INPUTS, ERROR_EVENTS, ERROR_KEYS, FILE_INPUTS, GIT_COMMIT, MAIN_QUERY_SOURCES, ModelCall, SUBAGENT_PREFIX, SubagentTask,
-    TASK_INPUTS, TEXT_CHARS, TOOL_RESULTS, TURN_END, TurnError, TurnSummary, WorkKind,
+    BRIEF_INPUTS, ERROR_EVENTS, ERROR_KEYS, FILE_INPUTS, GIT_COMMIT, INTERRUPT, INTERRUPTED_TOOL, MAIN_QUERY_SOURCES, ModelCall,
+    SESSION_END, SUBAGENT_PREFIX, SubagentTask, TASK_INPUTS, TEXT_CHARS, TOOL_RESULTS, TURN_END, TurnError, TurnSummary, WorkKind,
 };
 use crate::raw::{Event, Raw};
 use crate::text::{clip, number, round, text_of, truthy};
@@ -23,7 +23,10 @@ use crate::time::seconds_between;
 pub(super) const DOCS: &[(&str, &str)] = &[
     ("turn", "position of the prompt in its session"),
     ("since_previous_prompt_s", "think time since the previous prompt of the session"),
-    ("response_s / ended_by / error", "time until Stop, StopFailure or Interrupt, and how it ended"),
+    (
+        "response_s / ended_by / error",
+        "time until Stop, StopFailure or Interrupt, and how it ended (Interrupt too when a tool call was interrupted, or the session ended first)",
+    ),
     ("response", "the agent's final answer (the spec's `answer` events: Stop.last_assistant_message by default)"),
     ("tool_calls / tool_failures / tool_time_s", "tools used for the prompt (PostToolUse*)"),
     ("files_written / files_read", "file paths touched by write and read tools (a path input, or the spec's tool_files pattern)"),
@@ -150,10 +153,18 @@ fn position(t: &Turn<'_>, out: &mut TurnSummary) {
 }
 
 fn ending(t: &Turn<'_>, out: &mut TurnSummary) {
-    let Some(end) = t.events.iter().rev().find(|e| e.is(TURN_END)) else { return };
-    out.response_s = seconds_between(&t.prompt.row.received_at, &end.row.received_at);
-    out.ended_by = end.name().map(String::from);
-    out.error = end.raw.first(ERROR_KEYS).map(|e| e.json().clone());
+    if let Some(end) = t.events.iter().rev().find(|e| e.is(TURN_END)) {
+        out.response_s = seconds_between(&t.prompt.row.received_at, &end.row.received_at);
+        out.ended_by = end.name().map(String::from);
+        out.error = end.raw.first(ERROR_KEYS).map(|e| e.json().clone());
+    } else if let Some(stopped) = t.events.iter().find(|e| e.is(&["PostToolUseFailure"]) && e.raw.truthy(INTERRUPTED_TOOL).is_some()) {
+        out.response_s = seconds_between(&t.prompt.row.received_at, &stopped.row.received_at);
+        out.ended_by = Some(INTERRUPT.into());
+    } else if t.events.iter().any(|e| e.is(&[SESSION_END])) {
+        out.ended_by = Some(INTERRUPT.into());
+    } else {
+        return;
+    }
     let answer = t.rules.answer;
     out.response = t
         .events

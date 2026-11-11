@@ -34,6 +34,15 @@ use crate::raw::{self, Raw, Reads};
 
 /// Events that end a turn. `Interrupt`: you stopped the turn (Codex, Cursor's aborted stop).
 pub const TURN_END: &[&str] = &["Stop", "StopFailure", "Interrupt"];
+/// How a turn without a turn-ending event ends when it was stopped: Claude Code sends no `Stop` when
+/// you stop a turn (Esc, Ctrl+C), so its turn ends as `Interrupt` on the first of these instead.
+pub const INTERRUPT: &str = "Interrupt";
+/// A failed tool call with this payload flag set: you stopped the turn during the call
+/// (Claude Code's `PostToolUseFailure.is_interrupt`). The turn ends at the failure.
+pub const INTERRUPTED_TOOL: &str = "is_interrupt";
+/// The session ended (sent with its last prompt's id) before the turn did: quitting (Ctrl+C twice,
+/// `/exit`, `/clear`) after or while stopping a turn. When you stopped it is unknown: no `response_s`.
+pub const SESSION_END: &str = "SessionEnd";
 /// Events that report a finished tool call.
 pub const TOOL_RESULTS: &[&str] = &["PostToolUse", "PostToolUseFailure"];
 /// Tool inputs naming the file a tool touched, by priority.
