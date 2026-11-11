@@ -1,5 +1,17 @@
 name: CI
 
+# Cost model: macOS minutes are billed at 10x Linux, so the expensive work is ordered to fail early
+# and cheaply:
+#   changes  -> which parts of the repo a run touches; docs-only changes skip the Rust, web and
+#               Python jobs entirely (the `ci` job still reports success).
+#   lint     -> fmt + clippy on Linux only (seconds with a warm cache).
+#   test     -> the Linux + macOS test matrix, only once lint passed.
+#   ci       -> one status that summarises everything: make it the only required check in branch
+#               protection, so skipped jobs do not block a merge and failed ones always do.
+#
+# Actions are pinned to a commit SHA with the version in a comment, so a re-pointed tag cannot
+# change what CI runs; Renovate keeps the pins current (.github/renovate.json5).
+
 on:
   push:
     branches: [master]
@@ -17,66 +29,126 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
+  # Line tables keep file:line in backtraces but make test binaries, link times and the cache much
+  # smaller than full debug info.
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
 
 jobs:
-  rust:
-    name: rust (${{ matrix.os }})
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # paths-filter lists a PR's files through the API
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      web: ${{ steps.filter.outputs.web }}
+      legacy: ${{ steps.filter.outputs.legacy }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        id: filter
+        with:
+          filters: |
+            workflow: &workflow
+              - .github/workflows/ci.yml
+            rust:
+              - *workflow
+              - backend/**
+              - rust-toolchain.toml
+            web:
+              - *workflow
+              - web/**
+            legacy:
+              - *workflow
+              - legacy/**
+
+  # Fast gate before the matrix: formatting and every lint, warnings are errors. Same as `just lint`.
+  lint:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # Installs the toolchain and components named in rust-toolchain.toml (the single source).
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+      - name: cargo fmt
+        working-directory: backend
+        run: cargo fmt --all --check
+
+      - uses: ./.github/actions/tauri-linux-deps
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: backend -> target
+          # PRs restore master's cache but never write their own: the 10 GB repository cache is
+          # not evicted by one-off branches, so master's entries stay warm.
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: cargo clippy
+        working-directory: backend
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  test:
+    name: test (${{ matrix.os }})
+    needs: lint
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # The dashboard is embedded in the binaries, so it is built before any cargo command.
-      - uses: pnpm/action-setup@v4
+      # Linux tests run against the built dashboard, macOS against the "not built" page, so both
+      # paths of gitprompt-dashboard are exercised.
+      - if: runner.os == 'Linux'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - if: runner.os == 'Linux'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
       - name: Build the dashboard
+        if: runner.os == 'Linux'
         run: |
           pnpm --dir web install --frozen-lockfile
           pnpm --dir web build
 
-      # What Tauri v2 (backend/apps/desktop) links against on Linux, so the whole workspace is checked.
-      - name: Install the Tauri system libraries
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get -o Acquire::Retries=5 update
-          sudo apt-get -o Acquire::Retries=5 install -y --no-install-recommends --fix-missing \
-            libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
-            libayatana-appindicator3-dev librsvg2-dev build-essential pkg-config
-
-      - uses: dtolnay/rust-toolchain@1.99.0  # keep in sync with rust-toolchain.toml
-        with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+      - if: runner.os == 'Linux'
+        uses: ./.github/actions/tauri-linux-deps
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: backend -> target
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
-      - name: cargo fmt
-        working-directory: backend
-        run: cargo fmt --all --check
-      - name: cargo clippy
-        working-directory: backend
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: cargo test (unit, integration, end-to-end)
         working-directory: backend
         run: cargo test --workspace --locked
+      # The lint job runs on Linux, where `#[cfg(target_os = "macos")]` code is never compiled.
+      # Lint the crates that have such code (the desktop app and its native helpers) here too.
+      - name: cargo clippy (macOS-only code)
+        if: runner.os == 'macOS'
+        working-directory: backend
+        run: cargo clippy -p gitprompt-desktop -p gitprompt-tauri --all-targets --locked -- -D warnings
 
   # Supply chain: advisories (CVEs, yanked, unmaintained/unsound direct deps), licenses, duplicate
   # versions and crate sources (backend/deny.toml), then unused dependencies. Needs only the
   # manifests and Cargo.lock, so no dashboard build or system libraries. Same as `just deps`.
+  # Always runs: it takes seconds, and a new advisory can fail an unchanged lockfile.
   dependencies:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: cargo-deny@0.20,cargo-machete@0.9
       - name: cargo deny
@@ -87,13 +159,16 @@ jobs:
         run: cargo machete
 
   web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -104,15 +179,35 @@ jobs:
       - run: pnpm --dir web test
       - run: pnpm --dir web build
 
-  # The deprecated Python daemon: still run, never blocks a merge.
+  # The deprecated Python daemon: still run when it changes, never blocks a merge.
   legacy-python:
+    needs: changes
+    if: needs.changes.outputs.legacy == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           enable-cache: true
           cache-dependency-glob: legacy/python/uv.lock
       - name: pytest (legacy/python)
         run: uv run --project legacy/python pytest -q legacy/python/tests
+
+  # The single required check. Fails when any job failed or was cancelled; skipped jobs (nothing
+  # relevant changed) pass. legacy-python is left out on purpose: it never blocks a merge.
+  ci:
+    if: always()
+    needs: [changes, lint, test, dependencies, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All required jobs passed or were skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          done
