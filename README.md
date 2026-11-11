@@ -1,121 +1,168 @@
+<div align="center">
+
+<img src="web/static/favicon.svg" alt="GitPrompt logo" width="72" height="72">
+
 # GitPrompt
 
-Keep every prompt you write to an AI tool, with its metadata, **locally**.
+**Keep every prompt you write to an AI coding tool, with its metadata, on your own machine.**
 
-It captures **Claude Code** (terminal, IDE extensions, the Code tab of Claude Desktop), **OpenAI Codex**, **GitHub Copilot CLI** and **Cursor**. See [PLAN.md](PLAN.md) for the design and roadmap, and [ADR-0008](docs/adr/0008-universal-capture-declarative-sources.md) for why it works this way.
+[![CI](https://github.com/agharsallah/gitprompt/actions/workflows/ci.yml/badge.svg)](https://github.com/agharsallah/gitprompt/actions/workflows/ci.yml)
+[![Audit](https://github.com/agharsallah/gitprompt/actions/workflows/audit.yml/badge.svg)](https://github.com/agharsallah/gitprompt/actions/workflows/audit.yml)
+![Rust 1.99](https://img.shields.io/badge/rust-1.99-orange?logo=rust)
+![SvelteKit](https://img.shields.io/badge/dashboard-SvelteKit-ff3e00?logo=svelte&logoColor=white)
+![Local first](https://img.shields.io/badge/data-stays%20local-0a7468)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-The daemon is written in Rust ([`backend/`](backend/README.md), [ADR-0023](docs/adr/0023-rust-backend.md)) and runs either as the `gitprompt` command or inside the desktop app; the dashboard is [`web/`](web/), embedded in the binary. The original Python daemon is deprecated and kept in [`legacy/python/`](legacy/python/README.md) for comparisons only.
+[Quick start](#quick-start) · [Features](#features) · [How it works](#how-it-works) · [Privacy](#privacy-and-the-tools-terms) · [Configuration](#configuration) · [Development](#development) · [Docs](#documentation)
+
+<img src="docs/images/overview.png" alt="The GitPrompt Overview: prompts and spend per day, a weekday-by-hour heatmap and headline numbers for the last 30 days" width="900">
+
+</div>
+
+## Why GitPrompt?
+
+You type hundreds of prompts a week into Claude Code, Codex, Cursor and Copilot. They hold your decisions, your reasoning and what you learned, and they disappear into each tool's scrollback. GitPrompt keeps them, joined to what happened next:
+
+- **One history for every tool.** Each prompt with its tool, app, model, project, branch and session.
+- **The whole turn, not only the text.** Tool calls, files changed, commands run, tokens, cost, duration, outcome, and the commits that followed.
+- **Insights you can act on.** When you prompt, which model costs what, which prompts you keep re-sending, where your agent spends its time.
+- **Local and read-only.** A small daemon on `127.0.0.1` fed by each tool's documented hooks. Nothing leaves your machine, and nothing in your tools is blocked or changed.
+
+## Supported tools
+
+| Tool | Prompts and turns | Model | Tokens | Cost | Through |
+|---|:-:|:-:|:-:|:-:|---|
+| **Claude Code** (CLI, VS Code, Claude Desktop's Code tab, Agent SDK) | ✅ | ✅ | ✅ | ✅ | [Hooks](https://code.claude.com/docs/en/hooks) + optional [OpenTelemetry](https://code.claude.com/docs/en/monitoring-usage) |
+| **OpenAI Codex** (CLI, desktop app, IDE extension) | ✅ | ✅ | ✅ (0.164+) | — | Hooks |
+| **Cursor** (agent) | ✅ | ✅ | — | — | Hooks |
+| **GitHub Copilot CLI** (and the Copilot agent in VS Code) | ✅ | — | — | — | Hooks |
+
+When a tool doesn't report something, pages say so ("not available for GitHub Copilot CLI") instead of showing zeros. Claude Desktop's *chat* isn't captured: it has no hook, telemetry or local API. Details per tool and app: [docs/connectors.md](docs/connectors.md).
 
 ## Quick start
 
-Needs Rust (stable), Node with pnpm, and [just](https://just.systems).
+**Requirements:** Rust (the toolchain is pinned in [`rust-toolchain.toml`](rust-toolchain.toml)), Node with [pnpm](https://pnpm.io), and [just](https://just.systems).
 
 ```bash
-just setup
-just serve          # builds the dashboard and the release binary, then runs on http://127.0.0.1:7878
+git clone https://github.com/agharsallah/gitprompt.git
+cd gitprompt
+just setup     # install web dependencies, fetch Rust crates
+just serve     # build the dashboard + release binary, run on http://127.0.0.1:7878
 ```
 
-Or install the binary (dashboard included) and run it from anywhere: `just install`, then `gitprompt serve`. For the desktop app, see [Desktop app](#desktop-app).
+To run it from anywhere instead, `just install` puts a `gitprompt` binary (dashboard embedded) in `~/.cargo/bin`; then run `gitprompt serve`. Prefer a window and a tray icon? See the [desktop app](#desktop-app).
 
-1. On the Overview, click **Connect**. The **Connectors** page opens with the exact change to `~/.claude/settings.json` in front of you; confirm it (a backup goes to `~/.gitprompt/backups/`).
-2. Optionally add Claude Code's **Telemetry** layer too, for model, tokens and cost (applies to sessions started afterwards).
-3. Type a prompt in any Claude Code session. It appears live under **Prompts**, on its session's rail. Each prompt names the tool that sent it (Claude Code, Codex, Copilot CLI) and its model, with tokens and cost when the tool reports them (and why not when it doesn't); filter by tool, model, outcome (done, failed, interrupted...) and project. Select it to see the turn as a story: what you asked, a timeline of model and tool calls, the answer, then tabs for activity (tools, files, commands), usage (tokens, cache, models), the repository (state at send time, commits afterwards), the session and every event. Star, rate, tag and annotate prompts there. Prompts you didn't type (task notifications, agent messages, subagent and programmatic runs) are muted and labelled with their origin, and context the tool added (an IDE selection, a system reminder) folds into a note under what you typed.
-4. **Overview** is an insights dashboard over every prompt you keep in view, filtered by time range, origin (default: what you typed and slash commands), tool, project and model, all in the URL. Each panel answers one question: how much and when you prompt (per day, weekday × hour, session length, streaks), who wrote the prompts, which slash commands you run, how long your prompts are and what they reference, which prompts you send again, which model you use most by requests, tokens or cost, where the money goes (answering you, subagents, system calls; per prompt and per project), how fast and reliable turns are, what the agent does (tool kinds, subagents, MCP servers, denials) and what came of it (outcomes, commits, lines of code). Panels that need telemetry say so. Every bar, cell and row opens the matching prompts. **Sessions** and **Projects** group prompts by conversation and by repository, with no cap on how many prompts they cover.
-5. **Stories** tell how your own typed prompts were used, never showing system text as if you typed it. Open a session from **Sessions** to read it as chapters: each prompt you typed with its outcome, tools, files, commits and cost, and the task notifications, agent messages, subagent briefs and compactions folded into quoted markers between them. Open a project from **Projects** to see it in phases (a new phase after a pause of 3 hours or more, or a lasting move to another branch), each with its commits, cost and outcome mix, plus a small view of how the project evolved. A prompt's **Versions** tab lists its retries in the session and the same instruction reused elsewhere, with the wording change marked word by word and whether the outcome improved.
-6. **Search** finds prompts by the words you typed (every word must appear, short words too), filtered by project, time range, origin and tag. Matches are highlighted in a snippet, and each result opens the prompt or its place in the session and project stories.
-7. **Export** (the button on a session, a project, the Overview and Prompts) saves what you see as a file you send yourself: Markdown, one self-contained HTML file (inline charts, no script, opens offline, follows light/dark, prints well), CSV or JSON of the rows, or a single chart as SVG or PNG. The preview is the file itself. By default it holds figures only: no prompt text, paths relative to the project and `~` for your home folder, no account email or ids, no raw payloads; secrets are always hidden. Nothing is uploaded ([ADR-0018](docs/adr/0018-export.md)).
-8. **Fields** lists every captured field next to what the tool documents, to decide what to build on. **Design system** shows the tokens and components the dashboard is built from.
-9. **Disconnect** removes only what GitPrompt added. After an upgrade, a connected layer may offer **Update connection** (with the diff first).
+Then connect your first tool:
 
-## How it stays within the tools' terms
+1. Open <http://127.0.0.1:7878> and click **Connect** on the Overview.
+2. The **Connectors** page shows the exact change to your tool's settings (for Claude Code, `~/.claude/settings.json`). Confirm it; a backup goes to `~/.gitprompt/backups/`.
+3. Optional: add Claude Code's **Telemetry** layer for model, tokens and cost (applies to sessions started afterwards).
+4. Type a prompt in your tool. It appears live under **Prompts**.
 
-GitPrompt uses only Claude Code's documented [hooks](https://code.claude.com/docs/en/hooks) and, if you connect it, its [OpenTelemetry export](https://code.claude.com/docs/en/monitoring-usage), in your user settings and pointed at this machine. It subscribes only to events that report what happened, never to decision points, and answers each hook with an empty response, so nothing is blocked or changed. It never reads credentials, intercepts traffic, reads Claude Code's private files, or sends anything off your machine. If your organization turns hooks off, GitPrompt shows that and doesn't install anything. Full rules: [PLAN.md §4](PLAN.md#4-terms-of-service-and-policy-guardrails).
+Run `gitprompt check` at any time to see, per tool and app, the newest prompt that arrived.
 
-## Connectors
+## Features
 
-The **Connectors** page (`/sources`) shows each tool as one card, with its connectors as steps: for Claude Code, **Hooks** (prompts, tools, turn ends) and the optional **Telemetry** layer (model, tokens, cost); for **GitHub Copilot CLI**, its hooks (also read by the Copilot agent in VS Code), installed as a file of its own, `~/.copilot/hooks/gitprompt.json`; for **OpenAI Codex CLI**, its hooks in `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`), which Codex runs only once you trust them: after connecting (and after an update or a token rotation), open Codex and type `/hooks`; for **Cursor**, its hooks in `~/.cursor/hooks.json` (restart Cursor after connecting; your Cursor account email is removed before anything is stored). Each layer is in exactly one state, shown with an icon and a label (never colour alone), one sentence and the one action it needs now:
+### Every prompt, and how the turn went
 
-| State | Meaning | Action |
-|---|---|---|
-| Turned off | Turned off in GitPrompt: what it sends is discarded | Turn on |
-| Not installed | The tool isn't on this machine | Check again |
-| Ready to connect | Installed, not connected | Review and connect |
-| Check before connecting | A setting may stop GitPrompt's entries from running (listed) | Review and connect |
-| Blocked by policy | A setting GitPrompt won't override turns it off | Check again |
-| Update available | GitPrompt now captures more than what is installed | Update connection |
-| Payload drift | Prompts arrived without text: the tool's payload changed | Re-map stored events |
-| Waiting for the first event | Connected, nothing received yet | Check again |
-| Quiet | Connected, no event for a day | View prompts |
-| Receiving | Events are arriving | View prompts |
+<img src="docs/images/prompt-detail.png" alt="The Prompts page with a selected prompt: its timeline of model calls, reads, edits and shell commands, tokens, cost and the answer" width="900">
 
-A connected layer also shows its heartbeat (last event and events per hour over the last day), its prompts by origin, and **What this collects**: the events it stores, those it receives but drops, and those it never subscribes to, with the reason, straight from its spec. Each card also says what the tool can't provide (Copilot hooks have no model, tokens or cost; Codex hooks have the model, and tokens from Codex 0.164 on, but no cost: on an older Codex the pages say which version adds tokens), and **Spec in use** shows the spec file the layer runs on (bundled or your override, with its path and contents). Pages that need a capability a tool lacks say "not available for GitHub Copilot CLI" instead of showing zeros. **Turn off** keeps a connector's entries in the tool's settings but discards what it sends. Settings › Connectors summarizes the same states, with the spec file and Turn on/off for each layer. `/sources?connect=<id>` opens a connector's review directly (the Overview's first-run steps link there).
+**Prompts** lists everything you asked, newest first, grouped by session. Filter by tool, app, model, outcome (finished, failed, interrupted…), project and tag. Select a prompt to read the turn as a story: what you asked, a timeline of model and tool calls, the answer, then tabs for activity (tools, files, commands), usage (tokens, cache, models), the repository (state at send time, commits afterwards), the session and every raw event. Star, rate, tag and annotate prompts there.
 
-### Desktop apps, and where each prompt was typed
+Prompts you didn't type (task notifications, agent messages, subagent and programmatic runs) are muted and labelled with their origin. Context the tool added (an IDE selection, a system reminder) folds into a note under what you typed.
 
-Every prompt shows its tool and, when the tool says, the app it was typed in, after a hairline on the same badge: **Claude Code | Desktop app**, **Claude Code | VS Code**, **Claude Code | CLI**. Filter by it with the **App** select on the Overview and the Prompts page. A prompt whose tool doesn't say shows the tool alone: GitPrompt never guesses.
+### Insights over all your prompts
 
-| App | Captured? | How it is told apart |
-|---|---|---|
-| Claude Desktop, Code tab | Yes, by the Claude Code connector (Desktop runs the hooks in `~/.claude/settings.json`) | Telemetry layer: `service.name` `claude-code-desktop` (or `app.entrypoint` `claude-desktop`). Without telemetry: no app shown |
-| Claude Desktop, chat | **No**: no hook, telemetry or local API exists, and GitPrompt never reads the app's own storage | |
-| Claude Code CLI, VS Code extension, `claude -p` / Agent SDK | Yes | Telemetry `app.entrypoint`: `cli`, `claude-vscode`, `sdk-*` |
-| Codex desktop app, CLI, IDE extension | Yes, by the Codex connector (they share `~/.codex/hooks.json`) | Not possible: no hook field names the client, so Codex prompts show no app |
-| Cursor (the app's agent) | Yes, by the Cursor connector | Shown as Cursor; its CLI can't be told apart (and its prompt hooks are unreliable) |
+<img src="docs/images/models-and-cost-dark.png" alt="Overview panels in dark mode: requests, tokens and cost per model, cache hit rate, and spend per project" width="900">
 
-The connector cards list, under **Where your prompts come from**, the apps each connector captures and the ones it can't, with why. A prompt sent from a git worktree (Claude Desktop, Claude Code and the Codex app can run sessions in one) belongs to its main repository's project; the worktree and its branch are kept. A Cursor window with several folders uses the first one as the prompt's folder and keeps the others.
+The **Overview** is a dashboard of panels, each answering one question:
 
-**Check it live:** type one prompt in each app, then run `gitprompt check` (or open **Recent captures** at the top of the Connectors page). For each tool it says whether each layer is connected and lists, per app, the newest prompt: when, project and branch, session, model, how many prompts, and what the app rules read (`app.entrypoint=…`). No row means nothing arrived; "surface unknown" means the tool doesn't say where it was typed.
+| Area | Questions it answers |
+|---|---|
+| Activity | How much and when do I prompt (per day, weekday × hour, streaks)? How long do my sessions last? |
+| Prompt types | Who wrote these prompts? Which slash commands do I run? How long are my prompts, what do they reference, and which do I send again? |
+| Models and cost | Which model do I use most, by requests, tokens or cost? Where does the money go (answering you, subagents, system calls; per prompt, per project)? |
+| Performance and agentic work | How fast and reliable are turns? What does the agent do (tool kinds, subagents, MCP servers, denials) and what came of it (outcomes, commits, lines of code)? |
 
-### Adding or fixing a connector
+Filter by time range, origin, tool, app, project and model; every filter lives in the URL. Every bar, cell and row opens the matching prompts.
 
-Connectors are YAML files in `backend/crates/gitprompt-core/specs/` (compiled into the binary). To patch one without a release, copy it to `~/.gitprompt/sources/`, edit it, then use **Re-map stored events** on its card. A spec that adds a layer to another tool names it with `part_of`, plus a short `layer` name and a one-line `summary` ([ADR-0015](docs/adr/0015-connector-layers-and-states.md)). It declares what it yields in `capabilities`, and a tool that sends no prompt id sets `join: session` ([ADR-0017](docs/adr/0017-connector-capabilities.md)). `assistant` names who answers in the tool, `after_connect` says what the user still does in the tool once connected, and `tool_files` finds the files a tool names inside a text input such as a patch ([ADR-0019](docs/adr/0019-codex-connector.md)). `usage` names the events that report model calls and where their tokens are, and `capability_since` the tool version that adds a capability ([ADR-0020](docs/adr/0020-model-call-usage-and-version-capabilities.md)). `surface` rules say which app a prompt was typed in, `captures` and `cannot_capture` which apps the connector reaches; `event_names` maps a tool's own event names to GitPrompt's, `answer` says where the final answer is, and `discard` drops payload keys before storing ([ADR-0022](docs/adr/0022-surfaces-and-desktop-apps.md)).
+### Sessions and projects as stories
 
-A spec file that can't be read is listed at the top of the Connectors page and in Settings with its error; it is skipped, every other connector (and capture) keeps working, and a broken copy of a bundled spec falls back to the bundled one.
+<img src="docs/images/session-story.png" alt="A session story: seven turns, each with its outcome, duration, tool calls, files, tokens, cost and model, and a marker where a prompt rewords an earlier one" width="900">
 
-A connector is done when its conformance fixtures pass: synthetic payloads from the tool's documented examples in `backend/testdata/fixtures/<id>/`, each with the fields, origin and turn it must map to (replayed by `backend/crates/gitprompt-capture/tests/conformance.rs` and `backend/crates/gitprompt-insights/tests/conformance.rs`; `tests/coverage.rs` there fails on any payload key nobody decided about). Where every other kind of change goes: [docs/extending.md](docs/extending.md).
+- **Sessions** reads a conversation as chapters: each prompt you typed with its outcome, tools, files, commits and cost, with task notifications, agent messages, subagent briefs and compactions folded into markers between them.
+- **Projects** splits a repository's history into phases (a new phase after a pause of 3 hours or more, or a lasting move to another branch), each with its commits, cost and outcome mix.
+- **Versions** (a tab on each prompt) lists its retries and the same instruction reused elsewhere, with the wording change marked word by word and whether the outcome improved.
 
-## Keeping the database small
+### Search and export
 
-Telemetry start-up events (`hook_registered`, `plugin_loaded`, `hook_execution_*`, ...) are no longer stored: the spec lists them under `drop_events`, and the Fields page shows them as not stored. To remove those stored before, and optionally old raw events:
+- **Search** finds prompts by the words you typed (every word must appear, short words too), filtered by project, time range, origin and tag, with highlighted snippets.
+- **Export** saves what you see (a session, a project, the Overview, a prompt list) as Markdown, a self-contained offline HTML report, CSV, JSON, or a single chart as SVG or PNG. By default an export holds figures only: no prompt text, relative paths, no account email or ids, and secrets always hidden. Nothing is uploaded ([ADR-0018](docs/adr/0018-export.md)).
 
-```bash
-gitprompt compact                          # dry run: rows and MB per event, nothing changes
-gitprompt compact --apply                  # delete them, then VACUUM
-gitprompt compact --events-older-than 30   # also raw events older than 30 days
+### Connectors you can review before anything is written
+
+<img src="docs/images/connectors.png" alt="The Connectors page: recent captures per tool and app, and a card per tool listing the apps it captures" width="900">
+
+Each tool is one card with its layers (for Claude Code: Hooks and Telemetry). Every layer shows one clear state (*Ready to connect*, *Receiving*, *Update available*, *Blocked by policy*…) with the one action it needs, a heartbeat, and exactly which events it stores, drops and never subscribes to. Connecting always shows the diff first; **Disconnect** removes only what GitPrompt added. Full reference: [docs/connectors.md](docs/connectors.md).
+
+### Also
+
+- **Fields** lists every captured field next to what the tool documents. **Design system** shows the tokens and components the dashboard is built from.
+- Light and dark themes, keyboard navigation, and states that never rely on colour alone.
+
+## How it works
+
+```mermaid
+flowchart LR
+    subgraph tools["Your AI tools"]
+        CC["Claude Code"]
+        CX["Codex"]
+        CU["Cursor"]
+        CP["Copilot CLI"]
+    end
+
+    subgraph machine["Your machine only"]
+        FW["gitprompt hook<br/>forwarder"]
+        SP[("spool<br/>(daemon down)")]
+        D["gitprompt daemon<br/>127.0.0.1:7878"]
+        DB[("SQLite<br/>~/.gitprompt")]
+        UI["Dashboard<br/>(browser or desktop app)"]
+    end
+
+    CC -- "hooks" --> FW
+    CX -- "hooks" --> FW
+    CU -- "hooks" --> FW
+    CP -- "hooks" --> FW
+    CC -. "OpenTelemetry (optional)" .-> D
+    FW --> D
+    FW -. "queued, delivered later" .-> SP
+    SP --> D
+    D --> DB
+    DB --> D
+    D <--> UI
 ```
 
-Prompts and your notes are never removed. Removing the dropped events changes nothing on any page. Expired events take their turn details with them (tools, usage, timeline) for prompts older than the cutoff. Compact can run while the daemon is running.
+1. **Capture.** Each tool runs a small `gitprompt hook` command on documented events (prompt submitted, tool used, turn ended). It forwards the payload to the local daemon and always exits 0, so a tool never sees a failing hook. If the daemon isn't running, the payload is spooled and delivered later with its original time.
+2. **Map.** A declarative YAML spec per tool ([`backend/crates/gitprompt-core/specs/`](backend/crates/gitprompt-core/specs/)) maps that tool's payloads to one shape: prompt, session, project, model, tool calls, usage. New tools are mostly a new spec plus conformance fixtures ([ADR-0008](docs/adr/0008-universal-capture-declarative-sources.md)).
+3. **Store and derive.** Raw events go to SQLite. Origin, outcome, cost, stories and statistics are derived on read and cached in a rebuildable prompt index with full-text search ([ADR-0012](docs/adr/0012-prompt-index-and-stats.md)).
+4. **Show.** The daemon serves the SvelteKit dashboard (embedded in the binary) with live updates.
 
-The same clean-up, a persistent event retention and deleting events by source or date are on the **Settings** page; each shows a dry run first and only deletes what you confirm.
+The daemon is written in Rust ([`backend/`](backend/README.md), [ADR-0023](docs/adr/0023-rust-backend.md)) and runs as the `gitprompt` command or inside the desktop app. The original Python daemon is deprecated and kept in [`legacy/python/`](legacy/python/README.md) for comparisons only. Design and roadmap: [PLAN.md](PLAN.md); architecture: [docs/architecture.md](docs/architecture.md).
 
-## Settings
+## Privacy and the tools' terms
 
-**Settings** (`/settings`) groups everything you can configure: General (theme, default time range, week start), Connectors, Capture (event retention), Privacy (hide detected secrets on arrival), Data (database size and location, compact, delete events, backups), Security (rotate the receiver token, reconnecting each connected tool after you review its diff) and the preferences kept in this browser.
+GitPrompt uses only each tool's documented extension points, in your user settings and pointed at this machine:
 
-Preferences are stored in `~/.gitprompt/preferences.json` (written atomically, mode 0600). Each value comes from, in order: an environment variable, the file, the default. The page shows where each value comes from; one set by an environment variable is read-only there.
+- It subscribes only to events that report what happened, never to decision points, and answers each hook with an empty response, so **nothing is blocked or changed**.
+- It **never** reads credentials, intercepts traffic, reads a tool's private files, or sends anything off your machine.
+- If your organization turns hooks off, or already exports telemetry, GitPrompt shows that and doesn't override it.
+- Detected secrets can be hidden on arrival (Settings › Privacy), and are always hidden in exports.
 
-| Key in `preferences.json` | Environment variable | Default | Effect |
-|---|---|---|---|
-| `default_range` (`24h`, `7d`, `30d`, `all`) | `GITPROMPT_DEFAULT_RANGE` | `7d` | Window Overview, Sessions and Projects open with |
-| `week_start` (`monday`, `sunday`) | `GITPROMPT_WEEK_START` | `monday` | First row of the weekday heatmap |
-| `event_retention_days` (1–3650 or `null`) | `GITPROMPT_EVENT_RETENTION_DAYS` | `null` (keep) | Raw events older than this are deleted at start-up and every 6 hours |
-| `hide_secrets_on_ingest` | `GITPROMPT_HIDE_SECRETS_ON_INGEST` | `false` | Replace detected secrets before a payload is stored |
-
-All of them apply without a restart. `GITPROMPT_HOME`, `GITPROMPT_PORT`, `GITPROMPT_LOG_LEVEL`, `GITPROMPT_LOG_FORMAT` and `GITPROMPT_DASHBOARD` stay environment-only ([ADR-0013](docs/adr/0013-preferences.md)). Theme stays in the browser (`localStorage`).
-
-## The prompt index
-
-Filters, search and statistics run in SQL on a prompt index: one row per prompt with the values GitPrompt derives (origin, typed text, local day and hour, usage per model, tools, outcome), plus a full-text index of the typed text. It is a cache of the stored prompts and events: it updates itself as events arrive and rebuilds itself when the rules or the code that compute it change (a running daemon reads its code once: restart it after an update to see new derived values). To rebuild it by hand (for example after restoring a backup):
-
-```bash
-gitprompt reindex
-```
-
-Day and hour buckets use this machine's timezone; changing the timezone rebuilds the index on next use.
+Full rules: [PLAN.md §4](PLAN.md#4-terms-of-service-and-policy-guardrails).
 
 ## Desktop app
 
-`backend/apps/desktop` is a Tauri v2 app that runs the same daemon in-process: its window shows the dashboard, closing the window keeps capturing (it hides to the tray: **Open GitPrompt**, **Start at login**, **Quit**), and only one copy runs. If a `gitprompt serve` already runs for the same data folder, the app uses it. Tools it connects call the bundled `gitprompt hook` forwarder, which queues prompts while the app is closed; they are ingested, with their original time, when it starts.
+[`backend/apps/desktop`](backend/apps/desktop) is a Tauri v2 app that runs the same daemon in-process. Its window shows the dashboard; closing it keeps capturing (it hides to the tray: **Open GitPrompt**, **Start at login**, **Quit**), and only one copy runs. If a `gitprompt serve` is already running for the same data folder, the app uses it. Prompts sent while the app is closed are queued and ingested, with their original time, when it starts.
 
 ```bash
 just desktop-dev      # run it from source
@@ -124,38 +171,112 @@ just desktop-build    # installers in backend/target/release/bundle (needs: carg
 
 Browser and app show the same data: they talk to the same daemon on `127.0.0.1:7878` and its one database, with live updates in both.
 
-## Verifying, debugging, measuring
+## Configuration
+
+**Settings** (`/settings`) groups everything you can configure: General (theme, default time range, week start), Connectors, Capture (event retention), Privacy, Data (database size and location, compact, delete events, backups) and Security (rotate the receiver token, then reconnect each connected tool after reviewing its diff).
+
+Preferences live in `~/.gitprompt/preferences.json` (written atomically, mode 0600). Each value comes from, in order: an environment variable, the file, the default. The page shows where each value comes from; one set by an environment variable is read-only there. All apply without a restart.
+
+| Key in `preferences.json` | Environment variable | Default | Effect |
+|---|---|---|---|
+| `default_range` (`24h`, `7d`, `30d`, `all`) | `GITPROMPT_DEFAULT_RANGE` | `7d` | Window Overview, Sessions and Projects open with |
+| `week_start` (`monday`, `sunday`) | `GITPROMPT_WEEK_START` | `monday` | First row of the weekday heatmap |
+| `event_retention_days` (1–3650 or `null`) | `GITPROMPT_EVENT_RETENTION_DAYS` | `null` (keep) | Raw events older than this are deleted at start-up and every 6 hours |
+| `hide_secrets_on_ingest` | `GITPROMPT_HIDE_SECRETS_ON_INGEST` | `false` | Replace detected secrets before a payload is stored |
+
+Environment-only: `GITPROMPT_HOME` (data folder, default `~/.gitprompt`), `GITPROMPT_PORT` (default `7878`), `GITPROMPT_LOG_LEVEL`, `GITPROMPT_LOG_FORMAT` and `GITPROMPT_DASHBOARD` ([ADR-0013](docs/adr/0013-preferences.md)). The theme stays in the browser.
+
+## Command line
+
+| Command | What it does |
+|---|---|
+| `gitprompt serve` | Run the receiver and dashboard (the default command; `--port N` overrides the port) |
+| `gitprompt check` | Per connector and app: the newest captured prompt and how it was attributed |
+| `gitprompt doctor` | Paths, daemon and lock, database and index, each connector, spool, preferences; then a one-line fix per problem. Changes nothing |
+| `gitprompt compact` | Remove stored events the specs no longer keep, then `VACUUM` (dry run unless `--apply`) |
+| `gitprompt reindex` | Rebuild the prompt index (filters, search, statistics), e.g. after restoring a backup |
+| `gitprompt spool` | Inspect the queue of hook payloads not yet delivered |
+| `gitprompt hook` | The forwarder your tools call; you never run it yourself |
+
+### Keeping the database small
+
+Telemetry start-up events (`hook_registered`, `plugin_loaded`, `hook_execution_*`, …) are not stored: the spec lists them under `drop_events`, and the Fields page shows them as not stored. To remove those stored by an older version, and optionally old raw events:
 
 ```bash
-just verify           # what CI runs: fmt, clippy, every Rust test (unit, integration, end-to-end of the real binary), web checks and build
-just doctor           # paths, daemon and lock, database and index, each connector (form, state, last event), spool; one-line fix per problem
-just bench            # ingest throughput and dashboard read latencies on synthetic data
-just compare          # while the legacy daemon exists: every endpoint, Python vs Rust, on a copy of ~/.gitprompt/gitprompt.db
+gitprompt compact                          # dry run: rows and MB per event, nothing changes
+gitprompt compact --apply                  # delete them, then VACUUM
+gitprompt compact --events-older-than 30   # also raw events older than 30 days
+```
+
+Prompts and your notes are never removed. Expired events take their turn details with them (tools, usage, timeline) for prompts older than the cutoff. Compact can run while the daemon is running. The same clean-up, a persistent retention and deleting events by source or date are on the **Settings** page, each with a dry run first.
+
+### The prompt index
+
+Filters, search and statistics run in SQL on a prompt index: one row per prompt with its derived values (origin, typed text, local day and hour, usage per model, tools, outcome) plus a full-text index of the typed text. It updates itself as events arrive and rebuilds itself when the rules or the code that compute it change; a running daemon reads its code once, so restart it after an update. Day and hour buckets use this machine's timezone; changing the timezone rebuilds the index on next use.
+
+## Development
+
+```bash
+just            # list every task
+just dev        # Rust daemon (restarts on change with cargo-watch) + Vite with hot reload on :5173
+just verify     # what CI runs: fmt, clippy, cargo-deny, every Rust test (unit, integration, end-to-end), web checks and build
+just doctor     # debug an install: one line per problem, with its fix
+just bench      # ingest throughput and dashboard read latencies on synthetic data
+just cov        # Rust line coverage report
 ```
 
 `GITPROMPT_LOG_LEVEL=debug gitprompt serve` logs each request with its status and duration (slow ones are warnings at the default level). More in [docs/extending.md](docs/extending.md#debugging).
 
-## Layout
+**Demo data.** To try the dashboard, or to refresh the screenshots in this README, without touching your own prompts:
+
+```bash
+python3 tools/seed-demo.py /tmp/gitprompt-demo
+GITPROMPT_HOME=/tmp/gitprompt-demo GITPROMPT_PORT=7979 backend/target/release/gitprompt serve
+```
+
+It writes about 270 made-up prompts from all four tools over the last four weeks into a separate data folder.
+
+### Repository layout
 
 ```
-backend/                     the backend: a Cargo workspace (backend/README.md, docs/extending.md)
-  crates/gitprompt-core       settings, preferences, errors, JSON payload helpers, git facts, secrets, connector specs (specs/*.yaml)
+backend/                      Rust workspace (backend/README.md)
+  crates/gitprompt-core       settings, preferences, errors, git facts, secrets, connector specs (specs/*.yaml)
   crates/gitprompt-store      SQLite store, the rebuildable prompt index (FTS5), statistics, housekeeping
-  crates/gitprompt-capture    ingest pipeline (hooks, OTLP), probing and policy, connect/disconnect, token rotation, spool, forwarder
-  crates/gitprompt-insights   values derived on read: origin, surface, turn and session, facts, lineage, stories, field catalog, the indexer
+  crates/gitprompt-capture    ingest pipeline (hooks, OTLP), probing and policy, connect/disconnect, spool, forwarder
+  crates/gitprompt-insights   values derived on read: origin, surface, turns, sessions, lineage, stories, field catalog
   crates/gitprompt-export     exports: one redaction pass, report builders, one renderer per format
-  crates/gitprompt-server     the Service (one method per use case), axum routes, live-update bus, the Daemon
+  crates/gitprompt-server     the Service (one method per use case), axum routes, live-update bus, the daemon
   crates/gitprompt-dashboard  the built dashboard, embedded
   crates/gitprompt-cli        the `gitprompt` binary
   crates/gitprompt-tauri      Tauri plugin: the daemon in-process, native commands
   apps/desktop                the desktop app
   testdata/fixtures/<tool>/   conformance fixtures, shared by the crates' tests
-web/src/lib/              SvelteKit dashboard (built into web/build)
-  design/                 design tokens (tokens.css: primitives, semantic, scales) and base styles
-  ui/                     generic components (Button, Badge, Panel, Tabs...); ui/charts/ for charts
-  insights/               stories computed from prompts (sessions, projects, timelines), unit tested
-  settings/               Settings page sections (one component per section), preference cache
-  api/ layout/ prompts/ sessions/ projects/ sources/ shared/ testing/
-tools/                    compare-backends.sh: legacy Python vs Rust on the same data
-legacy/python/            the deprecated FastAPI daemon (frozen)
+web/src/lib/                  SvelteKit dashboard (built into web/build)
+  design/                     design tokens and base styles
+  ui/                         generic components; ui/charts/ for charts
+  insights/                   stories computed from prompts (sessions, projects, timelines)
+  settings/                   Settings page sections, preference cache
+docs/                         architecture, connectors, extending, source research, ADRs, images
+tools/                        demo data seeder; legacy Python vs Rust comparison
+legacy/python/                the deprecated FastAPI daemon (frozen)
 ```
+
+## Documentation
+
+| Document | Read it for |
+|---|---|
+| [PLAN.md](PLAN.md) | Goals, design, guardrails and roadmap |
+| [docs/architecture.md](docs/architecture.md) | Process model, domain model, storage, ingestion |
+| [docs/connectors.md](docs/connectors.md) | Connector states, apps per tool, writing or patching a connector spec |
+| [docs/extending.md](docs/extending.md) | Where each kind of change goes, and debugging |
+| [docs/sources.md](docs/sources.md) | What each tool documents, checked against vendor docs |
+| [docs/adr/](docs/adr/README.md) | Architecture decision records |
+| [backend/README.md](backend/README.md) | The Rust workspace |
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a PR, run `just verify`, which runs the same checks as CI. To add or fix support for a tool, start with [docs/connectors.md](docs/connectors.md#adding-or-fixing-a-connector); for anything else, [docs/extending.md](docs/extending.md) says where the change goes. Significant design changes get an [ADR](docs/adr/README.md).
+
+## License
+
+MIT, as declared in [`backend/Cargo.toml`](backend/Cargo.toml).
