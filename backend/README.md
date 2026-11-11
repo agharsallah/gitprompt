@@ -82,7 +82,7 @@ just verify        # fmt, clippy -D warnings, cargo test --workspace (incl. crat
                    # which drives the real binary), web checks and build: what CI runs
 just cov           # line coverage report (cargo install cargo-llvm-cov)
 just doctor        # an install's paths, daemon and lock, database and index, connectors, spool; `--json` too
-just bench         # crates/gitprompt-server/examples/load.rs: ingest throughput, read latencies (p50/p95);
+just bench         # crates/gitprompt-server/examples/load/: ingest throughput, read latencies (p50/p95);
                    # `--concurrent 10` adds ingest and reads at once with a slow git
 just perf          # the same with budgets (exit 1 when over): what CI's `perf` job runs
 just compare       # legacy Python vs Rust, every endpoint, on a copy of ~/.gitprompt/gitprompt.db
@@ -90,7 +90,7 @@ just compare       # legacy Python vs Rust, every endpoint, on a copy of ~/.gitp
 
 ### Catching performance problems early
 
-A running daemon watches itself (`crates/gitprompt-server/src/health.rs`) and reports under
+A running daemon watches itself (`crates/gitprompt-server/src/health/`: routes, process, monitor rules) and reports under
 `health` in `GET /api/status`, which `gitprompt doctor` shows and turns into findings:
 
 | Signal | Logged at `warn` when | Where it points |
