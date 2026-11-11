@@ -11,12 +11,10 @@ publish.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 indexmap.workspace = true
-thiserror.workspace = true
 jiff.workspace = true
 tracing.workspace = true
 gitprompt-core.workspace = true
 gitprompt-store.workspace = true
-fancy-regex.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]

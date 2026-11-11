@@ -63,9 +63,20 @@ install: target-guard
 
 # --- checks ---
 
-# Everything CI runs: format, lint, Rust tests (unit, integration, end-to-end), web checks, tests and build
-verify: lint test
+# Everything CI runs: format, lint, dependency checks, Rust tests (unit, integration, end-to-end), web checks, tests and build
+verify: lint deps test
     pnpm --dir web build
+
+# Dependency checks: advisories, licenses, duplicates, sources (backend/deny.toml) and unused crates (needs: cargo install --locked cargo-deny cargo-machete)
+deps:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd backend
+    for tool in cargo-deny cargo-machete; do
+        command -v "$tool" >/dev/null || { echo "missing $tool: cargo install --locked $tool" >&2; exit 1; }
+    done
+    cargo deny --locked check
+    cargo machete
 
 # Rust tests (all crates, end-to-end included) and web tests
 test: target-guard

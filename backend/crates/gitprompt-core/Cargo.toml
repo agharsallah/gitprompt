@@ -13,7 +13,6 @@ serde_json.workspace = true
 serde_norway.workspace = true
 indexmap.workspace = true
 thiserror.workspace = true
-jiff.workspace = true
 fancy-regex.workspace = true
 getrandom.workspace = true
 tracing.workspace = true

@@ -1,0 +1,38 @@
+name: Security audit
+
+# New RustSec advisories are published against crates already in Cargo.lock, so a lockfile that
+# passed CI yesterday can be vulnerable today. This job re-checks the unchanged lockfile against
+# the latest advisory database every day.
+#
+# On a scheduled run rustsec/audit-check opens one GitHub issue per advisory: vulnerabilities,
+# plus unmaintained and unsound crates anywhere in the tree (CI only blocks on those for direct
+# dependencies, see backend/deny.toml). It skips any advisory ID already in an issue or PR title,
+# open or closed. To triage an advisory that cannot be fixed here (e.g. deep in the Tauri tree),
+# close its issue as "not planned" and it will not be reported again.
+on:
+  schedule:
+    - cron: "23 5 * * *" # daily, 05:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # issues for scheduled runs
+  checks: write # check run for manual runs
+
+concurrency:
+  group: audit
+  cancel-in-progress: true
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Prebuilt binary: otherwise audit-check compiles cargo-audit from source (minutes).
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: backend

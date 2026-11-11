@@ -16,8 +16,6 @@ jiff.workspace = true
 tracing.workspace = true
 gitprompt-core.workspace = true
 gitprompt-store.workspace = true
-fancy-regex.workspace = true
-tokio.workspace = true
 toml.workspace = true
 glob.workspace = true
 similar.workspace = true
@@ -26,7 +24,6 @@ similar.workspace = true
 tempfile.workspace = true
 pretty_assertions.workspace = true
 proptest.workspace = true
-tokio = { workspace = true, features = ["test-util"] }
 
 [lints]
 workspace = true

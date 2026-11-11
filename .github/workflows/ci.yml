@@ -69,6 +69,23 @@ jobs:
         working-directory: backend
         run: cargo test --workspace --locked
 
+  # Supply chain: advisories (CVEs, yanked, unmaintained/unsound direct deps), licenses, duplicate
+  # versions and crate sources (backend/deny.toml), then unused dependencies. Needs only the
+  # manifests and Cargo.lock, so no dashboard build or system libraries. Same as `just deps`.
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.20,cargo-machete@0.9
+      - name: cargo deny
+        working-directory: backend
+        run: cargo deny --locked check --show-stats
+      - name: cargo machete (unused dependencies)
+        working-directory: backend
+        run: cargo machete
+
   web:
     runs-on: ubuntu-latest
     steps:

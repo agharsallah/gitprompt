@@ -1,0 +1,102 @@
+// Renovate: dependency update PRs for Cargo (backend/), pnpm (web/) and GitHub Actions.
+// Needs the Renovate GitHub App on the repository: https://github.com/apps/renovate
+// Open PRs, pending and rate-limited updates are listed in the "Dependency Dashboard" issue.
+// Validate changes with: pnpm dlx --package renovate renovate-config-validator .github/renovate.json5
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    // Actions are pinned to a commit SHA with the version in a comment, so a re-pointed tag
+    // cannot change what CI runs (tj-actions/changed-files, 2025).
+    'helpers:pinGitHubActionDigestsToSemver',
+  ],
+  labels: ['dependencies'],
+  timezone: 'Etc/UTC',
+  // Routine updates arrive in one batch at the start of the week. Security fixes ignore the schedule.
+  schedule: ['before 6am on monday'],
+  // The Python daemon is frozen (docs/adr/0023-rust-backend.md); never update it.
+  ignorePaths: ['**/node_modules/**', 'legacy/**'],
+  // Matches CI (.github/workflows/ci.yml), which installs pnpm 11.
+  constraints: { pnpm: '11' },
+  // Supply-chain buffer: most malicious releases are found and yanked within a few days.
+  minimumReleaseAge: '3 days',
+  internalChecksFilter: 'strict',
+
+  // Vulnerabilities from OSV (it carries RustSec and GitHub advisories for crates.io and npm):
+  // fix PRs open immediately, outside the schedule and without the release-age delay.
+  osvVulnerabilityAlerts: true,
+  vulnerabilityAlerts: {
+    // Applied after packageRules, so a fix comes through even for updates disabled below.
+    enabled: true,
+    labels: ['dependencies', 'security'],
+    schedule: ['at any time'],
+    minimumReleaseAge: null,
+  },
+
+  // Weekly refresh of every transitive dependency in Cargo.lock and pnpm-lock.yaml within the
+  // ranges the manifests allow (`cargo update` / `pnpm update`). Most of the tree is transitive,
+  // so this is where most fixes arrive. Merged automatically once CI is green.
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ['before 6am on monday'],
+    automerge: true,
+  },
+
+  packageRules: [
+    {
+      // Cargo: within-range updates only touch Cargo.lock (lockfile maintenance already does that
+      // weekly), so only updates that need a new requirement in Cargo.toml get their own PR.
+      matchManagers: ['cargo'],
+      rangeStrategy: 'update-lockfile',
+    },
+    {
+      matchManagers: ['cargo'],
+      matchUpdateTypes: ['minor', 'patch'],
+      matchCurrentVersion: '>=1.0.0',
+      enabled: false,
+    },
+    {
+      // 0.x crates: a minor bump is breaking under Cargo's semver, so it needs Cargo.toml edits.
+      matchManagers: ['cargo'],
+      matchUpdateTypes: ['patch'],
+      matchCurrentVersion: '<1.0.0',
+      enabled: false,
+    },
+    {
+      // Tauri crates are released together and must stay in step.
+      matchManagers: ['cargo'],
+      matchPackageNames: ['tauri', 'tauri-build', 'tauri-plugin', 'tauri-plugin-*'],
+      groupName: 'tauri',
+    },
+    {
+      matchManagers: ['npm'],
+      matchPackageNames: ['svelte', 'svelte-check', 'prettier-plugin-svelte', '@sveltejs/**'],
+      groupName: 'svelte',
+    },
+    {
+      matchManagers: ['npm'],
+      matchPackageNames: ['vite', 'vitest', '@vitest/**'],
+      groupName: 'vite and vitest',
+    },
+    {
+      matchManagers: ['npm'],
+      matchPackageNames: ['@fontsource/**', '@fontsource-variable/**'],
+      groupName: 'fonts',
+    },
+    {
+      // Web devDependencies (the dashboard has no runtime deps of its own): non-major updates are
+      // merged automatically when lint, svelte-check, tests and the build pass.
+      matchManagers: ['npm'],
+      matchDepTypes: ['devDependencies'],
+      matchUpdateTypes: ['minor', 'patch'],
+      matchCurrentVersion: '>=1.0.0',
+      automerge: true,
+    },
+    {
+      matchManagers: ['github-actions'],
+      matchUpdateTypes: ['minor', 'patch', 'digest', 'pinDigest'],
+      groupName: 'github actions',
+      automerge: true,
+    },
+  ],
+}
