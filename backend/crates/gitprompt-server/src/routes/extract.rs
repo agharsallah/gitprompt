@@ -1,6 +1,8 @@
 //! Extractors that turn a request into typed input, every failure an [`ApiError`] (422 for input
 //! that doesn't validate, like FastAPI).
 
+use std::future::{Future, ready};
+
 use axum::body::Bytes;
 use axum::extract::{FromRequest, FromRequestParts, Request};
 use axum::http::request::Parts;
@@ -21,8 +23,8 @@ pub(super) struct Filter(pub PromptFilter);
 
 impl<S: Send + Sync> FromRequestParts<S> for Filter {
     type Rejection = ApiError;
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, ApiError> {
-        query::prompt_filter(&pairs(parts)).map(Filter)
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::prompt_filter(&pairs(parts)).map(Filter))
     }
 }
 
@@ -31,8 +33,8 @@ pub(super) struct Prompts(pub PromptQuery);
 
 impl<S: Send + Sync> FromRequestParts<S> for Prompts {
     type Rejection = ApiError;
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, ApiError> {
-        query::prompt_query(&pairs(parts)).map(Prompts)
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::prompt_query(&pairs(parts)).map(Prompts))
     }
 }
 
@@ -41,8 +43,8 @@ pub(super) struct Grouping(pub StatsQuery);
 
 impl<S: Send + Sync> FromRequestParts<S> for Grouping {
     type Rejection = ApiError;
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, ApiError> {
-        query::stats_query(&pairs(parts)).map(Grouping)
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::stats_query(&pairs(parts)).map(Grouping))
     }
 }
 
@@ -51,9 +53,9 @@ pub(super) struct ExportParams(pub ExportQuery, pub PromptFilter);
 
 impl<S: Send + Sync> FromRequestParts<S> for ExportParams {
     type Rejection = ApiError;
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, ApiError> {
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
         let pairs = pairs(parts);
-        Ok(ExportParams(query::export_query(&pairs)?, query::prompt_filter(&pairs)?))
+        ready(query::export_query(&pairs).and_then(|export| Ok(ExportParams(export, query::prompt_filter(&pairs)?))))
     }
 }
 
@@ -62,8 +64,8 @@ pub(super) struct DryRun<const DEFAULT: bool>(pub bool);
 
 impl<S: Send + Sync, const DEFAULT: bool> FromRequestParts<S> for DryRun<DEFAULT> {
     type Rejection = ApiError;
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, ApiError> {
-        query::dry_run(&pairs(parts), DEFAULT).map(DryRun)
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::dry_run(&pairs(parts), DEFAULT).map(DryRun))
     }
 }
 

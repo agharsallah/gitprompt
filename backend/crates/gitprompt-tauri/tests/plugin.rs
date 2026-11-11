@@ -207,7 +207,7 @@ fn connect_and_disconnect_dry_runs_change_nothing() {
     let webview = webview(&app);
     let change = invoke(&webview, "connect", json!({"source": "claude-code", "dry_run": true})).unwrap();
     assert_eq!(change["applied"], json!(false));
-    assert!(!change["diff"].as_str().unwrap().is_empty());
+    assert_ne!(change["diff"].as_str().unwrap(), "");
     assert!(!h.user_home().join(".claude/settings.json").exists());
     let change = invoke(&webview, "disconnect", json!({"source": "claude-code", "dry_run": true})).unwrap();
     assert_eq!(change["applied"], json!(false));

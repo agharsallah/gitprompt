@@ -18,7 +18,7 @@ mod common;
 use pretty_assertions::assert_eq;
 
 use common::*;
-use gitprompt_export::report::{Block, ChartKind, Paragraph};
+use gitprompt_export::report::{Block, Chart, ChartKind, Paragraph};
 
 fn sample() -> gitprompt_export::Report {
     report(vec![
@@ -53,7 +53,7 @@ fn an_unknown_chart_id_finds_nothing() {
 
 #[test]
 fn a_report_without_charts_lists_none() {
-    assert!(report(vec![section("Only text", vec![])]).charts().is_empty());
+    assert_eq!(report(vec![section("Only text", vec![])]).charts(), Vec::<&Chart>::new());
 }
 
 #[test]

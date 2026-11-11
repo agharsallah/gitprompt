@@ -13,7 +13,7 @@ pub fn round(x: f64, digits: usize) -> f64 {
 }
 
 #[cfg(test)]
-#[expect(clippy::float_cmp, reason = "rounding tests: the exact float is the expected value")]
+#[allow(clippy::float_cmp, reason = "rounding tests: the exact float is the expected value")]
 mod tests {
     use super::round;
 
