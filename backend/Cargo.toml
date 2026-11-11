@@ -66,6 +66,7 @@ predicates = "3"
 # `#![allow(..)]` header at the top of every integration-test file (tests/*.rs).
 [workspace.lints.rust]
 unsafe_code = "forbid"
+unused_must_use = "deny"                # catch ignored Results and unpolled futures before CI
 unreachable_pub = "warn"                # keeps each crate's public API small (modularity)
 missing_debug_implementations = "warn"
 
