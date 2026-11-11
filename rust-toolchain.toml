@@ -1,0 +1,6 @@
+# The Rust toolchain for the backend, locally and in CI. New stable releases add clippy lints that
+# fail `-D warnings`, so upgrades are deliberate: bump this and `.github/workflows/ci.yml` together.
+[toolchain]
+channel = "1.99.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
