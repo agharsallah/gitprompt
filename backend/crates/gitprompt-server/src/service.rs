@@ -15,7 +15,7 @@ use serde_json::json;
 use tokio_util::sync::CancellationToken;
 
 use gitprompt_capture::connection::{self, Connection, StateFacts};
-use gitprompt_capture::pipeline::{CaptureOptions, Captured, GitProbe, Observer, capture};
+use gitprompt_capture::pipeline::{CaptureOptions, Captured, GitProbe, Observer, capture_then};
 use gitprompt_capture::probe::{self, VersionProbe};
 use gitprompt_capture::rotation;
 use gitprompt_capture::spool::{Spool, drain_into_pipeline};
@@ -149,7 +149,8 @@ impl Inner {
     }
 
     /// Capture one request body for `spec` (marking the turns that got events for the index in the
-    /// same transaction) and announce what was stored.
+    /// same transaction) and announce what was stored. The git and `--version` probes run before
+    /// that transaction, so they never hold the writer (see `capture_then`).
     fn capture(&self, spec: &Spec, payload: &Json) -> ApiResult<Notice> {
         let options = CaptureOptions::for_source(&self.preferences.effective(), &spec.id);
         if !options.enabled {
@@ -157,11 +158,7 @@ impl Inner {
         }
         let (git, versions) = (GitAdapter(self.options.git.as_ref()), VersionAdapter(self.options.tool_version.as_ref()));
         let observer = Observer { git: &git, versions: &versions };
-        let captured = self.store.transaction(|store| {
-            let captured = capture(spec, store, payload, options, &observer)?;
-            mark(store, &captured)?;
-            Ok(captured)
-        })?;
+        let captured = capture_then(spec, &self.store, payload, options, &observer, None, mark)?;
         Ok(self.announce(&captured))
     }
 
@@ -373,6 +370,16 @@ impl Service {
     async fn run<T: Send + 'static>(&self, f: impl FnOnce(&Inner) -> ApiResult<T> + Send + 'static) -> ApiResult<T> {
         let inner = Arc::clone(&self.inner);
         tokio::task::spawn_blocking(move || f(&inner)).await.map_err(|e| ApiError::Internal(format!("background task failed: {e}")))?
+    }
+
+    /// Ask every tool its `--version` in the background (start-up), so neither the first capture
+    /// nor the first connectors page waits for the commands. Fire and forget: a probe that fails
+    /// is remembered as "no version" like any other.
+    pub fn warm_tool_versions(&self) {
+        for spec in self.inner.spec_set().specs.values() {
+            let (probe, spec) = (Arc::clone(&self.inner.options.tool_version), Arc::clone(spec));
+            drop(tokio::task::spawn_blocking(move || probe.version(&spec)));
+        }
     }
 
     /// Bring the prompt index up to date (start-up does this before the first page).

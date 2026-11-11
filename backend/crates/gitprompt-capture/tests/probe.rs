@@ -133,7 +133,37 @@ fn the_tool_version_is_remembered_until_it_is_older_than_max_age() {
     clock.advance(Duration::from_secs(299));
     assert_eq!(cache.tool_version(&spec).as_deref(), Some("2.1.316"), "still fresh");
     clock.advance(Duration::from_secs(1));
-    assert_eq!(cache.tool_version(&spec).as_deref(), Some("2.1.317"), "expired: run again");
+    assert_eq!(cache.tool_version(&spec).as_deref(), Some("2.1.316"), "expired: the old answer, at once, while it runs again");
+    assert_eq!(eventually(|| cache.tool_version(&spec)).as_deref(), Some("2.1.317"), "then the new answer");
+}
+
+#[test]
+fn an_expired_version_is_run_again_once_however_often_it_is_asked() {
+    let env = TestEnv::new();
+    let spec = env.spec("claude-code");
+    let clock = ManualClock::new();
+    // A third run would exhaust the script and panic on the refresh thread (never giving 2.1.317).
+    let cache = VersionCache::new(Script::new(vec![Some("2.1.316"), Some("2.1.317")]), clock.clone(), Duration::from_secs(300));
+    assert_eq!(cache.tool_version(&spec).as_deref(), Some("2.1.316"));
+    clock.advance(Duration::from_secs(300));
+    for _ in 0..20 {
+        cache.tool_version(&spec);
+    }
+    assert_eq!(eventually(|| cache.tool_version(&spec)).as_deref(), Some("2.1.317"));
+}
+
+/// The first answer of `ask` that differs from its current one (a background refresh landing),
+/// or the current one after 5 s.
+fn eventually(ask: impl Fn() -> Option<String>) -> Option<String> {
+    let first = ask();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let now = ask();
+        if now != first || Instant::now() > deadline {
+            return now;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
 }
 
 #[test]

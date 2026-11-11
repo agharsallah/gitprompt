@@ -165,18 +165,31 @@ pub trait VersionProbe: Send + Sync {
     fn tool_version(&self, spec: &Spec) -> Option<String>;
 }
 
-/// One remembered `--version`: when it ran and what it gave.
-type Remembered = Option<(Instant, Option<String>)>;
+/// One remembered `--version`: when it ran, what it gave, and whether a newer run is under way.
+#[derive(Debug)]
+struct Remembered {
+    at: Instant,
+    version: Option<String>,
+    refreshing: bool,
+}
 
-/// A tool's `--version` (spec `version_cmd`, parsed by [`version_of`]), remembered per command for
-/// `max_age`, so a burst of prompts runs the tool once. A spec without `version_cmd` has no version
-/// and runs nothing. A failed run is remembered too (`None`). Thread-safe: callers asking for the
-/// same command while it runs wait for its answer; other commands are not held up.
+/// The slot of one command: empty until its first run finishes.
+type Slot = Arc<Mutex<Option<Remembered>>>;
+
+/// A tool's `--version` (spec `version_cmd`, parsed by [`version_of`]), remembered per command, so a
+/// burst of prompts runs the tool once. A spec without `version_cmd` has no version and runs
+/// nothing. A failed run is remembered too (`None`).
+///
+/// Only the very first ask of a command waits for it (callers asking for the same command meanwhile
+/// wait for that answer; other commands are not held up). Once an answer is older than `max_age`,
+/// it is still returned at once while the command runs again on its own thread
+/// (stale-while-revalidate): a `--version` can take seconds (a Node.js CLI starting up), and the
+/// callers are request handlers and ingest, which must not wait for it.
 pub struct VersionCache {
     pub runner: Arc<dyn CommandRunner>,
     pub clock: Arc<dyn Clock>,
     pub max_age: Duration,
-    entries: Mutex<HashMap<Vec<String>, Arc<Mutex<Remembered>>>>,
+    entries: Mutex<HashMap<Vec<String>, Slot>>,
 }
 
 impl std::fmt::Debug for VersionCache {
@@ -196,10 +209,29 @@ impl VersionCache {
     }
 
     /// The slot of one command (created empty on first use).
-    fn entry(&self, cmd: &[String]) -> Arc<Mutex<Remembered>> {
+    fn entry(&self, cmd: &[String]) -> Slot {
         // A poisoned lock only means another thread panicked mid-lookup; the map is still valid.
         let mut entries = self.entries.lock().unwrap_or_else(PoisonError::into_inner);
         entries.entry(cmd.to_vec()).or_default().clone()
+    }
+
+    fn run(runner: &dyn CommandRunner, cmd: &[String]) -> Option<String> {
+        runner.run(cmd, VERSION_TIMEOUT).and_then(|out| version_of(&out))
+    }
+
+    /// Run `cmd` again on its own thread and store the answer in `slot`. False when no thread could
+    /// be started (the stale answer stays; the next ask tries again).
+    fn refresh_in_background(&self, cmd: &[String], slot: Slot) -> bool {
+        let (runner, clock, cmd) = (Arc::clone(&self.runner), Arc::clone(&self.clock), cmd.to_vec());
+        std::thread::Builder::new()
+            .name("gitprompt-version".into())
+            .spawn(move || {
+                let version = Self::run(runner.as_ref(), &cmd);
+                let mut slot = slot.lock().unwrap_or_else(PoisonError::into_inner);
+                *slot = Some(Remembered { at: clock.now(), version, refreshing: false });
+            })
+            .map_err(|e| tracing::debug!(error = %e, "could not start a version refresh"))
+            .is_ok()
     }
 }
 
@@ -210,14 +242,15 @@ impl VersionProbe for VersionCache {
         }
         let entry = self.entry(&spec.version_cmd);
         let mut slot = entry.lock().unwrap_or_else(PoisonError::into_inner);
-        let now = self.clock.now();
-        if let Some((at, version)) = slot.as_ref()
-            && now.saturating_duration_since(*at) < self.max_age
-        {
-            return version.clone();
+        if let Some(remembered) = slot.as_mut() {
+            let stale = self.clock.now().saturating_duration_since(remembered.at) >= self.max_age;
+            if stale && !remembered.refreshing {
+                remembered.refreshing = self.refresh_in_background(&spec.version_cmd, Arc::clone(&entry));
+            }
+            return remembered.version.clone();
         }
-        let version = self.runner.run(&spec.version_cmd, VERSION_TIMEOUT).and_then(|out| version_of(&out));
-        *slot = Some((now, version.clone()));
+        let version = Self::run(self.runner.as_ref(), &spec.version_cmd);
+        *slot = Some(Remembered { at: self.clock.now(), version: version.clone(), refreshing: false });
         version
     }
 }

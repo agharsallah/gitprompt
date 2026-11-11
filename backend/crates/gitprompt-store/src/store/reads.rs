@@ -101,6 +101,16 @@ impl Store {
         })?)
     }
 
+    /// Whether [`Self::events_after`] would return anything (reads no payload).
+    pub fn has_events_after(&self, event_id: i64, prefix: &str, names: &[&str]) -> Result<bool> {
+        let names = json_list(names)?;
+        let prefix_chars = int(prefix.chars().count());
+        Ok(self.db().read(|conn| {
+            let select = "select exists (select 1 from event where id > ? and (substr(event, 1, ?) = ? or event in (select value from json_each(?))))";
+            Ok(conn.prepare_cached(select)?.query_row((event_id, prefix_chars, prefix, names), |row| row.get(0))?)
+        })?)
+    }
+
     pub fn events_for_session(&self, session_id: &str) -> Result<Vec<EventRow>> {
         Ok(self
             .db()

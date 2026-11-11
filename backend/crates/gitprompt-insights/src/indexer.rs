@@ -321,6 +321,11 @@ impl Indexer {
             tracing::info!(version = %self.version, "rules changed: rebuilding the prompt index");
             return self.rebuild(store);
         }
+        // Every dashboard read calls this. Look first, on a read connection: the transaction below
+        // takes the writer, which would queue each read behind ingest and behind the other reads.
+        if !Self::has_work(store)? {
+            return Ok(0);
+        }
         store.transaction(|store| {
             Self::index_telemetry(store)?;
             let index = store.index();
@@ -328,6 +333,16 @@ impl Indexer {
             ids.extend(store.prompts_of_turns(&index.take_marked()?)?);
             self.reindex_in(store, ids)
         })
+    }
+
+    /// Whether [`Self::ensure`] has anything to do once the rules match: new prompts, turns marked
+    /// changed, or telemetry not read yet. Captures mark their turns in the transaction that stores
+    /// them, so a read started after a capture committed sees its work.
+    fn has_work(store: &Store) -> Result<bool> {
+        let index = store.index();
+        Ok(index.marked_count()? > 0
+            || !index.unindexed()?.is_empty()
+            || store.has_events_after(index.telemetry_after()?, METRIC_PREFIX, &[COMMAND_EVENT])?)
     }
 
     /// [`Self::reindex`] inside a transaction the caller holds.

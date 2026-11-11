@@ -79,6 +79,7 @@ impl Daemon {
             .map_err(|e| ApiError::Internal(format!("start task failed: {e}")))??;
         let service = app.service();
         tracing::info!(home = %service.settings().home.display(), "GitPrompt is starting");
+        service.warm_tool_versions();
         service.ensure_index().await?;
         match service.drain_spool().await {
             Ok(delivered) => tracing::info!(delivered, "drained the hook spool"),

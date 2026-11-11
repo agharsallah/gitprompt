@@ -193,6 +193,22 @@ pub fn capture_at(
     observer: &Observer<'_>,
     received_at: Option<Timestamp>,
 ) -> Result<Captured> {
+    capture_then(spec, store, body, options, observer, received_at, |_, _| Ok(()))
+}
+
+/// [`capture_at`], then `then` with what was stored, in the same transaction (not called when no
+/// payload is kept). The payloads are prepared before the transaction starts: preparing asks git and the
+/// tool's `--version` (child processes), which must not hold the database writer meanwhile, since
+/// every other write and every index refresh waits for it.
+pub fn capture_then(
+    spec: &Spec,
+    store: &Store,
+    body: &Json,
+    options: CaptureOptions,
+    observer: &Observer<'_>,
+    received_at: Option<Timestamp>,
+    then: impl FnOnce(&Store, &Captured) -> Result<()>,
+) -> Result<Captured> {
     if !options.enabled {
         return Ok(Captured::default());
     }
@@ -206,6 +222,7 @@ pub fn capture_at(
         for row in rows {
             store_row(spec, store, row, received_at.as_deref(), &mut captured)?;
         }
+        then(store, &captured)?;
         Ok(captured)
     })
 }

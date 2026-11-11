@@ -24,5 +24,5 @@ pub mod rotation;
 pub mod spool;
 
 pub use connection::{Change, Connection, ConnectorState};
-pub use pipeline::{CaptureOptions, Captured, Observer, capture, capture_at};
+pub use pipeline::{CaptureOptions, Captured, Observer, capture, capture_at, capture_then};
 pub use spool::Spool;
