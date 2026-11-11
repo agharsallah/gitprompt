@@ -152,6 +152,41 @@ fn an_expired_version_is_run_again_once_however_often_it_is_asked() {
     assert_eq!(eventually(|| cache.tool_version(&spec)).as_deref(), Some("2.1.317"));
 }
 
+/// Panics on the run numbers listed, answers with the run number otherwise.
+struct Flaky {
+    runs: Mutex<u32>,
+    panic_on: Vec<u32>,
+}
+
+impl CommandRunner for Flaky {
+    fn run(&self, _cmd: &[String], _timeout: Duration) -> Option<String> {
+        let run = {
+            let mut runs = self.runs.lock().unwrap();
+            *runs += 1;
+            *runs
+        };
+        assert!(!self.panic_on.contains(&run), "run {run} fails");
+        Some(format!("{run}.0.0"))
+    }
+}
+
+#[test]
+fn a_refresh_that_panics_keeps_the_old_version_and_is_tried_again() {
+    let env = TestEnv::new();
+    let spec = env.spec("claude-code");
+    let clock = ManualClock::new();
+    let cache = VersionCache::new(Arc::new(Flaky { runs: Mutex::new(0), panic_on: vec![2] }), clock.clone(), Duration::from_secs(300));
+    assert_eq!(cache.tool_version(&spec).as_deref(), Some("1.0.0"));
+    clock.advance(Duration::from_secs(300));
+    assert_eq!(cache.tool_version(&spec).as_deref(), Some("1.0.0"), "the refresh (run 2) panics on its thread");
+    // Run 2 may still be under way: keep asking until a later run lands.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while cache.tool_version(&spec).as_deref() == Some("1.0.0") && Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert_eq!(cache.tool_version(&spec).as_deref(), Some("3.0.0"), "tried again after the panic, not stuck refreshing");
+}
+
 /// The first answer of `ask` that differs from its current one (a background refresh landing),
 /// or the current one after 5 s.
 fn eventually(ask: impl Fn() -> Option<String>) -> Option<String> {

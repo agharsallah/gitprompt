@@ -503,3 +503,58 @@ fn session_telemetry_is_read_incrementally_and_never_counted_twice() {
         vec![("/model", Some("builtin"))]
     );
 }
+
+#[test]
+fn the_telemetry_watermark_moves_past_events_that_are_not_telemetry() {
+    // A hooks-only store: without this, the look before every read would rescan all its events.
+    let store = Store::open_in_memory().unwrap();
+    let index = indexer();
+    add_prompt(&store, "hello", "p1", Some("s1"));
+    let hook = store.add_event("claude-code", &obj(json!({"event": "PostToolUse", "prompt_id": "p1"})), &json!({})).unwrap();
+    index.catch_up(&store).unwrap();
+    assert_eq!(store.index().telemetry_after().unwrap(), hook.id);
+}
+
+#[test]
+fn a_read_with_nothing_to_index_changes_nothing_and_new_telemetry_is_still_found() {
+    let store = Store::open_in_memory().unwrap();
+    let index = indexer();
+    add_prompt(&store, "hello", "p1", Some("s1"));
+    index.catch_up(&store).unwrap();
+    assert_eq!(index.ensure(&store).unwrap(), 0, "nothing new");
+    store
+        .add_event(
+            "claude-code-otel",
+            &obj(json!({"event": "claude_code.lines_of_code.count", "session_id": "s1"})),
+            &json!({"type": "added", "value": 5}),
+        )
+        .unwrap();
+    index.ensure(&store).unwrap();
+    let telemetry = store.telemetry(&PromptFilter::default()).unwrap();
+    assert_eq!(telemetry.metrics.get("claude_code.lines_of_code.count[added]"), Some(&5.0));
+}
+
+#[test]
+fn telemetry_stored_under_a_reused_event_id_is_still_read() {
+    // Event ids are rowids: deleting the newest events lets the next insert reuse their ids.
+    let store = Store::open_in_memory().unwrap();
+    let index = indexer();
+    add_prompt(&store, "hello", "p1", Some("s1"));
+    store.add_event("claude-code", &obj(json!({"event": "PostToolUse", "prompt_id": "p1"})), &json!({})).unwrap();
+    let doomed = store.add_event("claude-code", &obj(json!({"event": "Notification", "prompt_id": "p1"})), &json!({})).unwrap();
+    index.catch_up(&store).unwrap();
+    assert_eq!(store.index().telemetry_after().unwrap(), doomed.id);
+
+    store.delete_events("claude-code", Some("Notification"), None).unwrap();
+    let metric = store
+        .add_event(
+            "claude-code-otel",
+            &obj(json!({"event": "claude_code.lines_of_code.count", "session_id": "s1"})),
+            &json!({"type": "added", "value": 2}),
+        )
+        .unwrap();
+    assert_eq!(metric.id, doomed.id, "precondition: the id was reused");
+    index.ensure(&store).unwrap();
+    let telemetry = store.telemetry(&PromptFilter::default()).unwrap();
+    assert_eq!(telemetry.metrics.get("claude_code.lines_of_code.count[added]"), Some(&2.0));
+}

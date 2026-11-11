@@ -317,7 +317,7 @@ impl PromptIndex<'_> {
 }
 
 const RULES_VERSION: &str = "rules_version";
-const TELEMETRY_EVENT_ID: &str = "telemetry_event_id";
+pub(crate) const TELEMETRY_EVENT_ID: &str = "telemetry_event_id";
 
 fn row_of(conn: &Connection, id: i64) -> DbResult<Option<IndexRow>> {
     let select = &format!("select {} from prompt_index i where i.id = ?", row_columns());

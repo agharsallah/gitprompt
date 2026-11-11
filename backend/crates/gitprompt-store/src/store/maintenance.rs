@@ -11,6 +11,10 @@ use super::{EventUsage, Store};
 use crate::db;
 use crate::decode::{self, count};
 
+/// Lower the stored telemetry watermark (`?1`) to the newest event id left, when it is above it.
+const CLAMP_TELEMETRY_WATERMARK: &str = "update index_meta set value = (select coalesce(max(id), 0) from event) \
+     where key = ?1 and cast(value as integer) > (select coalesce(max(id), 0) from event)";
+
 impl Store {
     /// Stored events per (source, event), largest first; `before`: only rows received earlier.
     ///
@@ -38,11 +42,19 @@ impl Store {
 
     /// Delete stored events of one kind (`event` `None` = events without a name), optionally only
     /// those received before `before`. Prompts and annotations are never touched.
+    ///
+    /// Event ids are rowids without AUTOINCREMENT, so deleting the newest events lets the next
+    /// inserts reuse their ids. The index's telemetry watermark is lowered to the newest event left
+    /// in the same write, so events stored under reused ids are still read as new telemetry.
     pub fn delete_events(&self, source: &str, event: Option<&str>, before: Option<&str>) -> Result<u64> {
         let deleted = self.db().write(|conn| {
             let mut delete =
                 conn.prepare_cached("delete from event where source = ? and event is ? and received_at < coalesce(?, '9999')")?;
-            Ok(delete.execute((source, event, before))?)
+            let deleted = delete.execute((source, event, before))?;
+            if deleted > 0 {
+                conn.prepare_cached(CLAMP_TELEMETRY_WATERMARK)?.execute([crate::index::TELEMETRY_EVENT_ID])?;
+            }
+            Ok(deleted)
         })?;
         Ok(deleted as u64)
     }

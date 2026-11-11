@@ -374,17 +374,29 @@ impl Service {
 
     /// Ask every tool its `--version` in the background (start-up), so neither the first capture
     /// nor the first connectors page waits for the commands. Fire and forget: a probe that fails
-    /// is remembered as "no version" like any other.
+    /// is remembered as "no version" like any other. Plain detached threads, not `spawn_blocking`:
+    /// the runtime waits for its blocking tasks when it shuts down, so quitting right after start
+    /// would wait for a slow `--version` (up to its timeout).
     pub fn warm_tool_versions(&self) {
-        for spec in self.inner.spec_set().specs.values() {
+        for spec in self.inner.spec_set().specs.values().filter(|spec| !spec.version_cmd.is_empty()) {
             let (probe, spec) = (Arc::clone(&self.inner.options.tool_version), Arc::clone(spec));
-            drop(tokio::task::spawn_blocking(move || probe.version(&spec)));
+            let started = std::thread::Builder::new().name("gitprompt-version".into()).spawn(move || probe.version(&spec));
+            if let Err(e) = started {
+                tracing::debug!(error = %e, "could not warm a tool version");
+            }
         }
     }
 
     /// Bring the prompt index up to date (start-up does this before the first page).
+    /// Unlike the update before each read, this always runs the update transaction once
+    /// (`Indexer::catch_up`), which moves the telemetry watermark to the newest event.
     pub async fn ensure_index(&self) -> ApiResult<()> {
-        self.run(|inner| inner.indexed().map(drop)).await
+        self.run(|inner| {
+            let set = inner.spec_set();
+            inner.indexer(&set).catch_up(&inner.store)?;
+            Ok(())
+        })
+        .await
     }
 
     // --- ingest ---

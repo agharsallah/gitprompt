@@ -316,14 +316,27 @@ impl Indexer {
     /// Bring the index up to date; cheap when nothing changed, so it runs before every read. A
     /// different stored version rebuilds; otherwise new telemetry is indexed, then the unindexed
     /// prompts and the prompts of marked turns are reindexed. Returns the prompts (re)indexed.
+    ///
+    /// Every dashboard read calls this, so it looks first, on a read connection, and takes the
+    /// writer only when there is work: the writer would queue each read behind ingest and behind
+    /// the other reads.
     pub fn ensure(&self, store: &Store) -> Result<usize> {
+        self.update(store, false)
+    }
+
+    /// [`Self::ensure`] without looking first: always runs the update transaction, which also moves
+    /// the telemetry watermark past every stored event (start-up does this once, so the look before
+    /// each read starts from the newest event even on an index written by an older version).
+    pub fn catch_up(&self, store: &Store) -> Result<usize> {
+        self.update(store, true)
+    }
+
+    fn update(&self, store: &Store, always: bool) -> Result<usize> {
         if store.index().version()?.as_deref() != Some(self.version.as_str()) {
             tracing::info!(version = %self.version, "rules changed: rebuilding the prompt index");
             return self.rebuild(store);
         }
-        // Every dashboard read calls this. Look first, on a read connection: the transaction below
-        // takes the writer, which would queue each read behind ingest and behind the other reads.
-        if !Self::has_work(store)? {
+        if !always && !Self::has_work(store)? {
             return Ok(0);
         }
         store.transaction(|store| {
@@ -355,11 +368,21 @@ impl Indexer {
         Ok(ids.len())
     }
 
-    /// Telemetry metrics and slash commands that arrived since the last read (by event id).
+    /// Telemetry metrics and slash commands that arrived since the last read (by event id). Runs
+    /// inside a transaction the caller holds.
+    ///
+    /// The watermark then moves to the newest stored event, not only to the last metric or command:
+    /// every event up to it has been looked at, and none below it can still arrive while the caller
+    /// holds the writer. Without that, a store whose events are never metrics (hooks only, no
+    /// OpenTelemetry) would rescan its whole event table in the look before every read.
     fn index_telemetry(store: &Store) -> Result<()> {
         let index = store.index();
-        let events = store.events_after(index.telemetry_after()?, METRIC_PREFIX, &[COMMAND_EVENT])?;
-        let Some(last) = events.last() else { return Ok(()) };
+        let after = index.telemetry_after()?;
+        let events = store.events_after(after, METRIC_PREFIX, &[COMMAND_EVENT])?;
+        let newest = store.newest_event_id()?.max(after);
+        if newest == after {
+            return Ok(());
+        }
         let metrics: Vec<SessionMetric> = events
             .iter()
             .filter_map(|e| {
@@ -374,7 +397,7 @@ impl Indexer {
                 Some(SessionCommand { event_id: e.id, session: e.session_id.clone(), received_at: e.received_at.clone(), command, source })
             })
             .collect();
-        index.add_telemetry(last.id, &metrics, &commands)
+        index.add_telemetry(newest, &metrics, &commands)
     }
 }
 

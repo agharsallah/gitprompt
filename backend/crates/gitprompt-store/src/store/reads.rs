@@ -101,6 +101,11 @@ impl Store {
         })?)
     }
 
+    /// The id of the newest stored event, 0 when there is none (a rowid lookup).
+    pub fn newest_event_id(&self) -> Result<i64> {
+        Ok(self.db().read(|conn| Ok(conn.prepare_cached("select coalesce(max(id), 0) from event")?.query_row([], |row| row.get(0))?))?)
+    }
+
     /// Whether [`Self::events_after`] would return anything (reads no payload).
     pub fn has_events_after(&self, event_id: i64, prefix: &str, names: &[&str]) -> Result<bool> {
         let names = json_list(names)?;

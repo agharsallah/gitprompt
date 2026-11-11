@@ -226,12 +226,32 @@ impl VersionCache {
         std::thread::Builder::new()
             .name("gitprompt-version".into())
             .spawn(move || {
+                // Dropped on every exit, a panicking runner included: the slot must never stay
+                // marked as refreshing, or that command would never run again.
+                let guard = Refreshing(slot);
                 let version = Self::run(runner.as_ref(), &cmd);
-                let mut slot = slot.lock().unwrap_or_else(PoisonError::into_inner);
-                *slot = Some(Remembered { at: clock.now(), version, refreshing: false });
+                guard.finish(Remembered { at: clock.now(), version, refreshing: false });
             })
             .map_err(|e| tracing::debug!(error = %e, "could not start a version refresh"))
             .is_ok()
+    }
+}
+
+/// A refresh under way: stores its answer, or (dropped without one) lets the next ask retry while
+/// keeping the old answer.
+struct Refreshing(Slot);
+
+impl Refreshing {
+    fn finish(self, answer: Remembered) {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner) = Some(answer);
+    }
+}
+
+impl Drop for Refreshing {
+    fn drop(&mut self) {
+        if let Some(remembered) = self.0.lock().unwrap_or_else(PoisonError::into_inner).as_mut() {
+            remembered.refreshing = false;
+        }
     }
 }
 
