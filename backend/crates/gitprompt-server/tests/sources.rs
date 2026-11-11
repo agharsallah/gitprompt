@@ -429,3 +429,79 @@ async fn a_broken_user_spec_is_isolated_and_every_route_keeps_working() {
     assert!(problems[0]["error"].as_str().expect("error").contains("mytool.yaml"));
     assert_eq!(problems[0]["file"]["origin"], "user");
 }
+
+// --- tool versions ---
+
+/// A version probe that answers only once `expected` probes have started (giving up after
+/// [`Rendezvous::PATIENCE`]), and records the most probes ever running at the same time.
+/// Run one at a time, the first probe waits out its patience, then every later one stops waiting.
+#[derive(Default)]
+struct Rendezvous {
+    state: std::sync::Mutex<Gathering>,
+    arrived: std::sync::Condvar,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct Gathering {
+    expected: usize,
+    started: usize,
+    running: usize,
+    most_at_once: usize,
+    gave_up: bool,
+}
+
+impl Rendezvous {
+    const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
+
+    /// From now on, each probe waits for `expected` probes to have started; the counts restart.
+    fn expect(&self, expected: usize) {
+        *self.state.lock().unwrap() = Gathering { expected, ..Gathering::default() };
+    }
+
+    fn gathering(&self) -> Gathering {
+        *self.state.lock().unwrap()
+    }
+}
+
+impl gitprompt_server::ToolVersionProbe for Rendezvous {
+    fn version(&self, _spec: &gitprompt_core::spec::Spec) -> Option<String> {
+        let deadline = std::time::Instant::now() + Self::PATIENCE;
+        let mut state = self.state.lock().unwrap();
+        state.started += 1;
+        state.running += 1;
+        state.most_at_once = state.most_at_once.max(state.running);
+        self.arrived.notify_all();
+        while state.started < state.expected && !state.gave_up {
+            let left = deadline.saturating_duration_since(std::time::Instant::now());
+            if left.is_zero() {
+                state.gave_up = true;
+                self.arrived.notify_all();
+                break;
+            }
+            state = self.arrived.wait_timeout(state, left).unwrap().0;
+        }
+        state.running -= 1;
+        Some(common::TOOL_VERSION.into())
+    }
+}
+
+/// `--version` can be slow, so the sources page asks every tool at once. Spawning the probes and
+/// joining each before spawning the next (dropping the `collect` clippy calls needless in
+/// `Service::sources`) would run them one at a time.
+#[tokio::test]
+async fn sources_ask_every_tool_for_its_version_at_once() {
+    let probe = std::sync::Arc::new(Rendezvous::default());
+    let mut harness = harness();
+    harness.options.tool_version = probe.clone();
+    let api = harness.start();
+
+    api.json("/api/sources").await; // counts the tools asked, without waiting
+    let asked = probe.gathering().started;
+    assert!(asked > 1, "the bundled specs name several tools, got {asked}");
+
+    probe.expect(asked);
+    let sources = api.json("/api/sources").await;
+    let gathering = probe.gathering();
+    assert_eq!((gathering.most_at_once, gathering.gave_up), (asked, false), "probes running at once: {gathering:?}");
+    assert!(sources.as_array().expect("list").iter().any(|s| s["version"] == common::TOOL_VERSION), "{sources}");
+}
