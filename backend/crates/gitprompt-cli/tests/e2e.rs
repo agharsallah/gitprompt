@@ -374,6 +374,13 @@ fn a_hook_sent_while_the_daemon_is_stopped_is_spooled_silently_and_stored_at_its
     let first = home.serve();
     let port = first.port;
     deliver(&home, port, "claude-code", &typed("offline", "Before the stop"));
+    // The live daemon stored it. On a loaded machine (a CI runner running the other tests' daemons)
+    // its answer can come after the forwarder's 2 s timeout, and the forwarder spools that payload
+    // too: allowed, since the prompt-id dedup absorbs it at the next drain (see spool.rs), and the
+    // final list below still fails on a lost or duplicated prompt.
+    common::binary::eventually(COMMAND_DEADLINE, "the running daemon stores the prompt", || {
+        (first.json("/api/prompts?session=offline").as_array().map(Vec::len) == Some(1)).then_some(())
+    });
     first.stop();
 
     let before = Timestamp::now();
@@ -382,7 +389,10 @@ fn a_hook_sent_while_the_daemon_is_stopped_is_spooled_silently_and_stored_at_its
     assert_eq!(printed, "", "claude-code expects no reply on stdout");
     let queue = home.settings.spool_dir().join("claude-code.jsonl");
     let spooled = std::fs::read_to_string(&queue).unwrap_or_else(|e| panic!("{}: {e}", queue.display()));
-    assert_eq!(spooled.lines().count(), 1, "one payload spooled: {spooled}");
+    let prompts_in = |line: &str| serde_json::from_str::<Value>(line).ok().and_then(|l| l["payload"]["prompt"].as_str().map(str::to_owned));
+    let queued: Vec<String> = spooled.lines().filter_map(prompts_in).collect();
+    assert_eq!(queued.last().map(String::as_str), Some("While stopped"), "the stopped daemon's payload is spooled: {spooled}");
+    assert!(queued.iter().all(|p| p == "While stopped" || p == "Before the stop"), "only this test's payloads: {spooled}");
 
     let second = home.serve(); // drains the spool before it answers /healthz
     let prompts = second.json("/api/prompts?session=offline");
