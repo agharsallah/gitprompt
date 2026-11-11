@@ -52,6 +52,7 @@ fn running(addr: SocketAddr) -> Option<RunningDaemon> {
         uptime_s: status.uptime_s,
         home: status.home,
         dashboard: status.dashboard,
+        health: status.health,
     })
 }
 

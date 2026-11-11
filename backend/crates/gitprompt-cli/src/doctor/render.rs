@@ -13,6 +13,7 @@ pub(super) fn text(report: &Report, out: &mut dyn Write) -> io::Result<()> {
     writeln!(out, "GitPrompt doctor: version {} ({} backend)", report.version, report.backend)?;
     data(report, out)?;
     daemon(report, out)?;
+    health(report, out)?;
     writeln!(out, "\nDashboard")?;
     line(out, "serve uses", &report.dashboard.describe())?;
     specs(report, out)?;
@@ -69,6 +70,43 @@ fn daemon(report: &Report, out: &mut dyn Write) -> io::Result<()> {
     };
     line(out, "lock", &format!("{} ({}{pid})", lock.file, yes_no(lock.held, "held", "not held")))?;
     line(out, "token", &format!("{} ({})", d.token_file, yes_no(d.token_present, "present", "missing: created at first start")))
+}
+
+/// The running daemon's health: memory, CPU, the database writer, the slowest routes.
+fn health(report: &Report, out: &mut dyn Write) -> io::Result<()> {
+    let Some(running) = &report.daemon.running else { return Ok(()) };
+    let h = &running.health;
+    writeln!(out, "\nHealth (since the daemon started)")?;
+    let p = &h.process;
+    let memory = match (p.rss_bytes, p.peak_rss_bytes) {
+        (Some(rss), Some(peak)) => format!("{} resident, peak {}", size(rss), size(peak)),
+        _ => "not sampled yet".to_owned(),
+    };
+    line(out, "memory", &memory)?;
+    line(out, "cpu", &p.cpu_percent.map_or_else(|| "not sampled yet".to_owned(), |cpu| format!("{cpu:.0}% of a core")))?;
+    let w = &h.writer;
+    line(
+        out,
+        "db writer",
+        &format!(
+            "{} writes, {} waited too long (max {} ms), {} kept it too long (max {} ms)",
+            w.entries, w.slow_waits, w.max_wait_ms, w.slow_holds, w.max_hold_ms
+        ),
+    )?;
+    for route in h.routes.iter().take(5) {
+        line(
+            out,
+            "route",
+            &format!(
+                "{}: {} requests, p50 {} ms, p95 {} ms, max {} ms, {} slow, {} errors",
+                route.route, route.count, route.p50_ms, route.p95_ms, route.max_ms, route.slow, route.errors
+            ),
+        )?;
+    }
+    for warning in h.warnings.iter().take(5) {
+        line(out, "warning", &format!("{} {}", warning.at, warning.message))?;
+    }
+    Ok(())
 }
 
 fn specs(report: &Report, out: &mut dyn Write) -> io::Result<()> {

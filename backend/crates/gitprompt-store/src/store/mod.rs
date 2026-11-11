@@ -103,8 +103,15 @@ impl Store {
     /// Run `f` all-or-nothing: an `Err` rolls back every write it made. Every store call `f` makes
     /// on the store it is given joins the transaction (nested transactions become savepoints);
     /// writes from other threads wait until it ends.
+    #[track_caller]
     pub fn transaction<T>(&self, f: impl FnOnce(&Store) -> Result<T>) -> Result<T> {
         self.db.transaction(|| f(self))
+    }
+
+    /// How the database writer has been shared since this store opened: entries, the ones that
+    /// waited or kept it too long, and the longest wait and stay (`warn` logs name where).
+    pub fn writer_stats(&self) -> crate::WriterStats {
+        self.db.writer_stats()
     }
 
     /// Use `clock` instead of the system clock for `received_at` of new rows and values derived on

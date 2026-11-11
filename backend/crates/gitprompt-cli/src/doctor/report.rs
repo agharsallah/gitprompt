@@ -8,6 +8,7 @@ use gitprompt_core::Json;
 use gitprompt_core::preferences::ValueSource;
 use gitprompt_core::spec::{SpecFile, SpecProblem};
 use gitprompt_server::DashboardInfo;
+use gitprompt_server::health::HealthOut;
 use gitprompt_server::status::{IndexStatus, SpoolBacklog};
 
 #[derive(Clone, Debug, Serialize)]
@@ -67,6 +68,8 @@ pub(crate) struct RunningDaemon {
     pub uptime_s: u64,
     pub home: String,
     pub dashboard: DashboardInfo,
+    /// Route latencies, writer contention, memory, CPU and recent warnings since it started.
+    pub health: HealthOut,
 }
 
 #[derive(Clone, Debug, Serialize)]

@@ -23,6 +23,7 @@ pub mod stats;
 pub mod store;
 pub mod timeline;
 
+pub use db::{SLOW_HOLD, SLOW_WAIT, WriterStats};
 pub use filter::{Has, Outcome, PromptFilter};
 pub use rows::{Annotation, EventRow, PromptRow, PromptView};
 pub use store::Store;

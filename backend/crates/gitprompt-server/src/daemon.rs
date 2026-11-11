@@ -22,6 +22,7 @@ use gitprompt_core::Settings;
 
 use crate::app::App;
 use crate::error::{ApiError, ApiResult};
+use crate::health::{Limits, Monitor, ProcessSampler, SAMPLE_EVERY};
 use crate::options::AppOptions;
 use crate::service::Service;
 
@@ -31,11 +32,16 @@ pub struct DaemonOptions {
     pub addr: Option<SocketAddr>,
     /// Default `gitprompt_store::housekeeping::RETENTION_EVERY` (6 h).
     pub retention_every: Duration,
+    /// How often the process is sampled for [`crate::health`]. Default
+    /// [`crate::health::SAMPLE_EVERY`] (30 s).
+    pub health_every: Duration,
+    /// When a health sample warns.
+    pub health_limits: Limits,
 }
 
 impl Default for DaemonOptions {
     fn default() -> Self {
-        DaemonOptions { addr: None, retention_every: RETENTION_EVERY }
+        DaemonOptions { addr: None, retention_every: RETENTION_EVERY, health_every: SAMPLE_EVERY, health_limits: Limits::default() }
     }
 }
 
@@ -61,6 +67,7 @@ pub struct Daemon {
     stop: CancellationToken,
     server: JoinHandle<ApiResult<()>>,
     retention: JoinHandle<()>,
+    monitor: JoinHandle<()>,
     /// Held (OS lock) while the daemon runs.
     lock: File,
 }
@@ -91,8 +98,9 @@ impl Daemon {
         let stop = CancellationToken::new();
         let server = tokio::spawn(app.serve(listener, stop.clone().cancelled_owned()));
         let retention = tokio::spawn(repeat_retention(service.clone(), options.retention_every, stop.clone()));
+        let monitor = tokio::spawn(repeat_health(service.clone(), options.health_every, options.health_limits, stop.clone()));
         log_running(&service, addr).await;
-        Ok(Daemon { addr, service, stop, server, retention, lock })
+        Ok(Daemon { addr, service, stop, server, retention, monitor, lock })
     }
 
     /// The bound address (the real port when started on port 0).
@@ -112,6 +120,7 @@ impl Daemon {
         self.stop.cancel();
         let joined = |e: tokio::task::JoinError| ApiError::Internal(format!("background task failed: {e}"));
         self.retention.await.map_err(joined)?;
+        self.monitor.await.map_err(joined)?;
         let served = self.server.await.map_err(joined)?;
         drop(self.service); // the store closes with its last handle
         self.lock.unlock()?;
@@ -157,6 +166,19 @@ async fn retention(service: &Service) {
     match service.retention_pass().await {
         Ok(removed) => tracing::info!(removed, "retention pass: deleted expired events"),
         Err(e) => tracing::warn!(error = %e, "retention pass failed"),
+    }
+}
+
+/// A health sample every `every` until `stop`. The rules' clock starts here, so start-up work
+/// before it (index rebuild, spool drain) never counts against the limits.
+async fn repeat_health(service: Service, every: Duration, limits: Limits, stop: CancellationToken) {
+    let mut monitor = Monitor::new(limits, std::time::Instant::now());
+    let mut sampler = ProcessSampler::default();
+    loop {
+        tokio::select! {
+            () = stop.cancelled() => return,
+            () = tokio::time::sleep(every) => service.sample_health(&mut monitor, &mut sampler),
+        }
     }
 }
 

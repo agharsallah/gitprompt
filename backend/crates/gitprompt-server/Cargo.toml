@@ -26,6 +26,7 @@ tokio-stream.workspace = true
 tokio-util.workspace = true
 axum.workspace = true
 tower.workspace = true
+sysinfo.workspace = true
 
 [dev-dependencies]
 rusqlite.workspace = true

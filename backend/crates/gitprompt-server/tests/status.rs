@@ -109,3 +109,16 @@ async fn the_service_answers_what_the_route_answers() {
     let direct = serde_json::to_value(api.service().status().await.expect("status")).expect("json");
     assert_eq!(api.json("/api/status").await, direct);
 }
+
+#[tokio::test]
+async fn the_health_section_reports_routes_and_the_database_writer() {
+    let api = harness().start();
+    api.json("/api/prompts").await;
+    api.json("/api/prompts").await;
+    let health = api.json("/api/status").await["health"].clone();
+    let prompts = health["routes"].as_array().unwrap().iter().find(|r| r["route"] == "GET /api/prompts").expect("recorded").clone();
+    assert_eq!((prompts["count"].clone(), prompts["errors"].clone(), prompts["slow"].clone()), (json!(2), json!(0), json!(0)));
+    assert!(health["writer"]["entries"].as_u64().unwrap() > 0, "the first read built the index");
+    assert_eq!(health["process"]["rss_bytes"], Value::Null, "sampled by the daemon only");
+    assert_eq!(health["warnings"], json!([]));
+}

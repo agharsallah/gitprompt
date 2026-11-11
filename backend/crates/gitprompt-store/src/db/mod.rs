@@ -25,6 +25,7 @@ use crate::error::{DbError, DbResult};
 use crate::schema;
 pub(crate) use files::make_private;
 use gate::Gate;
+pub use gate::{SLOW_HOLD, SLOW_WAIT, WriterStats};
 use pool::Pool;
 
 /// How long a connection waits for a lock before failing with `SQLITE_BUSY`.
@@ -65,12 +66,14 @@ impl Db {
     }
 
     /// Run `f` on the writer connection.
+    #[track_caller]
     pub(crate) fn write<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         let _pass = self.gate.enter();
         f(&self.lock_writer())
     }
 
     /// Run `f` on a connection that sees everything committed, and this thread's open transaction.
+    #[track_caller]
     pub(crate) fn read<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         match &self.readers {
             Some(pool) if !self.gate.held_here() => pool.read(f),
@@ -79,12 +82,14 @@ impl Db {
     }
 
     /// Run `f` on the writer inside a transaction.
+    #[track_caller]
     pub(crate) fn atomic<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         self.transaction(|| self.write(f))
     }
 
     /// Run `f` all-or-nothing: `Err` (or a panic) rolls back every write made on the writer by this
     /// thread meanwhile. Nested transactions become savepoints.
+    #[track_caller]
     pub(crate) fn transaction<T, E: From<DbError>>(&self, f: impl FnOnce() -> Result<T, E>) -> Result<T, E> {
         let _pass = self.gate.enter();
         let scope = self.write(Scope::begin)?;
@@ -92,6 +97,11 @@ impl Db {
         let value = f()?;
         open.commit()?;
         Ok(value)
+    }
+
+    /// How the writer has been shared so far (see [`gate`]).
+    pub(crate) fn writer_stats(&self) -> WriterStats {
+        self.gate.stats()
     }
 
     /// A panic while the writer was locked leaves SQLite itself consistent (an open transaction is

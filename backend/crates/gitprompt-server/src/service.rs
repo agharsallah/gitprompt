@@ -37,6 +37,7 @@ use gitprompt_store::{PromptView, Store, housekeeping};
 use crate::bus::{Bus, Notice};
 use crate::dashboard::{Dashboard, DashboardInfo};
 use crate::error::{ApiError, ApiResult};
+use crate::health::{Health, Monitor, ProcessSampler, Sample};
 use crate::model::{
     Annotation, Backup, CapturedSurface, Catalog, Change, ChartInfo, CompactIn, DataOut, DeleteIn, Enabled, ExportFile, ExportKind,
     ExportQuery, HOURS, Injected, Lineage, ProjectStory, PromptDetail, PromptOut, PromptQuery, RecentCapture, ReportOut, Rotation,
@@ -88,6 +89,8 @@ struct Inner {
     closing: CancellationToken,
     /// When this service was built (the app clock), for `/api/status`.
     started_at: jiff::Timestamp,
+    /// Route latencies, process samples and warnings (see [`crate::health`]).
+    health: Arc<Health>,
 }
 
 /// The app's git provider as the capture pipeline's probe.
@@ -335,6 +338,7 @@ impl Service {
             indexer: Mutex::new(None),
             closing: CancellationToken::new(),
             started_at: options.clock.now(),
+            health: Arc::default(),
             settings,
             options,
             store,
@@ -349,6 +353,25 @@ impl Service {
 
     pub fn bus(&self) -> &Bus {
         &self.inner.bus
+    }
+
+    /// What the access log records and the status reports (see [`crate::health`]).
+    pub fn health(&self) -> Arc<Health> {
+        Arc::clone(&self.inner.health)
+    }
+
+    /// One health sample: the process now, the counters so far; logs and keeps what `monitor`
+    /// finds worth a warning. The daemon calls it every [`crate::health::SAMPLE_EVERY`].
+    pub fn sample_health(&self, monitor: &mut Monitor, sampler: &mut ProcessSampler) {
+        let process = sampler.sample();
+        let health = &self.inner.health;
+        health.set_process(process);
+        let (errors, slow) = health.totals();
+        let sample = Sample { process, writer: self.inner.store.writer_stats(), errors, slow };
+        let at = iso(self.inner.now());
+        for (kind, message) in monitor.observe(sample, std::time::Instant::now()) {
+            health.warn(at.clone(), kind, message);
+        }
     }
 
     /// The built dashboard to serve, if any.
@@ -940,6 +963,7 @@ impl Service {
                 index: status::index_status(&inner.store, indexer.version())?,
                 dashboard,
                 spool: status::spool_backlog(settings)?,
+                health: inner.health.snapshot(inner.store.writer_stats()),
             })
         })
         .await

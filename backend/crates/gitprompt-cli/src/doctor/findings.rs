@@ -3,6 +3,8 @@
 
 use gitprompt_capture::connection::{ConnectorState, HookForm};
 use gitprompt_server::DashboardSource;
+use gitprompt_server::access_log::is_slow;
+use gitprompt_server::health::WarningKind;
 use gitprompt_server::status::BACKEND;
 
 use super::report::{Finding, Report};
@@ -12,6 +14,7 @@ pub(super) fn derive(report: &Report) -> (Vec<Finding>, Vec<Finding>) {
     let mut found = Found::default();
     data(report, &mut found);
     daemon(report, &mut found);
+    health(report, &mut found);
     dashboard(report, &mut found);
     specs(report, &mut found);
     connectors(report, &mut found);
@@ -101,6 +104,38 @@ fn daemon(report: &Report, found: &mut Found) {
         found.problem(
             format!("No receiver token ({}), but connectors are connected.", d.token_file),
             "Start GitPrompt (it creates one), then rotate the token in Settings > Security so the hooks carry it.",
+        );
+    }
+}
+
+/// What the running daemon's health monitor saw: memory and server errors are problems, slowness
+/// is worth knowing.
+fn health(report: &Report, found: &mut Found) {
+    let Some(running) = &report.daemon.running else { return };
+    let h = &running.health;
+    let mut seen = Vec::new();
+    for warning in &h.warnings {
+        if seen.contains(&warning.kind) {
+            continue; // newest first: one finding per kind
+        }
+        seen.push(warning.kind);
+        let what = format!("{} (at {}).", warning.message, warning.at);
+        match warning.kind {
+            WarningKind::MemoryHigh | WarningKind::MemoryGrowth => {
+                found.problem(what, "Restart GitPrompt to recover the memory, and report it with this output and the daemon log.");
+            }
+            WarningKind::Errors => found.problem(what, "The daemon log has each failure (`request failed`); report it if it repeats."),
+            WarningKind::CpuHigh => found.note(what, "Usually a large import, reindex or busy session; restart GitPrompt if it lasts."),
+            WarningKind::WriterContention => {
+                found.note(what, "The daemon log names the code that kept the database writer (`held the database writer ... at=`).");
+            }
+            WarningKind::SlowRequests => found.note(what, "The routes below show which; the daemon log has each `slow request`."),
+        }
+    }
+    for route in h.routes.iter().filter(|r| is_slow(r.p95_ms)) {
+        found.note(
+            format!("{} is slow: p95 {} ms over its recent requests (max {} ms).", route.route, route.p95_ms, route.max_ms),
+            "Check the db writer line above; `just perf` (in a source checkout) reproduces this kind of load.",
         );
     }
 }

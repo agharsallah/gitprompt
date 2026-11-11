@@ -11,6 +11,7 @@ use gitprompt_core::{Result, Settings};
 use gitprompt_store::Store;
 
 use crate::dashboard::DashboardInfo;
+use crate::health::HealthOut;
 
 /// This build's version (the workspace version).
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -19,7 +20,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const BACKEND: &str = "rust";
 
 /// `GET /api/status`.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StatusOut {
     pub version: String,
     pub backend: String,
@@ -36,6 +37,10 @@ pub struct StatusOut {
     pub dashboard: DashboardInfo,
     /// Hook payloads spooled while the daemon was unreachable, per source with any.
     pub spool: Vec<SpoolBacklog>,
+    /// Route latencies, database writer contention, memory and CPU, recent warnings (absent from
+    /// older daemons: read as empty).
+    #[serde(default)]
+    pub health: HealthOut,
 }
 
 /// Stored rows.

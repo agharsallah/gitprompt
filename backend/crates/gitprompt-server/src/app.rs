@@ -52,7 +52,7 @@ impl App {
             Some(source) => router.fallback_service(dashboard::router(source.clone())),
             None => router.fallback(|| async { ApiError::NotFound("Not Found".into()).into_response() }),
         };
-        security::trusted_hosts(router).layer(axum::middleware::from_fn(access_log::log_request))
+        security::trusted_hosts(router).layer(axum::middleware::from_fn_with_state(self.service.health(), access_log::log_request))
     }
 
     /// Serve on `listener` until `shutdown` resolves, then finish in-flight requests and return.

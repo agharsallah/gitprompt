@@ -11,7 +11,8 @@
 //! * [`Daemon`] — a running instance for the CLI and the desktop shell: single-instance lock,
 //!   graceful shutdown, background retention, spool drain at start.
 //! * [`logging`] — the one tracing setup of the binaries; [`status`] — what `/api/status` and
-//!   `gitprompt doctor` report.
+//!   `gitprompt doctor` report; [`health`] — route latencies, writer contention, memory and CPU,
+//!   with early warnings.
 //!
 //! Everything nondeterministic the server reads (time, tool versions, git) comes in through
 //! [`AppOptions`], so tests pin it.
@@ -22,6 +23,7 @@ pub mod bus;
 pub mod daemon;
 pub mod dashboard;
 pub mod error;
+pub mod health;
 pub mod logging;
 pub mod model;
 pub mod options;

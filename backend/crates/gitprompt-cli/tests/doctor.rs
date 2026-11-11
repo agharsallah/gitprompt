@@ -177,3 +177,33 @@ async fn hooks_running_a_missing_forwarder_are_a_problem() {
     assert!(found.iter().any(|p| p.contains("connected hooks can't deliver")), "{found:?}");
     assert!(found.iter().any(|p| p.contains(&format!("the hooks run {}, which does not exist", gone.display()))), "{found:?}");
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_daemon_health_is_shown_and_its_warnings_become_findings() {
+    use gitprompt_server::health::WarningKind;
+
+    let home = home();
+    let daemon = home.daemon().await;
+    let port = daemon.local_addr().port();
+    let health = daemon.service().health();
+    health.warn("2026-11-11T20:00:00Z".into(), WarningKind::MemoryHigh, "resident memory is 1500 MiB (limit 1024 MiB)".into());
+    health.warn("2026-11-11T20:00:30Z".into(), WarningKind::WriterContention, "3 database writes waited over 250 ms".into());
+
+    let (report, code) = tokio::task::spawn_blocking(move || {
+        let (report, code) = report(&home, port);
+        (report, code)
+    })
+    .await
+    .unwrap();
+    assert_eq!(code, 1, "high memory is a problem");
+    assert!(problems(&report).iter().any(|p| p.starts_with("resident memory is 1500 MiB")), "{:?}", problems(&report));
+    let notes: Vec<&str> = report["notes"].as_array().unwrap().iter().map(|n| n["what"].as_str().unwrap()).collect();
+    assert!(notes.iter().any(|n| n.starts_with("3 database writes waited")), "{notes:?}");
+    let health = &report["daemon"]["running"]["health"];
+    assert!(
+        health["routes"].as_array().unwrap().iter().any(|r| r["route"] == "GET /healthz"),
+        "doctor's /healthz call (made before the status) is recorded"
+    );
+    assert!(health["writer"]["entries"].as_u64().unwrap() > 0);
+    daemon.shutdown().await.unwrap();
+}
