@@ -1,5 +1,5 @@
 //! The plugin's commands (`plugin:gitprompt|<name>`), each thin over [`Service`] or the state.
-//! Arguments are snake_case, like the HTTP API's JSON; errors are [`CommandError`]s. The single
+//! Arguments are `snake_case`, like the HTTP API's JSON; errors are [`CommandError`]s. The single
 //! handler list is [`handler`]; [`crate::COMMANDS`] names the same commands for the permissions.
 //!
 //! | command          | arguments                                     | returns         |

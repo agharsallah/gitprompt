@@ -1,5 +1,18 @@
 //! The format table (export/formats.py and each format's registration): names, labels, media
 //! types, extensions, and which formats draw a single chart.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 use pretty_assertions::assert_eq;
 

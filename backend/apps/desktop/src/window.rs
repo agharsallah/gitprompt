@@ -5,10 +5,10 @@ use tauri::{AppHandle, Manager, Runtime, Url, WebviewUrl, WebviewWindowBuilder, 
 
 use gitprompt_tauri::{DaemonStatus, GitPromptExt};
 
-pub const MAIN: &str = "main";
+pub(crate) const MAIN: &str = "main";
 
 /// Show the main window, creating it once the daemon's start settled.
-pub fn show<R: Runtime>(app: &AppHandle<R>) {
+pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window(MAIN) {
         reveal(&window);
         return;
@@ -45,7 +45,7 @@ fn reveal<R: Runtime>(window: &tauri::WebviewWindow<R>) {
 }
 
 /// Closing the main window hides it; the app (and capture) keep running in the tray.
-pub fn on_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
+pub(crate) fn on_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     if let WindowEvent::CloseRequested { api, .. } = event
         && window.label() == MAIN
     {

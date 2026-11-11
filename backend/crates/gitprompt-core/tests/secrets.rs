@@ -1,5 +1,18 @@
-//! Secret detection and redaction (port of insights/redaction.py and its test in test_insights.py).
+//! Secret detection and redaction (port of insights/redaction.py and its test in `test_insights.py`).
 //! Sample secrets are assembled from parts so they never sit whole in the source.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 use gitprompt_core::secrets::{KINDS, find_secrets, hide, redact};
 use pretty_assertions::assert_eq;
@@ -124,7 +137,7 @@ fn a_password_assignment_ignores_case_and_quotes_but_needs_eight_characters() {
 #[test]
 fn redact_hides_secrets_in_nested_strings_and_leaves_keys_alone() {
     let key = aws();
-    let value = json!({key.clone(): {"list": [key.clone(), 3, null, false]}});
+    let value = json!({key.clone(): {"list": [key, 3, null, false]}});
     let expected = json!({key: {"list": ["[hidden AWS access key]", 3, null, false]}});
     assert_eq!(redact(&value), expected);
 }

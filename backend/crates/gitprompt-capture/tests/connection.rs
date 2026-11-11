@@ -1,5 +1,18 @@
 //! Connect and disconnect with consent (dry-run diff first), for every bundled tool, plus turning a
 //! connector off and re-mapping its stored payloads. Real config files in a temporary user home.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -72,7 +85,7 @@ fn disconnecting_restores_the_users_settings_exactly() {
 
     let removed = Connection::new(&spec, &env.settings).disconnect(false).unwrap();
 
-    assert!(removed.applied && removed.diff.contains("-"), "{removed:?}");
+    assert!(removed.applied && removed.diff.contains('-'), "{removed:?}");
     assert_eq!(read_json(&file), user_claude_settings());
     assert!(!Connection::new(&spec, &env.settings).connected());
 }
@@ -460,7 +473,7 @@ fn remapping_a_session_joined_source_keeps_its_prompt_ids_and_joins() {
     send(json!({"hook_event_name": "PostToolUse", "session_id": "s1", "tool_name": "view"}));
     let ids = |c: &gitprompt_capture::Captured| match only_row(c) {
         gitprompt_capture::pipeline::StoredRow::Prompt(id) => id,
-        other => panic!("{other:?}"),
+        other @ gitprompt_capture::pipeline::StoredRow::Event(_) => panic!("{other:?}"),
     };
     let (first, second) = (ids(&first), ids(&second));
 

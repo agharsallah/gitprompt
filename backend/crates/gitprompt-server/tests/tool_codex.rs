@@ -1,6 +1,19 @@
 //! OpenAI Codex CLI end to end through the API, data only (codex.yaml): connecting merges into the
-//! user's own $CODEX_HOME/hooks.json and disconnecting restores it, TOML settings that turn hooks off
-//! block connecting, and a turn's events join their prompt by `turn_id`. Port of test_codex.py.
+//! user's own $`CODEX_HOME/hooks.json` and disconnecting restores it, TOML settings that turn hooks off
+//! block connecting, and a turn's events join their prompt by `turn_id`. Port of `test_codex.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -13,7 +26,7 @@ use serde_json::{Value, json};
 const SESSION: &str = "0190a1b2-0000-7000-8000-000000000001";
 const TURN: &str = "0190a1b2-0000-7000-8000-0000000000a1";
 
-/// An app whose environment points CODEX_HOME at a temp folder.
+/// An app whose environment points `CODEX_HOME` at a temp folder.
 fn codex_api() -> (Api, PathBuf) {
     let h = harness();
     let home = h.root().join("codex-home");

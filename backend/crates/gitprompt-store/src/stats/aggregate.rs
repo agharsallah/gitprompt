@@ -163,7 +163,7 @@ fn with_excerpt(inner: Sql, excerpt: Option<Excerpt>, order: &str) -> Sql {
 
 fn bucket(row: &Row<'_>) -> DbResult<Bucket> {
     let has = |column: &str| row.as_ref().column_index(column).is_ok();
-    let times = response_times(row.get("times")?)?;
+    let times = response_times(row.get::<_, Option<String>>("times")?.as_deref())?;
     Ok(Bucket {
         key: text_at(row, "key")?,
         detail: text_at(row, if has("excerpt") { "excerpt" } else { "detail" })?,
@@ -206,7 +206,7 @@ fn bucket(row: &Row<'_>) -> DbResult<Bucket> {
 }
 
 /// The response times of a bucket (`group_concat` of them), sorted.
-fn response_times(joined: Option<String>) -> DbResult<Vec<f64>> {
+fn response_times(joined: Option<&str>) -> DbResult<Vec<f64>> {
     let mut times = joined
         .iter()
         .flat_map(|joined| joined.split(','))
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn response_times_are_parsed_and_sorted() {
-        assert_eq!(response_times(Some("30.0,10.0,100.5".into())).unwrap(), vec![10.0, 30.0, 100.5]);
+        assert_eq!(response_times(Some("30.0,10.0,100.5")).unwrap(), vec![10.0, 30.0, 100.5]);
         assert_eq!(response_times(None).unwrap(), Vec::<f64>::new());
     }
 

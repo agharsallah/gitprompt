@@ -1,6 +1,19 @@
 //! The plugin in a mock Tauri app: setup starts the daemon, commands answer over IPC, notices
 //! become events, an external daemon or a taken port leave the app usable, shutdown releases the
 //! lock.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
@@ -107,7 +120,7 @@ fn invoke(webview: &WebviewWindow<MockRuntime>, command: &str, args: Value) -> R
         error: CallbackFn(1),
         url: "tauri://localhost".parse().unwrap(),
         body: InvokeBody::Json(args),
-        headers: Default::default(),
+        headers: tauri::http::HeaderMap::default(),
         invoke_key: INVOKE_KEY.to_string(),
     };
     get_ipc_response(webview, request).map(|body| body.deserialize::<Value>().unwrap())

@@ -1,6 +1,19 @@
 //! The security layer: Host check (DNS rebinding), the hook token on /ingest, the X-GitPrompt header
 //! on writes, and the JSON error body. Port of `test_rejects_unknown_hosts`, the token and header
 //! assertions spread over tests/api/*.py, plus the guard tables.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -150,16 +163,16 @@ fn local_host_names_are_loopback_and_localhost_with_an_optional_port() {
 fn the_token_check_accepts_only_the_exact_bearer_value() {
     assert!(check_token(Some("Bearer s3cret"), "s3cret").is_ok());
     let wrong = [None, Some(""), Some("s3cret"), Some("Bearer s3cret "), Some("Bearer s3cre"), Some("bearer s3cret")];
-    let accepted: Vec<_> = wrong.iter().filter(|h| !matches!(check_token(**h, "s3cret"), Err(ApiError::Unauthorized))).collect();
-    assert_eq!(accepted, Vec::<&Option<&str>>::new());
+    let accepted: Vec<_> = wrong.into_iter().filter(|h| !matches!(check_token(*h, "s3cret"), Err(ApiError::Unauthorized))).collect();
+    assert_eq!(accepted, Vec::<Option<&str>>::new());
 }
 
 #[test]
 fn the_dashboard_check_accepts_only_the_value_1() {
     assert!(check_dashboard(Some("1")).is_ok());
     let wrong = [None, Some(""), Some("0"), Some("true")];
-    let accepted: Vec<_> = wrong.iter().filter(|h| !matches!(check_dashboard(**h), Err(ApiError::MissingDashboardHeader))).collect();
-    assert_eq!(accepted, Vec::<&Option<&str>>::new());
+    let accepted: Vec<_> = wrong.into_iter().filter(|h| !matches!(check_dashboard(*h), Err(ApiError::MissingDashboardHeader))).collect();
+    assert_eq!(accepted, Vec::<Option<&str>>::new());
 }
 
 #[test]

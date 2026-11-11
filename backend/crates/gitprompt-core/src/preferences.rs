@@ -96,6 +96,12 @@ pub struct PreferenceFile {
     pub env: Env,
 }
 
+impl std::fmt::Debug for PreferenceFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreferenceFile").field("path", &self.path).finish_non_exhaustive()
+    }
+}
+
 impl PreferenceFile {
     pub fn new(home: &Path, env: Env) -> Self {
         PreferenceFile { path: home.join(FILE_NAME), env }
@@ -256,7 +262,7 @@ fn retention_days(value: &Json) -> std::result::Result<Json, String> {
     const RANGE: std::ops::RangeInclusive<i64> = 1..=3650;
     let days = match value {
         Json::Null => return Ok(Json::Null),
-        Json::Number(n) => n.as_i64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0 && f.abs() < 1e15).map(|f| f as i64)),
+        Json::Number(n) => n.as_i64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0 && f.abs() < 1e15).map(whole_f64_to_i64)),
         Json::String(text) => text.trim().parse::<i64>().ok(),
         _ => None,
     };
@@ -291,4 +297,10 @@ fn string_list(value: &Json) -> std::result::Result<Json, String> {
         Json::Array(items) if items.iter().all(Json::is_string) => Ok(value.clone()),
         _ => Err(format!("must be a list of connector ids, got {value}")),
     }
+}
+
+/// A whole `f64` already checked to lie within ±1e15, as `i64`: exact, since 1e15 < 2^53 < `i64::MAX`.
+#[expect(clippy::cast_possible_truncation, reason = "the caller bounds the value to ±1e15 with no fraction")]
+fn whole_f64_to_i64(f: f64) -> i64 {
+    f as i64
 }

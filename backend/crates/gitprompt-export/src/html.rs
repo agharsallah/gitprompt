@@ -110,7 +110,9 @@ pub fn html(report: &Report) -> String {
     for section in &report.sections {
         push_section(&mut body, section);
     }
-    let notes: String = report.notes.iter().map(|note| format!("<li>{}</li>", esc(note))).collect();
+    let notes = joined(&report.notes, |out, note| {
+        let _ = write!(out, "<li>{}</li>", esc(note));
+    });
     let _ = write!(body, "<footer><p>Exported from GitPrompt on {}.</p><ul>{notes}</ul></footer>", esc(&report.generated_at));
     format!(
         concat!(
@@ -133,6 +135,15 @@ pub fn html(report: &Report) -> String {
 // `write!` into a `String` cannot fail (`fmt::Write for String` always returns `Ok`), hence the
 // `let _ =` below.
 
+/// Each item written into one string by `write`, with no string per item.
+fn joined<I: IntoIterator>(items: I, mut write: impl FnMut(&mut String, I::Item)) -> String {
+    let mut out = String::new();
+    for item in items {
+        write(&mut out, item);
+    }
+    out
+}
+
 fn push_section(out: &mut String, section: &Section) {
     let tag = match section.level {
         Level::Two => "h2",
@@ -149,17 +160,18 @@ fn push_section(out: &mut String, section: &Section) {
 /// Blocks in order, each run of consecutive charts in one grid (left out when none has items).
 fn push_blocks(out: &mut String, blocks: &[Block]) {
     let mut rest = blocks;
-    while let Some(first) = rest.first() {
+    while let Some((first, tail)) = rest.split_first() {
         if matches!(first, Block::Chart(_)) {
             let run = rest.iter().take_while(|b| matches!(b, Block::Chart(_))).count();
-            let charts: String = rest[..run].iter().filter_map(|b| if let Block::Chart(c) = b { Some(chart(c)) } else { None }).collect();
+            let (charts, after) = rest.split_at_checked(run).unwrap_or((rest, &[]));
+            let charts: String = charts.iter().filter_map(|b| if let Block::Chart(c) = b { Some(chart(c)) } else { None }).collect();
             if !charts.is_empty() {
                 let _ = write!(out, r#"<div class="charts">{charts}</div>"#);
             }
-            rest = &rest[run..];
+            rest = after;
         } else {
             out.push_str(&block(first));
-            rest = &rest[1..];
+            rest = tail;
         }
     }
 }
@@ -177,7 +189,9 @@ fn block(block: &Block) -> String {
 }
 
 fn figures_html(figures: &Figures) -> String {
-    let cells: String = figures.items.iter().map(|f| format!("<div><dt>{}</dt><dd>{}</dd></div>", esc(&f.label), esc(&f.value))).collect();
+    let cells = joined(&figures.items, |out, f| {
+        let _ = write!(out, "<div><dt>{}</dt><dd>{}</dd></div>", esc(&f.label), esc(&f.value));
+    });
     format!(r#"<dl class="figures">{cells}</dl>"#)
 }
 
@@ -185,8 +199,9 @@ fn chart(chart: &Chart) -> String {
     if chart.items.is_empty() {
         return String::new();
     }
-    let rows: String =
-        chart.items.iter().map(|b| format!(r#"<tr><td>{}</td><td class="num">{}</td></tr>"#, esc(&b.label), esc(&b.display))).collect();
+    let rows = joined(&chart.items, |out, b| {
+        let _ = write!(out, r#"<tr><td>{}</td><td class="num">{}</td></tr>"#, esc(&b.label), esc(&b.display));
+    });
     let caption = if chart.caption.is_empty() { String::new() } else { format!(r#"<p class="muted">{}</p>"#, esc(&chart.caption)) };
     format!(
         r#"<figure><figcaption>{}</figcaption>{}{caption}<details><summary>Numbers</summary><div class="table"><table>{rows}</table></div></details></figure>"#,
@@ -206,7 +221,9 @@ fn quote_html(quote: &Quote) -> String {
 }
 
 fn items_html(items: &Items) -> String {
-    let list: String = items.items.iter().map(|item| format!("<li>{}</li>", esc(item))).collect();
+    let list = joined(&items.items, |out, item| {
+        let _ = write!(out, "<li>{}</li>", esc(item));
+    });
     if items.mono { format!(r#"<ul class="mono">{list}</ul>"#) } else { format!("<ul>{list}</ul>") }
 }
 
@@ -225,14 +242,15 @@ fn table(t: &Table) -> String {
             ""
         }
     };
-    let head: String = t.columns.iter().enumerate().map(|(i, c)| format!("<th{}>{}</th>", class(i, false), esc(c))).collect();
-    let body: String = t
-        .rows
-        .iter()
-        .map(|row| {
-            let cells: String = row.iter().enumerate().map(|(i, v)| format!("<td{}>{}</td>", class(i, true), esc(v))).collect();
-            format!("<tr>{cells}</tr>")
-        })
-        .collect();
+    let head = joined(t.columns.iter().enumerate(), |out, (i, c)| {
+        let _ = write!(out, "<th{}>{}</th>", class(i, false), esc(c));
+    });
+    let body = joined(&t.rows, |out, row| {
+        out.push_str("<tr>");
+        for (i, v) in row.iter().enumerate() {
+            let _ = write!(out, "<td{}>{}</td>", class(i, true), esc(v));
+        }
+        out.push_str("</tr>");
+    });
     format!(r#"<div class="table"><table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>"#)
 }

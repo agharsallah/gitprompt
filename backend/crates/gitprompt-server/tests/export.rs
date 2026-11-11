@@ -1,9 +1,23 @@
 //! GET /api/export/{kind}: every kind in every format, with secrets, email addresses and home paths
-//! planted in the synthetic data (ADR-0018). Port of test_export_routes.py; the Python
+//! planted in the synthetic data (ADR-0018). Port of `test_export_routes.py`; the Python
 //! kind × format parametrization is one test per kind here, collecting every leak it finds.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use common::{Api, Resp, git, harness, otlp, project_id};
@@ -72,7 +86,7 @@ async fn data() -> (Api, PathBuf) {
             event_id += 1;
             ("event", format!("id = {event_id}"))
         };
-        statements += &format!("update {table} set received_at = '{at}.000000+00:00' where {row};");
+        write!(statements, "update {table} set received_at = '{at}.000000+00:00' where {row};").unwrap();
     }
     api.sql(&statements);
     let resource = json!({"service.name": "claude-code", "user.email": ACCOUNT_EMAIL, "organization.id": ORG_ID, "user.id": "u-123456"});
@@ -113,8 +127,12 @@ async fn default_leaks(kind: &str) -> Vec<(String, String)> {
     let mut leaks = Vec::new();
     for format in FORMATS {
         let body = fetch(&api, kind, &repo, &[("format", format)]).await.text();
-        let forbidden =
-            NEVER.iter().map(|s| s.to_string()).chain([home.clone(), "deploy with".into(), "Jane Doe".into(), "u-123456".into()]);
+        let forbidden = NEVER.iter().map(std::string::ToString::to_string).chain([
+            home.clone(),
+            "deploy with".into(),
+            "Jane Doe".into(),
+            "u-123456".into(),
+        ]);
         leaks.extend(forbidden.filter(|v| body.contains(v.as_str())).map(|v| (format.to_string(), v)));
     }
     leaks
@@ -147,7 +165,7 @@ async fn with_text_problems(kind: &str) -> Vec<(String, String)> {
     let mut problems = Vec::new();
     for format in ["md", "html", "csv", "json"] {
         let body = fetch(&api, kind, &repo, &[("format", format), ("prompt_text", "true"), ("drop_raw", "false")]).await.text();
-        let forbidden = NEVER.iter().map(|s| s.to_string()).chain([home.clone()]);
+        let forbidden = NEVER.iter().map(std::string::ToString::to_string).chain([home.clone()]);
         problems.extend(forbidden.filter(|v| body.contains(v.as_str())).map(|v| (format.to_string(), format!("leaks {v}"))));
         let shown: &[&str] = match kind {
             "overview" => &[],                                                       // no prompt text

@@ -87,6 +87,7 @@ fn thousands(n: i64) -> String {
 }
 
 /// Python's `round`: halves to even. The cast saturates, which no count reaches.
+#[expect(clippy::cast_possible_truncation, reason = "saturates, which no count reaches")]
 fn round(n: f64) -> i64 {
     n.round_ties_even() as i64
 }

@@ -75,6 +75,7 @@ impl LogConfig {
     }
 
     /// The same configuration, also appending to `file`.
+    #[must_use]
     pub fn with_file(self, file: impl Into<PathBuf>) -> Self {
         LogConfig { file: Some(file.into()), ..self }
     }
@@ -99,7 +100,7 @@ pub fn filter(value: Option<&str>) -> String {
         other => other.to_owned(),
     };
     let Some(rank) = LEVELS.iter().position(|l| *l == level) else { return value.to_owned() };
-    let others = LEVELS[rank.min(2)]; // 2 = warn
+    let others = LEVELS.get(rank.min(2)).unwrap_or(&"warn"); // 2 = warn
     format!("{others},gitprompt={level}")
 }
 

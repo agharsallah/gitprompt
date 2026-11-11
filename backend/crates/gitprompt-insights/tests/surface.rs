@@ -1,5 +1,18 @@
 //! Where a prompt was typed (surface.rs): the spec's surface rules, first match wins, unknown stays
-//! None. Port of tests/insights/test_surface.py and the surface parts of tests/api/test_desktop_apps.py.
+//! None. Port of `tests/insights/test_surface.py` and the surface parts of `tests/api/test_desktop_apps.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -156,7 +169,7 @@ fn the_catalog_of_no_spec_is_empty() {
 #[test]
 fn every_surface_a_bundled_spec_captures_or_derives_is_in_the_catalog() {
     let all = specs();
-    let named = catalog(all.values().map(|s| s.as_ref()));
+    let named = catalog(all.values().map(std::convert::AsRef::as_ref));
     let used: Vec<String> =
         all.values().flat_map(|s| s.surface.iter().map(|r| r.surface.clone()).chain(s.captures.keys().cloned())).collect();
     let unnamed: Vec<&String> = used.iter().filter(|s| !named.contains_key(*s)).collect();

@@ -70,7 +70,8 @@ fn dotted_number(text: &str) -> Option<String> {
             }
         }
         let byte_end = chars.get(end).map_or(text.len(), |(i, _)| *i);
-        return Some(text[chars[start].0..byte_end].trim_end_matches('.').to_owned());
+        let byte_start = chars.get(start)?.0;
+        return Some(text.get(byte_start..byte_end)?.trim_end_matches('.').to_owned());
     }
     None
 }
@@ -107,6 +108,7 @@ pub trait CommandRunner: Send + Sync {
 
 /// Runs the command as a child process (production). Its stdin and stderr are closed; it is killed
 /// when it outlives the timeout.
+#[derive(Debug)]
 pub struct SystemRunner;
 
 impl CommandRunner for SystemRunner {
@@ -149,6 +151,7 @@ pub trait Clock: Send + Sync {
 }
 
 /// `Instant::now()` (production).
+#[derive(Debug)]
 pub struct SystemClock;
 
 impl Clock for SystemClock {
@@ -174,6 +177,12 @@ pub struct VersionCache {
     pub clock: Arc<dyn Clock>,
     pub max_age: Duration,
     entries: Mutex<HashMap<Vec<String>, Arc<Mutex<Remembered>>>>,
+}
+
+impl std::fmt::Debug for VersionCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VersionCache").field("max_age", &self.max_age).finish_non_exhaustive()
+    }
 }
 
 impl VersionCache {

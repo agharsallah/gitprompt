@@ -29,13 +29,13 @@ pub(crate) struct Lease<'a> {
 }
 
 impl Pool {
-    pub fn new(path: PathBuf, max: usize) -> Self {
+    pub(super) fn new(path: PathBuf, max: usize) -> Self {
         Pool { path, max: max.max(1), state: Mutex::new(State { idle: Vec::new(), open: 0 }), returned: Condvar::new() }
     }
 
     /// Run `f` on a read connection, inside one read transaction so all its queries see the same
     /// snapshot.
-    pub fn read<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
+    pub(super) fn read<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         let conn = self.take()?;
         conn.execute_batch("begin")?;
         let result = f(&conn);

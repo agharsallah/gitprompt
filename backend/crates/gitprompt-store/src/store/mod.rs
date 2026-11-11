@@ -78,6 +78,12 @@ pub struct Store {
     clock: Clock,
 }
 
+impl std::fmt::Debug for Store {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Store").finish_non_exhaustive()
+    }
+}
+
 impl Store {
     /// Open (creating it, its parent directory with mode 0700, and the schema) a database file of
     /// mode 0600 in WAL mode. Opening a database the Python daemon wrote keeps every row.
@@ -103,6 +109,7 @@ impl Store {
 
     /// Use `clock` instead of the system clock for `received_at` of new rows and values derived on
     /// read (the `running` outcome window). New; the daemon keeps the system clock.
+    #[must_use]
     pub fn with_clock(self, clock: Clock) -> Self {
         Store { clock, ..self }
     }

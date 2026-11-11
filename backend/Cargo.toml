@@ -8,6 +8,8 @@ edition = "2024"
 rust-version = "1.90"
 license = "MIT"
 authors = ["agharsallah"]
+# Internal crates: never published to crates.io by accident.
+publish = false
 
 [workspace.dependencies]
 gitprompt-core = { path = "crates/gitprompt-core" }
@@ -39,10 +41,12 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 rust-embed = "8"
 sha2 = "0.11"
-toml = "0.8"
+# Parsing only: `display` (TOML writing) is unused.
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
 glob = "0.3"
 similar = "2"
-resvg = "0.45"
+# Charts rasterize text with system fonts; `raster-images` (JPEG/GIF/WebP decoders for <image>) is unused.
+resvg = { version = "0.45", default-features = false, features = ["text", "system-fonts", "memmap-fonts"] }
 # desktop (Tauri v2)
 tauri = "2.12"
 tauri-build = "2.7"
@@ -56,9 +60,55 @@ proptest = "1"
 assert_cmd = "2"
 predicates = "3"
 
+# Every member opts in with `[lints] workspace = true`. CI runs clippy with `-D warnings`,
+# so each `warn` below is a hard gate there while staying a soft nudge in the editor.
+# Test-only relaxations live in clippy.toml (`#[test]` / `#[cfg(test)]`) and in the
+# `#![allow(..)]` header at the top of every integration-test file (tests/*.rs).
 [workspace.lints.rust]
 unsafe_code = "forbid"
+unreachable_pub = "warn"                # keeps each crate's public API small (modularity)
+missing_debug_implementations = "warn"
 
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Pedantic lints turned off on purpose (with why):
+must_use_candidate = "allow"            # would put #[must_use] on ~200 plain getters; noise, not safety
+missing_errors_doc = "allow"            # internal crates, not a published API
+cast_precision_loss = "allow"           # counts → f64 for ratios; counts stay far below 2^53
+similar_names = "allow"                 # flags pairs like `path`/`paths`; naming taste, not bugs
+struct_excessive_bools = "allow"        # option/flag structs mirror API and CLI switches
+
+# Panics and crashes
+unwrap_used = "deny"                    # no unwrap outside tests
+expect_used = "warn"                    # an expect needs a reason it cannot fail: #[expect(.., reason)]
+panic = "deny"
+indexing_slicing = "warn"               # a[i] can crash the program; use .get()
+cast_possible_truncation = "warn"       # `as` silently drops high bits; use try_from
+# Async correctness
+await_holding_lock = "deny"             # std Mutex held across .await
+large_futures = "warn"
+# Leftovers
+dbg_macro = "deny"
+todo = "deny"
+print_stdout = "warn"                   # stdout belongs to the CLI; it writes through a handle
+allow_attributes_without_reason = "warn" # every #[allow]/#[expect] says why
+# Performance (nursery lints with a good track record)
+redundant_clone = "warn"
+needless_collect = "warn"
+or_fun_call = "warn"                    # unwrap_or(f()) builds the value even when unused
+
+# Size: release builds are what ship (CLI + desktop app). Measured on the gitprompt CLI / desktop app
+# (2026-11): thin LTO 14.6 / 21.2 MB → + strip symbols 12.5 / 17.7 MB → + fat LTO 11.7 / 16.7 MB,
+# at ~1.5 min more release build time. `panic` stays "unwind" on purpose: a panicking request
+# handler or tokio task must not take the whole daemon down.
 [profile.release]
-lto = "thin"
+lto = "fat"
 codegen-units = 1
+strip = "symbols"   # panic backtraces lose function names; use the `profiling` profile to investigate
+
+# `cargo build --profile profiling`: release code with symbols and line tables, for flamegraphs
+# and readable backtraces.
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = "none"

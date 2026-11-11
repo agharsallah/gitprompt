@@ -42,7 +42,7 @@ pub(crate) struct Db {
 
 impl Db {
     /// Open (creating it and its schema) a database file in WAL mode: directory 0700, file 0600.
-    pub fn open(path: &Path) -> DbResult<Db> {
+    pub(crate) fn open(path: &Path) -> DbResult<Db> {
         files::prepare(path)?;
         let flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_NO_MUTEX;
         let writer = Connection::open_with_flags(path, flags)?;
@@ -58,20 +58,20 @@ impl Db {
     }
 
     /// A private in-memory database: one connection serves reads and writes.
-    pub fn open_in_memory() -> DbResult<Db> {
+    pub(crate) fn open_in_memory() -> DbResult<Db> {
         let writer = Connection::open_in_memory()?;
         schema::create(&writer)?;
         Ok(Db { gate: Gate::default(), writer: Mutex::new(writer), readers: None })
     }
 
     /// Run `f` on the writer connection.
-    pub fn write<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
+    pub(crate) fn write<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         let _pass = self.gate.enter();
         f(&self.lock_writer())
     }
 
     /// Run `f` on a connection that sees everything committed, and this thread's open transaction.
-    pub fn read<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
+    pub(crate) fn read<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         match &self.readers {
             Some(pool) if !self.gate.held_here() => pool.read(f),
             _ => self.write(f),
@@ -79,13 +79,13 @@ impl Db {
     }
 
     /// Run `f` on the writer inside a transaction.
-    pub fn atomic<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
+    pub(crate) fn atomic<T>(&self, f: impl FnOnce(&Connection) -> DbResult<T>) -> DbResult<T> {
         self.transaction(|| self.write(f))
     }
 
     /// Run `f` all-or-nothing: `Err` (or a panic) rolls back every write made on the writer by this
     /// thread meanwhile. Nested transactions become savepoints.
-    pub fn transaction<T, E: From<DbError>>(&self, f: impl FnOnce() -> Result<T, E>) -> Result<T, E> {
+    pub(crate) fn transaction<T, E: From<DbError>>(&self, f: impl FnOnce() -> Result<T, E>) -> Result<T, E> {
         let _pass = self.gate.enter();
         let scope = self.write(Scope::begin)?;
         let mut open = OpenTransaction { db: self, scope, finished: false };

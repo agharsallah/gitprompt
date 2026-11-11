@@ -71,28 +71,42 @@ pub struct Connection<'a> {
     pub forwarder: Option<PathBuf>,
 }
 
+impl std::fmt::Debug for Connection<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Connection")
+            .field("spec", &self.spec.id)
+            .field("now", &self.now)
+            .field("forwarder", &self.forwarder)
+            .finish_non_exhaustive()
+    }
+}
+
 impl<'a> Connection<'a> {
     pub fn new(spec: &'a Spec, settings: &'a Settings) -> Self {
         Connection { spec, settings, token: None, now: None, forwarder: None }
     }
 
     /// The same connection rendered with `token` (e.g. [`crate::rotation::PLACEHOLDER`]).
+    #[must_use]
     pub fn with_token(self, token: impl Into<String>) -> Self {
         Connection { token: Some(token.into()), ..self }
     }
 
     /// The same connection naming backups after `now`.
+    #[must_use]
     pub fn at(self, now: DateTime) -> Self {
         Connection { now: Some(now), ..self }
     }
 
     /// The same connection installing hooks that run GitPrompt's forwarder at `path` (see the
     /// module docs).
+    #[must_use]
     pub fn with_forwarder(self, path: impl Into<PathBuf>) -> Self {
         Connection { forwarder: Some(path.into()), ..self }
     }
 
     /// The same connection with `forwarder` set or cleared.
+    #[must_use]
     pub fn via(self, forwarder: Option<&Path>) -> Self {
         Connection { forwarder: forwarder.map(Path::to_path_buf), ..self }
     }

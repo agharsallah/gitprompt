@@ -1,7 +1,7 @@
 //! Shared builders for the insights tests: bundled specs loaded from temp dirs, prompt and event
 //! rows with sensible defaults, story rows, commits, fixture replay and a timezone with daylight
 //! saving. Each test binary uses part of them.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -411,7 +411,7 @@ pub fn replay(spec: &Spec, tool: &str) -> Replayed {
     let mut out = Replayed::default();
     for (i, case) in cases(tool).into_iter().enumerate() {
         let id = i as i64 + 1;
-        let received_at = format!("2026-11-07T10:00:{:02}+00:00", i);
+        let received_at = format!("2026-11-07T10:00:{i:02}+00:00");
         let raw = spec.discarding(case.payload.clone());
         let mut fields = spec.extract(&raw);
         let text = |key: &str, fields: &JsonMap| fields.get(key).and_then(Json::as_str).map(String::from);

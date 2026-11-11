@@ -1,5 +1,18 @@
-//! Source specs: patterns, name matching, Spec behaviour, parse_spec merge rules and validation, and
-//! every bundled spec (port of tests/sources/test_spec.py and sources/spec.py).
+//! Source specs: patterns, name matching, Spec behaviour, `parse_spec` merge rules and validation, and
+//! every bundled spec (port of `tests/sources/test_spec.py` and sources/spec.py).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -37,7 +50,7 @@ fn spec_error(text: &str) -> String {
 }
 
 fn strings(items: &[&str]) -> Vec<String> {
-    items.iter().map(|s| s.to_string()).collect()
+    items.iter().map(std::string::ToString::to_string).collect()
 }
 
 fn table<T: Clone>(pairs: &[(&str, T)]) -> IndexMap<String, T> {
@@ -339,7 +352,7 @@ fn discarding_without_discard_keys_or_on_a_non_object_changes_nothing() {
 
 // --- parse_spec: defaults and merge rules ---------------------------------------------------
 
-const DEFAULTS_YAML: &str = r#"
+const DEFAULTS_YAML: &str = r"
 map: {prompt: [prompt, text], event: [hook_event_name]}
 tool_kinds: {Read: read, Bash: shell}
 origin:
@@ -352,7 +365,7 @@ answer: {Stop: last_assistant_message}
 shown: {a: shared a, b: shared b}
 ignored: {x: shared x}
 surfaces: {cli: {name: CLI, icon: terminal}, vscode: {name: VS Code, icon: code}}
-"#;
+";
 
 const OWN_YAML: &str = r#"
 map: {prompt: [input], session_id: [sid]}
@@ -590,7 +603,7 @@ fn valid_specs() -> Vec<(&'static str, String)> {
 #[test]
 fn edge_cases_of_valid_specs_parse() {
     let results: Vec<(&str, String)> =
-        valid_specs().into_iter().map(|(case, text)| (case, parse(&text).map(|s| s.id).unwrap_or_else(|e| e.to_string()))).collect();
+        valid_specs().into_iter().map(|(case, text)| (case, parse(&text).map_or_else(|e| e.to_string(), |s| s.id))).collect();
     let expected: Vec<(&str, String)> = valid_specs().into_iter().map(|(case, _)| (case, "mytool".to_string())).collect();
     assert_eq!(results, expected);
 }
@@ -626,7 +639,7 @@ fn every_bundled_spec_parses_with_the_id_of_its_file() {
     let ids: Vec<(String, String)> = BUNDLED
         .iter()
         .filter(|(name, _)| *name != DEFAULTS)
-        .map(|(name, text)| (name.to_string(), parse_spec(name, text, &bundled_defaults()).map(|s| s.id).unwrap_or_else(|e| e.to_string())))
+        .map(|(name, text)| (name.to_string(), parse_spec(name, text, &bundled_defaults()).map_or_else(|e| e.to_string(), |s| s.id)))
         .collect();
     let expected: Vec<(String, String)> = ["claude-code-otel", "claude-code", "codex", "copilot-cli", "cursor"]
         .into_iter()

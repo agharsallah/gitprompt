@@ -1,7 +1,7 @@
 //! Shared test data for the export tests: synthetic inputs of every kind with planted secrets,
 //! email addresses, account ids, commit authors and home paths (ADR-0018 verification), plus small
 //! report builders. Every value is synthetic; nothing touches the network or the real home folder.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 use std::collections::BTreeSet;
 

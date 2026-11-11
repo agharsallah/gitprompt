@@ -42,6 +42,7 @@ pub const HIDDEN_TEXT: &str = "[hidden text]";
 
 /// A pattern of this module. Infallible: each is a fixed pattern (tested), or an escaped literal
 /// path followed by a fixed look-ahead.
+#[expect(clippy::expect_used, reason = "fixed patterns (tested) or an escaped literal plus a fixed look-ahead")]
 fn pattern(source: &str) -> Regex {
     Regex::new(source).expect("a fixed pattern, or an escaped literal and a fixed look-ahead")
 }
@@ -87,7 +88,7 @@ impl Options {
     }
 
     /// Whether an object key (outside a tool metadata object) is left out.
-    fn drops(&self, key: &str) -> bool {
+    fn drops(self, key: &str) -> bool {
         (!self.prompt_text && TEXT_KEYS.contains(&key))
             || (self.drop_raw && RAW_KEYS.contains(&key))
             || (self.drop_identity && (IDENTITY_KEYS.contains(&key) || IDENTITY_PREFIXES.iter().any(|p| key.starts_with(p))))

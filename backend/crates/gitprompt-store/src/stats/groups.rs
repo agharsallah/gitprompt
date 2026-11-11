@@ -31,7 +31,7 @@ pub(super) enum Excerpt {
 
 impl Excerpt {
     /// The column of a bucket holding the prompt to excerpt.
-    pub fn id_column(self) -> &'static str {
+    pub(super) fn id_column(self) -> &'static str {
         match self {
             Excerpt::First => "first_id",
             Excerpt::Last => "last_id",

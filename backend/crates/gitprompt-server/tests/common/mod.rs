@@ -5,7 +5,7 @@
 //! `<tmp>/home` stands in for `~` (tests never touch the real ~/.claude, ~/.codex...). The
 //! environment the specs and preferences read is `Settings::env`, set per test — never the process
 //! environment.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -78,7 +78,7 @@ impl Harness {
     }
 
     pub fn applies_at_start(mut self, keys: &[&str]) -> Self {
-        self.options.applies_at_start = keys.iter().map(|k| k.to_string()).collect();
+        self.options.applies_at_start = keys.iter().map(std::string::ToString::to_string).collect();
         self
     }
 
@@ -237,7 +237,7 @@ impl<'a> Req<'a> {
         for (name, value) in &self.headers {
             request = request.header(name, value);
         }
-        let request = request.body(self.body.map(Body::from).unwrap_or_else(Body::empty)).expect("request");
+        let request = request.body(self.body.map_or_else(Body::empty, Body::from)).expect("request");
         let response = self.api.router.clone().oneshot(request).await.expect("infallible router");
         let status = response.status().as_u16();
         let headers = response.headers().clone();
@@ -277,7 +277,7 @@ impl Resp {
 
 // --- payloads (synthetic, in the documented shapes) ---
 
-/// Claude Code UserPromptSubmit, as documented at https://code.claude.com/docs/en/hooks.
+/// Claude Code `UserPromptSubmit`, as documented at <https://code.claude.com/docs/en/hooks>.
 pub fn hook_payload(cwd: &Path) -> Value {
     json!({
         "session_id": "abc123",
@@ -338,7 +338,7 @@ pub fn key(value: &Value) -> String {
     }
 }
 
-/// The dashboard's project id: base64url of the repository path, no padding (stories.project_id).
+/// The dashboard's project id: base64url of the repository path, no padding (`stories.project_id`).
 pub fn project_id(repo: &str) -> String {
     const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     let bytes = repo.as_bytes();

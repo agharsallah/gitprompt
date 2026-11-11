@@ -53,6 +53,7 @@ pub enum DaemonError {
     Io(#[from] std::io::Error),
 }
 
+#[derive(Debug)]
 pub struct Daemon {
     addr: SocketAddr,
     service: Service,

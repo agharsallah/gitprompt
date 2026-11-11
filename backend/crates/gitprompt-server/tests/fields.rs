@@ -1,5 +1,18 @@
 //! GET /api/fields: every field seen in stored payloads next to the fields each tool documents.
-//! Port of the field-catalog assertions of test_api.py.
+//! Port of the field-catalog assertions of `test_api.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

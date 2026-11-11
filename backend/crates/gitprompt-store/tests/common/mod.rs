@@ -1,7 +1,7 @@
 //! Test data for the store tests: a prompt builder that stores the raw prompt row *and* its prompt
 //! index entry (the values gitprompt-insights would derive), an event builder, and small helpers.
 //! Each test states only what matters; everything else gets a sensible default.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 use std::sync::Arc;
 
@@ -35,7 +35,7 @@ pub fn parse(s: &str) -> Timestamp {
     s.parse::<Timestamp>().unwrap_or_else(|e| panic!("bad timestamp {s}: {e}"))
 }
 
-/// A received_at string as the store writes them: microseconds and `+00:00`.
+/// A `received_at` string as the store writes them: microseconds and `+00:00`.
 pub fn ts(t: Timestamp) -> String {
     t.strftime("%Y-%m-%dT%H:%M:%S%.6f+00:00").to_string()
 }
@@ -71,7 +71,7 @@ pub fn replacing(from: &'static str, to: &'static str) -> impl Fn(&Json) -> Json
 // --- prompts ------------------------------------------------------------------------------------
 
 /// A prompt row plus its index entry. `insert` stores both (ids, source, prompt id, session and
-/// received_at are kept consistent between them); `insert_unindexed` stores only the raw row.
+/// `received_at` are kept consistent between them); `insert_unindexed` stores only the raw row.
 #[derive(Clone)]
 pub struct PromptBuilder {
     source: String,
@@ -191,7 +191,7 @@ impl PromptBuilder {
         self
     }
 
-    /// Tool calls of the turn; also adds to the prompt's tool_calls.
+    /// Tool calls of the turn; also adds to the prompt's `tool_calls`.
     pub fn tool(mut self, tool: &str, kind: ToolKind, calls: i64) -> Self {
         self.entry.row.tool_calls += calls;
         self.entry.tools.push(ToolCalls { tool: Some(tool.into()), kind, calls });
@@ -213,10 +213,10 @@ impl PromptBuilder {
     pub fn entry_for(&self, id: i64) -> Entry {
         let mut entry = self.entry.clone();
         entry.row.id = id;
-        entry.row.source = self.source.clone();
+        entry.row.source.clone_from(&self.source);
         entry.row.prompt_id = self.fields.get("prompt_id").and_then(Json::as_str).map(Into::into);
         entry.row.session = self.fields.get("session_id").and_then(Json::as_str).map(Into::into);
-        entry.row.received_at = self.at.clone();
+        entry.row.received_at.clone_from(&self.at);
         entry
     }
 

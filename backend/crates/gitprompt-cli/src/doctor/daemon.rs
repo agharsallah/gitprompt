@@ -36,7 +36,8 @@ pub(super) fn check(settings: &Settings) -> DaemonCheck {
 /// `/healthz` answers 200 `{"ok": true}`.
 fn healthz(addr: SocketAddr) -> bool {
     http::get(addr, "/healthz", TIMEOUT).is_ok_and(|answer| {
-        answer.status == 200 && serde_json::from_slice::<serde_json::Value>(&answer.body).is_ok_and(|v| v["ok"] == true)
+        answer.status == 200
+            && serde_json::from_slice::<serde_json::Value>(&answer.body).is_ok_and(|v| v.get("ok") == Some(&serde_json::Value::Bool(true)))
     })
 }
 

@@ -42,7 +42,7 @@ pub struct TurnEvent {
 }
 
 impl Store {
-    /// The prompts the filter keeps, oldest first unless `newest_first` (by received_at, then id).
+    /// The prompts the filter keeps, oldest first unless `newest_first` (by `received_at`, then id).
     pub fn timeline(&self, filter: &PromptFilter, limit: Option<usize>, newest_first: bool) -> Result<Vec<IndexedPrompt>> {
         let running_since = self.running_since();
         let direction = if newest_first { "desc" } else { "asc" };
@@ -102,7 +102,7 @@ fn indexed_prompt(row: &Row<'_>) -> DbResult<IndexedPrompt> {
 
 /// One row per tool call or compaction of a turn, with only the fields a story shows: the tool's
 /// input (the files a write tool touched), and what a subagent was asked (Claude Code's Agent tool,
-/// Codex's spawn_agent). `?1`: characters of the brief; `?2`: the turns, as a JSON array.
+/// Codex's `spawn_agent`). `?1`: characters of the brief; `?2`: the turns, as a JSON array.
 const TURN_EVENTS: &str = "select prompt_id, event, received_at, json_extract(raw, '$.tool_name') tool,
   case json_type(raw, '$.tool_input') when 'object' then json_extract(raw, '$.tool_input') end tool_input,
   coalesce(json_extract(raw, '$.tool_input.description'), json_extract(raw, '$.tool_input.task_name')) description,

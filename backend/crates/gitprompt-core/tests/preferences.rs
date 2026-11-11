@@ -1,4 +1,17 @@
-//! Preferences: env > file > defaults, validation, atomic writes (port of tests/core/test_preferences.py).
+//! Preferences: env > file > defaults, validation, atomic writes (port of `tests/core/test_preferences.py`).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

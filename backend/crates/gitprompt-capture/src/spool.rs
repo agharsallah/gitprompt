@@ -125,6 +125,7 @@ impl Spool {
     }
 
     /// The same spool stamping payloads with `clock` (tests).
+    #[must_use]
     pub fn with_clock(self, clock: Clock) -> Self {
         Spool { clock, ..self }
     }
@@ -248,18 +249,17 @@ impl Spool {
         // Wait for an append that locked the file before it was renamed.
         File::open(&draining)?.lock()?;
         for (line, end) in read_lines(&draining, read_offset(&offset_file)?)? {
-            match Spooled::parse(&line) {
-                Some(spooled) => match ingest(spooled) {
+            if let Some(spooled) = Spooled::parse(&line) {
+                match ingest(spooled) {
                     Ok(()) => drained.ingested += 1,
                     Err(e) => {
                         tracing::warn!(%source, error = %e, "spooled payload not ingested; it stays queued");
                         return Ok(false);
                     }
-                },
-                None => {
-                    self.set_aside(source, &line)?;
-                    drained.corrupted += 1;
                 }
+            } else {
+                self.set_aside(source, &line)?;
+                drained.corrupted += 1;
             }
             atomic_write(&offset_file, &end.to_string(), FILE_MODE)?;
         }
@@ -356,7 +356,7 @@ fn read_lines(path: &Path, offset: u64) -> Result<Vec<(String, u64)>> {
     let start = usize::try_from(offset).unwrap_or(usize::MAX).min(bytes.len());
     let mut lines = Vec::new();
     let mut at = start;
-    for chunk in bytes[start..].split_inclusive(|b| *b == b'\n') {
+    for chunk in bytes.get(start..).unwrap_or_default().split_inclusive(|b| *b == b'\n') {
         at += chunk.len();
         let line = String::from_utf8_lossy(chunk);
         let line = line.trim_end_matches(['\n', '\r']);

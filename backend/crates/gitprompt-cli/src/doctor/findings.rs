@@ -113,7 +113,7 @@ fn dashboard(report: &Report, found: &mut Found) {
             "Build it there (`just build`), or unset GITPROMPT_DASHBOARD to use the embedded one.",
         ),
         (DashboardSource::Embedded, false) => {
-            found.note("This binary has no dashboard built in: the browser shows a 'not built' page.", "Run `just build`.")
+            found.note("This binary has no dashboard built in: the browser shows a 'not built' page.", "Run `just build`.");
         }
         _ => {}
     }
@@ -146,7 +146,7 @@ fn connectors(report: &Report, found: &mut Found) {
                 "Change that setting in the tool (or ask your admin), or disconnect.",
             ),
             ConnectorState::Quiet => {
-                found.note(format!("{name}: nothing received for over a day."), "Use the tool once; if nothing arrives, reconnect.")
+                found.note(format!("{name}: nothing received for over a day."), "Use the tool once; if nothing arrives, reconnect.");
             }
             _ => {}
         }

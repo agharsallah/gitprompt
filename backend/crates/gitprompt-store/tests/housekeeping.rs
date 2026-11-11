@@ -1,6 +1,19 @@
 //! Storage hygiene: event usage and deletion, noise/expired/selected, plan/apply, compact and the
-//! retention pass. Port of capture/compact.py, capture/retention.py, tests/capture/test_compact.py
-//! and the data parts of tests/api/test_settings.py.
+//! retention pass. Port of capture/compact.py, capture/retention.py, `tests/capture/test_compact.py`
+//! and the data parts of `tests/api/test_settings.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -60,6 +73,7 @@ fn kinds(removals: &[Removal]) -> Vec<(String, Option<String>, u64, Why)> {
     kinds
 }
 
+#[expect(clippy::unnecessary_wraps, reason = "shorthand for Some(s.to_string()) in expected values")]
 fn some(s: &str) -> Option<String> {
     Some(s.to_string())
 }
@@ -389,7 +403,7 @@ fn preferences(home: &Path, json: &str) -> PreferenceFile {
     PreferenceFile::new(home, Env::default())
 }
 
-/// test_settings.py `events`: one noise kind, one old and one recent event.
+/// `test_settings.py` `events`: one noise kind, one old and one recent event.
 fn retention_store() -> Store {
     let store = store();
     add(&store, OTEL, "hook_registered", 0);

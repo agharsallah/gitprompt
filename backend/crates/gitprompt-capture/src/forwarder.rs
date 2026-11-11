@@ -103,6 +103,12 @@ pub struct Forwarder<'a> {
     pub transport: &'a dyn Transport,
 }
 
+impl std::fmt::Debug for Forwarder<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Forwarder").field("receiver", &self.receiver).finish_non_exhaustive()
+    }
+}
+
 impl Forwarder<'_> {
     /// Forward the payload a tool piped to the hook of `spec`, printing the reply the spec names
     /// ([`reply`]) whatever happens.
@@ -132,9 +138,8 @@ impl Forwarder<'_> {
     }
 
     fn queue(&self, source: &str, stdin: &[u8]) -> Outcome {
-        let payload = match serde_json::from_slice::<Json>(stdin) {
-            Ok(payload @ Json::Object(_)) => payload,
-            _ => return Outcome::Dropped { reason: "the payload is not a JSON object".into() },
+        let Ok(payload @ Json::Object(_)) = serde_json::from_slice::<Json>(stdin) else {
+            return Outcome::Dropped { reason: "the payload is not a JSON object".into() };
         };
         match self.spool.append(source, &payload) {
             Ok(()) => Outcome::Spooled,

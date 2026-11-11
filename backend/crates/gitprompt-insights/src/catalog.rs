@@ -88,7 +88,7 @@ fn seen(samples: &[Sample]) -> BTreeMap<Key, Field> {
             let key = (sample.source.clone(), sample.event.clone(), path);
             let found = out.entry(key).or_insert_with_key(|(source, event, path)| field(source, event, path));
             found.count += 1;
-            let empty = is_no_value(&value) || value.as_object().is_some_and(|m| m.is_empty());
+            let empty = is_no_value(&value) || value.as_object().is_some_and(serde_json::Map::is_empty);
             if !empty {
                 found.sample = Some(match value {
                     Json::String(text) => Json::String(text.chars().take(SAMPLE_CHARS).collect()),

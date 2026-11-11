@@ -4,6 +4,8 @@ description = "SQLite storage: raw prompts and events, the rebuildable prompt in
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 
 [dependencies]
 serde.workspace = true

@@ -1,6 +1,8 @@
 //! ISO-8601 timestamps as the store and the tools write them (an offset or `Z`, optional fractional
 //! seconds), kept with the offset they were written in, as Python's `datetime.fromisoformat` does.
 
+use std::fmt::Write as _;
+
 use jiff::fmt::temporal::{Pieces, PiecesOffset};
 use jiff::tz::{Offset, TimeZone};
 use jiff::{SignedDuration, Timestamp};
@@ -29,6 +31,7 @@ impl Instant {
     pub(crate) fn plus_seconds(self, seconds: f64) -> Instant {
         // Saturating float-to-int: absurd durations (out of i64 microseconds) clamp, then fail the
         // checked add below and leave the instant unchanged.
+        #[expect(clippy::cast_possible_truncation, reason = "saturating on purpose; the checked add rejects the clamped value")]
         let micros = (seconds * 1e6).round_ties_even() as i64;
         let at = self.at.checked_add(SignedDuration::from_micros(micros)).unwrap_or(self.at);
         Instant { at, ..self }
@@ -41,7 +44,7 @@ impl Instant {
         let mut out = local.strftime("%Y-%m-%dT%H:%M:%S").to_string();
         let micros = local.subsec_nanosecond() / 1000;
         if micros != 0 {
-            out.push_str(&format!(".{micros:06}"));
+            let _ = write!(out, ".{micros:06}");
         }
         out.push_str(&offset_text(self.offset));
         out

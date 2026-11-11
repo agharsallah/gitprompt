@@ -1,8 +1,21 @@
 //! `gitprompt hook <source>`: the forwarder a tool's hook runs. It must exit 0 and print nothing
 //! whether GitPrompt is up, down or hung (Claude Code shows "hook error" otherwise; Codex adds
 //! stdout to the conversation); a payload that can't be delivered is spooled and delivered when
-//! the daemon starts. Port of test_hook_forwarder.py's contract, for the new native forwarder.
+//! the daemon starts. Port of `test_hook_forwarder.py`'s contract, for the new native forwarder.
 //! Loopback only.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

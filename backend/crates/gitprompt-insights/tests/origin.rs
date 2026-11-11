@@ -1,5 +1,18 @@
 //! Origin and typed text (origin.rs), from the bundled specs' rules, on synthetic prompts. Port of
-//! tests/insights/test_origin.py, plus the rule branches and block boundaries it left implicit.
+//! `tests/insights/test_origin.py`, plus the rule branches and block boundaries it left implicit.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -14,7 +27,7 @@ use gitprompt_store::EventRow;
 const TAGS: [&str; 2] = ["ide_selection", "system-reminder"];
 
 fn tags() -> Vec<String> {
-    TAGS.iter().map(|t| t.to_string()).collect()
+    TAGS.iter().map(std::string::ToString::to_string).collect()
 }
 
 /// The origin Claude Code's spec gives a prompt with this text and these turn events.

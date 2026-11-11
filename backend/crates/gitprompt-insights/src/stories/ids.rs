@@ -10,6 +10,7 @@ pub(super) fn encode(bytes: &[u8]) -> String {
         // A chunk of n bytes carries n + 1 sextets; the rest would be padding, which is left out.
         for i in 0..=chunk.len() {
             let sextet = (group >> (18 - 6 * i)) & 0x3f;
+            #[expect(clippy::indexing_slicing, reason = "masked to 6 bits, so always below the alphabet's 64")]
             out.push(char::from(ALPHABET[sextet as usize]));
         }
     }

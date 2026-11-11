@@ -5,6 +5,7 @@
 //! Every wait polls against a deadline (never a fixed sleep), and a daemon still running when its
 //! [`Served`] is dropped is killed, so a failing test leaves no process behind.
 
+use std::fmt::Write as _;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -39,7 +40,7 @@ pub fn eventually<T>(deadline: Duration, what: &str, mut probe: impl FnMut() -> 
 }
 
 impl Home {
-    /// The binary with only this home's environment: HOME, GITPROMPT_HOME, GITPROMPT_PORT, and a
+    /// The binary with only this home's environment: HOME, `GITPROMPT_HOME`, `GITPROMPT_PORT`, and a
     /// PATH of the system folders (git for the git facts; no AI tool of the developer's machine).
     pub fn binary(&self, port: u16, args: &[&str]) -> Command {
         let mut command = Command::new(env!("CARGO_BIN_EXE_gitprompt"));
@@ -87,7 +88,7 @@ impl Home {
             let mut served = self.spawn_serve(free_port());
             match served.healthy() {
                 Ok(()) => return served,
-                Err(Exited { stderr, .. }) if stderr.contains("cannot listen on") => continue,
+                Err(Exited { stderr, .. }) if stderr.contains("cannot listen on") => {}
                 Err(exited) => panic!("{exited}"),
             }
         }
@@ -307,10 +308,10 @@ pub fn send_head(
 ) -> std::io::Result<()> {
     let mut head = format!("{method} {path} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n", host(port));
     if content_length > 0 || method != "GET" {
-        head.push_str(&format!("Content-Length: {content_length}\r\n"));
+        write!(head, "Content-Length: {content_length}\r\n").unwrap();
     }
     for (name, value) in headers {
-        head.push_str(&format!("{name}: {value}\r\n"));
+        write!(head, "{name}: {value}\r\n").unwrap();
     }
     head.push_str("\r\n");
     stream.write_all(head.as_bytes())

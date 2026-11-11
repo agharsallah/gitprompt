@@ -1,4 +1,17 @@
 //! A connector layer's state (README "Connectors"), from its raw facts, and gathering those facts.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -107,8 +120,8 @@ fn every_state_has_a_distinct_label() {
 
 #[test]
 fn every_state_has_the_one_action_the_readme_names() {
-    let actions: Vec<Action> = ConnectorState::ALL.iter().map(|s| s.action()).collect();
     use Action::*;
+    let actions: Vec<Action> = ConnectorState::ALL.iter().map(|s| s.action()).collect();
     assert_eq!(actions, vec![Enable, Recheck, Connect, Connect, Recheck, Update, Remap, Recheck, View, View]);
 }
 

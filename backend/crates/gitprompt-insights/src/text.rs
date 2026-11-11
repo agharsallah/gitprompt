@@ -70,6 +70,7 @@ pub(crate) fn clip(text: &str, chars: usize) -> (String, bool) {
 }
 
 #[cfg(test)]
+#[expect(clippy::float_cmp, reason = "rounding tests: the exact float is the expected value")]
 mod tests {
     use super::*;
 

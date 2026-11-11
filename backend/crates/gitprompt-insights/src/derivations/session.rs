@@ -1,4 +1,4 @@
-//! The whole session ([`SessionSummary`]): every event that shares the prompt's session_id. One small
+//! The whole session ([`SessionSummary`]): every event that shares the prompt's `session_id`. One small
 //! function per group of values, over the session's events.
 
 use std::collections::BTreeSet;

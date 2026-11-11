@@ -1,5 +1,18 @@
 //! The file on disk: opening a database the Python daemon wrote (no migration), file and directory
 //! modes, WAL, reopening, and online backup.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -14,7 +27,7 @@ use rusqlite::Connection;
 use serde_json::json;
 
 /// storage/store.py SCHEMA, with `{session}` and `{view}` expanded as the Python daemon runs it.
-const PY_STORE_SCHEMA: &str = r#"
+const PY_STORE_SCHEMA: &str = r"
 create table if not exists prompt (
   id          integer primary key,
   source      text not null,
@@ -53,10 +66,10 @@ select p.*, coalesce(a.data, '{}') annotation,
 from prompt p left join annotation a on a.id = p.id
 where 1=1
 window w as (partition by p.source, coalesce(json_extract(p.fields, '$.session_id'), '') order by p.id);
-"#;
+";
 
 /// storage/index.py SCHEMA.
-const PY_INDEX_SCHEMA: &str = r#"
+const PY_INDEX_SCHEMA: &str = r"
 create table if not exists index_meta (key text primary key, value text not null);
 create table if not exists prompt_index (
   id integer primary key, prompt_id text, source text not null, session text, repo text, repo_name text,
@@ -100,10 +113,10 @@ create table if not exists session_command (
 create index if not exists session_command_session on session_command (session, received_at);
 create table if not exists index_dirty (prompt_id text primary key);
 create virtual table if not exists prompt_fts using fts5(typed_text, tokenize = 'trigram');
-"#;
+";
 
 /// Rows as the Python daemon writes them: `json.dumps` (spaces after separators, non-ASCII
-/// escaped), received_at from `datetime.isoformat()`.
+/// escaped), `received_at` from `datetime.isoformat()`.
 const PY_ROWS: &str = r#"
 insert into prompt values (1, 'claude-code', '2026-11-03T10:00:00.123456+00:00', 'Write a factorial function',
   '{"event": "UserPromptSubmit", "session_id": "abc123", "prompt_id": "p1", "prompt": "Write a factorial function", "cwd": "/work/café"}',

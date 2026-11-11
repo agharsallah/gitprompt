@@ -28,7 +28,7 @@ use gitprompt_core::{Env, Settings};
 #[derive(Debug, Parser)]
 #[command(name = "gitprompt", about = "Capture your AI prompts locally.", version)]
 pub struct Cli {
-    /// Overrides GITPROMPT_PORT (default 7878); `gitprompt --port N` still serves.
+    /// Overrides `GITPROMPT_PORT` (default 7878); `gitprompt --port N` still serves.
     #[arg(long)]
     pub port: Option<u16>,
     #[command(subcommand)]
@@ -39,7 +39,7 @@ pub struct Cli {
 pub enum Command {
     /// Run the receiver and dashboard (default).
     Serve {
-        /// Overrides GITPROMPT_PORT (default 7878).
+        /// Overrides `GITPROMPT_PORT` (default 7878).
         #[arg(long)]
         port: Option<u16>,
     },
@@ -97,6 +97,12 @@ pub struct Io<'a> {
     pub stderr: &'a mut dyn Write,
 }
 
+impl std::fmt::Debug for Io<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Io").finish_non_exhaustive()
+    }
+}
+
 /// Run a parsed command with settings from `env`; the process exit code.
 ///
 /// Output, as `cli.py` prints it:
@@ -112,7 +118,7 @@ pub struct Io<'a> {
 ///   app. Without a database: `No database yet at <path>: start GitPrompt and send a prompt first.`
 ///   (and no database is created).
 /// * errors: one line on stderr, exit 1.
-pub fn run(cli: Cli, env: Env, io: &mut Io<'_>) -> u8 {
+pub fn run(cli: &Cli, env: Env, io: &mut Io<'_>) -> u8 {
     // The forwarder must never disturb the tool: whatever fails, it exits 0 (see `Command::Hook`).
     if let Some(Command::Hook { source }) = &cli.command {
         return match Settings::from_env(env) {
@@ -120,13 +126,13 @@ pub fn run(cli: Cli, env: Env, io: &mut Io<'_>) -> u8 {
             Err(_) => 0,
         };
     }
-    let result = Settings::from_env(env).map_err(commands::Failure::from).and_then(|settings| match cli.command {
+    let result = Settings::from_env(env).map_err(commands::Failure::from).and_then(|settings| match &cli.command {
         None => commands::serve(settings, cli.port, io),
         Some(Command::Serve { port }) => commands::serve(settings, port.or(cli.port), io),
-        Some(Command::Compact { apply, events_older_than }) => commands::compact(&settings, apply, events_older_than, io),
+        Some(Command::Compact { apply, events_older_than }) => commands::compact(&settings, *apply, *events_older_than, io),
         Some(Command::Reindex) => commands::reindex(&settings, io),
         Some(Command::Check) => commands::check(&settings, io),
-        Some(Command::Doctor { json }) => doctor::run(&settings, json, io),
+        Some(Command::Doctor { json }) => doctor::run(&settings, *json, io),
         Some(Command::Spool { command: SpoolCommand::Drain }) => commands::drain(&settings, io),
         Some(Command::Hook { .. }) => Ok(0), // handled above
     });
@@ -160,5 +166,5 @@ pub fn main_entry() -> std::process::ExitCode {
     }
     let (mut stdin, mut stdout, mut stderr) = (std::io::stdin(), std::io::stdout(), std::io::stderr());
     let mut io = Io { stdin: &mut stdin, stdout: &mut stdout, stderr: &mut stderr };
-    std::process::ExitCode::from(run(cli, env, &mut io))
+    std::process::ExitCode::from(run(&cli, env, &mut io))
 }

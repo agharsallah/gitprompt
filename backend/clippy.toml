@@ -1,0 +1,11 @@
+# Clippy settings for the workspace. Lint levels live in Cargo.toml ([workspace.lints]).
+# The MSRV is read from `rust-version` in Cargo.toml.
+
+# Inside #[test] functions and #[cfg(test)] modules a panic is a test failure, which is what we want.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+# Proper nouns that doc_markdown should not ask to wrap in backticks. ".." keeps clippy's defaults.
+doc-valid-idents = ["GitPrompt", "SQLite", "SvelteKit", "FastAPI", "OpenAI", ".."]

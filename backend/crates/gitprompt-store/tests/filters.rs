@@ -1,6 +1,19 @@
 //! Prompt filters (shared by the prompt list, statistics, stories and search): every field, empty
 //! values ignored, conditions combined with AND. Port of storage/store.py FILTERS/where/_words and
-//! the filter assertions of tests/api/test_stats.py and tests/insights/test_indexer.py.
+//! the filter assertions of `tests/api/test_stats.py` and `tests/insights/test_indexer.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -20,7 +33,7 @@ fn texts(store: &Store, filter: &PromptFilter) -> Vec<String> {
 
 // --- q: words of the typed text -----------------------------------------------------------------
 
-/// The four prompts of test_indexer.py's search test; the last one's typed text leaves out the
+/// The four prompts of `test_indexer.py`'s search test; the last one's typed text leaves out the
 /// injected selection.
 fn searchable() -> Store {
     let store = store();

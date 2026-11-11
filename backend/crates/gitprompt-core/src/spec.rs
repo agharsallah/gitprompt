@@ -424,6 +424,11 @@ impl Spec {
 
     /// Matches this source's receiver URL (`/ingest/<id>`), not one of a source whose id merely
     /// starts the same (`/ingest/<id>-otel`).
+    ///
+    /// # Panics
+    ///
+    /// Never: the id is escaped, so the pattern is a literal plus a fixed look-ahead.
+    #[expect(clippy::expect_used, reason = "an escaped id plus a fixed look-ahead is always a valid pattern")]
     pub fn marker(&self) -> Pattern {
         let source = format!(r"/ingest/{}(?![\w-])", fancy_regex::escape(&self.id));
         // The id is escaped, so the pattern is a literal plus a fixed look-ahead: always valid.
@@ -463,15 +468,12 @@ fn expand_vars(path: &str, env: &crate::Env) -> String {
     while let Some(start) = rest.find("${") {
         out.push_str(&rest[..start]);
         let after = &rest[start + 2..];
-        match parse_var(after) {
-            Some((name, default, len)) => {
-                out.push_str(env.get(name).unwrap_or(default));
-                rest = &after[len..];
-            }
-            None => {
-                out.push_str("${");
-                rest = after;
-            }
+        if let Some((name, default, len)) = parse_var(after) {
+            out.push_str(env.get(name).unwrap_or(default));
+            rest = &after[len..];
+        } else {
+            out.push_str("${");
+            rest = after;
         }
     }
     out.push_str(rest);
@@ -542,7 +544,7 @@ fn merge_defaults(data: &mut YamlMap, defaults: &YamlMap) {
     let injected = concat(given(defaults, "injected"), given(data, "injected"), true);
     data.insert("injected".into(), injected);
     for key in ["usage", "answer"] {
-        let whole = given(data, key).or(given(defaults, key)).cloned().unwrap_or_else(|| Yaml::Mapping(YamlMap::new()));
+        let whole = given(data, key).or_else(|| given(defaults, key)).cloned().unwrap_or_else(|| Yaml::Mapping(YamlMap::new()));
         data.insert(key.into(), whole);
     }
 }
@@ -725,9 +727,10 @@ pub fn load_spec_set(settings: &Settings) -> SpecSet {
     }
     drop_orphan_layers(&mut out);
     for problem in &out.problems {
-        match &problem.fallback {
-            Some(fallback) => tracing::warn!("{} (using the bundled {fallback})", problem.error),
-            None => tracing::warn!("{}", problem.error),
+        if let Some(fallback) = &problem.fallback {
+            tracing::warn!("{} (using the bundled {fallback})", problem.error);
+        } else {
+            tracing::warn!("{}", problem.error);
         }
     }
     out
@@ -758,12 +761,13 @@ fn candidates(settings: &Settings) -> BTreeMap<String, Vec<SpecFile>> {
 fn user_spec_paths(dir: &Path) -> Vec<(String, PathBuf)> {
     let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
     entries
-        .filter_map(|entry| entry.ok())
+        .filter_map(std::result::Result::ok)
         .filter_map(|entry| Some((entry.file_name().into_string().ok()?, entry.path())))
         .filter(|(name, path)| is_user_spec_name(name) && path.is_file())
         .collect()
 }
 
+#[expect(clippy::case_sensitive_file_extension_comparisons, reason = "spec files are lowercase `.yaml`, as the Python version matched")]
 fn is_user_spec_name(name: &str) -> bool {
     name.ends_with(".yaml") && name != DEFAULTS
 }
@@ -775,22 +779,19 @@ fn load_one(candidates: &[SpecFile], defaults: &YamlMap, out: &mut SpecSet) {
         let spec = match read_and_parse(file, defaults) {
             Ok(spec) => spec,
             Err(error) => {
-                failed.get_or_insert(SpecProblem { file: file.clone(), error, fallback: None });
+                failed.get_or_insert_with(|| SpecProblem { file: file.clone(), error, fallback: None });
                 continue;
             }
         };
         if let Some(problem) = &mut failed {
             problem.fallback = Some(spec.id.clone());
         }
-        match out.files.get(&spec.id) {
-            Some(first) => {
-                let error = format!("source spec {}: id '{}' is already used by {}", file.name, spec.id, first.name);
-                out.problems.push(SpecProblem { file: file.clone(), error, fallback: None });
-            }
-            None => {
-                out.files.insert(spec.id.clone(), file.clone());
-                out.specs.insert(spec.id.clone(), Arc::new(spec));
-            }
+        if let Some(first) = out.files.get(&spec.id) {
+            let error = format!("source spec {}: id '{}' is already used by {}", file.name, spec.id, first.name);
+            out.problems.push(SpecProblem { file: file.clone(), error, fallback: None });
+        } else {
+            out.files.insert(spec.id.clone(), file.clone());
+            out.specs.insert(spec.id.clone(), Arc::new(spec));
         }
         break;
     }
@@ -828,6 +829,12 @@ pub struct SpecCache {
     settings: Settings,
     current: RwLock<Option<Cached>>,
     loads: AtomicU64,
+}
+
+impl std::fmt::Debug for SpecCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SpecCache").field("loads", &self.loads).finish_non_exhaustive()
+    }
 }
 
 struct Cached {
@@ -874,7 +881,7 @@ impl SpecCache {
 fn fingerprint(dir: &Path) -> Fingerprint {
     let entries = std::fs::read_dir(dir).ok()?;
     let mut files: Vec<(String, Option<SystemTime>, u64)> = entries
-        .filter_map(|entry| entry.ok())
+        .filter_map(std::result::Result::ok)
         .filter_map(|entry| {
             let name = entry.file_name().into_string().ok().filter(|name| is_user_spec_name(name))?;
             // Follows symlinks, as loading does.

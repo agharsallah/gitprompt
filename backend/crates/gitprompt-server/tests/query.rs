@@ -1,5 +1,18 @@
 //! Query-string parsing of the prompt filters (port of api/filters.py): repeated keys make lists,
 //! empty values are ignored, 0 is a value, local times become UTC, invalid values are 422.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 use gitprompt_core::spec::Origin;
 use gitprompt_server::ApiError;

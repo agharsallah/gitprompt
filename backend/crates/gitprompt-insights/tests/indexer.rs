@@ -1,8 +1,21 @@
 //! The prompt index (indexer.rs): the projection of the derivations it stores, the rules version that
 //! rebuilds it, and how it follows new prompts, new turn events and telemetry. Port of
-//! tests/insights/test_indexer.py: projections are checked purely with `entry`, the update rules on an
+//! `tests/insights/test_indexer.py`: projections are checked purely with `entry`, the update rules on an
 //! in-memory store; the timezone is injected (never the process `TZ`). FTS search and filters are the
 //! store's tests.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

@@ -1,6 +1,19 @@
 //! The Fields page (catalog.rs): fields seen in stored payloads next to the fields each tool documents
 //! and the ones it deliberately leaves unused. Port of the catalog parts of
-//! tests/sources/test_field_coverage.py and tests/api/test_api.py.
+//! `tests/sources/test_field_coverage.py` and `tests/api/test_api.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -18,7 +31,7 @@ fn sample(source: &str, event: &str, data: Value) -> Sample {
 
 fn catalog_of(samples: &[Sample]) -> Catalog {
     let specs = specs();
-    build_catalog(samples, specs.values().map(|s| s.as_ref()))
+    build_catalog(samples, specs.values().map(std::convert::AsRef::as_ref))
 }
 
 fn field<'a>(catalog: &'a Catalog, source: &str, event: &str, path: &str) -> &'a Field {

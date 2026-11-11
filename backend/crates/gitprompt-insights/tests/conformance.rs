@@ -1,8 +1,21 @@
 //! Connector conformance, insights side: every prompt fixture under testdata/fixtures gets the origin
 //! and typed text its `expect` names, and the facts each connector's prompts show follow its spec's
 //! `capabilities` (tokens and cost null, never zeros, when the tool can't report them). Port of the
-//! origin and display-contract parts of tests/sources/test_conformance.py; storing and joining are
+//! origin and display-contract parts of `tests/sources/test_conformance.py`; storing and joining are
 //! the capture crate's tests.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

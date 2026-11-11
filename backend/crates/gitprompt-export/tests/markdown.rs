@@ -1,4 +1,17 @@
 //! Markdown (export/markdown.py): GitHub-flavoured, charts as tables, inert prompt text.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -132,7 +145,7 @@ fn plain_items_are_escaped() {
 fn a_table_aligns_numeric_columns_right_and_cleans_its_cells() {
     let t = Table {
         columns: vec!["When".into(), "Cost".into(), "Prompt".into()],
-        rows: vec![vec!["09:00".into(), "$1.00".into(), "a | b\nnext   line".into()], vec!["".into(), "".into(), "".into()]],
+        rows: vec![vec!["09:00".into(), "$1.00".into(), "a | b\nnext   line".into()], vec![String::new(), String::new(), String::new()]],
         numeric: vec![false, true],
     };
     assert_eq!(

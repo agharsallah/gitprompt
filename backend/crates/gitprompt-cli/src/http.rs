@@ -2,6 +2,7 @@
 //! `http://127.0.0.1:<port>`), with the request's timeout for connecting, writing and reading the
 //! status line. No HTTP client dependency for a single loopback request.
 
+use std::fmt::Write as _;
 use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 
@@ -13,7 +14,7 @@ impl Transport for HttpTransport {
     fn send(&self, request: &HookRequest) -> Result<u16, Unreachable> {
         let unreachable = |e: std::io::Error| Unreachable(e.to_string());
         let rest = request.url.strip_prefix("http://").ok_or_else(|| Unreachable(format!("not an http URL: {}", request.url)))?;
-        let (authority, path) = rest.split_once('/').map_or((rest, "/".to_owned()), |(a, p)| (a, format!("/{p}")));
+        let (authority, path) = rest.split_once('/').map_or_else(|| (rest, "/".to_owned()), |(a, p)| (a, format!("/{p}")));
         let addr: SocketAddr =
             authority.to_socket_addrs().map_err(unreachable)?.next().ok_or_else(|| Unreachable(format!("no address for {authority}")))?;
         let mut stream = TcpStream::connect_timeout(&addr, request.timeout).map_err(unreachable)?;
@@ -25,7 +26,7 @@ impl Transport for HttpTransport {
             request.body.len()
         );
         for (name, value) in &request.headers {
-            head.push_str(&format!("{name}: {value}\r\n"));
+            let _ = write!(head, "{name}: {value}\r\n");
         }
         head.push_str("\r\n");
         stream.write_all(head.as_bytes()).map_err(unreachable)?;
@@ -58,8 +59,8 @@ pub(crate) fn get(addr: SocketAddr, path: &str, timeout: std::time::Duration) ->
     stream.read_to_end(&mut raw)?;
     let invalid = |what: &str| Error::new(ErrorKind::InvalidData, format!("not an HTTP answer: {what}"));
     let split = raw.windows(4).position(|w| w == b"\r\n\r\n").ok_or_else(|| invalid("no end of headers"))?;
-    let head = String::from_utf8_lossy(&raw[..split]).into_owned();
-    let body = raw[split + 4..].to_vec();
+    let head = String::from_utf8_lossy(raw.get(..split).unwrap_or_default()).into_owned();
+    let body = raw.get(split + 4..).unwrap_or_default().to_vec();
     let status = head.split_whitespace().nth(1).and_then(|code| code.parse().ok()).ok_or_else(|| invalid("no status"))?;
     let chunked = head.lines().any(|line| {
         let line = line.to_ascii_lowercase();
@@ -74,9 +75,9 @@ fn dechunk(mut rest: &[u8]) -> Option<Vec<u8>> {
     let mut out = Vec::new();
     loop {
         let line_end = rest.windows(2).position(|w| w == b"\r\n")?;
-        let size_text = std::str::from_utf8(&rest[..line_end]).ok()?;
+        let size_text = std::str::from_utf8(rest.get(..line_end)?).ok()?;
         let size = usize::from_str_radix(size_text.split(';').next()?.trim(), 16).ok()?;
-        rest = &rest[line_end + 2..];
+        rest = rest.get(line_end + 2..)?;
         if size == 0 {
             return Some(out);
         }

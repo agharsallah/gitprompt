@@ -1,9 +1,23 @@
 //! /api/stories/* and /api/search, end to end through ingest (synthetic payloads, a temp git
-//! repository). Port of test_story_routes.py.
+//! repository). Port of `test_story_routes.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use common::{Api, api, git, project_id, repo};
@@ -52,7 +66,7 @@ async fn data() -> (Api, PathBuf) {
             format!("id = {event_id}")
         };
         let table = if event == "UserPromptSubmit" { "prompt" } else { "event" };
-        statements += &format!("update {table} set received_at = '{at}.000000+00:00' where {row};");
+        write!(statements, "update {table} set received_at = '{at}.000000+00:00' where {row};").unwrap();
     }
     api.sql(&statements);
     std::fs::write(repo.join("b.txt"), "b\nc\n").expect("write");

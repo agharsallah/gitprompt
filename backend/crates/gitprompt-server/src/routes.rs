@@ -14,8 +14,8 @@
 //! | GET    | /api/sources/recent                    |              | `[RecentCapture]`               |
 //! | GET    | /api/sources/problems                  |              | `[SpecProblemOut]`              |
 //! | GET    | /api/sources/{source}/spec             |              | `SpecText`; 404                 |
-//! | POST   | /api/sources/{source}/connect?dry_run  | X-GitPrompt  | `Change`; 409 policy/config/disabled |
-//! | POST   | /api/sources/{source}/disconnect?dry_run | X-GitPrompt | `Change`                       |
+//! | POST   | /`api/sources/{source}/connect?dry_run`  | X-GitPrompt  | `Change`; 409 policy/config/disabled |
+//! | POST   | /`api/sources/{source}/disconnect?dry_run` | X-GitPrompt | `Change`                       |
 //! | POST   | /api/sources/{source}/enable           | X-GitPrompt  | `{enabled}`; 409 locked by env  |
 //! | POST   | /api/sources/{source}/disable          | X-GitPrompt  | `{enabled}`; 409 locked by env  |
 //! | POST   | /api/sources/{source}/remap            | X-GitPrompt  | `{updated}`                     |
@@ -25,7 +25,7 @@
 //! | GET    | /api/settings                          |              | `SettingsOut`                   |
 //! | PUT    | /api/settings                          | X-GitPrompt  | `SettingsSaved`; 422 invalid, 409 locked |
 //! | GET    | /api/data                              |              | `DataOut`                       |
-//! | POST   | /api/data/compact?dry_run=true         | X-GitPrompt  | `ReportOut`; 400 days < 1       |
+//! | POST   | /`api/data/compact?dry_run=true`         | X-GitPrompt  | `ReportOut`; 400 days < 1       |
 //! | POST   | /api/data/delete-events?dry_run=true   | X-GitPrompt  | `ReportOut`; 400 no source/before |
 //! | GET    | /api/security                          |              | `SecurityOut`                   |
 //! | POST   | /api/security/rotate-token?dry_run=true| X-GitPrompt  | `Rotation`; 409 blocked         |

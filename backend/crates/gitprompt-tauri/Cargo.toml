@@ -4,6 +4,8 @@ description = "Tauri v2 plugin: runs the GitPrompt daemon in-process, forwards l
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 # Tauri v2 plugins declare `links` so tauri-build can find the generated permission files;
 # the part after `tauri-plugin-` is the permission prefix (`gitprompt:default`).
 links = "tauri-plugin-gitprompt"
@@ -25,7 +27,6 @@ tauri-plugin = { workspace = true, features = ["build"] }
 tempfile.workspace = true
 pretty_assertions.workspace = true
 tauri = { workspace = true, features = ["test"] }
-tokio.workspace = true
 
 [lints]
 workspace = true

@@ -1,6 +1,19 @@
 //! The hook forwarder: it delivers the payload with the token, queues it when GitPrompt is down, and
 //! never disturbs the tool (only the configured reply on stdout). Port of `test_hook_forwarder.py`,
 //! with a fake transport instead of curl and a socket.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

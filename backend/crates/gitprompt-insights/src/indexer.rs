@@ -14,6 +14,7 @@
 //! with no migration.
 
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -79,7 +80,10 @@ pub fn rules_version(specs: &Specs, zone: &dyn Zone, code_version: &str) -> Stri
 
 /// The first 16 hex characters of the SHA-256 of `bytes`.
 fn hex16(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().take(8).map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes).iter().take(8).fold(String::with_capacity(16), |mut out, b| {
+        let _ = write!(out, "{b:02x}");
+        out
+    })
 }
 
 /// Equal for texts that differ only in case and whitespace: 16 hex characters of a SHA-256 of the
@@ -304,7 +308,7 @@ impl Indexer {
             index.drop_all()?;
             index.create()?;
             index.set_version(&self.version)?;
-            self.index_telemetry(store)?;
+            Self::index_telemetry(store)?;
             self.reindex_in(store, store.prompt_ids()?)
         })
     }
@@ -318,7 +322,7 @@ impl Indexer {
             return self.rebuild(store);
         }
         store.transaction(|store| {
-            self.index_telemetry(store)?;
+            Self::index_telemetry(store)?;
             let index = store.index();
             let mut ids = index.unindexed()?;
             ids.extend(store.prompts_of_turns(&index.take_marked()?)?);
@@ -337,7 +341,7 @@ impl Indexer {
     }
 
     /// Telemetry metrics and slash commands that arrived since the last read (by event id).
-    fn index_telemetry(&self, store: &Store) -> Result<()> {
+    fn index_telemetry(store: &Store) -> Result<()> {
         let index = store.index();
         let events = store.events_after(index.telemetry_after()?, METRIC_PREFIX, &[COMMAND_EVENT])?;
         let Some(last) = events.last() else { return Ok(()) };

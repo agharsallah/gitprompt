@@ -1,6 +1,19 @@
 //! Field coverage (coverage.rs): every key a connector's fixture payloads carry is mapped, derived,
-//! shown or ignored with a reason (ADR-0021). Port of tests/sources/test_field_coverage.py over
+//! shown or ignored with a reason (ADR-0021). Port of `tests/sources/test_field_coverage.py` over
 //! testdata/fixtures, replayed without the capture pipeline (tests/common `replay`).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -13,7 +26,7 @@ use common::{cases, replay, spec, specs};
 use gitprompt_insights::coverage::{declared, derived_reads, uncovered};
 
 fn set(keys: &[&str]) -> BTreeSet<String> {
-    keys.iter().map(|k| k.to_string()).collect()
+    keys.iter().map(std::string::ToString::to_string).collect()
 }
 
 /// fixture name -> its payload keys neither declared by the spec nor read by the derivations.

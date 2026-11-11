@@ -24,7 +24,7 @@ pub(crate) struct Pass<'a> {
 
 impl Gate {
     /// Enter, waiting while another thread is inside.
-    pub fn enter(&self) -> Pass<'_> {
+    pub(super) fn enter(&self) -> Pass<'_> {
         let me = thread::current().id();
         let mut state = self.lock();
         while state.owner.is_some_and(|owner| owner != me) {
@@ -36,7 +36,7 @@ impl Gate {
     }
 
     /// Whether the current thread is inside (so the writer holds its uncommitted writes).
-    pub fn held_here(&self) -> bool {
+    pub(super) fn held_here(&self) -> bool {
         self.lock().owner == Some(thread::current().id())
     }
 

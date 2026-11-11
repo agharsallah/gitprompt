@@ -2,7 +2,7 @@
 //! GitPrompt backend.
 //!
 //! While the app is open the plugin runs the HTTP daemon ([`gitprompt_server::Daemon`]) in-process
-//! on Tauri's async runtime, because the AI tools deliver hooks by POSTing to
+//! on Tauri's async runtime, because the AI tools deliver hooks by `POSTing` to
 //! `http://127.0.0.1:<port>/ingest/<source>` (or by running the bundled `gitprompt hook <source>`
 //! forwarder, which spools while the app is closed; the daemon drains that spool at start).
 //!

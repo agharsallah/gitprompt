@@ -47,18 +47,18 @@ pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commi
     let first = rows.first();
     let facts = || rows.iter().filter_map(|p| p.facts.as_ref());
     let mut models: IndexMap<String, u64> = IndexMap::new();
-    for model in facts().filter_map(|f| non_empty(&f.model)) {
+    for model in facts().filter_map(|f| non_empty(f.model.as_deref())) {
         *models.entry(model.to_owned()).or_default() += 1;
     }
     let mut branches: Vec<String> = Vec::new();
-    for branch in rows.iter().filter_map(|p| non_empty(&p.prompt.row.branch)) {
+    for branch in rows.iter().filter_map(|p| non_empty(p.prompt.row.branch.as_deref())) {
         if !branches.iter().any(|b| b == branch) {
             branches.push(branch.to_owned());
         }
     }
     SessionStory {
         session: session.to_owned(),
-        title: rows.iter().find_map(|p| non_empty(&p.prompt.row.title)).map(String::from),
+        title: rows.iter().find_map(|p| non_empty(p.prompt.row.title.as_deref())).map(String::from),
         source: first.map(|p| p.prompt.row.source.clone()),
         connector: first.and_then(|p| p.facts.as_ref()).map(|f| f.connector.clone()),
         surface: facts().find_map(|f| f.surface.clone()),
@@ -66,7 +66,7 @@ pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commi
         project: project_of(rows),
         branches,
         started_at: first.map(|p| p.prompt.row.received_at.clone()),
-        ended_at: latest_end(rows).map(|end| end.isoformat()),
+        ended_at: latest_end(rows).map(super::super::time::Instant::isoformat),
         totals,
         items: group_markers(items),
     }

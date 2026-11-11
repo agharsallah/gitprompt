@@ -1,6 +1,19 @@
 //! `gitprompt compact`: a dry run by default (rows and MB per kind, nothing changes), `--apply`
 //! deletes and VACUUMs. Port of cli.compact; events are planted with the store (ingest would drop
 //! the noise kind).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

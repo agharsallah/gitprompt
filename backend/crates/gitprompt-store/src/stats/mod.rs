@@ -70,7 +70,7 @@ pub struct AggregateQuery {
     pub filter: PromptFilter,
     pub group_by: Option<GroupBy>,
     /// Must differ from `group_by`; at most one of the two may be multi-valued (model, tool,
-    /// tool_kind, work, query_source), else `Error::Invalid`.
+    /// `tool_kind`, work, `query_source`), else `Error::Invalid`.
     pub split_by: Option<GroupBy>,
     /// Default: by key for time and size buckets, else by prompts (desc, then key).
     pub order: Option<Order>,
@@ -143,9 +143,11 @@ pub fn quantile(sorted: &[f64], q: f64) -> Option<f64> {
     let last = sorted.len().checked_sub(1)?;
     let position = last as f64 * q.clamp(0.0, 1.0);
     // In 0..=last: `position` is a non-negative float no larger than `last`.
+    #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, reason = "position is in 0..=last, a valid index")]
     let lo = (position.floor() as usize).min(last);
     let hi = (lo + 1).min(last);
-    let value = sorted[lo] + (sorted[hi] - sorted[lo]) * (position - lo as f64);
+    let (low, high) = (*sorted.get(lo)?, *sorted.get(hi)?);
+    let value = low + (high - low) * (position - lo as f64);
     Some(gitprompt_core::numbers::round(value, 1))
 }
 

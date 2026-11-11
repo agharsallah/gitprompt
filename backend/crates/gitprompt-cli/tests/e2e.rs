@@ -1,10 +1,23 @@
 //! End to end, black box: the real `gitprompt` binary as a child process with an explicit
-//! environment (temp GITPROMPT_HOME and HOME, a free loopback port), driven only through its
+//! environment (temp `GITPROMPT_HOME` and HOME, a free loopback port), driven only through its
 //! command line and HTTP over a plain `TcpStream` — what a tool's hook and the dashboard do.
 //!
 //! Covered: start-up and single instance, every connector fixture through `gitprompt hook`, every
 //! read route the dashboard uses (and every export), the live-update stream, offline spooling, and
 //! (unix) graceful shutdown on SIGINT. Every wait polls against a deadline.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -18,7 +31,7 @@ use serde_json::{Value, json};
 use common::binary::{COMMAND_DEADLINE, Fixture, Response, Served, connect, fixtures, read_head, send_head};
 use common::{Home, free_port, home};
 
-/// A Claude Code UserPromptSubmit in the documented shape.
+/// A Claude Code `UserPromptSubmit` in the documented shape.
 fn typed(session: &str, text: &str) -> Value {
     json!({
         "session_id": session,
@@ -255,7 +268,7 @@ fn every_read_route_the_dashboard_uses_answers_200_with_its_json_shape() {
         found.push(format!("/api/search?q=retry: no hit for the codex prompt: {search}"));
     }
     let charts = fetch("/api/export/session/charts?id=abc123");
-    if !charts.as_array().is_some_and(|c| !c.is_empty()) {
+    if charts.as_array().is_none_or(Vec::is_empty) {
         found.push(format!("/api/export/session/charts: {charts}"));
     }
 

@@ -1,5 +1,6 @@
 //! Randomness from the operating system's CSPRNG, for secrets and unique file names.
 
+use std::fmt::Write as _;
 use std::io;
 
 /// `N` random bytes from the OS CSPRNG.
@@ -17,7 +18,10 @@ pub(crate) fn token_urlsafe<const N: usize>() -> io::Result<String> {
 
 /// A short random hex suffix for temporary file names.
 pub(crate) fn hex_suffix() -> io::Result<String> {
-    Ok(bytes::<8>()?.iter().map(|b| format!("{b:02x}")).collect())
+    Ok(bytes::<8>()?.iter().fold(String::with_capacity(16), |mut out, b| {
+        let _ = write!(out, "{b:02x}");
+        out
+    }))
 }
 
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -29,6 +33,7 @@ fn base64url(data: &[u8]) -> String {
         let n = chunk.iter().enumerate().fold(0u32, |acc, (i, &b)| acc | (u32::from(b) << (16 - 8 * i)));
         // A chunk of k bytes carries k + 1 base64 digits.
         for i in 0..=chunk.len() {
+            #[expect(clippy::indexing_slicing, reason = "masked to 6 bits, so always below the alphabet's 64")]
             out.push(char::from(ALPHABET[((n >> (18 - 6 * i)) & 0x3f) as usize]));
         }
     }

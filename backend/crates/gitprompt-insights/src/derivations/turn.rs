@@ -1,4 +1,4 @@
-//! One turn ([`TurnSummary`]): the prompt and the events that share its prompt_id. Each group of
+//! One turn ([`TurnSummary`]): the prompt and the events that share its `prompt_id`. Each group of
 //! values is one small function over the turn ([`Turn`]); what a tool does comes from the spec's
 //! `tool_kinds`, `tool_files`, `usage` and `answer`, never from tool names in code.
 
@@ -48,7 +48,7 @@ pub(super) const DOCS: &[(&str, &str)] = &[
 
 /// [`GIT_COMMIT`], compiled once.
 static GIT_COMMIT_RE: LazyLock<Pattern> = LazyLock::new(|| {
-    // A constant pattern, compiled by every test run that counts commits: it cannot fail here.
+    #[expect(clippy::expect_used, reason = "a constant pattern, compiled by every test run that counts commits")]
     Pattern::new(GIT_COMMIT).expect("GIT_COMMIT is a valid pattern")
 });
 
@@ -238,7 +238,9 @@ fn usage(t: &Turn<'_>, out: &mut TurnSummary) {
     let calls = calls_of(&payloads, spec_usage);
     out.usage = usage_of(&calls);
     // Truncated like Python's int(): token counts are whole by nature; a fraction is the tool's.
-    out.reasoning_tokens = calls.iter().map(|c| c.reasoning_tokens).sum::<f64>() as i64;
+    #[expect(clippy::cast_possible_truncation, reason = "truncation is the point: Python's int() of a token sum")]
+    let reasoning = calls.iter().map(|c| c.reasoning_tokens).sum::<f64>() as i64;
+    out.reasoning_tokens = reasoning;
     for status in calls.iter().filter_map(|c| c.status.clone()) {
         *out.model_call_status.entry(status).or_default() += 1;
     }
@@ -339,6 +341,7 @@ pub(super) fn calls_of(payloads: &[Raw<'_>], usage: &Usage) -> Vec<ModelCall> {
 
 /// Requests, tokens (summed, then truncated like Python's `int()`) and cost (4 decimals).
 pub(super) fn usage_of(calls: &[ModelCall]) -> UsageTotals {
+    #[expect(clippy::cast_possible_truncation, reason = "truncation is the point: Python's int() of a token sum")]
     let tokens = |f: fn(&ModelCall) -> f64| calls.iter().map(f).sum::<f64>() as i64;
     UsageTotals {
         api_requests: i64::try_from(calls.len()).unwrap_or(i64::MAX),

@@ -167,6 +167,7 @@ impl Counts {
 
 /// A regex from a constant pattern of this module; each is compiled by this module's tests, so this
 /// cannot fail at run time.
+#[expect(clippy::expect_used, reason = "constant patterns, each compiled by this module's tests")]
 fn constant_regex(pattern: &str) -> Regex {
     Regex::new(pattern).expect("constant patterns in git.rs are valid")
 }
@@ -304,7 +305,7 @@ pub fn history(root: &Path, since: &str, until: &str) -> Vec<Commit> {
 
 /// A header line, then (after a blank line) its `--shortstat` line, if the commit changed files.
 fn history_record(record: &str) -> Option<Commit> {
-    let (header, rest) = record.trim().split_once('\n').unwrap_or((record.trim(), ""));
+    let (header, rest) = record.trim().split_once('\n').unwrap_or_else(|| (record.trim(), ""));
     if header.is_empty() {
         return None;
     }
@@ -316,12 +317,14 @@ fn history_record(record: &str) -> Option<Commit> {
 ///
 /// Git runs outside the lock, so a slow repository never blocks lookups for others; two threads
 /// missing on the same directory at once may both run git (the later result wins).
+#[derive(Debug)]
 pub struct GitCache {
     ttl: Duration,
     entries: Mutex<HashMap<PathBuf, Entry>>,
     misses: AtomicU64,
 }
 
+#[derive(Debug)]
 struct Entry {
     at: Instant,
     context: JsonMap,

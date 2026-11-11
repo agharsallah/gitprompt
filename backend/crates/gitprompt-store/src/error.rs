@@ -40,14 +40,14 @@ impl From<std::io::Error> for DbError {
 impl From<DbError> for Error {
     fn from(e: DbError) -> Self {
         match e {
-            DbError::Sql(e) => storage(e),
+            DbError::Sql(e) => storage(&e),
             DbError::Core(e) => e,
         }
     }
 }
 
 /// A SQLite error as the rest of GitPrompt sees it (core stays free of SQL types).
-pub(crate) fn storage(e: rusqlite::Error) -> Error {
+pub(crate) fn storage(e: &rusqlite::Error) -> Error {
     Error::Storage(e.to_string())
 }
 

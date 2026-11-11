@@ -2,6 +2,19 @@
 //! whatever was stored), OTLP gets `{}`, unknown sources are 404, a disabled source is discarded,
 //! and every capture is announced on the SSE stream. Plus the connector conformance fixtures
 //! replayed through HTTP and read back through the API.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

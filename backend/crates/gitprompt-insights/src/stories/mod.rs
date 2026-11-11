@@ -80,13 +80,13 @@ pub struct ProjectRef {
 
 /// The project of the first row that has a repo; `None` when none does.
 pub fn project_of(rows: &[FactRow]) -> Option<ProjectRef> {
-    let repo = rows.iter().find_map(|r| non_empty(&r.prompt.row.repo))?;
-    let name = rows.iter().find_map(|r| non_empty(&r.prompt.row.repo_name)).map_or_else(|| folder_name(repo), str::to_owned);
+    let repo = rows.iter().find_map(|r| non_empty(r.prompt.row.repo.as_deref()))?;
+    let name = rows.iter().find_map(|r| non_empty(r.prompt.row.repo_name.as_deref())).map_or_else(|| folder_name(repo), str::to_owned);
     Some(ProjectRef {
         id: project_id(repo),
         repo: repo.to_owned(),
         name,
-        git: rows.iter().any(|r| non_empty(&r.prompt.row.branch).is_some()),
+        git: rows.iter().any(|r| non_empty(r.prompt.row.branch.as_deref()).is_some()),
     })
 }
 
@@ -97,8 +97,8 @@ pub(crate) fn folder_name(repo: &str) -> String {
 }
 
 /// The text when it is set and not empty.
-fn non_empty(value: &Option<String>) -> Option<&str> {
-    value.as_deref().filter(|v| !v.is_empty())
+fn non_empty(value: Option<&str>) -> Option<&str> {
+    value.filter(|v| !v.is_empty())
 }
 
 // --- pure building blocks ----------------------------------------------------------------------
@@ -148,19 +148,21 @@ pub fn phases(prompts: &[FactRow], gap_s: f64, branch_run: usize) -> Vec<Phase> 
     let mut out: Vec<Phase> = Vec::new();
     let mut branch: Option<&str> = None;
     for (i, p) in prompts.iter().enumerate() {
-        let mine = non_empty(&p.prompt.row.branch);
+        let mine = non_empty(p.prompt.row.branch.as_deref());
         let start = if out.is_empty() {
             Some((PhaseReason::Start, None))
         } else {
-            let gap = match (sent(p), ended(&prompts[i - 1])) {
+            let previous = i.checked_sub(1).and_then(|j| prompts.get(j));
+            let gap = match (sent(p), previous.and_then(ended)) {
                 (Some(at), Some(previous)) => Some(at.at.duration_since(previous.at).as_secs_f64()),
                 _ => None,
             };
-            let run = &prompts[i..prompts.len().min(i + branch_run)];
+            let run = prompts.get(i..prompts.len().min(i + branch_run)).unwrap_or_default();
             let holds = run.len() == branch_run && run.iter().all(|q| q.prompt.row.branch.as_deref() == mine);
             if let Some(gap) = gap.filter(|g| *g >= gap_s) {
-                // Whole seconds of a gap far below i64::MAX: the cast is exact.
-                Some((PhaseReason::Gap, Some(gap.round_ties_even() as i64)))
+                #[expect(clippy::cast_possible_truncation, reason = "whole seconds of a gap far below i64::MAX: the cast is exact")]
+                let whole = gap.round_ties_even() as i64;
+                Some((PhaseReason::Gap, Some(whole)))
             } else if branch.is_some() && mine.is_some_and(|b| Some(b) != branch) && branch_run > 0 && holds {
                 Some((PhaseReason::Branch, None))
             } else {
@@ -189,7 +191,7 @@ pub fn retries(prompts: &[FactRow], window: usize) -> BTreeMap<i64, i64> {
         let row = &p.prompt.row;
         let earlier = by_session.entry(row.session.as_deref()).or_default();
         let mine = Shingles::new(row.typed_text.as_deref().unwrap_or_default());
-        let recent = &earlier[earlier.len().saturating_sub(window)..];
+        let recent = earlier.get(earlier.len().saturating_sub(window)..).unwrap_or_default();
         if let Some((id, _)) = recent.iter().rev().find(|(_, other)| mine.is_version(other)) {
             out.insert(row.id, *id);
         }
@@ -211,7 +213,7 @@ pub fn attribute_commits(prompts: &[FactRow], commits: &[Commit]) -> BTreeMap<i6
     let mut out: BTreeMap<i64, Vec<Commit>> = BTreeMap::new();
     for commit in commits {
         let Some(at) = Instant::parse(&commit.time) else { continue };
-        let before = &ordered[..ordered.partition_point(|(_, sent, _, _)| sent.at <= at.at)];
+        let before = ordered.get(..ordered.partition_point(|(_, sent, _, _)| sent.at <= at.at)).unwrap_or_default();
         let committing =
             before.iter().rev().find(|(_, _, ended, committed)| *committed && at.at <= ended.plus_seconds(COMMIT_GRACE_S as f64).at);
         if let Some((owner, ..)) = committing.or_else(|| before.last()) {
@@ -571,7 +573,7 @@ pub struct PromptLineage {
     pub id: i64,
     /// [`crate::lineage::THRESHOLD`]
     pub threshold: f64,
-    /// Oldest first (by received_at, then id).
+    /// Oldest first (by `received_at`, then id).
     pub versions: Vec<Version>,
 }
 

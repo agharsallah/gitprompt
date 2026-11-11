@@ -1,5 +1,18 @@
 //! The one redaction pass (export/redact.py, ADR-0018 §2): which keys go, what is masked inside
 //! strings, and how paths become relative. Works on JSON, so it is tested on JSON directly.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -16,7 +29,7 @@ fn none() -> BTreeSet<String> {
 }
 
 fn roots(list: &[&str]) -> BTreeSet<String> {
-    list.iter().map(|s| s.to_string()).collect()
+    list.iter().map(std::string::ToString::to_string).collect()
 }
 
 fn default_redact(value: Value) -> Value {

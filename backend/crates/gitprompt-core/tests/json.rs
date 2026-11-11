@@ -1,4 +1,17 @@
-//! Payload helpers (port of tests/core/test_payload.py, plus the edges payload.py handles).
+//! Payload helpers (port of `tests/core/test_payload.py`, plus the edges payload.py handles).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -17,7 +30,7 @@ fn obj(value: Json) -> JsonMap {
 }
 
 fn paths(candidates: &[&str]) -> Vec<String> {
-    candidates.iter().map(|s| s.to_string()).collect()
+    candidates.iter().map(std::string::ToString::to_string).collect()
 }
 
 // --- pluck ----------------------------------------------------------------------------------
@@ -193,7 +206,7 @@ fn clip_counts_characters_not_bytes() {
 
 #[test]
 fn clip_leaves_numbers_bools_and_nulls_alone() {
-    let value = json!([123456789012_i64, true, null]);
+    let value = json!([123_456_789_012_i64, true, null]);
     assert_eq!(clip(&value, 3), value);
 }
 
@@ -278,7 +291,7 @@ proptest! {
     #[test]
     fn clip_never_changes_a_string_within_the_limit(text in "\\PC{0,40}", extra in 0usize..10) {
         let limit = text.chars().count() + extra;
-        prop_assert_eq!(clip(&json!(text.clone()), limit), json!(text));
+        prop_assert_eq!(clip(&json!(text), limit), json!(text));
     }
 
     #[test]

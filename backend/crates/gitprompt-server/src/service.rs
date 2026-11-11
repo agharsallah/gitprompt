@@ -67,6 +67,12 @@ pub struct Service {
     inner: Arc<Inner>,
 }
 
+impl std::fmt::Debug for Service {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Service").finish_non_exhaustive()
+    }
+}
+
 /// Everything a request needs, shared by every clone of the [`Service`].
 struct Inner {
     settings: Settings,
@@ -108,7 +114,7 @@ impl Inner {
     }
 
     /// The spec of `source` in `set`; `NotFound` naming it.
-    fn spec(&self, set: &SpecSet, source: &str) -> ApiResult<Arc<Spec>> {
+    fn spec(set: &SpecSet, source: &str) -> ApiResult<Arc<Spec>> {
         set.get(source).cloned().ok_or_else(|| Error::NotFound(format!("unknown source '{source}'")).into())
     }
 
@@ -204,7 +210,11 @@ impl Inner {
             ExportKind::Overview => Request::Overview { filter },
             ExportKind::Prompts => Request::Prompts { filter },
         };
-        let context = Context { home: Some(self.settings.user_home.display().to_string()), roots: Default::default(), zone: Zone::Local };
+        let context = Context {
+            home: Some(self.settings.user_home.display().to_string()),
+            roots: std::collections::BTreeSet::default(),
+            zone: Zone::Local,
+        };
         let generated_at = self.local_now().strftime("%Y-%m-%dT%H:%M:%S%.6f%:z").to_string();
         gitprompt_export::build_from_store_with(&self.store, &set.specs, &request, &query.options(), &context, &generated_at)
             .map_err(export_error)
@@ -271,17 +281,25 @@ fn turn_id(view: &PromptView) -> Option<String> {
     view.row.fields.get("prompt_id").and_then(Json::as_str).filter(|pid| !pid.is_empty()).map(str::to_owned)
 }
 
+/// [`HOURS`] as an `i64` (24 always fits).
+#[expect(clippy::cast_possible_wrap, reason = "24 fits any integer type")]
+const HOURS_I64: i64 = HOURS as i64;
+
 /// Prompts plus events per UTC hour of the last [`HOURS`] hours, per source, the current hour last.
 fn hourly(store: &Store, now: jiff::Timestamp) -> ApiResult<HashMap<String, Vec<u64>>> {
     let hour = now.as_second().div_euclid(3600) * 3600;
-    let start = jiff::Timestamp::from_second(hour - (HOURS as i64 - 1) * 3600).map_err(|e| ApiError::Internal(e.to_string()))?;
+    let start = jiff::Timestamp::from_second(hour - (HOURS_I64 - 1) * 3600).map_err(|e| ApiError::Internal(e.to_string()))?;
     let slots: HashMap<String, usize> = (0..HOURS)
-        .filter_map(|i| Some((start.checked_add(jiff::SignedDuration::from_hours(i as i64)).ok()?.strftime("%Y-%m-%dT%H").to_string(), i)))
+        .filter_map(|i| {
+            Some((start.checked_add(jiff::SignedDuration::from_hours(i64::try_from(i).ok()?)).ok()?.strftime("%Y-%m-%dT%H").to_string(), i))
+        })
         .collect();
     let mut out: HashMap<String, Vec<u64>> = HashMap::new();
     for count in store.hourly(&iso(start))? {
-        if let Some(&slot) = slots.get(&count.hour) {
-            out.entry(count.source).or_insert_with(|| vec![0; HOURS])[slot] += count.rows;
+        if let Some(&slot) = slots.get(&count.hour)
+            && let Some(total) = out.entry(count.source).or_insert_with(|| vec![0; HOURS]).get_mut(slot)
+        {
+            *total += count.rows;
         }
     }
     Ok(out)
@@ -370,7 +388,7 @@ impl Service {
     pub async fn ingest(&self, source: &str, payload: Json) -> ApiResult<Notice> {
         let source = source.to_owned();
         self.run(move |inner| {
-            let spec = inner.spec(&inner.spec_set(), &source)?;
+            let spec = Inner::spec(&inner.spec_set(), &source)?;
             inner.capture(&spec, &payload)
         })
         .await
@@ -380,7 +398,7 @@ impl Service {
     pub async fn ingest_otlp(&self, source: &str, _signal: Signal, payload: Json) -> ApiResult<Notice> {
         let source = source.to_owned();
         self.run(move |inner| {
-            let spec = inner.spec(&inner.spec_set(), &source)?;
+            let spec = Inner::spec(&inner.spec_set(), &source)?;
             if spec.format != Format::Otlp {
                 return Err(Error::NotFound(format!("source '{}' does not receive OpenTelemetry exports", spec.id)).into());
             }
@@ -474,6 +492,10 @@ impl Service {
             // A tool's `--version` may take a while: ask every tool at once.
             let versions: Vec<Option<String>> = std::thread::scope(|scope| {
                 let probe = inner.options.tool_version.as_ref();
+                #[expect(
+                    clippy::needless_collect,
+                    reason = "spawn every probe before joining any: collecting is what runs them in parallel"
+                )]
                 let running: Vec<_> = specs.iter().map(|spec| scope.spawn(move || probe.version(spec))).collect();
                 running.into_iter().map(|h| h.join().unwrap_or(None)).collect()
             });
@@ -550,7 +572,7 @@ impl Service {
         let source = source.to_owned();
         self.run(move |inner| {
             let set = inner.spec_set();
-            let spec = inner.spec(&set, &source)?;
+            let spec = Inner::spec(&set, &source)?;
             let file = set.files.get(&spec.id).cloned().ok_or_else(|| ApiError::Internal(format!("no spec file for {}", spec.id)))?;
             let text = read_spec_file(&file)?;
             Ok(SpecText { file: file.into(), text })
@@ -562,7 +584,7 @@ impl Service {
     pub async fn connect(&self, source: &str, dry_run: bool) -> ApiResult<Change> {
         let source = source.to_owned();
         self.run(move |inner| {
-            let spec = inner.spec(&inner.spec_set(), &source)?;
+            let spec = Inner::spec(&inner.spec_set(), &source)?;
             connection::refuse_if_disabled(&spec, &inner.preferences.effective())?;
             Ok(inner.connection(&spec).connect(dry_run)?.into())
         })
@@ -572,7 +594,7 @@ impl Service {
     pub async fn disconnect(&self, source: &str, dry_run: bool) -> ApiResult<Change> {
         let source = source.to_owned();
         self.run(move |inner| {
-            let spec = inner.spec(&inner.spec_set(), &source)?;
+            let spec = Inner::spec(&inner.spec_set(), &source)?;
             Ok(inner.connection(&spec).disconnect(dry_run)?.into())
         })
         .await
@@ -589,7 +611,7 @@ impl Service {
     async fn set_enabled(&self, source: &str, enabled: bool) -> ApiResult<Enabled> {
         let source = source.to_owned();
         self.run(move |inner| {
-            let spec = inner.spec(&inner.spec_set(), &source)?;
+            let spec = Inner::spec(&inner.spec_set(), &source)?;
             Ok(Enabled { enabled: connection::set_enabled(&spec, &inner.preferences, enabled)? })
         })
         .await
@@ -600,7 +622,7 @@ impl Service {
         let source = source.to_owned();
         self.run(move |inner| {
             let (set, indexer) = inner.indexed()?;
-            let spec = inner.spec(&set, &source)?;
+            let spec = Inner::spec(&set, &source)?;
             let updated = connection::remap(&spec, &inner.store)?;
             indexer.rebuild(&inner.store)?;
             Ok(Updated { updated })
@@ -796,7 +818,7 @@ impl Service {
             if rows.is_empty() && total == 0 {
                 return Err(not_found());
             }
-            let system = total - rows.len() as i64;
+            let system = total - i64::try_from(rows.len()).unwrap_or(i64::MAX);
             let commits = inner.log(&rows);
             let tool_kinds = inner.store.tool_kinds(&rows.iter().map(|r| r.prompt.row.id).collect::<Vec<_>>())?;
             to_json(&stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
@@ -842,7 +864,7 @@ impl Service {
                     })
                 })
                 .collect();
-            Ok(SearchResults { total: total.max(0) as u64, hits })
+            Ok(SearchResults { total: u64::try_from(total).unwrap_or(0), hits })
         })
         .await
     }

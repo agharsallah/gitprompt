@@ -219,7 +219,7 @@ pub fn write(path: &Path, text: &str, backups: &Path, now: DateTime) -> Result<O
 /// Copy `path` into `backups` under a name no earlier backup has.
 fn back_up(path: &Path, backups: &Path, now: DateTime) -> Result<PathBuf> {
     create_private_dir(backups)?;
-    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "config".into());
+    let name = path.file_name().map_or_else(|| "config".into(), |n| n.to_string_lossy().into_owned());
     let stamp = now.strftime("%Y%m%d-%H%M%S").to_string();
     for n in 1u32.. {
         let candidate = match n {
@@ -232,7 +232,7 @@ fn back_up(path: &Path, backups: &Path, now: DateTime) -> Result<PathBuf> {
                 std::fs::copy(path, &candidate)?;
                 return Ok(candidate);
             }
-            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {}
             Err(e) => return Err(e.into()),
         }
     }

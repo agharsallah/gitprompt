@@ -67,7 +67,7 @@ impl Store {
         })?)
     }
 
-    /// Row ids of the prompts these prompt_ids belong to (any source), ascending.
+    /// Row ids of the prompts these `prompt_ids` belong to (any source), ascending.
     pub fn prompts_of_turns(&self, prompt_ids: &[String]) -> Result<Vec<i64>> {
         let turns = json_list(prompt_ids)?;
         Ok(self.db().read(|conn| {
@@ -156,7 +156,7 @@ impl Store {
     }
 
     /// Rows (prompts and events) per source and UTC hour received at or after `since`. Cheap on a
-    /// large table without an index on received_at: rows are inserted in time order, so the newest
+    /// large table without an index on `received_at`: rows are inserted in time order, so the newest
     /// row older than `since` is found by walking ids backwards, and only newer ids are read.
     pub fn hourly(&self, since: &str) -> Result<Vec<HourCount>> {
         Ok(self.db().read(|conn| {

@@ -22,7 +22,7 @@ impl From<gitprompt_capture::pipeline::Notice> for Notice {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Bus {
     tx: broadcast::Sender<Notice>,
 }
@@ -51,6 +51,7 @@ impl Bus {
     }
 }
 
+#[derive(Debug)]
 pub struct Subscription {
     rx: broadcast::Receiver<Notice>,
 }
@@ -62,7 +63,7 @@ impl Subscription {
         loop {
             match self.rx.recv().await {
                 Ok(notice) => return Some(notice),
-                Err(RecvError::Lagged(_)) => continue,
+                Err(RecvError::Lagged(_)) => {}
                 Err(RecvError::Closed) => return None,
             }
         }
@@ -73,7 +74,7 @@ impl Subscription {
         loop {
             match self.rx.try_recv() {
                 Ok(notice) => return Some(notice),
-                Err(TryRecvError::Lagged(_)) => continue,
+                Err(TryRecvError::Lagged(_)) => {}
                 Err(TryRecvError::Empty | TryRecvError::Closed) => return None,
             }
         }

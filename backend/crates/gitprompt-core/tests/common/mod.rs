@@ -1,6 +1,6 @@
 //! Shared helpers for gitprompt-core's integration tests. Every path lives under a temp dir: no test
 //! touches the real home, and no test mutates the process environment.
-#![allow(dead_code)] // each test binary uses a different subset
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};

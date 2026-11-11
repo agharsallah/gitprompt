@@ -1,5 +1,18 @@
 //! Prompts and events: writes from the receiver, dedup, the session join, reads, annotations and
 //! edits. Port of the storage-level assertions of storage/store.py and its API tests.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -602,12 +615,12 @@ fn prompts_reads_more_ids_than_one_chunk() {
 #[test]
 fn events_for_prompts_reads_more_turns_than_one_chunk() {
     let store = store();
-    let turns: Vec<String> = (0..CHUNK * 2 + 1).map(|i| format!("p{i}")).collect();
+    let turns: Vec<String> = (0..=(CHUNK * 2)).map(|i| format!("p{i}")).collect();
     store
         .transaction(|s| {
-            turns.iter().for_each(|t| {
+            for t in &turns {
                 event("Stop").prompt_id(t).insert(s);
-            });
+            }
             Ok(())
         })
         .unwrap();

@@ -1,6 +1,19 @@
 //! GitHub Copilot CLI end to end (data only): it sends no prompt id, so prompts are named
 //! `<source>#<id>` and events join the latest prompt of their session; a remap redoes the join.
-//! Port of test_copilot_events_join_their_prompt_by_session_order (test_connectors.py).
+//! Port of `test_copilot_events_join_their_prompt_by_session_order` (`test_connectors.py`).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

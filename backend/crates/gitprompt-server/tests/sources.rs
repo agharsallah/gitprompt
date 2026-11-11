@@ -1,7 +1,20 @@
 //! /api/sources: the raw facts per connector, connect/disconnect with consent (dry run first),
 //! policy blocks, enable/disable, remap, the spec in use and broken spec files. Port of
-//! test_api.py, test_sources.py, test_connectors.py (management parts), and the broken-spec test
-//! of test_extension_points.py.
+//! `test_api.py`, `test_sources.py`, `test_connectors.py` (management parts), and the broken-spec test
+//! of `test_extension_points.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

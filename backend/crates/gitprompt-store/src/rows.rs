@@ -45,7 +45,7 @@ pub struct EventRow {
     pub session_id: Option<String>,
     pub prompt_id: Option<String>,
     pub fields: JsonMap,
-    /// Long strings clipped (core::json::clip).
+    /// Long strings clipped (`core::json::clip`).
     pub raw: Json,
 }
 

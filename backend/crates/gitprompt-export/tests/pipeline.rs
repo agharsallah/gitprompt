@@ -1,7 +1,20 @@
 //! The whole pipeline without a store: redact once, build, render (lib.rs). Ports
-//! tests/export/test_export.py and the export-logic assertions of tests/api/test_export_routes.py
+//! `tests/export/test_export.py` and the export-logic assertions of `tests/api/test_export_routes.py`
 //! (the HTTP routes themselves belong to the server crate): every kind in every format, with
 //! secrets, email addresses, account ids, commit authors and home paths planted in the input.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

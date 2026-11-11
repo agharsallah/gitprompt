@@ -64,7 +64,7 @@ impl Shingles {
         if a.min(b) / a.max(b) < LENGTH_RATIO {
             return 0.0;
         }
-        crate::text::round((jaccard(&self.trigrams, &other.trigrams) + jaccard(&self.words, &other.words)) / 2.0, 3)
+        crate::text::round(f64::midpoint(jaccard(&self.trigrams, &other.trigrams), jaccard(&self.words, &other.words)), 3)
     }
 
     /// `similarity >= THRESHOLD`.
@@ -118,10 +118,10 @@ pub fn word_diff(before: Option<&str>, after: Option<&str>) -> Vec<(Op, String)>
     };
     for (tag, i1, i2, j1, j2) in opcodes(&a, &b) {
         if tag == Tag::Equal {
-            add(Op::Equal, &a[i1..i2]);
+            add(Op::Equal, a.get(i1..i2).unwrap_or_default());
         } else {
-            add(Op::Delete, &a[i1..i2]);
-            add(Op::Insert, &b[j1..j2]);
+            add(Op::Delete, a.get(i1..i2).unwrap_or_default());
+            add(Op::Insert, b.get(j1..j2).unwrap_or_default());
         }
     }
     out

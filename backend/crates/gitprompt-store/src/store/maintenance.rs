@@ -54,7 +54,7 @@ impl Store {
         Ok(self.db().write(|conn| Ok(conn.execute_batch(crate::schema::REBUILD_EVENT_STATS)?))?)
     }
 
-    /// Bytes the database occupies (page_count × page_size, free pages included).
+    /// Bytes the database occupies (`page_count` × `page_size`, free pages included).
     pub fn size(&self) -> Result<u64> {
         let bytes: i64 = self.db().read(|conn| {
             Ok(conn.query_row("select page_count * page_size from pragma_page_count, pragma_page_size", [], |row| row.get(0))?)

@@ -17,6 +17,7 @@ use crate::options::AppOptions;
 use crate::service::Service;
 use crate::{access_log, dashboard, routes, security};
 
+#[derive(Debug)]
 pub struct App {
     service: Service,
 }

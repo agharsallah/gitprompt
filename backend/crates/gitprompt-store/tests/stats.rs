@@ -1,6 +1,19 @@
 //! Statistics over the prompt index: totals, every grouping, exact splits of multi-valued groupings,
-//! split_by, ordering, limit, details/excerpts, quantiles, telemetry, latest. Port of
-//! storage/stats.py and tests/api/test_stats.py (seeded with index entries instead of ingest).
+//! `split_by`, ordering, limit, details/excerpts, quantiles, telemetry, latest. Port of
+//! storage/stats.py and `tests/api/test_stats.py` (seeded with index entries instead of ingest).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -16,7 +29,7 @@ use pretty_assertions::assert_eq;
 
 const NOW: &str = "2026-11-04T00:00:00.000000+00:00";
 
-/// Three sessions over two days, two repos, two models, every kind of ending (test_stats.py `data`).
+/// Three sessions over two days, two repos, two models, every kind of ending (`test_stats.py` `data`).
 /// Local times are Berlin's: 08:00 UTC on Monday 2 Nov is 09:00.
 struct Data {
     store: Store,
@@ -487,6 +500,7 @@ fn split(group_by: GroupBy, split_by: GroupBy) -> AggregateQuery {
     AggregateQuery { split_by: Some(split_by), ..grouped(group_by) }
 }
 
+#[expect(clippy::unnecessary_wraps, reason = "shorthand for Some(key.to_string()) in expected values")]
 fn s(key: &str) -> Option<String> {
     Some(key.to_string())
 }
@@ -630,7 +644,7 @@ fn telemetry_counts_only_data_points_within_since_and_until() {
 fn telemetry_after_every_prompt_is_empty() {
     let d = with_telemetry();
     let result = d.store.telemetry(&PromptFilter { since: Some("2099-01-01T00:00:00+00:00".into()), ..Default::default() }).unwrap();
-    assert_eq!(result, Default::default());
+    assert_eq!(result, gitprompt_store::stats::Telemetry::default());
 }
 
 #[test]

@@ -4,7 +4,8 @@ description = "GitPrompt desktop app (Tauri v2): the daemon in-process, the dash
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-publish = false
+rust-version.workspace = true
+publish.workspace = true
 
 [dependencies]
 tracing.workspace = true

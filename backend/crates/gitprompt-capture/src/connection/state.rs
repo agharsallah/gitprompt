@@ -121,7 +121,7 @@ impl ConnectorState {
     ];
 
     pub fn of(facts: &StateFacts, now: Timestamp) -> Self {
-        use ConnectorState::*;
+        use ConnectorState::{Available, BlockedByPolicy, Disabled, Drift, NotInstalled, Outdated, Quiet, Receiving, Waiting, Warning};
         if !facts.enabled {
             return Disabled;
         }

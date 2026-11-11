@@ -56,7 +56,7 @@ fn create_temp(dir: &Path, path: &Path) -> io::Result<(PathBuf, File)> {
         let tmp = dir.join(format!(".{name}.{}", random::hex_suffix()?));
         match open_new(&tmp) {
             Ok(file) => return Ok((tmp, file)),
-            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {}
             Err(e) => return Err(e),
         }
     }

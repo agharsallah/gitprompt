@@ -1,6 +1,19 @@
 //! Prompt stories (stories.rs): phases, retries, commit attribution, session and project stories and
-//! a prompt's versions, on synthetic rows. Port of tests/insights/test_stories.py plus the phase,
+//! a prompt's versions, on synthetic rows. Port of `tests/insights/test_stories.py` plus the phase,
 //! grace and rounding boundaries and the story branches it left implicit.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -377,9 +390,9 @@ fn markers_before_the_first_chapter_form_a_group() {
 
 #[test]
 fn every_system_origin_has_its_marker_kind() {
+    use MarkerKind::*;
     let found = [Origin::TaskNotification, Origin::AgentMessage, Origin::Subagent, Origin::Programmatic, Origin::Unknown]
         .map(MarkerKind::of_origin);
-    use MarkerKind::*;
     assert_eq!(found, [TaskNotification, AgentMessage, Subagent, Programmatic, Unknown]);
 }
 

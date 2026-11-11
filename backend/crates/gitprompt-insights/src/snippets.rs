@@ -40,7 +40,7 @@ pub fn highlight(text: Option<&str>, q: Option<&str>, width: usize) -> Vec<Segme
     }
     let spans = spans(&text, &query);
     let (start, end) = window(&text, &spans, width);
-    let piece = |from: usize, to: usize, hit: bool| Segment { text: flat(&text[from..to]), hit };
+    let piece = |from: usize, to: usize, hit: bool| Segment { text: flat(text.get(from..to).unwrap_or_default()), hit };
     let mut out = Vec::new();
     let mut position = start;
     for &(s, e) in spans.iter().filter(|(s, e)| *e > start && *s < end) {
@@ -69,8 +69,8 @@ fn spans(text: &[char], words: &[Vec<char>]) -> Vec<(usize, usize)> {
     let mut found: Vec<(usize, usize)> = Vec::new();
     for word in words.iter().filter(|w| !w.is_empty()) {
         let mut at = 0;
-        while at + word.len() <= text.len() {
-            if text[at..at + word.len()].iter().zip(word).all(|(t, w)| same_letter(*t, *w)) {
+        while let Some(candidate) = text.get(at..at + word.len()) {
+            if candidate.iter().zip(word).all(|(t, w)| same_letter(*t, *w)) {
                 found.push((at, at + word.len()));
                 at += word.len();
             } else {
@@ -101,7 +101,7 @@ fn window(text: &[char], spans: &[(usize, usize)], width: usize) -> (usize, usiz
     if let Some(&(first, _)) = spans.first().filter(|(first, _)| *first > lead) {
         start = first - lead;
         // Start on a word: just after the next whitespace before the match.
-        start = (start..first).find(|&i| is_space(text[i])).map_or(start, |i| i + 1);
+        start = (start..first).find(|&i| text.get(i).copied().is_some_and(is_space)).map_or(start, |i| i + 1);
     }
     let mut end = text.len().min(start + width);
     if let Some(&(_, first_end)) = spans.first().filter(|(_, e)| end < text.len() && *e > end) {
@@ -109,7 +109,7 @@ fn window(text: &[char], spans: &[(usize, usize)], width: usize) -> (usize, usiz
     }
     if end < text.len() {
         // End on whitespace within the last 30 characters.
-        end = (start.max(end.saturating_sub(30)) + 1..=end).rev().find(|&i| is_space(text[i])).unwrap_or(end);
+        end = (start.max(end.saturating_sub(30)) + 1..=end).rev().find(|&i| text.get(i).copied().is_some_and(is_space)).unwrap_or(end);
     }
     (start, end)
 }

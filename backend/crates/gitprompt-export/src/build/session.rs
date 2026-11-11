@@ -24,7 +24,7 @@ pub fn session(data: &SessionExport, options: &Options, zone: Zone) -> (Report, 
         match item {
             StoryItem::Chapter(chapter) => {
                 sections.push(chapter_section(chapter, zone));
-                rows.push(chapter_row(chapter, options));
+                rows.push(chapter_row(chapter, *options));
             }
             StoryItem::Markers { items } => {
                 sections.push(markers_section(items, zone));
@@ -38,7 +38,7 @@ pub fn session(data: &SessionExport, options: &Options, zone: Zone) -> (Report, 
     let span = span(story.started_at.as_deref(), story.ended_at.as_deref(), zone);
     let place = [story.project.as_ref().and_then(|p| p.name.as_deref()), Some(branches.as_str()), Some(span.as_str())];
     let subtitle = place.into_iter().filter_map(present).collect::<Vec<_>>().join(" · ");
-    (report(Kind::Session, &data.generated_at, title, subtitle, sections, options, zone), rows)
+    (report(Kind::Session, &data.generated_at, title, subtitle, sections, *options, zone), rows)
 }
 
 fn chapters(data: &SessionExport) -> impl Iterator<Item = &Chapter> {
@@ -55,7 +55,8 @@ fn summary(data: &SessionExport) -> Section {
         (Some(start), Some(end)) => seconds_between(start, end),
         _ => None,
     };
-    let tool = present(story.connector.as_ref().and_then(|c| c.name.as_deref())).or(present(story.source.as_deref())).unwrap_or(DASH);
+    let tool =
+        present(story.connector.as_ref().and_then(|c| c.name.as_deref())).or_else(|| present(story.source.as_deref())).unwrap_or(DASH);
     let models = story.models.keys().map(String::as_str).collect::<Vec<_>>().join(", ");
     let mut figures = vec![
         figure("Tool", tool),
@@ -137,7 +138,7 @@ fn chapter_section(c: &Chapter, zone: Zone) -> Section {
 
 /// A chapter's row: its figures, commit and diff counts, files, facts (in place) and, with prompt
 /// text, its text (`null` when it had none).
-fn chapter_row(c: &Chapter, options: &Options) -> Row {
+fn chapter_row(c: &Chapter, options: Options) -> Row {
     let diffstat = c.diffstat.as_ref();
     let mut row: Row = [
         ("kind", json("chapter")),

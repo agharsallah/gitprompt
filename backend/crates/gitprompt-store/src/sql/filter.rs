@@ -23,7 +23,7 @@ pub(crate) use followed;
 
 pub(crate) const FOLLOWED: &str = followed!();
 
-/// How a turn ended (`Outcome`'s names). `running_since`: received_at one hour before now.
+/// How a turn ended (`Outcome`'s names). `running_since`: `received_at` one hour before now.
 pub(crate) fn outcome(running_since: &str) -> Sql {
     Sql::new(
         "(case when i.ended_by = 'StopFailure' then 'failed' when i.ended_by = 'Interrupt' then 'interrupted' \
@@ -38,7 +38,13 @@ pub(crate) fn outcome(running_since: &str) -> Sql {
 /// SQL putting `value` in the bucket of the largest lower bound it reaches, as a zero-padded key (so
 /// keys sort as numbers): bounds (0, 20, 80) give '00000', '00020', '00080'.
 pub(crate) fn buckets(value: &str, bounds: &[u32]) -> String {
-    let cases: Vec<String> = bounds.windows(2).map(|w| format!("when {value} < {} then '{:05}'", w[1], w[0])).collect();
+    let cases: Vec<String> = bounds
+        .windows(2)
+        .filter_map(|w| match w {
+            [lo, hi] => Some(format!("when {value} < {hi} then '{lo:05}'")),
+            _ => None,
+        })
+        .collect();
     let last = bounds.last().copied().unwrap_or(0);
     format!("(case {} else '{last:05}' end)", cases.join(" "))
 }
@@ -69,26 +75,26 @@ fn has(condition: Has) -> &'static str {
 pub(crate) fn conditions(f: &PromptFilter, running_since: &str) -> DbResult<Sql> {
     let tool_kind = f.tool_kind.as_ref().map(name).transpose()?;
     let conditions = [
-        text(&f.q).map(words),
+        text(f.q.as_deref()).map(words),
         listed("i.origin", &f.origin)?,
         listed("i.surface", &f.surface)?,
         listed("model", &f.model)?.map(|c| of_turn("prompt_index_model", c)),
-        text(&f.source).map(|v| equals("i.source", v)),
+        text(f.source.as_deref()).map(|v| equals("i.source", v)),
         listed("i.session", &f.session)?,
-        text(&f.repo).map(|v| equals("i.repo", v)),
-        text(&f.since).map(|v| Sql::new("i.received_at >= ").bind(v.to_owned())),
-        text(&f.until).map(|v| Sql::new("i.received_at < ").bind(v.to_owned())),
+        text(f.repo.as_deref()).map(|v| equals("i.repo", v)),
+        text(f.since.as_deref()).map(|v| Sql::new("i.received_at >= ").bind(v.to_owned())),
+        text(f.until.as_deref()).map(|v| Sql::new("i.received_at < ").bind(v.to_owned())),
         f.weekday.map(|v| equals("i.weekday", v)),
         f.hour.map(|v| equals("i.hour", v)),
-        text(&f.command).map(|v| equals("i.slash_command", v)),
-        text(&f.tool).map(|v| of_turn("prompt_index_tool", equals("tool", v))),
+        text(f.command.as_deref()).map(|v| equals("i.slash_command", v)),
+        text(f.tool.as_deref()).map(|v| of_turn("prompt_index_tool", equals("tool", v))),
         tool_kind.map(|v| of_turn("prompt_index_tool", equals("kind", v))),
-        text(&f.query_source).map(|v| of_turn("prompt_index_work", equals("query_source", v))),
+        text(f.query_source.as_deref()).map(|v| of_turn("prompt_index_work", equals("query_source", v))),
         listed(outcome(running_since), &f.outcome)?,
-        text(&f.size).map(|v| Sql::new(size_bucket()).push(" = ").bind(v.to_owned())),
+        text(f.size.as_deref()).map(|v| Sql::new(size_bucket()).push(" = ").bind(v.to_owned())),
         (!f.has.is_empty()).then(|| Sql::all(f.has.iter().map(|h| Sql::new(has(*h))))),
         f.before.map(|v| Sql::new("i.id < ").bind(v)),
-        text(&f.tag).map(|v| {
+        text(f.tag.as_deref()).map(|v| {
             Sql::new("i.id in (select a.id from annotation a, json_each(a.data, '$.tags') t where t.value = ").bind(v.to_owned()).push(")")
         }),
         // Ported as is: `starred: false` is no filter (Python treats False as an empty value).
@@ -117,8 +123,8 @@ fn like_escaped(word: &str) -> String {
 }
 
 /// A non-empty text value (an empty string is no filter).
-fn text(value: &Option<String>) -> Option<&str> {
-    value.as_deref().filter(|v| !v.is_empty())
+fn text(value: Option<&str>) -> Option<&str> {
+    value.filter(|v| !v.is_empty())
 }
 
 fn equals(column: &str, value: impl ToSqlValue) -> Sql {

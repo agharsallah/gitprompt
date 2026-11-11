@@ -39,7 +39,7 @@ pub const TOOL_RESULTS: &[&str] = &["PostToolUse", "PostToolUseFailure"];
 /// Tool inputs naming the file a tool touched, by priority.
 pub const FILE_INPUTS: &[&str] = &["file_path", "notebook_path", "path"];
 /// What an agent tool was asked: its task's name (Claude Code's Agent: `description`; Codex's
-/// spawn_agent: `task_name`)...
+/// `spawn_agent`: `task_name`)...
 pub const TASK_INPUTS: &[&str] = &["description", "task_name"];
 /// ...and its brief (`prompt`, `message`).
 pub const BRIEF_INPUTS: &[&str] = &["prompt", "message"];
@@ -86,7 +86,7 @@ pub struct PromptStats {
     pub at_mentions: Vec<String>,
     /// `http(s)://...` up to whitespace, `)`, `>` or `]`.
     pub urls: Vec<String>,
-    /// Fenced blocks: the number of "```" divided by 2, rounded down.
+    /// Fenced blocks: the number of triple-backtick fences divided by 2, rounded down.
     pub code_blocks: usize,
     /// Number of `?`.
     pub questions: usize,

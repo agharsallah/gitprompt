@@ -4,6 +4,8 @@ description = "Capture pipeline (JSON hooks, OTLP), tool probing, connect/discon
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 
 [dependencies]
 serde.workspace = true

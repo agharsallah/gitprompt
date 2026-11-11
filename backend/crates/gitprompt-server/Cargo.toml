@@ -4,6 +4,8 @@ description = "HTTP receiver and dashboard API (axum), live-update bus, and the 
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 
 [dependencies]
 serde.workspace = true
@@ -26,12 +28,10 @@ axum.workspace = true
 tower.workspace = true
 
 [dev-dependencies]
-gitprompt-dashboard.workspace = true
 rusqlite.workspace = true
 tempfile.workspace = true
 pretty_assertions.workspace = true
 http-body-util.workspace = true
-tower.workspace = true
 
 [lints]
 workspace = true

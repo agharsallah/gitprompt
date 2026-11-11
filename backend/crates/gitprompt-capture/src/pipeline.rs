@@ -46,6 +46,7 @@ pub trait GitProbe: Send + Sync {
 }
 
 /// `core::git::git_context`, uncached.
+#[derive(Debug)]
 pub struct SystemGit;
 
 impl GitProbe for SystemGit {
@@ -65,6 +66,12 @@ impl GitProbe for GitCache {
 pub struct Observer<'a> {
     pub git: &'a dyn GitProbe,
     pub versions: &'a dyn VersionProbe,
+}
+
+impl std::fmt::Debug for Observer<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Observer").finish_non_exhaustive()
+    }
 }
 
 /// Per-request switches, from the preferences at the time of the request.
@@ -106,7 +113,7 @@ pub struct Captured {
     /// New prompts (a duplicate prompt id is not counted).
     pub prompts: u64,
     pub events: u64,
-    /// prompt_ids that received events, so the caller can mark them for the prompt index.
+    /// `prompt_ids` that received events, so the caller can mark them for the prompt index.
     pub turns: BTreeSet<String>,
     /// The rows stored, in payload order.
     pub rows: Vec<StoredRow>,

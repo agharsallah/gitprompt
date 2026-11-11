@@ -1,15 +1,29 @@
-//! GET /api/stats and /api/stats/telemetry: the prompt filters plus group_by / split_by / order,
+//! GET /api/stats and /api/stats/telemetry: the prompt filters plus `group_by` / `split_by` / order,
 //! computed on the prompt index; and the prompt list taking the same filters. Port of
-//! test_stats.py.
+//! `test_stats.py`.
 //!
 //! Time zone: grouping by day/hour/weekday uses the process's local time zone. The fixture's times
 //! keep the same calendar day in every zone from UTC-11 to UTC+10; local hours are computed with
 //! `jiff::tz::TimeZone::system()`, so the assertions hold wherever the suite runs (the Python suite pinned TZ to
 //! Europe/Berlin, which a Rust test can't do without mutating the process environment).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 
 use common::{Api, api, groups, num};
 use jiff::Timestamp;
@@ -17,7 +31,7 @@ use jiff::tz::TimeZone;
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
 
-/// (prompt_id, text, session, cwd, received_at)
+/// (`prompt_id`, text, session, cwd, `received_at`)
 const PROMPTS: &[(&str, &str, &str, &str, &str)] = &[
     ("p1", "Fix the login bug", "s1", "/r/app", "2026-11-02T11:00:00.000000+00:00"), // a Monday
     ("p2", "/review", "s1", "/r/app", "2026-11-02T11:30:00.000000+00:00"),
@@ -48,12 +62,12 @@ async fn data() -> Api {
     ];
     let mut statements = String::new();
     for (pid, _, _, _, at) in PROMPTS {
-        statements += &format!("update prompt set received_at = '{at}' where json_extract(fields, '$.prompt_id') = '{pid}';");
+        write!(statements, "update prompt set received_at = '{at}' where json_extract(fields, '$.prompt_id') = '{pid}';").unwrap();
     }
     for (id, (pid, name, at, extra)) in (1..).zip(events) {
         let payload = common::with(&json!({"hook_event_name": name, "prompt_id": pid, "session_id": "x"}), extra);
         api.ingest("claude-code", payload).await;
-        statements += &format!("update event set received_at = '{at}.000000+00:00' where id = {id};");
+        write!(statements, "update event set received_at = '{at}.000000+00:00' where id = {id};").unwrap();
     }
     api.sql(&statements);
     api
@@ -436,7 +450,7 @@ async fn telemetry_is_summed_over_the_sessions_the_filters_keep() {
 
     let result = api.json_with("/api/stats/telemetry", &[("origin", "typed"), ("origin", "slash_command")]).await;
     assert_eq!((num(&result["sessions"]), num(&result["metrics"][format!("{metric}[added]")])), (2.0, 15.0));
-    assert_eq!(result["metrics"].as_object().map(|m| m.len()), Some(1));
+    assert_eq!(result["metrics"].as_object().map(serde_json::Map::len), Some(1));
     assert_eq!(result["commands"], json!([{"command": "/model", "source": "builtin", "uses": 1, "sessions": 1}]));
     assert_eq!(num(&api.json("/api/stats/telemetry?repo=/r/docs").await["metrics"][format!("{metric}[added]")]), 5.0);
     assert_eq!(api.json_with("/api/stats/telemetry", &[("since", "2099-01-01T00:00:00Z")]).await["metrics"], json!({}));

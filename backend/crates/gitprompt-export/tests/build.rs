@@ -1,6 +1,19 @@
 //! Builders (export/build.py): value formatting, and what each kind of export puts in its report
 //! and rows. Builders are pure, so they get the inputs directly (the redaction pass is tested in
 //! redact.rs and through `prepare` in pipeline.rs).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -251,7 +264,7 @@ fn bars_drop_zero_counts_and_put_the_largest_first_keeping_ties_in_order() {
 
 #[test]
 fn bars_keep_the_top_ten() {
-    let counts = (1..=12).map(|n| (format!("i{n}"), n as f64)).collect();
+    let counts = (1..=12).map(|n| (format!("i{n}"), f64::from(n))).collect();
     let chart = bars("x", "T", counts, &|v| format!("{v}"), "");
     let labels: Vec<&str> = chart.items.iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["i12", "i11", "i10", "i9", "i8", "i7", "i6", "i5", "i4", "i3"]);
@@ -593,7 +606,7 @@ fn a_marker_row_keeps_only_the_texts_it_has() {
 fn a_chapter_row_holds_its_text_only_with_prompt_text() {
     let data = session_export();
     let (_, with_text) = build::session(&data, &text_on(), utc());
-    let mut no_text = data.clone();
+    let mut no_text = data;
     no_text.story.items = vec![StoryItem::Chapter(Chapter { text: None, ..chapter() })];
     let (_, null_text) = build::session(&no_text, &text_on(), utc());
     assert_eq!(with_text[0]["text"], json!(planted_text()));
@@ -611,15 +624,15 @@ fn a_chapter_row_with_facts_takes_cost_and_tokens_from_them_in_place() {
 
 // --- a project -----------------------------------------------------------------------------------
 
-fn project_with(options: &Options) -> (Report, Vec<Row>) {
+fn project_with(options: Options) -> (Report, Vec<Row>) {
     let mut data = project_export();
     data.story.repo = Some("shop".into());
-    build::project(&data, options, utc())
+    build::project(&data, &options, utc())
 }
 
 #[test]
 fn a_project_is_titled_by_its_name_with_folder_and_span() {
-    let (report, _) = project_with(&Options::default());
+    let (report, _) = project_with(Options::default());
     assert_eq!((report.kind, report.title.as_str(), report.subtitle.as_str()), (Kind::Project, "shop", "shop · 2026-03-02 09:00 – 13:00"));
 }
 
@@ -635,7 +648,7 @@ fn a_project_without_name_or_repo_is_just_project() {
 
 #[test]
 fn a_project_summary_shows_its_measures() {
-    let (report, _) = project_with(&Options::default());
+    let (report, _) = project_with(Options::default());
     assert_eq!(
         figures(&report.sections[0]),
         pairs(&[
@@ -653,7 +666,7 @@ fn a_project_summary_shows_its_measures() {
 
 #[test]
 fn a_project_charts_prompts_per_phase_and_outcomes_and_counts_other_origins() {
-    let (report, _) = project_with(&Options::default());
+    let (report, _) = project_with(Options::default());
     assert_eq!(bars_of(chart(&report, "phases")), pairs(&[("Phase 1", "1"), ("Phase 2", "1")]));
     assert_eq!(bars_of(chart(&report, "outcomes")), pairs(&[("Done", "2")]));
     assert_eq!(
@@ -664,7 +677,7 @@ fn a_project_charts_prompts_per_phase_and_outcomes_and_counts_other_origins() {
 
 #[test]
 fn each_phase_is_a_section_with_its_reason_and_span() {
-    let (report, _) = project_with(&Options::default());
+    let (report, _) = project_with(Options::default());
     assert_eq!(titles(&report), ["Summary", "Phase 1", "Phase 2"]);
     assert_eq!(
         [report.sections[1].subtitle.as_str(), report.sections[2].subtitle.as_str()],
@@ -674,7 +687,7 @@ fn each_phase_is_a_section_with_its_reason_and_span() {
 
 #[test]
 fn a_phase_tables_its_prompts_without_text_by_default() {
-    let (report, _) = project_with(&Options::default());
+    let (report, _) = project_with(Options::default());
     assert_eq!(
         table(&report.sections[1]),
         &Table {
@@ -701,7 +714,7 @@ fn a_phase_table_shows_dashes_for_what_is_unknown_and_the_prompt_with_prompt_tex
 
 #[test]
 fn a_phase_lists_its_commits_and_a_phase_without_commits_does_not() {
-    let (report, _) = project_with(&Options::default());
+    let (report, _) = project_with(Options::default());
     assert_eq!(
         report.sections[1].blocks.last(),
         Some(&Block::Items(Items { items: vec!["abc1234 Add app (+3 −0) — Jane Doe".into()], mono: true }))
@@ -711,7 +724,7 @@ fn a_phase_lists_its_commits_and_a_phase_without_commits_does_not() {
 
 #[test]
 fn project_rows_are_prompts_with_their_phase_tools_commit_count_and_facts() {
-    let (_, rows) = project_with(&Options::default());
+    let (_, rows) = project_with(Options::default());
     assert_eq!(rows.len(), 2);
     assert_eq!(
         keys(&rows[0]),
@@ -749,7 +762,7 @@ fn project_rows_are_prompts_with_their_phase_tools_commit_count_and_facts() {
 
 #[test]
 fn a_project_row_holds_its_text_only_with_prompt_text() {
-    let (_, rows) = project_with(&text_on());
+    let (_, rows) = project_with(text_on());
     assert_eq!(keys(&rows[0])[6], "text");
     assert_eq!(rows[1]["text"], json!("tidy up"));
 }
@@ -896,19 +909,19 @@ fn an_overview_bucket_row_names_its_key() {
 
 // --- a prompt selection --------------------------------------------------------------------------
 
-fn prompts_report(options: &Options) -> (Report, Vec<Row>) {
-    build::prompts(&prompts_export(), options, utc())
+fn prompts_report(options: Options) -> (Report, Vec<Row>) {
+    build::prompts(&prompts_export(), &options, utc())
 }
 
 #[test]
 fn a_prompt_selection_is_titled_prompts_and_describes_its_filters() {
-    let (report, _) = prompts_report(&Options::default());
+    let (report, _) = prompts_report(Options::default());
     assert_eq!((report.kind, report.title.as_str(), report.subtitle.as_str()), (Kind::Prompts, "Prompts", "All time · Typed"));
 }
 
 #[test]
 fn a_prompt_selection_summary_counts_prompts_sessions_cost_and_tool_calls() {
-    let (report, _) = prompts_report(&Options::default());
+    let (report, _) = prompts_report(Options::default());
     assert_eq!(figures(&report.sections[0]), pairs(&[("Prompts", "2 prompts"), ("Sessions", "1"), ("Cost", "$0.50"), ("Tool calls", "2")]));
 }
 
@@ -926,7 +939,7 @@ fn a_cut_selection_states_the_total_and_a_free_one_leaves_cost_out() {
 
 #[test]
 fn a_prompt_selection_charts_outcomes_and_origins() {
-    let (report, _) = prompts_report(&Options::default());
+    let (report, _) = prompts_report(Options::default());
     assert_eq!(bars_of(chart(&report, "outcomes")), pairs(&[("Done", "1"), ("No end seen", "1")]));
     assert_eq!(bars_of(chart(&report, "origins")), pairs(&[("Typed", "1"), ("Task notification", "1")]));
 }
@@ -996,7 +1009,7 @@ fn there_is_no_payload_section_without_a_non_empty_payload() {
 
 #[test]
 fn prompt_rows_hold_the_prompt_columns_then_facts_then_text_and_payload() {
-    let (_, rows) = prompts_report(&text_on());
+    let (_, rows) = prompts_report(text_on());
     let mut expected: Vec<&str> = PROMPT_COLUMNS.to_vec();
     expected.extend([
         "tool",
@@ -1016,7 +1029,7 @@ fn prompt_rows_hold_the_prompt_columns_then_facts_then_text_and_payload() {
 
 #[test]
 fn a_prompt_row_without_facts_text_option_or_payload_has_only_the_prompt_columns() {
-    let (_, rows) = prompts_report(&Options::default());
+    let (_, rows) = prompts_report(Options::default());
     assert_eq!(keys(&rows[1]), PROMPT_COLUMNS.to_vec());
     assert_eq!(rows[1]["outcome"], json!("open"));
 }

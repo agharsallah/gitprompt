@@ -51,6 +51,8 @@ fn grouped(n: u64) -> String {
 
 /// Bytes as `{:,.1f} MB`.
 fn mb(bytes: u64) -> String {
+    // Tenths of a megabyte: a u64 byte count divided by 1e5 is non-negative and fits a u64.
+    #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss, reason = "non-negative and at most u64::MAX / 1e5")]
     let tenths = (bytes as f64 / 1e5).round() as u64;
     format!("{}.{} MB", grouped(tenths / 10), tenths % 10)
 }
@@ -161,7 +163,7 @@ pub(crate) fn check(settings: &Settings, io: &mut Io<'_>) -> Outcome {
                 "  {place:<16} {:>9}  {project}{branch}  session {session}  {}  {} prompts{signals}",
                 ago(now, &r.received_at),
                 r.model.as_deref().unwrap_or("no model"),
-                grouped(r.prompts.max(0) as u64),
+                grouped(u64::try_from(r.prompts).unwrap_or(0)),
             )?;
         }
         if mine.is_empty() {

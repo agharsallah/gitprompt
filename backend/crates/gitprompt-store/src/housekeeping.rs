@@ -68,7 +68,7 @@ impl Removal {
     }
 }
 
-/// The received_at before which an event is older than `days` days. `days < 1` = `Error::Invalid`.
+/// The `received_at` before which an event is older than `days` days. `days < 1` = `Error::Invalid`.
 pub fn cutoff(days: i64, now: Timestamp) -> Result<String> {
     if days < 1 {
         return Err(Error::Invalid("retention must be at least 1 day".into()));

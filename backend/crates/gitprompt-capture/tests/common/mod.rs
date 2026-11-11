@@ -1,6 +1,6 @@
 //! Shared test helpers: a temporary GitPrompt home and user home (never the real `~`), hermetic specs,
 //! an in-memory store, and hand-rolled doubles for the machine (git, tool version).
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 use std::collections::BTreeMap;
 use std::fs;

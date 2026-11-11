@@ -4,6 +4,8 @@ description = "Exports: one redaction pass, report builders, renderers (Markdown
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
 
 [dependencies]
 serde.workspace = true
@@ -21,7 +23,6 @@ resvg.workspace = true
 [dev-dependencies]
 tempfile.workspace = true
 pretty_assertions.workspace = true
-
 
 [lints]
 workspace = true

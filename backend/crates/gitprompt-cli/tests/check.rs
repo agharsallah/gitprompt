@@ -1,6 +1,19 @@
 //! `gitprompt check`: per connector, whether each layer is connected, and the newest prompt of
 //! each app it was typed in (README "Check it live"). Port of
-//! test_gitprompt_check_prints_each_connector_and_app (test_desktop_apps.py).
+//! `test_gitprompt_check_prints_each_connector_and_app` (`test_desktop_apps.py`).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

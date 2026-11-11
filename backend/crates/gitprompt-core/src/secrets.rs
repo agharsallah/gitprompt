@@ -33,6 +33,7 @@ struct Kind {
 }
 
 impl Kind {
+    #[expect(clippy::expect_used, reason = "KINDS are constants, each compiled by `every_kind_compiles`")]
     fn new(name: &'static str, pattern: &str) -> Self {
         // KINDS are constants and every one is compiled by the tests (`every_kind_compiles`), so this
         // cannot fail at run time.

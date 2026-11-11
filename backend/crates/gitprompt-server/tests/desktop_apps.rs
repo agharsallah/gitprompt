@@ -1,7 +1,20 @@
 //! Prompts typed in desktop apps and IDEs land in the right session and project, carry their
 //! surface, and can be filtered, grouped and checked (ADR-0022). Real temporary git repositories,
-//! synthetic payloads. Port of test_desktop_apps.py (the store-level `latest` test belongs to the
+//! synthetic payloads. Port of `test_desktop_apps.py` (the store-level `latest` test belongs to the
 //! store crate; `gitprompt check` is in the CLI tests).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

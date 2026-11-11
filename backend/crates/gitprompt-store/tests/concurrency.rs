@@ -1,5 +1,18 @@
 //! One store shared by threads (the daemon's ingest and dashboard reads), and all-or-nothing
 //! transactions. New in the Rust port: the Python store had one connection.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -107,7 +120,7 @@ fn a_transaction_that_fails_rolls_back_every_write() {
     assert!(matches!(result, Err(Error::Invalid(_))));
     assert_eq!(store.prompt_ids().unwrap(), vec![kept]);
     assert_eq!(store.event_usage(None).unwrap(), vec![]);
-    assert_eq!(store.annotation(kept).unwrap(), Default::default());
+    assert_eq!(store.annotation(kept).unwrap(), gitprompt_store::Annotation::default());
     assert_eq!(store.index().version().unwrap(), None);
     assert_eq!(store.count(&PromptFilter::default()).unwrap(), 1);
 }

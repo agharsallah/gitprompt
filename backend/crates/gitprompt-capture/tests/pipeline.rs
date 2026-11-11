@@ -1,5 +1,18 @@
 //! The capture pipeline: decode, discard, redact, map, keep, then a prompt (with machine context) or
 //! an event (clipped, joined to its prompt). Real specs, a real in-memory store, a stubbed machine.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -53,7 +66,7 @@ fn prompt_id_of(store: &gitprompt_store::Store, captured: &Captured) -> i64 {
             prompt_row(store, id); // panics if the prompt isn't actually in the store
             id
         }
-        other => panic!("stored {other:?}, expected a prompt"),
+        other @ StoredRow::Event(_) => panic!("stored {other:?}, expected a prompt"),
     }
 }
 
@@ -127,7 +140,7 @@ fn a_repeated_prompt_id_of_the_same_source_is_stored_once() {
 
     let again = ingest(&spec, &store, &hook_prompt());
 
-    assert_eq!((again.prompts, again.rows.clone()), (0, vec![]));
+    assert_eq!((again.prompts, again.rows), (0, vec![]));
     assert_eq!(all_prompts(&store).len(), 1);
 }
 
@@ -324,7 +337,7 @@ fn session_joined_events_take_the_latest_prompt_of_their_own_session() {
 
     let joined = |c: &Captured| match only_row(c) {
         StoredRow::Event(id) => event_row(&store, id).prompt_id,
-        other => panic!("{other:?}"),
+        other @ StoredRow::Prompt(_) => panic!("{other:?}"),
     };
     assert_eq!(joined(&tool), Some(format!("copilot-cli#{first}")));
     assert_eq!(joined(&stop), Some(format!("copilot-cli#{second}")));

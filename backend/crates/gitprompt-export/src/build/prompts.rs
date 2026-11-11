@@ -1,6 +1,7 @@
 //! A prompt selection: the prompts the filters keep, newest first.
 
 use std::collections::BTreeSet;
+use std::fmt::Write as _;
 
 use indexmap::IndexMap;
 
@@ -24,9 +25,9 @@ pub fn prompts(data: &PromptsExport, options: &Options, zone: Zone) -> (Report, 
     if !payloads.is_empty() {
         sections.push(section("Stored payloads", vec![Block::Items(Items { items: payloads, mono: true })], String::new(), Level::Two));
     }
-    let rows = items.iter().map(|item| row(item, options)).collect();
+    let rows = items.iter().map(|item| row(item, *options)).collect();
     let subtitle = describe_filters(&data.filters, zone);
-    (report(Kind::Prompts, &data.generated_at, "Prompts".to_string(), subtitle, sections, options, zone), rows)
+    (report(Kind::Prompts, &data.generated_at, "Prompts".to_string(), subtitle, sections, *options, zone), rows)
 }
 
 fn summary(data: &PromptsExport) -> Section {
@@ -34,7 +35,7 @@ fn summary(data: &PromptsExport) -> Section {
     let shown = i64::try_from(items.len()).unwrap_or(i64::MAX);
     let mut prompts = plural(shown, "prompt", None);
     if data.total > shown {
-        prompts.push_str(&format!(" of {}, the newest", integer(Some(data.total as f64))));
+        let _ = write!(prompts, " of {}, the newest", integer(Some(data.total as f64)));
     }
     let sessions: BTreeSet<&str> = items.iter().filter_map(|p| present(p.prompt.row.session.as_deref())).collect();
     let cost: f64 = items.iter().map(|p| p.prompt.row.usage.cost_usd).sum();
@@ -68,7 +69,7 @@ fn table(items: &[PromptItem], texts: bool, zone: Zone) -> Table {
             let (row, facts) = (&item.prompt.row, item.facts.as_ref());
             let mut cells = vec![
                 when(Some(&row.received_at), false, zone),
-                present(row.repo_name.as_deref()).or(present(row.repo.as_deref())).unwrap_or(DASH).to_string(),
+                present(row.repo_name.as_deref()).or_else(|| present(row.repo.as_deref())).unwrap_or(DASH).to_string(),
                 tool(facts),
                 model(facts),
                 origin_label(&row.origin),
@@ -95,7 +96,7 @@ fn payload_line(item: &PromptItem) -> Option<String> {
 
 /// A prompt's row: the [`PROMPT_COLUMNS`], its facts (in place), then what you typed (with prompt
 /// text) and its stored payload (when collected).
-fn row(item: &PromptItem, options: &Options) -> Row {
+fn row(item: &PromptItem, options: Options) -> Row {
     let mut row = pick(&fields(&item.prompt), PROMPT_COLUMNS);
     merge(&mut row, fact_columns(item.facts.as_ref()));
     if options.prompt_text {

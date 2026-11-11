@@ -132,7 +132,7 @@ pub(crate) struct Finding {
 }
 
 impl Finding {
-    pub fn new(what: impl Into<String>, fix: impl Into<String>) -> Self {
+    pub(super) fn new(what: impl Into<String>, fix: impl Into<String>) -> Self {
         Finding { what: what.into(), fix: fix.into() }
     }
 }

@@ -49,7 +49,7 @@ pub(super) fn lineage(target: &FactRow, candidates: &[FactRow]) -> PromptLineage
             text,
             clipped,
             similarity,
-            same_text: non_empty(&row.text_hash).is_some() && row.text_hash == target.prompt.row.text_hash,
+            same_text: non_empty(row.text_hash.as_deref()).is_some() && row.text_hash == target.prompt.row.text_hash,
             place: place(p, target),
             outcome: p.prompt.outcome,
             response_s: row.response_s,
@@ -67,7 +67,7 @@ fn place(p: &FactRow, target: &FactRow) -> Place {
     let (row, target) = (&p.prompt.row, &target.prompt.row);
     if row.id == target.id {
         Place::Itself
-    } else if non_empty(&row.session).is_some() && row.session == target.session {
+    } else if non_empty(row.session.as_deref()).is_some() && row.session == target.session {
         Place::Session
     } else if row.repo == target.repo {
         Place::Project

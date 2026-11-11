@@ -60,7 +60,7 @@ pub struct IndexRow {
     pub api_time_s: f64,
     pub api_errors: i64,
     pub response_s: Option<f64>,
-    /// Stop, StopFailure, Interrupt, or none.
+    /// Stop, `StopFailure`, Interrupt, or none.
     pub ended_by: Option<String>,
     pub tool_calls: i64,
     pub tool_failures: i64,
@@ -135,6 +135,7 @@ pub struct SessionCommand {
 }
 
 /// The index tables of a store.
+#[derive(Debug)]
 pub struct PromptIndex<'a> {
     pub(crate) store: &'a crate::Store,
 }

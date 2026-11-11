@@ -1,6 +1,19 @@
 //! The live-update bus: fan-out to every subscriber, never blocking the publisher. Port of
-//! test_bus_drops_notices_for_a_stalled_subscriber (test_extension_points.py), adapted to
+//! `test_bus_drops_notices_for_a_stalled_subscriber` (`test_extension_points.py`), adapted to
 //! broadcast semantics: a stalled subscriber keeps at most `backlog` notices.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 use std::time::Duration;
 

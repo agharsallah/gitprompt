@@ -1,5 +1,18 @@
 //! Reads for stories and search: prompts as the index sees them in time order, counts, tool kinds,
 //! and the turn events a story shows. Port of storage/timeline.py.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -19,7 +32,7 @@ fn listed(store: &Store, filter: &PromptFilter, limit: Option<usize>, newest_fir
     store.timeline(filter, limit, newest_first).unwrap().into_iter().map(|p| p.row.id).collect()
 }
 
-/// Three prompts stored out of time order: ids do not follow received_at.
+/// Three prompts stored out of time order: ids do not follow `received_at`.
 fn out_of_order() -> (Store, [i64; 3]) {
     let store = store_at(NOW);
     let late = prompt("late").at("2026-11-03T12:00:00.000000+00:00").insert(&store);
@@ -218,9 +231,9 @@ fn turn_events_read_more_turns_than_one_chunk() {
     let turns: Vec<String> = (0..=CHUNK).map(|i| format!("p{i}")).collect();
     store
         .transaction(|s| {
-            turns.iter().for_each(|t| {
+            for t in &turns {
                 event("PreCompact").prompt_id(t).insert(s);
-            });
+            }
             Ok(())
         })
         .unwrap();

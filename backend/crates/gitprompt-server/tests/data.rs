@@ -1,5 +1,18 @@
 //! /api/data: where the database and backups are, and the clean-ups that always preview first.
-//! Port of the data tests of test_settings.py (plus the retention pass through the Service).
+//! Port of the data tests of `test_settings.py` (plus the retention pass through the Service).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -8,8 +21,9 @@ use gitprompt_store::Store;
 use jiff::{SignedDuration, Timestamp};
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
+use std::fmt::Write as _;
 
-/// Three stored events: one noise kind the spec drops, one api_request 40 days old, one recent Stop.
+/// Three stored events: one noise kind the spec drops, one `api_request` 40 days old, one recent Stop.
 /// Planted with the store (ingest would drop the noise) and moved back in time with SQL.
 fn plant_events(api: &Api, now: Timestamp) {
     let store = Store::open(&api.settings.db_path()).expect("store");
@@ -19,7 +33,7 @@ fn plant_events(api: &Api, now: Timestamp) {
         let fields = json!({"event": event, "session_id": "s1"}).as_object().cloned().expect("object");
         let row = store.add_event(source, &fields, &json!({"x": event})).expect("event");
         let at = (now - SignedDuration::from_hours(24 * days)).strftime("%Y-%m-%dT%H:%M:%S%.6f+00:00");
-        statements += &format!("update event set received_at = '{at}' where id = {};", row.id);
+        write!(statements, "update event set received_at = '{at}' where id = {};", row.id).unwrap();
     }
     api.sql(&statements);
 }

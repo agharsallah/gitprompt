@@ -101,7 +101,7 @@ pub fn svg(chart: &Chart, alone: bool) -> String {
 
 /// The geometry of a drawn chart: its marks and the size they take.
 struct Marks {
-    marks: String,
+    svg: String,
     width: i64,
     height: i64,
 }
@@ -112,7 +112,7 @@ fn draw(chart: &Chart, paint: Option<Paint>) -> String {
         return String::new();
     }
     let top = if paint.is_some() { 36 } else { 0 };
-    let Marks { marks, width, height } = match chart.kind {
+    let Marks { svg: marks, width, height } = match chart.kind {
         ChartKind::Bars => bars(&chart.items, top),
         ChartKind::Columns => columns(&chart.items, top),
     };
@@ -187,7 +187,7 @@ fn bars(items: &[Bar], top: i64) -> Marks {
         );
     }
     let rows = i64::try_from(items.len()).unwrap_or(i64::MAX);
-    Marks { marks, width: i64::from(BAR_W), height: top + rows * i64::from(ROW_H) }
+    Marks { svg: marks, width: i64::from(BAR_W), height: top + rows * i64::from(ROW_H) }
 }
 
 fn columns(items: &[Bar], top: i64) -> Marks {
@@ -198,6 +198,8 @@ fn columns(items: &[Bar], top: i64) -> Marks {
     let n = items.len();
     let step = col_w / n.max(1) as f64;
     let width = (step * 0.72).max(1.0);
+    // `peak` is one of these values (their maximum), so exact equality finds it.
+    #[expect(clippy::float_cmp, reason = "looking up the very value peak() returned")]
     let peak_label = items.iter().find(|b| b.value == peak).map_or_else(|| number(peak), |b| b.display.clone());
     let mut marks = format!(
         r#"<text class="gp-muted gp-num" x="0" y="{}" font-size="15">{}</text><line class="gp-axis" x1="0" x2="{COL_W}" y1="{y}" y2="{y}"/>"#,
@@ -217,7 +219,7 @@ fn columns(items: &[Bar], top: i64) -> Marks {
             esc(&b.display),
         );
     }
-    for i in ticks(n) {
+    for (i, item) in ticks(n).into_iter().filter_map(|i| Some((i, items.get(i)?))) {
         let anchor = if n > 1 && i == 0 {
             "start"
         } else if n > 1 && i == n - 1 {
@@ -234,10 +236,10 @@ fn columns(items: &[Bar], top: i64) -> Marks {
             marks,
             r#"<text class="gp-muted" x="{x:.1}" y="{}" font-size="15" text-anchor="{anchor}">{}</text>"#,
             base + 22,
-            esc(&items[i].label),
+            esc(&item.label),
         );
     }
-    Marks { marks, width: i64::from(COL_W), height: base + 30 }
+    Marks { svg: marks, width: i64::from(COL_W), height: base + 30 }
 }
 
 /// The columns labelled under the axis: all up to four, else the first, middle and last.
@@ -252,6 +254,7 @@ fn ticks(n: usize) -> Vec<usize> {
 }
 
 /// A number as Python's `str` writes it: whole numbers without a fraction (`1`), others as is.
+#[expect(clippy::cast_possible_truncation, reason = "only whole values below 1e15, which convert exactly")]
 fn number(value: f64) -> String {
     if value.fract() == 0.0 && value.abs() < 1e15 { format!("{}", value as i64) } else { format!("{value}") }
 }

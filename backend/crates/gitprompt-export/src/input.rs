@@ -18,8 +18,10 @@ use gitprompt_store::timeline::IndexedPrompt;
 use crate::Kind;
 
 /// Everything one export shows, before redaction.
-// One value per export, built once and never stored in bulk: boxing would only make it clumsier.
-#[allow(clippy::large_enum_variant)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "one value per export, built once and never stored in bulk: boxing would only make it clumsier"
+)]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ExportInput {
     Session(SessionExport),
@@ -178,8 +180,7 @@ pub struct Marker {
 }
 
 /// One item of a session story: a chapter, or consecutive markers folded into one group.
-// A story holds at most a few hundred items: boxing chapters would only make them clumsier.
-#[allow(clippy::large_enum_variant)]
+#[allow(clippy::large_enum_variant, reason = "a story holds at most a few hundred items: boxing chapters would only make them clumsier")]
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum StoryItem {

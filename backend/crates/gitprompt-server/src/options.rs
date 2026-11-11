@@ -100,6 +100,7 @@ pub trait GitProvider: Send + Sync {
 }
 
 /// The user's `git` CLI, with the context memoized for `ttl` per directory (`core::git::GitCache`).
+#[derive(Debug)]
 pub struct SystemGit {
     cache: GitCache,
 }
@@ -158,6 +159,15 @@ pub struct AppOptions {
     /// down, and the Connectors page compares installed entries against that form. `None`: the
     /// spec's curl commands.
     pub forwarder: Option<PathBuf>,
+}
+
+impl std::fmt::Debug for AppOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AppOptions")
+            .field("dashboard", &self.dashboard.is_some())
+            .field("bus_backlog", &self.bus_backlog)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Default for AppOptions {

@@ -1,6 +1,19 @@
 //! /api/prompts: the list with its filters, the detail with its turn, the user's notes and hiding
-//! secrets. Port of test_api.py (events and telemetry enrich a prompt, origin and typed text) and
-//! the prompt parts of test_extension_points.py / test_stats.py.
+//! secrets. Port of `test_api.py` (events and telemetry enrich a prompt, origin and typed text) and
+//! the prompt parts of `test_extension_points.py` / `test_stats.py`.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

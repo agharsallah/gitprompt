@@ -11,7 +11,7 @@ const OPEN: &str = "open";
 const AUTOSTART: &str = "autostart";
 const QUIT: &str = "quit";
 
-pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+pub(crate) fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, OPEN, "Open GitPrompt", true, None::<&str>)?;
     let at_login = app.autolaunch().is_enabled().unwrap_or(false);
     let autostart = CheckMenuItem::with_id(app, AUTOSTART, "Start at login", true, at_login, None::<&str>)?;

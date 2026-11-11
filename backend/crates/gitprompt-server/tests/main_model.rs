@@ -1,6 +1,19 @@
 //! End to end: a Claude Code prompt (hooks) and its telemetry (OTLP) through ingest, the index and
 //! the API. The model every page shows is the one that answered (main thread), even when background
 //! calls on another model outnumber it. The unit rules are in gitprompt-insights/tests/main_model.rs.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 

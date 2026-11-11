@@ -1,6 +1,19 @@
-//! Loading specs from the bundle and `<home>/sources/`, one file at a time, and the SpecCache
-//! (port of tests/sources/test_spec.py loading tests, tests/test_extension_points.py and the
-//! spec-problem parts of tests/api/test_connectors.py).
+//! Loading specs from the bundle and `<home>/sources/`, one file at a time, and the `SpecCache`
+//! (port of `tests/sources/test_spec.py` loading tests, `tests/test_extension_points.py` and the
+//! spec-problem parts of `tests/api/test_connectors.py`).
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -297,7 +310,7 @@ fn rewrite(path: &std::path::Path, text: &str, seconds_ahead: u64) {
 fn the_cache_does_not_reload_when_nothing_changed() {
     let sb = sandbox();
     sb.user_spec("mytool.yaml", MINIMAL);
-    let cache = SpecCache::new(sb.settings.clone());
+    let cache = SpecCache::new(sb.settings);
     let first = cache.get();
     let loads = cache.loads();
     let second = cache.get();
@@ -309,7 +322,7 @@ fn the_cache_does_not_reload_when_nothing_changed() {
 #[test]
 fn the_cache_loads_from_disk_once_for_its_first_set() {
     let sb = sandbox();
-    let cache = SpecCache::new(sb.settings.clone());
+    let cache = SpecCache::new(sb.settings);
     cache.get();
     cache.get();
     assert_eq!(cache.loads(), 1);
@@ -342,7 +355,7 @@ fn the_cache_reloads_when_the_sources_directory_appears() {
 fn the_cache_reloads_after_a_user_spec_is_modified() {
     let sb = sandbox();
     let path = sb.user_spec("mytool.yaml", MINIMAL);
-    let cache = SpecCache::new(sb.settings.clone());
+    let cache = SpecCache::new(sb.settings);
     assert_eq!(cache.get().specs["mytool"].name, "My tool");
     let loads = cache.loads();
     rewrite(&path, &MINIMAL.replace("My tool", "My renamed tool"), 5);
@@ -354,7 +367,7 @@ fn the_cache_reloads_after_a_user_spec_is_modified() {
 fn the_cache_reloads_after_a_user_spec_is_removed() {
     let sb = sandbox();
     let path = sb.user_spec("mytool.yaml", MINIMAL);
-    let cache = SpecCache::new(sb.settings.clone());
+    let cache = SpecCache::new(sb.settings);
     assert!(cache.get().get("mytool").is_some());
     let loads = cache.loads();
     std::fs::remove_file(path).unwrap();
@@ -376,7 +389,7 @@ fn the_cache_is_shared_across_threads() {
     fn shareable<T: Send + Sync>() {}
     shareable::<SpecCache>();
     let sb = sandbox();
-    let cache = SpecCache::new(sb.settings.clone());
+    let cache = SpecCache::new(sb.settings);
     let counts: Vec<usize> = std::thread::scope(|scope| {
         let handles: Vec<_> = (0..4).map(|_| scope.spawn(|| cache.get().specs.len())).collect();
         handles.into_iter().map(|h| h.join().unwrap()).collect()

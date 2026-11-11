@@ -34,9 +34,9 @@ pub(super) fn story(
         .into_iter()
         .enumerate()
         .map(|(n, phase)| {
-            let items = entries[phase.range.clone()].to_vec();
+            let items = entries.get(phase.range.clone()).unwrap_or_default().to_vec();
             let mut branches: Vec<String> = Vec::new();
-            for branch in items.iter().filter_map(|e| non_empty(&e.branch)) {
+            for branch in items.iter().filter_map(|e| non_empty(e.branch.as_deref())) {
                 if !branches.iter().any(|b| b == branch) {
                     branches.push(branch.to_owned());
                 }
@@ -46,7 +46,7 @@ pub(super) fn story(
                 reason: phase.reason,
                 gap_s: phase.gap_s,
                 branches,
-                measures: measures(&items, &user[phase.range]),
+                measures: measures(&items, user.get(phase.range).unwrap_or_default()),
                 items,
             }
         })
@@ -89,7 +89,7 @@ fn measures(entries: &[ProjectEntry], prompts: &[FactRow]) -> Measures {
     for e in entries {
         *outcomes.entry(e.outcome).or_default() += 1;
     }
-    let sessions: BTreeSet<&str> = entries.iter().filter_map(|e| non_empty(&e.session)).collect();
+    let sessions: BTreeSet<&str> = entries.iter().filter_map(|e| non_empty(e.session.as_deref())).collect();
     // Counts are far below u64::MAX: the casts are lossless.
     let count = |n: usize| n as u64;
     Measures {
@@ -114,10 +114,12 @@ fn measures(entries: &[ProjectEntry], prompts: &[FactRow]) -> Measures {
 fn median(mut values: Vec<i64>) -> i64 {
     values.sort_unstable();
     let n = values.len();
+    #[expect(clippy::indexing_slicing, reason = "n > 0 in both arms: n / 2 < n, and n / 2 >= 1 when n is even")]
     match n {
         0 => 0,
         _ if n % 2 == 1 => values[n / 2],
         // Character counts: exactly representable as f64, and so is their half.
-        _ => ((values[n / 2 - 1] as f64 + values[n / 2] as f64) / 2.0).round_ties_even() as i64,
+        #[expect(clippy::cast_possible_truncation, reason = "the rounded mean of two i64 counts fits an i64")]
+        _ => f64::midpoint(values[n / 2 - 1] as f64, values[n / 2] as f64).round_ties_even() as i64,
     }
 }

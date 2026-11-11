@@ -100,20 +100,12 @@ pub fn build(input: &ExportInput, options: &Options, zone: Zone) -> (Report, Vec
 // --- shared by the builders ----------------------------------------------------------------------
 
 /// The report's head and notes around its sections.
-fn report(
-    kind: Kind,
-    generated_at: &str,
-    title: String,
-    subtitle: String,
-    sections: Vec<Section>,
-    options: &Options,
-    zone: Zone,
-) -> Report {
-    Report { kind, title, subtitle, generated_at: when(Some(generated_at), false, zone), sections, notes: notes(options, kind) }
+fn report(kind: Kind, generated_at: &str, title: String, subtitle: String, sections: Vec<Section>, options: Options, zone: Zone) -> Report {
+    Report { kind, title, subtitle, generated_at: when(Some(generated_at), false, zone), sections, notes: notes(&options, kind) }
 }
 
 /// `value` as JSON. Every value given here is plain data (strings, numbers, options, maps with
-/// string keys), which always serializes; a non-finite float becomes `null`, as serde_json writes it.
+/// string keys), which always serializes; a non-finite float becomes `null`, as `serde_json` writes it.
 fn json(value: impl Serialize) -> Json {
     serde_json::to_value(value).unwrap_or(Json::Null)
 }

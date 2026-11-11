@@ -55,7 +55,7 @@ pub fn overview(data: &OverviewExport, options: &Options, zone: Zone) -> (Report
     let mut rows = vec![total_row(&data.totals)];
     rows.extend(by.iter().flat_map(|(name, buckets)| buckets.iter().map(|(shown, b)| bucket_row(name, shown, b))));
     let subtitle = describe_filters(&data.filters, zone);
-    (report(Kind::Overview, &data.generated_at, "Overview".to_string(), subtitle, sections, options, zone), rows)
+    (report(Kind::Overview, &data.generated_at, "Overview".to_string(), subtitle, sections, *options, zone), rows)
 }
 
 fn group<'a>(groups: &'a OverviewGroups, name: &str) -> &'a [Bucket] {
@@ -172,6 +172,7 @@ fn measures(bucket: &Bucket) -> Row {
 fn whole(value: Json) -> Json {
     const EXACT: f64 = 9_007_199_254_740_992.0;
     match value.as_f64() {
+        #[expect(clippy::cast_possible_truncation, reason = "a whole number below 2^53 converts exactly")]
         Some(n) if value.is_f64() && n.fract() == 0.0 && n.abs() < EXACT => Json::from(n as i64),
         _ => value,
     }

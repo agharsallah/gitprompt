@@ -43,6 +43,7 @@ impl<'s, T: Eq + Hash> Matcher<'s, T> {
 
     /// The longest matching block in `a[alo..ahi]` and `b[blo..bhi]`; of several, the one that
     /// starts earliest in `a`, then earliest in `b`.
+    #[expect(clippy::indexing_slicing, reason = "a port of Python's difflib: i < ahi <= len(a), and each loop checks its bounds first")]
     fn find_longest_match(&self, alo: usize, ahi: usize, blo: usize, bhi: usize) -> Block {
         let (mut besti, mut bestj, mut bestsize) = (alo, blo, 0);
         // j2len[j]: length of the longest match ending with a[i - 1] and b[j].
@@ -142,8 +143,8 @@ mod tests {
     /// `SequenceMatcher(None, "qabxcd", "abycdf", autojunk=False).get_opcodes()` in Python.
     #[test]
     fn opcodes_match_python() {
-        let (a, b): (Vec<char>, Vec<char>) = ("qabxcd".chars().collect(), "abycdf".chars().collect());
         use Tag::*;
+        let (a, b): (Vec<char>, Vec<char>) = ("qabxcd".chars().collect(), "abycdf".chars().collect());
         assert_eq!(
             opcodes(&a, &b),
             vec![(Delete, 0, 1, 0, 0), (Equal, 1, 3, 0, 2), (Replace, 3, 4, 2, 3), (Equal, 4, 6, 3, 5), (Insert, 6, 6, 5, 6)]

@@ -1,7 +1,7 @@
 //! CLI test harness: a temp data directory and home, the `gitprompt` binary run with exactly that
 //! environment (never the developer's: `env_clear`), and in-process helpers to put data in place
 //! through the server's Service or to run a Daemon on loopback.
-#![allow(dead_code)]
+#![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 pub mod binary;
 
@@ -21,7 +21,7 @@ pub struct Home {
     _tmp: TempDir,
 }
 
-/// `<tmp>/gitprompt` as GITPROMPT_HOME and `<tmp>/home` as HOME.
+/// `<tmp>/gitprompt` as `GITPROMPT_HOME` and `<tmp>/home` as HOME.
 pub fn home() -> Home {
     let tmp = tempfile::tempdir().expect("temp dir");
     let root = tmp.path().canonicalize().expect("canonical");
@@ -50,6 +50,7 @@ impl Home {
         command
     }
 
+    #[expect(clippy::unused_self, reason = "reads like the other per-home helpers: home.options()")]
     pub fn options(&self) -> AppOptions {
         AppOptions { tool_version: Arc::new(FixedVersion(None)), git: Arc::new(NoGit), ..AppOptions::default() }
     }
@@ -85,6 +86,6 @@ pub fn stdout(output: &std::process::Output) -> String {
 
 /// Typed texts of the prompts a running daemon stored, newest first.
 pub async fn prompt_texts(daemon: &Daemon) -> Vec<String> {
-    let prompts = daemon.service().prompts(Default::default()).await.expect("prompts");
+    let prompts = daemon.service().prompts(gitprompt_server::model::PromptQuery::default()).await.expect("prompts");
     prompts.into_iter().map(|p| p.prompt.unwrap_or_default()).collect()
 }

@@ -1,6 +1,19 @@
 //! The Daemon: a running GitPrompt on loopback (port 0), one per data directory, with graceful
 //! shutdown and background retention. Loopback sockets only. (Draining the hook spool at start is
 //! covered with the forwarder in the CLI tests, which can produce a spool.)
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -51,7 +64,7 @@ async fn a_second_daemon_for_the_same_data_directory_refuses_to_start() {
     let h = harness();
     let first = Daemon::start(h.settings.clone(), h.options.clone(), on_any_port()).await.expect("first");
     let second = Daemon::start(h.settings.clone(), h.options.clone(), on_any_port()).await;
-    let error = second.err().expect("the second start fails");
+    let error = second.expect_err("the second start fails");
     assert!(matches!(&error, DaemonError::AlreadyRunning { lock_file } if *lock_file == h.settings.lock_file()), "{error:?}");
     assert!(error.to_string().contains("already running"), "{error}");
     first.shutdown().await.expect("shutdown");
@@ -92,7 +105,7 @@ async fn a_port_in_use_fails_the_start_and_leaves_no_lock_behind() {
     let taken = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
     let addr = taken.local_addr().expect("addr");
     let busy = DaemonOptions { addr: Some(addr), ..DaemonOptions::default() };
-    let error = Daemon::start(h.settings.clone(), h.options.clone(), busy).await.err().expect("bind fails");
+    let error = Daemon::start(h.settings.clone(), h.options.clone(), busy).await.expect_err("bind fails");
     assert!(matches!(error, DaemonError::Bind { addr: a, .. } if a == addr), "{error:?}");
     let daemon = Daemon::start(h.settings.clone(), h.options.clone(), on_any_port()).await.expect("lock was released");
     daemon.shutdown().await.expect("shutdown");

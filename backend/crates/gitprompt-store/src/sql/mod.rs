@@ -15,12 +15,12 @@ pub(crate) struct Sql {
 }
 
 impl Sql {
-    pub fn new(text: impl Into<String>) -> Self {
+    pub(crate) fn new(text: impl Into<String>) -> Self {
         Sql { text: text.into(), params: Vec::new() }
     }
 
     /// Append text, or another fragment with its parameters.
-    pub fn push(mut self, other: impl Into<Sql>) -> Self {
+    pub(crate) fn push(mut self, other: impl Into<Sql>) -> Self {
         let other = other.into();
         self.text.push_str(&other.text);
         self.params.extend(other.params);
@@ -28,28 +28,28 @@ impl Sql {
     }
 
     /// Append a `?` bound to `value`.
-    pub fn bind(mut self, value: impl Into<Value>) -> Self {
+    pub(crate) fn bind(mut self, value: impl Into<Value>) -> Self {
         self.text.push('?');
         self.params.push(value.into());
         self
     }
 
     /// The fragments joined by `separator`.
-    pub fn join(parts: impl IntoIterator<Item = Sql>, separator: &str) -> Sql {
+    pub(crate) fn join(parts: impl IntoIterator<Item = Sql>, separator: &str) -> Sql {
         parts.into_iter().enumerate().fold(Sql::default(), |acc, (i, part)| if i == 0 { part } else { acc.push(separator).push(part) })
     }
 
     /// Every condition must hold; no condition is `1=1`.
-    pub fn all(conditions: impl IntoIterator<Item = Sql>) -> Sql {
+    pub(crate) fn all(conditions: impl IntoIterator<Item = Sql>) -> Sql {
         let joined = Sql::join(conditions, " and ");
         if joined.text.is_empty() { Sql::new("1=1") } else { joined }
     }
 
-    pub fn text(&self) -> &str {
+    pub(crate) fn text(&self) -> &str {
         &self.text
     }
 
-    pub fn params(&self) -> rusqlite::ParamsFromIter<std::slice::Iter<'_, Value>> {
+    pub(crate) fn params(&self) -> rusqlite::ParamsFromIter<std::slice::Iter<'_, Value>> {
         rusqlite::params_from_iter(self.params.iter())
     }
 }

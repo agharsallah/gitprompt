@@ -16,6 +16,17 @@
 //!    sockets): the first call (cold caches) and p50 / p95 / max over `R` more runs.
 //!
 //! Git and tool versions are pinned (no subprocess per ingest), so numbers measure GitPrompt only.
+#![allow(
+    clippy::print_stdout,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::format_push_string,
+    reason = "benchmark binary: prints its report to stdout and aborts on any setup failure"
+)]
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -176,7 +187,7 @@ fn merge(mut payload: Value, extra: Value) -> Value {
     payload
 }
 
-/// One PostToolUse, 0.3–6 KB depending on the tool.
+/// One `PostToolUse`, 0.3–6 KB depending on the tool.
 fn tool_use(rng: &mut Rng, turn: &Turn, n: usize) -> Value {
     let tool = rng.pick(TOOLS);
     let file = format!("{}/src/{}_{}.rs", turn.cwd, rng.pick(WORDS), rng.pick(WORDS));
@@ -280,14 +291,13 @@ fn ms(d: Duration) -> f64 {
 
 async fn run(args: &Args) -> Result<(), String> {
     let _tmp;
-    let home = match &args.home {
-        Some(dir) => dir.clone(),
-        None => {
-            let tmp = tempfile::tempdir().map_err(|e| e.to_string())?;
-            let dir = tmp.path().join("gitprompt");
-            _tmp = tmp;
-            dir
-        }
+    let home = if let Some(dir) = &args.home {
+        dir.clone()
+    } else {
+        let tmp = tempfile::tempdir().map_err(|e| e.to_string())?;
+        let dir = tmp.path().join("gitprompt");
+        _tmp = tmp;
+        dir
     };
     let user_home = home.parent().map_or_else(|| home.join("home"), |p| p.join("bench-home"));
     std::fs::create_dir_all(&user_home).map_err(|e| format!("{}: {e}", user_home.display()))?;

@@ -37,7 +37,7 @@ pub(crate) fn run(settings: &Settings, json: bool, io: &mut Io<'_>) -> std::resu
         render::text(&report, io.stdout)?;
     }
     io.stdout.flush()?;
-    Ok(if report.healthy { 0 } else { 1 })
+    Ok(u8::from(!report.healthy))
 }
 
 /// Everything the report shows, then the findings derived from it. A part that can't be read

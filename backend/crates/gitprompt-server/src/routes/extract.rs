@@ -17,7 +17,7 @@ fn pairs(parts: &Parts) -> Vec<(String, String)> {
 }
 
 /// The prompt filters of the query string.
-pub struct Filter(pub PromptFilter);
+pub(super) struct Filter(pub PromptFilter);
 
 impl<S: Send + Sync> FromRequestParts<S> for Filter {
     type Rejection = ApiError;
@@ -27,7 +27,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Filter {
 }
 
 /// Filters plus `limit` (`/api/prompts`, `/api/search`).
-pub struct Prompts(pub PromptQuery);
+pub(super) struct Prompts(pub PromptQuery);
 
 impl<S: Send + Sync> FromRequestParts<S> for Prompts {
     type Rejection = ApiError;
@@ -37,7 +37,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Prompts {
 }
 
 /// Filters plus grouping (`/api/stats`).
-pub struct Grouping(pub StatsQuery);
+pub(super) struct Grouping(pub StatsQuery);
 
 impl<S: Send + Sync> FromRequestParts<S> for Grouping {
     type Rejection = ApiError;
@@ -47,7 +47,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Grouping {
 }
 
 /// Export options and the prompt filters.
-pub struct ExportParams(pub ExportQuery, pub PromptFilter);
+pub(super) struct ExportParams(pub ExportQuery, pub PromptFilter);
 
 impl<S: Send + Sync> FromRequestParts<S> for ExportParams {
     type Rejection = ApiError;
@@ -58,7 +58,7 @@ impl<S: Send + Sync> FromRequestParts<S> for ExportParams {
 }
 
 /// `dry_run`, `DEFAULT` when not given.
-pub struct DryRun<const DEFAULT: bool>(pub bool);
+pub(super) struct DryRun<const DEFAULT: bool>(pub bool);
 
 impl<S: Send + Sync, const DEFAULT: bool> FromRequestParts<S> for DryRun<DEFAULT> {
     type Rejection = ApiError;
@@ -68,7 +68,7 @@ impl<S: Send + Sync, const DEFAULT: bool> FromRequestParts<S> for DryRun<DEFAULT
 }
 
 /// Path parameters; one that doesn't parse (a prompt id that isn't a number) is a 422.
-pub struct Params<T>(pub T);
+pub(super) struct Params<T>(pub T);
 
 impl<S: Send + Sync, T: DeserializeOwned + Send> FromRequestParts<S> for Params<T> {
     type Rejection = ApiError;
@@ -81,7 +81,7 @@ impl<S: Send + Sync, T: DeserializeOwned + Send> FromRequestParts<S> for Params<
 }
 
 /// A JSON body, whatever the content type says; missing, malformed or of the wrong shape is a 422.
-pub struct Body<T>(pub T);
+pub(super) struct Body<T>(pub T);
 
 impl<S: Send + Sync, T: DeserializeOwned> FromRequest<S> for Body<T> {
     type Rejection = ApiError;

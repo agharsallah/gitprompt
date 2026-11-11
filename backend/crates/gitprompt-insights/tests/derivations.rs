@@ -1,7 +1,20 @@
 //! Derived values (derivations.rs): prompt stats, the turn summary, the session summary and
-//! `derive`. Port of tests/insights/test_insights.py (non-secret parts) and the derivation
-//! behaviour tests/api/test_api.py and test_codex.py assert through the API, plus every branch of
+//! `derive`. Port of `tests/insights/test_insights.py` (non-secret parts) and the derivation
+//! behaviour `tests/api/test_api.py` and `test_codex.py` assert through the API, plus every branch of
 //! derivations.py they left implicit. Fixture-based cases replay tests' connector fixtures.
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    clippy::float_cmp,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::needless_pass_by_value,
+    unreachable_pub,
+    reason = "integration test: a panic is a test failure, fixtures use small known values, and helpers are crate-private anyway"
+)]
 
 mod common;
 
@@ -32,7 +45,7 @@ fn named(entries: &[(&str, u64)]) -> IndexMap<Option<String>, u64> {
 }
 
 fn strings(values: &[&str]) -> Vec<String> {
-    values.iter().map(|v| v.to_string()).collect()
+    values.iter().map(std::string::ToString::to_string).collect()
 }
 
 fn patterns(entries: &[(&str, &str)]) -> IndexMap<String, Pattern> {
@@ -245,8 +258,7 @@ fn failed_tool_calls_are_counted_and_report_their_errors() {
 fn a_long_tool_error_is_clipped_with_an_ellipsis() {
     let long = format!("{} {}", "x".repeat(279), "y".repeat(30));
     let exact = "z".repeat(280);
-    let summary =
-        claude_turn(&[event("PostToolUseFailure", json!({"error": long})), event("PostToolUseFailure", json!({"error": exact.clone()}))]);
+    let summary = claude_turn(&[event("PostToolUseFailure", json!({"error": long})), event("PostToolUseFailure", json!({"error": exact}))]);
     assert_eq!(summary.tool_errors, vec![format!("{}…", "x".repeat(279)), exact]);
 }
 
@@ -476,8 +488,8 @@ fn usage_totals_truncate_tokens_and_round_cost_to_four_decimals() {
 
 #[test]
 fn work_kinds_tell_the_main_thread_subagents_and_system_calls_apart() {
-    let kinds = [None, Some("repl_main_thread"), Some("sdk"), Some("agent:builtin:Explore"), Some("compact"), Some("")].map(work_kind);
     use WorkKind::*;
+    let kinds = [None, Some("repl_main_thread"), Some("sdk"), Some("agent:builtin:Explore"), Some("compact"), Some("")].map(work_kind);
     assert_eq!(kinds, [Main, Main, Main, Subagent, System, System]);
     assert_eq!([Main.as_str(), Subagent.as_str(), System.as_str()], ["main", "subagent", "system"]);
 }
