@@ -82,9 +82,32 @@ just verify        # fmt, clippy -D warnings, cargo test --workspace (incl. crat
                    # which drives the real binary), web checks and build: what CI runs
 just cov           # line coverage report (cargo install cargo-llvm-cov)
 just doctor        # an install's paths, daemon and lock, database and index, connectors, spool; `--json` too
-just bench         # crates/gitprompt-server/examples/load.rs: ingest throughput, read latencies (p50/p95)
+just bench         # crates/gitprompt-server/examples/load.rs: ingest throughput, read latencies (p50/p95);
+                   # `--concurrent 10` adds ingest and reads at once with a slow git
+just perf          # the same with budgets (exit 1 when over): what CI's `perf` job runs
 just compare       # legacy Python vs Rust, every endpoint, on a copy of ~/.gitprompt/gitprompt.db
 ```
+
+### Catching performance problems early
+
+A running daemon watches itself (`crates/gitprompt-server/src/health.rs`) and reports under
+`health` in `GET /api/status`, which `gitprompt doctor` shows and turns into findings:
+
+| Signal | Logged at `warn` when | Where it points |
+|---|---|---|
+| `gitprompt_store::writer` `waited for` / `held the database writer` | a write waited over 250 ms, or something kept the writer over 500 ms | `at=` file:line of the code that took it: slow work inside a transaction stalls every write and every read's index refresh |
+| `gitprompt_server::http` `slow request` | a request took over 1 s | method and path; per-route p50/p95/max in the status |
+| `gitprompt_server::health` | resident memory over 1 GiB or 3× (and 256 MiB) above its settled baseline; CPU over 80% of a core for 3 samples; new 5xx errors, slow requests or writer waits since the last sample | the message; each kind repeats at most every 15 min |
+
+The daemon samples every 30 s and starts judging memory growth and CPU after 2 min, so start-up
+work (index rebuild, spool drain) is not reported as a problem. `Limits` and the interval are
+`DaemonOptions` fields.
+
+Before a release, CI's `perf` job (`just perf` locally) fills a store, then ingests through two
+hook streams with a 600 ms git while the dashboard reads, and fails when a read's p95 is over
+budget, the writer was kept over 500 ms under load, or peak memory is over budget. It fails on
+work moved inside a transaction (the bug that made `/api/prompts` take seconds on 2026-11-11), and
+`crates/gitprompt-server/tests/contention.rs` pins the same rule deterministically.
 
 | Variable | Effect |
 |---|---|

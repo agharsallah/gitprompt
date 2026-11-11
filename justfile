@@ -103,6 +103,11 @@ cov: target-guard
 bench *args: target-guard
     cd backend && cargo run --release -q -p gitprompt-server --example load -- {{ args }}
 
+# Performance budgets, as CI checks them: read p95 alone and under concurrent ingest with a slow git,
+# the database writer never kept over 500 ms, peak memory (exits 1 when over; see `bench --help`)
+perf *args: target-guard
+    cd backend && cargo run --release -q -p gitprompt-server --example load -- --check {{ args }}
+
 # Compare the legacy Python daemon and the Rust daemon endpoint by endpoint on a copy of a database
 compare db="": build
     tools/compare-backends.sh {{ db }}

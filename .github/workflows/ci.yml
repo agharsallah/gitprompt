@@ -139,6 +139,29 @@ jobs:
         working-directory: backend
         run: cargo clippy -p gitprompt-desktop -p gitprompt-tauri --all-targets --locked -- -D warnings
 
+  # Performance budgets: the load benchmark fills a store, then ingests and reads at once with a slow
+  # git (a cold cache or a big repository) and fails when a read's p95, the database writer's longest
+  # stay, or peak memory is over budget. Catches work moved inside a transaction (every dashboard
+  # read then waits for it), unbounded caches and slow queries before they ship. Same as `just perf`;
+  # the read budget is looser than locally (shared runners are slower and noisier), the writer check
+  # is not timing-sensitive.
+  perf:
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: backend -> target
+          key: perf
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: load benchmark with budgets
+        working-directory: backend
+        run: cargo run --release --locked -q -p gitprompt-server --example load -- --check --max-read-p95-ms 500
+
   # Supply chain: advisories (CVEs, yanked, unmaintained/unsound direct deps), licenses, duplicate
   # versions and crate sources (backend/deny.toml), then unused dependencies. Needs only the
   # manifests and Cargo.lock, so no dashboard build or system libraries. Same as `just deps`.
@@ -199,7 +222,7 @@ jobs:
   # relevant changed) pass. legacy-python is left out on purpose: it never blocks a merge.
   ci:
     if: always()
-    needs: [changes, lint, test, dependencies, web]
+    needs: [changes, lint, test, perf, dependencies, web]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
