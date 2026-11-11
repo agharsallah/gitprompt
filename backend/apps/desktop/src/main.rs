@@ -8,7 +8,6 @@
 mod tray;
 mod window;
 
-use tauri::RunEvent;
 use tauri_plugin_autostart::MacosLauncher;
 
 use gitprompt_core::Env;
@@ -40,10 +39,13 @@ fn main() {
         .build(tauri::generate_context!());
     match app {
         Ok(app) => app.run(|app, event| {
-            // macOS: clicking the Dock icon while the window is hidden.
-            if let RunEvent::Reopen { .. } = event {
+            // macOS: clicking the Dock icon while the window is hidden (`Reopen` is macOS-only).
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
                 window::show(app);
             }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
         }),
         Err(e) => {
             tracing::error!(error = %e, "GitPrompt could not start");
