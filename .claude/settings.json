@@ -2,11 +2,21 @@
 	"hooks": {
 		"PreToolUse": [
 			{
-				"matcher": "Edit|Write|MultiEdit",
+				"matcher": "Edit|Write|MultiEdit|NotebookEdit",
 				"hooks": [
 					{
 						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/architecture-map.sh",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard.sh",
+						"timeout": 10
+					}
+				]
+			},
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh",
 						"timeout": 10
 					}
 				]
@@ -21,6 +31,12 @@
 						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/web-lint.sh",
 						"timeout": 60,
 						"statusMessage": "Formatting and linting web file"
+					},
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/rust-format.sh",
+						"timeout": 30,
+						"statusMessage": "Formatting Rust file"
 					}
 				]
 			}
@@ -30,9 +46,21 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/architecture.sh",
-						"timeout": 600,
-						"statusMessage": "Checking the architecture map"
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-gate.sh",
+						"timeout": 1200,
+						"statusMessage": "Quality gate: checking what changed"
+					}
+				]
+			}
+		],
+		"SubagentStop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-gate.sh",
+						"timeout": 1200,
+						"statusMessage": "Quality gate: checking the subagent's changes"
 					}
 				]
 			}
