@@ -46,7 +46,7 @@ toml = { version = "1", default-features = false, features = ["std", "parse", "s
 glob = "0.3"
 similar = "2"
 # Charts rasterize text with system fonts; `raster-images` (JPEG/GIF/WebP decoders for <image>) is unused.
-resvg = { version = "0.45", default-features = false, features = ["text", "system-fonts", "memmap-fonts"] }
+resvg = { version = "0.50", default-features = false, features = ["text", "system-fonts", "memmap-fonts"] }
 # Process memory and CPU for the health monitor; `system` only (no disks, networks, users).
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 # TypeScript types of the HTTP API, generated into web/src/lib/api/generated (`just types`).

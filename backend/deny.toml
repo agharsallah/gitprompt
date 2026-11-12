@@ -60,8 +60,10 @@ exceptions = []
 ignore = true
 
 [bans]
-# Duplicate versions are reported but don't fail: the Tauri tree alone carries several unavoidable
-# pairs (windows-sys, bitflags, thiserror 1/2, ...). Newly added duplicates show up in the report.
+# Duplicate versions are reported but don't fail. The ones that exist today all come from upstream
+# crates pinning an older major (listed in `skip` below, each with its puller), so the report starts
+# clean and a newly added duplicate stands out. Before adding a skip, check that no bump of ours
+# unifies it (`cargo tree -i <crate>@<version>`); drop an entry once upstream catches up.
 multiple-versions = "warn"
 # Wildcard versions (`*`) are denied, except for path dependencies inside the workspace.
 wildcards = "deny"
@@ -73,7 +75,38 @@ deny = [
     # OpenSSL: the backend is pure rustls/native APIs; a C TLS stack sneaking in is a build and CVE burden.
     { crate = "openssl-sys", reason = "use rustls or platform TLS" },
 ]
-skip = []
+skip = [
+    # Tauri's macOS bridge.
+    { crate = "base64@0.21", reason = "swift-rs 1.0.9 (latest, via tauri/tauri-utils); the rest of the tree is on 0.23" },
+    # tauri-codegen 2.7.4 hashes assets with sha2 0.10; ours (gitprompt-insights) and rust-embed 8 use
+    # sha2 0.11, so moving our pin back would not remove the pair. The whole RustCrypto 0.10 stack comes with it.
+    { crate = "sha2@0.10", reason = "tauri-codegen 2.7.4 pins sha2 0.10; rust-embed 8 needs 0.11 like us" },
+    { crate = "digest@0.10", reason = "sha2 0.10 (tauri-codegen)" },
+    { crate = "block-buffer@0.10", reason = "digest 0.10 (tauri-codegen's sha2 0.10)" },
+    { crate = "crypto-common@0.1", reason = "digest 0.10 (tauri-codegen's sha2 0.10)" },
+    { crate = "cpufeatures@0.2", reason = "sha2 0.10 (tauri-codegen); sha2 0.11 and chacha20 use 0.3" },
+    { crate = "getrandom@0.3", reason = "tauri 2.12 pins getrandom 0.3; rand 0.10, uuid and tempfile use 0.4 like us" },
+    { crate = "dirs@6", reason = "auto-launch 0.6.0 (latest, via tauri-plugin-autostart); tauri and wry use dirs 7" },
+    { crate = "indexmap@1", reason = "schemars 0.8 (via tauri-build/tauri-utils config schema)" },
+    { crate = "hashbrown@0.12", reason = "indexmap 1 (schemars 0.8 via tauri-utils)" },
+    { crate = "miniz_oxide@0.8", reason = "png 0.18.1 (latest, via tauri-codegen/muda/tray-icon) depends on it directly while its flate2 1.1.11 uses 0.9" },
+    { crate = "roxmltree@0.20", reason = "fontconfig-parser 0.5.8 (latest, via resvg's fontdb); usvg 0.50 uses 0.21" },
+    # Linux only: wry's webkit2gtk 2.0 / gtk-rs 0.18 stack and its build scripts and proc macros.
+    { crate = "bitflags@1", reason = "webkit2gtk 2.0.2 and javascriptcore-rs 1.1 (wry on Linux)" },
+    { crate = "thiserror@1", reason = "gtk-rs 0.18 (glib, gio, cairo-rs) via wry/tao on Linux" },
+    { crate = "thiserror-impl@1", reason = "thiserror 1 (gtk-rs 0.18)" },
+    { crate = "heck@0.4", reason = "glib-macros 0.18 (gtk-rs, wry on Linux)" },
+    { crate = "syn@1", reason = "proc-macro-error 1.0.4 (glib-macros/gtk3-macros 0.18)" },
+    { crate = "syn@2", reason = "most proc macros upstream (tauri-codegen/tauri-macros, ts-rs-macros, rust-embed-impl, gtk-rs) are still on syn 2 while serde/tokio/clap moved to syn 3" },
+    { crate = "proc-macro-crate@1", reason = "gtk3-macros 0.18 (gtk-rs, wry on Linux)" },
+    { crate = "proc-macro-crate@2", reason = "glib-macros 0.18 (gtk-rs, wry on Linux)" },
+    { crate = "toml@0.8", reason = "system-deps 6 (build script of the gtk-rs 0.18 -sys crates); we and tauri use toml 1" },
+    { crate = "serde_spanned@0.6", reason = "toml 0.8 / toml_edit 0.20 (system-deps 6, proc-macro-crate 2)" },
+    { crate = "toml_datetime@0.6", reason = "toml 0.8 / toml_edit 0.19-0.20 (system-deps 6, proc-macro-crate 1-2)" },
+    { crate = "toml_edit@0.19", reason = "proc-macro-crate 1 (gtk3-macros 0.18)" },
+    { crate = "toml_edit@0.20", reason = "proc-macro-crate 2 (glib-macros 0.18) and toml 0.8 (system-deps 6)" },
+    { crate = "winnow@0.5", reason = "toml_edit 0.19/0.20 (gtk-rs 0.18 build tooling)" },
+]
 skip-tree = []
 
 [sources]
