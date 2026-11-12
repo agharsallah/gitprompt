@@ -1,10 +1,74 @@
 //! A typed prompt's versions ([`super::prompt_lineage`]).
 
-use super::{FactRow, MAX_VERSIONS, Place, PromptLineage, VERSION_CHARS, Version, clip, is_user, non_empty, project_of};
+use gitprompt_store::Outcome;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+use super::ProjectRef;
+use super::{FactRow, MAX_VERSIONS, VERSION_CHARS, clip, is_user, non_empty, project_of};
+use crate::lineage::{Change, Op};
 use crate::lineage::{LENGTH_RATIO, Shingles, THRESHOLD, change, word_diff};
 
 /// Candidates whose raw sizes differ more than `LENGTH_RATIO × SIZE_SLACK` can't pass
 /// [`LENGTH_RATIO`] once normalized (normalizing removes a little): skipped before any shingling.
+/// Where a version was typed, relative to the prompt asked about.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum Place {
+    /// The prompt asked about.
+    #[serde(rename = "self")]
+    Itself,
+    /// The same session.
+    Session,
+    /// Another session of the same repo.
+    Project,
+    Elsewhere,
+}
+
+/// One version of a prompt.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+pub struct Version {
+    pub id: i64,
+    pub received_at: String,
+    pub session: Option<String>,
+    pub project: Option<ProjectRef>,
+    pub origin: String,
+    /// Clipped to [`VERSION_CHARS`].
+    pub text: String,
+    pub clipped: bool,
+    /// To the prompt asked about (1.0 for itself).
+    pub similarity: f64,
+    /// Same text hash as the prompt asked about (both non-empty).
+    pub same_text: bool,
+    pub place: Place,
+    pub outcome: Outcome,
+    pub response_s: Option<f64>,
+    pub cost_usd: f64,
+    pub tool_failures: i64,
+    /// From the previous version's typed text; `None` for the first.
+    pub diff: Option<Vec<(Op, String)>>,
+    /// From the previous version's outcome; `None` for the first.
+    pub change: Option<Change>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "Lineage")]
+pub struct PromptLineage {
+    pub id: i64,
+    /// [`crate::lineage::THRESHOLD`]
+    pub threshold: f64,
+    /// Oldest first (by `received_at`, then id).
+    pub versions: Vec<Version>,
+}
+
+/// The versions of a typed prompt: itself and the user prompts among `candidates` whose typed text is
+/// similar enough ([`crate::lineage::THRESHOLD`]), at most [`MAX_VERSIONS`] (the most similar
+/// kept). Candidates whose `chars` differ from the target's beyond `LENGTH_RATIO × 0.8` are skipped
+/// before comparing. A prompt of a system origin has no versions.
+pub fn prompt_lineage(target: &FactRow, candidates: &[FactRow]) -> PromptLineage {
+    lineage(target, candidates)
+}
+
 const SIZE_SLACK: f64 = 0.8;
 
 pub(super) fn lineage(target: &FactRow, candidates: &[FactRow]) -> PromptLineage {

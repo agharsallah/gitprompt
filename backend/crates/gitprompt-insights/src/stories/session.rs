@@ -1,5 +1,12 @@
 //! One session as a narrative ([`super::session_story`]).
 
+use gitprompt_core::spec::{Origin, Pattern, SurfaceRef};
+use gitprompt_store::Outcome;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+use super::{Diffstat, ProjectRef};
+use crate::facts::{Connector, Facts};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use indexmap::IndexMap;
@@ -9,11 +16,184 @@ use gitprompt_core::spec::{ToolKind, by_name};
 use gitprompt_store::timeline::TurnEvent;
 
 use super::{
-    CHAPTER_CHARS, Chapter, EXCERPT_CHARS, FactRow, MAX_FILES, Marker, MarkerKind, RETRY_WINDOW, SessionItem, SessionStory, SessionTotals,
-    TurnTools, attribute_commits, clip, diffstat_of, group_markers, is_user, latest_end, non_empty, project_of, retries,
+    CHAPTER_CHARS, EXCERPT_CHARS, FactRow, MAX_FILES, RETRY_WINDOW, attribute_commits, clip, diffstat_of, is_user, latest_end, non_empty,
+    project_of, retries,
 };
 use crate::derivations::files_of;
 use crate::text::{round, truthy};
+
+/// What a marker stands for: a prompt of a system origin, or something that happened in a turn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+pub enum MarkerKind {
+    /// A `PreCompact` event of a turn.
+    Compaction,
+    /// A call of an agent tool that has a brief.
+    SubagentPrompt,
+    TaskNotification,
+    AgentMessage,
+    Subagent,
+    Programmatic,
+    Unknown,
+}
+
+impl MarkerKind {
+    /// The marker of a prompt of this origin (`Typed` and `SlashCommand` are never markers; they
+    /// map to `Unknown`).
+    pub fn of_origin(origin: Origin) -> Self {
+        match origin {
+            Origin::TaskNotification => MarkerKind::TaskNotification,
+            Origin::AgentMessage => MarkerKind::AgentMessage,
+            Origin::Subagent => MarkerKind::Subagent,
+            Origin::Programmatic => MarkerKind::Programmatic,
+            Origin::Typed | Origin::SlashCommand | Origin::Unknown => MarkerKind::Unknown,
+        }
+    }
+}
+
+/// System activity between chapters.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+pub struct Marker {
+    pub kind: MarkerKind,
+    /// The prompt it belongs to.
+    pub id: i64,
+    pub received_at: String,
+    /// A subagent prompt's task description.
+    pub label: Option<String>,
+    /// A subagent prompt's subagent type.
+    pub detail: Option<String>,
+    /// The text, clipped to [`EXCERPT_CHARS`] (cut, trailing whitespace removed, `…` added);
+    /// `None` when empty.
+    pub excerpt: Option<String>,
+    pub clipped: bool,
+}
+
+/// A prompt you typed, with what its turn did.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+pub struct Chapter {
+    pub id: i64,
+    /// 1-based position among every prompt of the session (markers count).
+    pub turn: usize,
+    pub received_at: String,
+    pub origin: String,
+    /// The typed text clipped to [`CHAPTER_CHARS`] (`…` added when cut).
+    pub text: String,
+    pub clipped: bool,
+    pub slash_command: Option<String>,
+    pub branch: Option<String>,
+    pub outcome: Outcome,
+    pub response_s: Option<f64>,
+    pub cost_usd: f64,
+    /// Input + output tokens.
+    pub tokens: i64,
+    pub tool_calls: i64,
+    pub tool_failures: i64,
+    /// Tool calls per kind.
+    pub tools: BTreeMap<ToolKind, i64>,
+    pub files_written: i64,
+    /// Sorted paths the turn's write tools touched, at most [`MAX_FILES`].
+    pub files: Vec<String>,
+    pub subagents: i64,
+    pub git_commits: i64,
+    pub commits: Vec<Commit>,
+    pub diffstat: Option<Diffstat>,
+    /// The earlier prompt of the session this one rewords.
+    pub retry_of: Option<i64>,
+    pub facts: Option<Facts>,
+}
+
+/// One item of a session, before markers are grouped.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SessionItem {
+    Chapter(Box<Chapter>),
+    Marker(Marker),
+}
+
+/// One item of a session story. Serializes with `kind`: `chapter` (the chapter's fields) or
+/// `markers` (`items`).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum StoryItem {
+    Chapter(Box<Chapter>),
+    Markers { items: Vec<Marker> },
+}
+
+/// Consecutive markers folded into one `Markers` item, so system activity between two chapters
+/// reads as one collapsed group. Chapters stay as they are, in order.
+pub fn group_markers(items: Vec<SessionItem>) -> Vec<StoryItem> {
+    let mut out: Vec<StoryItem> = Vec::new();
+    for item in items {
+        match (item, out.last_mut()) {
+            (SessionItem::Chapter(chapter), _) => out.push(StoryItem::Chapter(chapter)),
+            (SessionItem::Marker(marker), Some(StoryItem::Markers { items })) => items.push(marker),
+            (SessionItem::Marker(marker), _) => out.push(StoryItem::Markers { items: vec![marker] }),
+        }
+    }
+    out
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+pub struct SessionTotals {
+    pub chapters: u64,
+    /// Every marker, before grouping.
+    pub markers: u64,
+    /// Of every prompt of the session, rounded to 4 decimals.
+    pub cost_usd: f64,
+    /// Of every prompt of the session.
+    pub tool_calls: i64,
+    /// Distinct files listed in the chapters.
+    pub files_written: u64,
+    /// Chapters per outcome.
+    pub outcomes: IndexMap<Outcome, u64>,
+    pub retries: u64,
+    /// Of the chapters' commits.
+    pub diffstat: Option<Diffstat>,
+}
+
+/// One session as a narrative.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+pub struct SessionStory {
+    pub session: String,
+    /// The first title of its prompts.
+    pub title: Option<String>,
+    /// The first prompt's source.
+    pub source: Option<String>,
+    /// The first prompt's connector (from its facts).
+    pub connector: Option<Connector>,
+    /// The first surface any prompt's facts name.
+    pub surface: Option<SurfaceRef>,
+    /// Prompts per main model (from their facts).
+    pub models: IndexMap<String, u64>,
+    pub project: Option<ProjectRef>,
+    /// Distinct branches, in order of appearance.
+    pub branches: Vec<String>,
+    pub started_at: Option<String>,
+    /// The latest turn end, ISO-8601.
+    pub ended_at: Option<String>,
+    pub totals: SessionTotals,
+    pub items: Vec<StoryItem>,
+}
+
+/// What the session story reads about each turn besides its rows.
+#[derive(Clone, Copy, Debug)]
+pub struct TurnTools<'a> {
+    /// Tool calls per kind of each prompt (by id).
+    pub tool_kinds: &'a BTreeMap<i64, BTreeMap<ToolKind, i64>>,
+    /// The turns' finished tool calls and compactions, oldest first.
+    pub events: &'a [TurnEvent],
+    /// The source spec's `tool_kinds` and `tool_files` (empty without a spec).
+    pub kinds: &'a IndexMap<String, ToolKind>,
+    pub tool_files: &'a IndexMap<String, Pattern>,
+}
+
+/// One session (rows oldest first): each prompt you typed is a chapter (outcome, tools, files,
+/// commits, cost, time, retry); prompts of other origins are markers (their typed text as excerpt),
+/// and each turn's compactions and agent-tool calls with a brief become markers after its prompt;
+/// markers are then folded into groups ([`group_markers`]). Commits are attributed among the
+/// chapters only; retries are looked for among the chapters only.
+pub fn session_story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commits: &[Commit]) -> SessionStory {
+    story(session, rows, turns, commits)
+}
 
 pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commits: &[Commit]) -> SessionStory {
     let mut by_turn: HashMap<&str, Vec<&TurnEvent>> = HashMap::new();

@@ -1,5 +1,11 @@
 //! How a project got built, prompt by prompt ([`super::project_story`]).
 
+use gitprompt_store::Outcome;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+use super::{Diffstat, PhaseReason};
+use crate::facts::Facts;
 use std::collections::{BTreeMap, BTreeSet};
 
 use indexmap::IndexMap;
@@ -8,10 +14,100 @@ use gitprompt_core::git::Commit;
 use gitprompt_core::spec::ToolKind;
 
 use super::{
-    BRANCH_RUN, EXCERPT_CHARS, FactRow, GAP_S, Measures, ProjectEntry, ProjectPhase, ProjectRef, ProjectStory, RETRY_WINDOW,
-    attribute_commits, clip, diffstat_of, is_user, non_empty, phases, project_id, project_of, retries,
+    BRANCH_RUN, EXCERPT_CHARS, FactRow, GAP_S, ProjectRef, RETRY_WINDOW, attribute_commits, clip, diffstat_of, is_user, non_empty, phases,
+    project_id, project_of, retries,
 };
 use crate::text::round;
+
+/// A prompt of a project story.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "StoryEntry")]
+pub struct ProjectEntry {
+    pub id: i64,
+    pub received_at: String,
+    pub session: Option<String>,
+    pub origin: String,
+    pub branch: Option<String>,
+    /// The typed text clipped to [`EXCERPT_CHARS`].
+    pub text: String,
+    pub clipped: bool,
+    pub chars: i64,
+    pub outcome: Outcome,
+    pub response_s: Option<f64>,
+    pub cost_usd: f64,
+    pub tool_calls: i64,
+    pub tool_failures: i64,
+    pub tools: BTreeMap<ToolKind, i64>,
+    pub files_written: i64,
+    pub git_commits: i64,
+    pub commits: Vec<Commit>,
+    pub retry_of: Option<i64>,
+    pub facts: Option<Facts>,
+}
+
+/// What a phase (or the whole project) amounted to, and how its prompts were written.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "StoryMeasures")]
+pub struct Measures {
+    pub prompts: u64,
+    /// Distinct sessions.
+    pub sessions: u64,
+    /// Rounded to 4 decimals.
+    pub cost_usd: f64,
+    pub tool_calls: i64,
+    pub files_written: i64,
+    pub outcomes: IndexMap<Outcome, u64>,
+    pub diffstat: Option<Diffstat>,
+    /// Entries that reword an earlier prompt.
+    pub retries: u64,
+    /// Median typed characters, rounded half to even (Python `round`); 0 without prompts.
+    pub median_chars: i64,
+    /// Prompts with an @mention.
+    pub with_mention: u64,
+    /// Prompts with a code block.
+    pub with_code: u64,
+    pub first_at: Option<String>,
+    pub last_at: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "Phase")]
+pub struct ProjectPhase {
+    /// 1-based.
+    pub index: usize,
+    pub reason: PhaseReason,
+    pub gap_s: Option<i64>,
+    /// Distinct branches, in order of appearance.
+    pub branches: Vec<String>,
+    #[serde(flatten)]
+    pub measures: Measures,
+    pub items: Vec<ProjectEntry>,
+}
+
+/// How a project got built, prompt by prompt.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+pub struct ProjectStory {
+    /// From the typed prompts (else every row); with no row naming a repo: `repo` as id source, name
+    /// and repo, `git: false`.
+    #[serde(flatten)]
+    pub project: ProjectRef,
+    /// Prompts of other origins in the project: counted, never shown.
+    pub system: i64,
+    pub totals: Measures,
+    pub phases: Vec<ProjectPhase>,
+}
+
+/// The prompts you typed in a project (rows oldest first; other origins are left out), split into
+/// [`phases`] with the default rules, each prompt with the commits made after it and its retry.
+pub fn project_story(
+    repo: &str,
+    rows: &[FactRow],
+    tool_kinds: &BTreeMap<i64, BTreeMap<ToolKind, i64>>,
+    commits: &[Commit],
+    system: i64,
+) -> ProjectStory {
+    story(repo, rows, tool_kinds, commits, system)
+}
 
 pub(super) fn story(
     repo: &str,

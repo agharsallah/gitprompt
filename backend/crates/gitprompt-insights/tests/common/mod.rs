@@ -7,6 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use jiff::civil::date;
 use jiff::tz::{Offset, TimeZone};
 use jiff::{SignedDuration, Timestamp};
@@ -182,6 +183,20 @@ pub fn telemetry(attrs: Json) -> EventRow {
 /// The same events, all received at `at`.
 pub fn all_at(events: Vec<EventRow>, at: &str) -> Vec<EventRow> {
     events.into_iter().map(|e| EventRow { received_at: at.into(), ..e }).collect()
+}
+
+/// A finished call of tool `name` with `input`.
+pub fn tool(name: &str, input: Json) -> EventRow {
+    event("PostToolUse", json!({"tool_name": name, "tool_input": input}))
+}
+
+/// Counts by name, as derived values hold them.
+pub fn named(entries: &[(&str, u64)]) -> IndexMap<Option<String>, u64> {
+    entries.iter().map(|(k, n)| (Some(k.to_string()), *n)).collect()
+}
+
+pub fn strings(values: &[&str]) -> Vec<String> {
+    values.iter().map(std::string::ToString::to_string).collect()
 }
 
 // --- index rows and story rows -------------------------------------------------------------------

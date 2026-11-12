@@ -125,19 +125,24 @@ fn covers(name: &str, path: &str) -> bool {
 fn mark_documented(fields: &mut BTreeMap<Key, Field>, spec: &Spec) {
     for (event, names) in &spec.documented {
         for name in names {
-            let mut matched = false;
-            for f in fields.values_mut() {
-                if f.source == spec.id && (event == ANY_EVENT || *event == f.event) && covers(name, &f.path) {
-                    f.documented = true;
-                    matched = true;
-                }
-            }
-            if !matched {
+            if !mark_covered(fields, &spec.id, event, name) {
                 let key = (spec.id.clone(), event.clone(), name.clone());
                 fields.insert(key, Field { documented: true, ..field(&spec.id, event, name) });
             }
         }
     }
+}
+
+/// Marks documented the fields of `source` that `name` covers under `event` (or any event, for
+/// [`ANY_EVENT`]); whether there was one.
+fn mark_covered(fields: &mut BTreeMap<Key, Field>, source: &str, event: &str, name: &str) -> bool {
+    let mut matched = false;
+    let covered = fields.values_mut().filter(|f| f.source == source && (event == ANY_EVENT || event == f.event) && covers(name, &f.path));
+    for f in covered {
+        f.documented = true;
+        matched = true;
+    }
+    matched
 }
 
 fn mark_unused(fields: &mut BTreeMap<Key, Field>, spec: &Spec) {

@@ -39,10 +39,15 @@ fn is_mention(c: char) -> bool {
     is_word(c) || matches!(c, '.' | '/' | '~' | '-')
 }
 
+/// The longest start of `text` made of `keep` characters.
+fn leading(text: &str, keep: fn(char) -> bool) -> &str {
+    text.find(|c| !keep(c)).map_or(text, |end| &text[..end])
+}
+
 /// `/name` at the start of the text, after optional whitespace.
 fn slash_command(text: &str) -> Option<String> {
     let rest = text.trim_start_matches(is_space).strip_prefix('/')?;
-    let name = &rest[..rest.find(|c| !is_command(c)).unwrap_or(rest.len())];
+    let name = leading(rest, is_command);
     (!name.is_empty()).then(|| format!("/{name}"))
 }
 
@@ -52,18 +57,17 @@ fn at_mentions(text: &str) -> Vec<String> {
     let mut previous: Option<char> = None;
     let mut chars = text.char_indices().peekable();
     while let Some((at, c)) = chars.next() {
-        if c == '@' && previous.is_none_or(is_space) {
-            let rest = &text[at + 1..];
-            let name = &rest[..rest.find(|c| !is_mention(c)).unwrap_or(rest.len())];
-            if !name.is_empty() {
-                out.push(name.to_owned());
-                // Continue after the mention; its last character is the one before what follows.
-                while chars.next_if(|(i, _)| *i < at + 1 + name.len()).is_some() {}
-                previous = name.chars().next_back();
-                continue;
-            }
+        let starts_mention = c == '@' && previous.is_none_or(is_space);
+        let name = if starts_mention { leading(&text[at + 1..], is_mention) } else { "" };
+        if name.is_empty() {
+            previous = Some(c);
+            continue;
         }
-        previous = Some(c);
+        out.push(name.to_owned());
+        // Continue after the mention; its last character is the one before what follows.
+        let end = at + 1 + name.len();
+        while chars.next_if(|(i, _)| *i < end).is_some() {}
+        previous = name.chars().next_back();
     }
     out
 }

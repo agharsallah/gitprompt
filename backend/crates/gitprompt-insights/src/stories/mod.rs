@@ -17,18 +17,20 @@ mod versions;
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Range;
 
-use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use gitprompt_core::git::Commit;
-use gitprompt_core::spec::{Origin, Pattern, SurfaceRef, ToolKind};
-use gitprompt_store::Outcome;
-use gitprompt_store::timeline::TurnEvent;
+use gitprompt_core::spec::Origin;
 
-use crate::facts::{Connector, FactRow, Facts};
-use crate::lineage::{Change, Op, Shingles};
+use crate::facts::FactRow;
+use crate::lineage::Shingles;
 use crate::time::Instant;
+pub use project::{Measures, ProjectEntry, ProjectPhase, ProjectStory, project_story};
+pub use session::{
+    Chapter, Marker, MarkerKind, SessionItem, SessionStory, SessionTotals, StoryItem, TurnTools, group_markers, session_story,
+};
+pub use versions::{Place, PromptLineage, Version, prompt_lineage};
 
 /// Origins whose text the user wrote.
 pub const USER_ORIGINS: [Origin; 2] = [Origin::Typed, Origin::SlashCommand];
@@ -149,29 +151,9 @@ pub struct Phase {
 pub fn phases(prompts: &[FactRow], gap_s: f64, branch_run: usize) -> Vec<Phase> {
     let mut out: Vec<Phase> = Vec::new();
     let mut branch: Option<&str> = None;
-    for (i, p) in prompts.iter().enumerate() {
-        let mine = non_empty(p.prompt.row.branch.as_deref());
-        let start = if out.is_empty() {
-            Some((PhaseReason::Start, None))
-        } else {
-            let previous = i.checked_sub(1).and_then(|j| prompts.get(j));
-            let gap = match (sent(p), previous.and_then(ended)) {
-                (Some(at), Some(previous)) => Some(at.at.duration_since(previous.at).as_secs_f64()),
-                _ => None,
-            };
-            let run = prompts.get(i..prompts.len().min(i + branch_run)).unwrap_or_default();
-            let holds = run.len() == branch_run && run.iter().all(|q| q.prompt.row.branch.as_deref() == mine);
-            if let Some(gap) = gap.filter(|g| *g >= gap_s) {
-                #[expect(clippy::cast_possible_truncation, reason = "whole seconds of a gap far below i64::MAX: the cast is exact")]
-                let whole = gap.round_ties_even() as i64;
-                Some((PhaseReason::Gap, Some(whole)))
-            } else if branch.is_some() && mine.is_some_and(|b| Some(b) != branch) && branch_run > 0 && holds {
-                Some((PhaseReason::Branch, None))
-            } else {
-                None
-            }
-        };
-        if let Some((reason, gap_s)) = start {
+    for (i, prompt) in prompts.iter().enumerate() {
+        let mine = branch_of(prompt);
+        if let Some((reason, gap_s)) = phase_start(prompts, i, branch, gap_s, branch_run) {
             out.push(Phase { reason, gap_s, range: i..i });
             branch = mine.or(branch);
         }
@@ -181,6 +163,40 @@ pub fn phases(prompts: &[FactRow], gap_s: f64, branch_run: usize) -> Vec<Phase> 
         }
     }
     out
+}
+
+/// Why prompt `i` starts a new phase (and the pause that did, `Gap` only), given the branch of
+/// the phase so far; `None` when it continues that phase.
+fn phase_start(prompts: &[FactRow], i: usize, branch: Option<&str>, gap_s: f64, branch_run: usize) -> Option<(PhaseReason, Option<i64>)> {
+    let Some(previous) = i.checked_sub(1).and_then(|j| prompts.get(j)) else {
+        return Some((PhaseReason::Start, None));
+    };
+    let rest = prompts.get(i..).unwrap_or_default();
+    if let Some(gap) = rest.first().and_then(|prompt| pause(previous, prompt)).filter(|gap| *gap >= gap_s) {
+        #[expect(clippy::cast_possible_truncation, reason = "whole seconds of a gap far below i64::MAX: the cast is exact")]
+        let whole = gap.round_ties_even() as i64;
+        return Some((PhaseReason::Gap, Some(whole)));
+    }
+    switches_branch(rest, branch, branch_run).then_some((PhaseReason::Branch, None))
+}
+
+/// Seconds from the end of `previous`'s turn to when `prompt` was sent; `None` when a time can't
+/// be read.
+fn pause(previous: &FactRow, prompt: &FactRow) -> Option<f64> {
+    Some(sent(prompt)?.at.duration_since(ended(previous)?.at).as_secs_f64())
+}
+
+/// Whether the first of `rest` leaves `branch` for another one that the first `branch_run` of
+/// `rest` all have (fewer left: no). Without a known branch on either side, nothing switches.
+fn switches_branch(rest: &[FactRow], branch: Option<&str>, branch_run: usize) -> bool {
+    let (Some(current), Some(next)) = (branch, rest.first().and_then(branch_of)) else { return false };
+    let run = rest.get(..branch_run).filter(|run| !run.is_empty());
+    next != current && run.is_some_and(|run| run.iter().all(|prompt| branch_of(prompt) == Some(next)))
+}
+
+/// A prompt's branch, when it has one.
+fn branch_of(prompt: &FactRow) -> Option<&str> {
+    non_empty(prompt.prompt.row.branch.as_deref())
 }
 
 /// prompt id -> id of the latest earlier prompt of the same session (rows without a session share
@@ -262,333 +278,6 @@ pub fn log_window(prompts: &[FactRow]) -> Option<(String, String)> {
 /// The latest turn end (by instant, in the offset that prompt was written in).
 fn latest_end(prompts: &[FactRow]) -> Option<Instant> {
     prompts.iter().filter_map(ended).max_by_key(|end| end.at)
-}
-
-// --- a session ---------------------------------------------------------------------------------
-
-/// What a marker stands for: a prompt of a system origin, or something that happened in a turn.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "snake_case")]
-pub enum MarkerKind {
-    /// A `PreCompact` event of a turn.
-    Compaction,
-    /// A call of an agent tool that has a brief.
-    SubagentPrompt,
-    TaskNotification,
-    AgentMessage,
-    Subagent,
-    Programmatic,
-    Unknown,
-}
-
-impl MarkerKind {
-    /// The marker of a prompt of this origin (`Typed` and `SlashCommand` are never markers; they
-    /// map to `Unknown`).
-    pub fn of_origin(origin: Origin) -> Self {
-        match origin {
-            Origin::TaskNotification => MarkerKind::TaskNotification,
-            Origin::AgentMessage => MarkerKind::AgentMessage,
-            Origin::Subagent => MarkerKind::Subagent,
-            Origin::Programmatic => MarkerKind::Programmatic,
-            Origin::Typed | Origin::SlashCommand | Origin::Unknown => MarkerKind::Unknown,
-        }
-    }
-}
-
-/// System activity between chapters.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-pub struct Marker {
-    pub kind: MarkerKind,
-    /// The prompt it belongs to.
-    pub id: i64,
-    pub received_at: String,
-    /// A subagent prompt's task description.
-    pub label: Option<String>,
-    /// A subagent prompt's subagent type.
-    pub detail: Option<String>,
-    /// The text, clipped to [`EXCERPT_CHARS`] (cut, trailing whitespace removed, `…` added);
-    /// `None` when empty.
-    pub excerpt: Option<String>,
-    pub clipped: bool,
-}
-
-/// A prompt you typed, with what its turn did.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-pub struct Chapter {
-    pub id: i64,
-    /// 1-based position among every prompt of the session (markers count).
-    pub turn: usize,
-    pub received_at: String,
-    pub origin: String,
-    /// The typed text clipped to [`CHAPTER_CHARS`] (`…` added when cut).
-    pub text: String,
-    pub clipped: bool,
-    pub slash_command: Option<String>,
-    pub branch: Option<String>,
-    pub outcome: Outcome,
-    pub response_s: Option<f64>,
-    pub cost_usd: f64,
-    /// Input + output tokens.
-    pub tokens: i64,
-    pub tool_calls: i64,
-    pub tool_failures: i64,
-    /// Tool calls per kind.
-    pub tools: BTreeMap<ToolKind, i64>,
-    pub files_written: i64,
-    /// Sorted paths the turn's write tools touched, at most [`MAX_FILES`].
-    pub files: Vec<String>,
-    pub subagents: i64,
-    pub git_commits: i64,
-    pub commits: Vec<Commit>,
-    pub diffstat: Option<Diffstat>,
-    /// The earlier prompt of the session this one rewords.
-    pub retry_of: Option<i64>,
-    pub facts: Option<Facts>,
-}
-
-/// One item of a session, before markers are grouped.
-#[derive(Clone, Debug, PartialEq)]
-pub enum SessionItem {
-    Chapter(Box<Chapter>),
-    Marker(Marker),
-}
-
-/// One item of a session story. Serializes with `kind`: `chapter` (the chapter's fields) or
-/// `markers` (`items`).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-pub enum StoryItem {
-    Chapter(Box<Chapter>),
-    Markers { items: Vec<Marker> },
-}
-
-/// Consecutive markers folded into one `Markers` item, so system activity between two chapters
-/// reads as one collapsed group. Chapters stay as they are, in order.
-pub fn group_markers(items: Vec<SessionItem>) -> Vec<StoryItem> {
-    let mut out: Vec<StoryItem> = Vec::new();
-    for item in items {
-        match (item, out.last_mut()) {
-            (SessionItem::Chapter(chapter), _) => out.push(StoryItem::Chapter(chapter)),
-            (SessionItem::Marker(marker), Some(StoryItem::Markers { items })) => items.push(marker),
-            (SessionItem::Marker(marker), _) => out.push(StoryItem::Markers { items: vec![marker] }),
-        }
-    }
-    out
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
-pub struct SessionTotals {
-    pub chapters: u64,
-    /// Every marker, before grouping.
-    pub markers: u64,
-    /// Of every prompt of the session, rounded to 4 decimals.
-    pub cost_usd: f64,
-    /// Of every prompt of the session.
-    pub tool_calls: i64,
-    /// Distinct files listed in the chapters.
-    pub files_written: u64,
-    /// Chapters per outcome.
-    pub outcomes: IndexMap<Outcome, u64>,
-    pub retries: u64,
-    /// Of the chapters' commits.
-    pub diffstat: Option<Diffstat>,
-}
-
-/// One session as a narrative.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-pub struct SessionStory {
-    pub session: String,
-    /// The first title of its prompts.
-    pub title: Option<String>,
-    /// The first prompt's source.
-    pub source: Option<String>,
-    /// The first prompt's connector (from its facts).
-    pub connector: Option<Connector>,
-    /// The first surface any prompt's facts name.
-    pub surface: Option<SurfaceRef>,
-    /// Prompts per main model (from their facts).
-    pub models: IndexMap<String, u64>,
-    pub project: Option<ProjectRef>,
-    /// Distinct branches, in order of appearance.
-    pub branches: Vec<String>,
-    pub started_at: Option<String>,
-    /// The latest turn end, ISO-8601.
-    pub ended_at: Option<String>,
-    pub totals: SessionTotals,
-    pub items: Vec<StoryItem>,
-}
-
-/// What the session story reads about each turn besides its rows.
-#[derive(Clone, Copy, Debug)]
-pub struct TurnTools<'a> {
-    /// Tool calls per kind of each prompt (by id).
-    pub tool_kinds: &'a BTreeMap<i64, BTreeMap<ToolKind, i64>>,
-    /// The turns' finished tool calls and compactions, oldest first.
-    pub events: &'a [TurnEvent],
-    /// The source spec's `tool_kinds` and `tool_files` (empty without a spec).
-    pub kinds: &'a IndexMap<String, ToolKind>,
-    pub tool_files: &'a IndexMap<String, Pattern>,
-}
-
-/// One session (rows oldest first): each prompt you typed is a chapter (outcome, tools, files,
-/// commits, cost, time, retry); prompts of other origins are markers (their typed text as excerpt),
-/// and each turn's compactions and agent-tool calls with a brief become markers after its prompt;
-/// markers are then folded into groups ([`group_markers`]). Commits are attributed among the
-/// chapters only; retries are looked for among the chapters only.
-pub fn session_story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commits: &[Commit]) -> SessionStory {
-    session::story(session, rows, turns, commits)
-}
-
-// --- a project ---------------------------------------------------------------------------------
-
-/// A prompt of a project story.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[ts(rename = "StoryEntry")]
-pub struct ProjectEntry {
-    pub id: i64,
-    pub received_at: String,
-    pub session: Option<String>,
-    pub origin: String,
-    pub branch: Option<String>,
-    /// The typed text clipped to [`EXCERPT_CHARS`].
-    pub text: String,
-    pub clipped: bool,
-    pub chars: i64,
-    pub outcome: Outcome,
-    pub response_s: Option<f64>,
-    pub cost_usd: f64,
-    pub tool_calls: i64,
-    pub tool_failures: i64,
-    pub tools: BTreeMap<ToolKind, i64>,
-    pub files_written: i64,
-    pub git_commits: i64,
-    pub commits: Vec<Commit>,
-    pub retry_of: Option<i64>,
-    pub facts: Option<Facts>,
-}
-
-/// What a phase (or the whole project) amounted to, and how its prompts were written.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
-#[ts(rename = "StoryMeasures")]
-pub struct Measures {
-    pub prompts: u64,
-    /// Distinct sessions.
-    pub sessions: u64,
-    /// Rounded to 4 decimals.
-    pub cost_usd: f64,
-    pub tool_calls: i64,
-    pub files_written: i64,
-    pub outcomes: IndexMap<Outcome, u64>,
-    pub diffstat: Option<Diffstat>,
-    /// Entries that reword an earlier prompt.
-    pub retries: u64,
-    /// Median typed characters, rounded half to even (Python `round`); 0 without prompts.
-    pub median_chars: i64,
-    /// Prompts with an @mention.
-    pub with_mention: u64,
-    /// Prompts with a code block.
-    pub with_code: u64,
-    pub first_at: Option<String>,
-    pub last_at: Option<String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[ts(rename = "Phase")]
-pub struct ProjectPhase {
-    /// 1-based.
-    pub index: usize,
-    pub reason: PhaseReason,
-    pub gap_s: Option<i64>,
-    /// Distinct branches, in order of appearance.
-    pub branches: Vec<String>,
-    #[serde(flatten)]
-    pub measures: Measures,
-    pub items: Vec<ProjectEntry>,
-}
-
-/// How a project got built, prompt by prompt.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-pub struct ProjectStory {
-    /// From the typed prompts (else every row); with no row naming a repo: `repo` as id source, name
-    /// and repo, `git: false`.
-    #[serde(flatten)]
-    pub project: ProjectRef,
-    /// Prompts of other origins in the project: counted, never shown.
-    pub system: i64,
-    pub totals: Measures,
-    pub phases: Vec<ProjectPhase>,
-}
-
-/// The prompts you typed in a project (rows oldest first; other origins are left out), split into
-/// [`phases`] with the default rules, each prompt with the commits made after it and its retry.
-pub fn project_story(
-    repo: &str,
-    rows: &[FactRow],
-    tool_kinds: &BTreeMap<i64, BTreeMap<ToolKind, i64>>,
-    commits: &[Commit],
-    system: i64,
-) -> ProjectStory {
-    project::story(repo, rows, tool_kinds, commits, system)
-}
-
-// --- a prompt's lineage ------------------------------------------------------------------------
-
-/// Where a version was typed, relative to the prompt asked about.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "lowercase")]
-pub enum Place {
-    /// The prompt asked about.
-    #[serde(rename = "self")]
-    Itself,
-    /// The same session.
-    Session,
-    /// Another session of the same repo.
-    Project,
-    Elsewhere,
-}
-
-/// One version of a prompt.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-pub struct Version {
-    pub id: i64,
-    pub received_at: String,
-    pub session: Option<String>,
-    pub project: Option<ProjectRef>,
-    pub origin: String,
-    /// Clipped to [`VERSION_CHARS`].
-    pub text: String,
-    pub clipped: bool,
-    /// To the prompt asked about (1.0 for itself).
-    pub similarity: f64,
-    /// Same text hash as the prompt asked about (both non-empty).
-    pub same_text: bool,
-    pub place: Place,
-    pub outcome: Outcome,
-    pub response_s: Option<f64>,
-    pub cost_usd: f64,
-    pub tool_failures: i64,
-    /// From the previous version's typed text; `None` for the first.
-    pub diff: Option<Vec<(Op, String)>>,
-    /// From the previous version's outcome; `None` for the first.
-    pub change: Option<Change>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
-#[ts(rename = "Lineage")]
-pub struct PromptLineage {
-    pub id: i64,
-    /// [`crate::lineage::THRESHOLD`]
-    pub threshold: f64,
-    /// Oldest first (by `received_at`, then id).
-    pub versions: Vec<Version>,
-}
-
-/// The versions of a typed prompt: itself and the user prompts among `candidates` whose typed text is
-/// similar enough ([`crate::lineage::THRESHOLD`]), at most [`MAX_VERSIONS`] (the most similar
-/// kept). Candidates whose `chars` differ from the target's beyond `LENGTH_RATIO × 0.8` are skipped
-/// before comparing. A prompt of a system origin has no versions.
-pub fn prompt_lineage(target: &FactRow, candidates: &[FactRow]) -> PromptLineage {
-    versions::lineage(target, candidates)
 }
 
 /// Text clipped for a story: `(text, clipped)` ([`crate::text::clip`]); no text is `""`.
