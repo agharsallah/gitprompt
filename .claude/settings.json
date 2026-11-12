@@ -1,69 +1,205 @@
 {
-	"hooks": {
-		"PreToolUse": [
-			{
-				"matcher": "Edit|Write|MultiEdit|NotebookEdit",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard.sh",
-						"timeout": 10
-					}
-				]
-			},
-			{
-				"matcher": "Bash",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh",
-						"timeout": 10
-					}
-				]
-			}
-		],
-		"PostToolUse": [
-			{
-				"matcher": "Edit|Write|MultiEdit",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/web-lint.sh",
-						"timeout": 60,
-						"statusMessage": "Formatting and linting web file"
-					},
-					{
-						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/rust-format.sh",
-						"timeout": 30,
-						"statusMessage": "Formatting Rust file"
-					}
-				]
-			}
-		],
-		"Stop": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-gate.sh",
-						"timeout": 1200,
-						"statusMessage": "Quality gate: checking what changed"
-					}
-				]
-			}
-		],
-		"SubagentStop": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-gate.sh",
-						"timeout": 1200,
-						"statusMessage": "Quality gate: checking the subagent's changes"
-					}
-				]
-			}
-		]
-	}
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(just)",
+      "Bash(just arch)",
+      "Bash(just arch *)",
+      "Bash(just arch-report *)",
+      "Bash(just check)",
+      "Bash(just cov)",
+      "Bash(just deps)",
+      "Bash(just doctor)",
+      "Bash(just fmt)",
+      "Bash(just lint)",
+      "Bash(just quality *)",
+      "Bash(just test)",
+      "Bash(just types)",
+      "Bash(just verify)",
+
+      "Bash(cargo build *)",
+      "Bash(cargo check *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo deny check *)",
+      "Bash(cargo fmt *)",
+      "Bash(cargo machete *)",
+      "Bash(cargo metadata *)",
+      "Bash(cargo nextest *)",
+      "Bash(cargo test *)",
+      "Bash(cargo tree *)",
+      "Bash(cargo --version)",
+      "Bash(rustc --version)",
+
+      "Bash(pnpm check)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm test:coverage)",
+      "Bash(pnpm exec eslint *)",
+      "Bash(pnpm exec prettier --check *)",
+      "Bash(pnpm exec svelte-check *)",
+      "Bash(pnpm exec vitest run *)",
+      "Bash(pnpm --version)",
+
+      "Bash(shellcheck *)",
+      "Bash(bash .claude/hooks/test.sh)",
+
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch)",
+      "Bash(git branch --list *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git blame *)",
+      "Bash(git stash list)",
+      "Bash(git remote -v)",
+      "Bash(git check-ignore *)",
+
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+
+      "Bash(ls *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(which *)",
+      "Bash(tree *)",
+      "Bash(file *)",
+      "Bash(jq *)",
+
+      "WebSearch",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:doc.rust-lang.org)",
+      "WebFetch(domain:rust-lang.github.io)",
+      "WebFetch(domain:svelte.dev)",
+      "WebFetch(domain:vitest.dev)",
+      "WebFetch(domain:eslint.org)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.anthropic.com)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(git rebase *)",
+      "Bash(git merge *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh issue create *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh api *)",
+      "Bash(cargo publish *)",
+      "Bash(cargo install *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm remove *)",
+      "Bash(pnpm update *)",
+      "Bash(just snapshots)",
+      "Bash(just clean)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+
+      "Edit(legacy/python/**)",
+      "Write(legacy/python/**)",
+      "Edit(web/src/lib/api/generated.ts)",
+      "Write(web/src/lib/api/generated.ts)",
+
+      "Bash(sudo *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -f*)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-bash.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/web-lint.sh",
+            "timeout": 60,
+            "statusMessage": "Formatting and linting web file"
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/rust-format.sh",
+            "timeout": 30,
+            "statusMessage": "Formatting Rust file"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-gate.sh",
+            "timeout": 1200,
+            "statusMessage": "Quality gate: checking what changed"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/quality-gate.sh",
+            "timeout": 1200,
+            "statusMessage": "Quality gate: checking the subagent's changes"
+          }
+        ]
+      }
+    ]
+  }
 }
