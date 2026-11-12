@@ -2970,7 +2970,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "ErrorOccurred",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:01:25.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3006,7 +3006,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "PostToolUse",
       "path": "timestamp",
       "count": 2,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:00:09.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3096,7 +3096,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "PostToolUseFailure",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:00:12.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3159,7 +3159,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "PreCompact",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:01:10.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3222,7 +3222,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "SessionEnd",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:02:00.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3276,7 +3276,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "SessionStart",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:00:00.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3330,7 +3330,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "Stop",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:00:31.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3429,7 +3429,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "SubagentStop",
       "path": "timestamp",
       "count": 1,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:00:20.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },
@@ -3510,7 +3510,7 @@ expression: "get(&api, \"/api/fields\").await"
       "event": "UserPromptSubmit",
       "path": "timestamp",
       "count": 3,
-      "sample": "[time]",
+      "sample": "2026-11-07T10:00:05.000Z",
       "documented": true,
       "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
     },

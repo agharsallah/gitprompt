@@ -5,7 +5,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
 {
   "id": 10,
   "source": "copilot-cli",
-  "received_at": "[time]",
+  "received_at": "2026-01-05T09:03:16.000000+00:00",
   "prompt": "Add a retry to the upload client",
   "origin": "typed",
   "typed_text": "Add a retry to the upload client",
@@ -34,6 +34,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
   },
   "summary": {
     "turn": 1,
+    "response_s": 28.0,
     "ended_by": "Stop",
     "tool_calls": {
       "bash": 1,
@@ -75,7 +76,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     "outcome": "done",
     "permission_mode": null,
     "tool_version": "2.1.316",
-    "response_s": "[seconds]",
+    "response_s": 28.0,
     "answered": false,
     "tool_calls": 2,
     "tool_failures": 1,
@@ -86,7 +87,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
   "raw": {
     "hook_event_name": "UserPromptSubmit",
     "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-    "timestamp": "[time]",
+    "timestamp": "2026-11-07T10:00:05.000Z",
     "cwd": "/work/app",
     "prompt": "Add a retry to the upload client"
   },
@@ -102,8 +103,8 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "SessionEnd": 1,
       "null": 1
     },
-    "first_event_at": "[time]",
-    "last_event_at": "[time]",
+    "first_event_at": "2026-01-05T09:03:09.000000+00:00",
+    "last_event_at": "2026-01-05T09:04:33.000000+00:00",
     "starts": [
       "startup"
     ],
@@ -122,7 +123,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 19,
       "source": "copilot-cli",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:03:23.000000+00:00",
       "event": "PostToolUse",
       "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
       "prompt_id": "copilot-cli#10",
@@ -136,7 +137,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "raw": {
         "hook_event_name": "PostToolUse",
         "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-        "timestamp": "[time]",
+        "timestamp": "2026-11-07T10:00:09.000Z",
         "cwd": "/work/app",
         "tool_name": "bash",
         "tool_input": {
@@ -151,7 +152,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 20,
       "source": "copilot-cli",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:03:30.000000+00:00",
       "event": "PostToolUseFailure",
       "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
       "prompt_id": "copilot-cli#10",
@@ -165,7 +166,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "raw": {
         "hook_event_name": "PostToolUseFailure",
         "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-        "timestamp": "[time]",
+        "timestamp": "2026-11-07T10:00:12.000Z",
         "cwd": "/work/app",
         "tool_name": "edit",
         "tool_input": {
@@ -177,7 +178,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 21,
       "source": "copilot-cli",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:03:37.000000+00:00",
       "event": "SubagentStop",
       "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
       "prompt_id": "copilot-cli#10",
@@ -194,7 +195,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "raw": {
         "hook_event_name": "SubagentStop",
         "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-        "timestamp": "[time]",
+        "timestamp": "2026-11-07T10:00:20.000Z",
         "cwd": "/work/app",
         "transcript_path": "/work/.copilot/transcript.jsonl",
         "agent_id": "sub-1",
@@ -207,7 +208,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 22,
       "source": "copilot-cli",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:03:44.000000+00:00",
       "event": "Stop",
       "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
       "prompt_id": "copilot-cli#10",
@@ -222,7 +223,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "raw": {
         "hook_event_name": "Stop",
         "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-        "timestamp": "[time]",
+        "timestamp": "2026-11-07T10:00:31.000Z",
         "cwd": "/work/app",
         "transcript_path": "/work/.copilot/transcript.jsonl",
         "stop_reason": "end_turn",

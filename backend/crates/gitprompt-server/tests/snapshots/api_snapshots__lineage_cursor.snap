@@ -8,7 +8,7 @@ expression: "get(&api, &format!(\"/api/stories/prompt/{id}\")).await"
   "versions": [
     {
       "id": 13,
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:04:47.000000+00:00",
       "session": "5f0c1a2e-0000-4000-8000-00000000c001",
       "project": {
         "id": "L3dvcmsvc2hvcA",
@@ -23,7 +23,7 @@ expression: "get(&api, &format!(\"/api/stories/prompt/{id}\")).await"
       "same_text": true,
       "place": "self",
       "outcome": "done",
-      "response_s": "[seconds]",
+      "response_s": 49.0,
       "cost_usd": 0.0,
       "tool_failures": 1,
       "diff": null,

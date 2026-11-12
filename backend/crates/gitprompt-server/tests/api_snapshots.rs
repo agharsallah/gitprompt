@@ -5,8 +5,11 @@
 //! `ts_types.rs` keeps the dashboard's *types* in step with the Rust wire types, these keep the
 //! *values*: a renamed, dropped or re-derived field shows up as a snapshot diff in review.
 //!
-//! Values that depend on the run (times, durations, the temp directory, the hourly heartbeat) are
-//! replaced by placeholders, so the snapshots only change when the API does.
+//! Time is not redacted but controlled: the app runs on a [`ManualClock`] that starts at [`START`]
+//! and moves [`STEP`] before each fixture, so arrival times, the durations between them and the
+//! hourly heartbeat are exact values here, the same on every machine and every day. Only the temp
+//! directory is replaced (by `[root]`). Never read the system clock on a path these snapshots
+//! cover: take "now" from the app's `Clock` (`gitprompt_server::clock`).
 //!
 //! Update after an intended change: `just snapshots`, then review the diff of `tests/snapshots/`.
 #![allow(
@@ -23,9 +26,11 @@ mod common;
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{Map, Value};
+use gitprompt_server::ManualClock;
+use jiff::SignedDuration;
+use serde_json::Value;
 
-use common::{Api, api, project_id};
+use common::{Api, harness, project_id};
 
 /// The tools whose fixtures are ingested, in this order (ids follow it).
 const TOOLS: &[&str] = &["claude-code", "codex", "copilot-cli", "cursor"];
@@ -49,11 +54,18 @@ fn payloads(tool: &str) -> Vec<Value> {
         .collect()
 }
 
-/// An app holding every fixture of every tool.
+/// When the first fixture arrives, and the time between two arrivals.
+const START: &str = "2026-01-05T09:00:00Z";
+const STEP: SignedDuration = SignedDuration::from_secs(7);
+
+/// An app holding every fixture of every tool, each arriving [`STEP`] after the previous one on a
+/// clock the test moves, so every `received_at` and duration between arrivals is the same each run.
 async fn loaded() -> Api {
-    let api = api();
+    let clock = ManualClock::new(START.parse().expect("instant"));
+    let api = harness().moving_clock(&clock).start();
     for tool in TOOLS {
         for payload in payloads(tool) {
+            clock.advance(STEP);
             api.ingest(tool, payload).await;
         }
     }
@@ -62,34 +74,13 @@ async fn loaded() -> Api {
 
 // --- normalizing what depends on the run ---
 
-/// Keys whose numbers are durations measured from arrival times.
-fn is_duration(key: &str) -> bool {
-    key.ends_with("_s") || key.contains("_s_p")
-}
-
-/// `2026-11-12T09:14:56.123456+00:00`, `...Z`: an ISO-8601 instant.
-fn is_instant(text: &str) -> bool {
-    let b = text.as_bytes();
-    b.len() >= 20 && b[4] == b'-' && b[7] == b'-' && b[10] == b'T' && b[13] == b':' && b[..4].iter().all(u8::is_ascii_digit)
-}
-
+/// The temp directory is the only value that differs between runs.
 fn normalize(value: &mut Value, root: &str) {
     match value {
-        Value::String(text) if is_instant(text) => *text = "[time]".into(),
         Value::String(text) if text.contains(root) => *text = text.replace(root, "[root]"),
         Value::Array(items) => items.iter_mut().for_each(|v| normalize(v, root)),
-        Value::Object(map) => normalize_object(map, root),
+        Value::Object(map) => map.values_mut().for_each(|v| normalize(v, root)),
         _ => {}
-    }
-}
-
-fn normalize_object(map: &mut Map<String, Value>, root: &str) {
-    for (key, value) in map.iter_mut() {
-        match key.as_str() {
-            "hourly" => *value = Value::String("[hourly]".into()),
-            k if is_duration(k) && value.is_number() => *value = Value::String("[seconds]".into()),
-            _ => normalize(value, root),
-        }
     }
 }
 

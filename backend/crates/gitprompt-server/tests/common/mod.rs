@@ -21,7 +21,7 @@ use tempfile::TempDir;
 use tower::ServiceExt;
 
 use gitprompt_core::Settings;
-use gitprompt_server::{App, AppOptions, Dashboard, FixedClock, FixedVersion, Service, SystemGit};
+use gitprompt_server::{App, AppOptions, Dashboard, FixedClock, FixedVersion, ManualClock, Service, SystemGit};
 
 pub const HOST: &str = "127.0.0.1:7878";
 /// The version every tool reports in these tests (the Python suite's `tool_version` stub).
@@ -63,6 +63,12 @@ impl Harness {
 
     pub fn clock(mut self, now: Timestamp) -> Self {
         self.options.clock = Arc::new(FixedClock(now));
+        self
+    }
+
+    /// A clock the test keeps a clone of and moves (`ManualClock::advance`).
+    pub fn moving_clock(mut self, clock: &ManualClock) -> Self {
+        self.options.clock = Arc::new(clock.clone());
         self
     }
 

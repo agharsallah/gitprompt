@@ -74,25 +74,15 @@ pub struct Daemon {
 
 impl Daemon {
     pub async fn start(settings: Settings, app: AppOptions, options: DaemonOptions) -> Result<Daemon, DaemonError> {
-        let lock = tokio::task::spawn_blocking({
+        let lock = blocking("lock", {
             let settings = settings.clone();
             move || take_lock(&settings)
         })
-        .await
-        .map_err(|e| ApiError::Internal(format!("lock task failed: {e}")))??;
+        .await?;
         let addr = options.addr.unwrap_or_else(|| SocketAddr::from((Ipv4Addr::LOCALHOST, settings.port)));
-        let app = tokio::task::spawn_blocking(move || App::new(settings, app))
-            .await
-            .map_err(|e| ApiError::Internal(format!("start task failed: {e}")))??;
+        let app = blocking("start", move || App::new(settings, app).map_err(DaemonError::from)).await?;
         let service = app.service();
-        tracing::info!(home = %service.settings().home.display(), "GitPrompt is starting");
-        service.warm_tool_versions();
-        service.ensure_index().await?;
-        match service.drain_spool().await {
-            Ok(delivered) => tracing::info!(delivered, "drained the hook spool"),
-            Err(e) => tracing::warn!(error = %e, "could not drain the hook spool"),
-        }
-        retention(&service).await;
+        prepare(&service).await?;
         let listener = TcpListener::bind(addr).await.map_err(|source| DaemonError::Bind { addr, source })?;
         let addr = listener.local_addr()?;
         let stop = CancellationToken::new();
@@ -126,6 +116,29 @@ impl Daemon {
         self.lock.unlock()?;
         tracing::info!("GitPrompt stopped");
         served.map_err(Into::into)
+    }
+}
+
+/// Run `f` on the blocking pool; `what` names the task when it panics.
+async fn blocking<T: Send + 'static>(what: &str, f: impl FnOnce() -> Result<T, DaemonError> + Send + 'static) -> Result<T, DaemonError> {
+    tokio::task::spawn_blocking(f).await.map_err(|e| ApiError::Internal(format!("{what} task failed: {e}")))?
+}
+
+/// The work before listening: tool versions, the index, the hook spool, a first retention pass.
+async fn prepare(service: &Service) -> Result<(), DaemonError> {
+    tracing::info!(home = %service.settings().home.display(), "GitPrompt is starting");
+    service.warm_tool_versions();
+    service.ensure_index().await?;
+    drain_spool(service).await;
+    retention(service).await;
+    Ok(())
+}
+
+/// Deliver the hook payloads spooled while the daemon was down.
+async fn drain_spool(service: &Service) {
+    match service.drain_spool().await {
+        Ok(delivered) => tracing::info!(delivered, "drained the hook spool"),
+        Err(e) => tracing::warn!(error = %e, "could not drain the hook spool"),
     }
 }
 

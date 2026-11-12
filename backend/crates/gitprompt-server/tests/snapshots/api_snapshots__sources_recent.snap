@@ -12,7 +12,7 @@ expression: "get(&api, \"/api/sources/recent\").await"
       "assistant": "Cursor"
     },
     "surface": null,
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:05:57.000000+00:00",
     "session": "5f0c1a2e-0000-4000-8000-00000000c001",
     "title": null,
     "project": {
@@ -35,7 +35,7 @@ expression: "get(&api, \"/api/sources/recent\").await"
       "assistant": "Copilot"
     },
     "surface": null,
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:04:05.000000+00:00",
     "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
     "title": null,
     "project": {
@@ -58,7 +58,7 @@ expression: "get(&api, \"/api/sources/recent\").await"
       "assistant": "Codex"
     },
     "surface": null,
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:02:20.000000+00:00",
     "session": "0190a1b2-0000-7000-8000-000000000001",
     "title": null,
     "project": {
@@ -81,7 +81,7 @@ expression: "get(&api, \"/api/sources/recent\").await"
       "assistant": "Claude"
     },
     "surface": null,
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:56.000000+00:00",
     "session": "abc123",
     "title": null,
     "project": {

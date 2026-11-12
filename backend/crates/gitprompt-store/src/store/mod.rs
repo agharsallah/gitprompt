@@ -67,8 +67,8 @@ pub struct NewEvent {
 }
 
 /// The store's clock: `received_at` of new rows and the 1-hour `running` window of
-/// [`crate::Outcome`]. New: the Python store read the system clock and SQLite's `now`; tests pin it
-/// with [`Store::with_clock`].
+/// [`crate::Outcome`]. New: the Python store read the system clock and SQLite's `now`; the server
+/// and tests set it with [`Store::with_clock`].
 pub type Clock = Arc<dyn Fn() -> Timestamp + Send + Sync>;
 
 /// Prompts, events and annotations in SQLite. `Send + Sync`: share one store between threads by
@@ -115,7 +115,8 @@ impl Store {
     }
 
     /// Use `clock` instead of the system clock for `received_at` of new rows and values derived on
-    /// read (the `running` outcome window). New; the daemon keeps the system clock.
+    /// read (the `running` outcome window). The server passes its own clock, so the rows it stamps
+    /// and the "now" it reads are one (`gitprompt_server::clock`).
     #[must_use]
     pub fn with_clock(self, clock: Clock) -> Self {
         Store { clock, ..self }

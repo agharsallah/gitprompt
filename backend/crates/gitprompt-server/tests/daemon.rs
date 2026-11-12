@@ -21,7 +21,7 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use common::harness;
-use gitprompt_server::{Daemon, DaemonError, DaemonOptions};
+use gitprompt_server::{Daemon, DaemonError, DaemonOptions, ManualClock};
 use gitprompt_store::Store;
 use jiff::{SignedDuration, Timestamp};
 use pretty_assertions::assert_eq;
@@ -147,12 +147,14 @@ async fn the_first_retention_pass_runs_before_start_returns() {
 
 #[tokio::test]
 async fn retention_repeats_on_its_interval() {
-    let h = harness().clock(Timestamp::now() + SignedDuration::from_hours(24 * 40));
+    let clock = ManualClock::new(Timestamp::now());
+    let h = harness().moving_clock(&clock);
     retention_of_30_days_and_events(&h, 0);
     let options = DaemonOptions { retention_every: Duration::from_millis(20), ..on_any_port() };
     let daemon = Daemon::start(h.settings.clone(), h.options.clone(), options).await.expect("start");
     let service = daemon.service();
     service.ingest("claude-code", json!({"hook_event_name": "Stop", "session_id": "s1"})).await.expect("ingest");
+    clock.advance(SignedDuration::from_hours(24 * 40)); // the event is now 40 days old
 
     let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
     let mut remaining = service.data().await.expect("data").events.len();

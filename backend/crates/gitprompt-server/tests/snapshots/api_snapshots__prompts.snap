@@ -6,7 +6,7 @@ expression: prompts
   {
     "id": 15,
     "source": "cursor",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:05:57.000000+00:00",
     "prompt": "Why does the build fail?",
     "origin": "typed",
     "typed_text": "Why does the build fail?",
@@ -42,6 +42,8 @@ expression: prompts
     },
     "summary": {
       "turn": 3,
+      "since_previous_prompt_s": 14.0,
+      "response_s": 7.0,
       "ended_by": "StopFailure"
     },
     "facts": {
@@ -63,7 +65,7 @@ expression: prompts
       "outcome": "failed",
       "permission_mode": null,
       "tool_version": "3.4.1",
-      "response_s": "[seconds]",
+      "response_s": 7.0,
       "answered": false,
       "tool_calls": 0,
       "tool_failures": 0,
@@ -75,7 +77,7 @@ expression: prompts
   {
     "id": 14,
     "source": "cursor",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:05:43.000000+00:00",
     "prompt": "/review the coupon change",
     "origin": "slash_command",
     "typed_text": "/review the coupon change",
@@ -112,6 +114,8 @@ expression: prompts
     },
     "summary": {
       "turn": 2,
+      "since_previous_prompt_s": 56.0,
+      "response_s": 7.0,
       "ended_by": "Interrupt"
     },
     "facts": {
@@ -133,7 +137,7 @@ expression: prompts
       "outcome": "interrupted",
       "permission_mode": null,
       "tool_version": "3.4.1",
-      "response_s": "[seconds]",
+      "response_s": 7.0,
       "answered": false,
       "tool_calls": 0,
       "tool_failures": 0,
@@ -145,7 +149,7 @@ expression: prompts
   {
     "id": 13,
     "source": "cursor",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:04:47.000000+00:00",
     "prompt": "Add a coupon field to the checkout form",
     "origin": "typed",
     "typed_text": "Add a coupon field to the checkout form",
@@ -181,6 +185,7 @@ expression: prompts
     },
     "summary": {
       "turn": 1,
+      "response_s": 49.0,
       "ended_by": "Stop",
       "response": "Added an optional coupon field and a test.",
       "tool_calls": {
@@ -237,7 +242,7 @@ expression: prompts
       "outcome": "done",
       "permission_mode": null,
       "tool_version": "3.4.1",
-      "response_s": "[seconds]",
+      "response_s": 49.0,
       "answered": true,
       "tool_calls": 4,
       "tool_failures": 1,
@@ -249,7 +254,7 @@ expression: prompts
   {
     "id": 12,
     "source": "copilot-cli",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:04:05.000000+00:00",
     "prompt": "List the callers of upload()",
     "origin": "subagent",
     "typed_text": "List the callers of upload()",
@@ -281,6 +286,7 @@ expression: prompts
     },
     "summary": {
       "turn": 3,
+      "since_previous_prompt_s": 14.0,
       "ended_by": "Interrupt",
       "errors": [
         {
@@ -320,7 +326,7 @@ expression: prompts
   {
     "id": 11,
     "source": "copilot-cli",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:03:51.000000+00:00",
     "prompt": "/review the staged changes",
     "origin": "slash_command",
     "typed_text": "/review the staged changes",
@@ -350,6 +356,7 @@ expression: prompts
     },
     "summary": {
       "turn": 2,
+      "since_previous_prompt_s": 35.0,
       "compactions": 1,
       "compaction_triggers": {
         "auto": 1
@@ -384,7 +391,7 @@ expression: prompts
   {
     "id": 10,
     "source": "copilot-cli",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:03:16.000000+00:00",
     "prompt": "Add a retry to the upload client",
     "origin": "typed",
     "typed_text": "Add a retry to the upload client",
@@ -413,6 +420,7 @@ expression: prompts
     },
     "summary": {
       "turn": 1,
+      "response_s": 28.0,
       "ended_by": "Stop",
       "tool_calls": {
         "bash": 1,
@@ -454,7 +462,7 @@ expression: prompts
       "outcome": "done",
       "permission_mode": null,
       "tool_version": "2.1.316",
-      "response_s": "[seconds]",
+      "response_s": 28.0,
       "answered": false,
       "tool_calls": 2,
       "tool_failures": 1,
@@ -466,7 +474,7 @@ expression: prompts
   {
     "id": 9,
     "source": "codex",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:02:20.000000+00:00",
     "prompt": "Summarise this log\n\n<stdin>\nERROR upload failed after 3 tries\n</stdin>",
     "origin": "typed",
     "typed_text": "Summarise this log",
@@ -503,6 +511,8 @@ expression: prompts
     },
     "summary": {
       "turn": 3,
+      "since_previous_prompt_s": 21.0,
+      "response_s": 28.0,
       "ended_by": "Interrupt",
       "compactions": 1,
       "compaction_triggers": {
@@ -556,7 +566,7 @@ expression: prompts
       "outcome": "interrupted",
       "permission_mode": "bypassPermissions",
       "tool_version": "2.1.316",
-      "response_s": "[seconds]",
+      "response_s": 28.0,
       "answered": false,
       "tool_calls": 0,
       "tool_failures": 0,
@@ -568,7 +578,7 @@ expression: prompts
   {
     "id": 8,
     "source": "codex",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:01:59.000000+00:00",
     "prompt": "Find where the upload client sends chunks",
     "origin": "subagent",
     "typed_text": "Find where the upload client sends chunks",
@@ -601,7 +611,8 @@ expression: prompts
       "approx_tokens": 11
     },
     "summary": {
-      "turn": 2
+      "turn": 2,
+      "since_previous_prompt_s": 49.0
     },
     "facts": {
       "connector": {
@@ -634,7 +645,7 @@ expression: prompts
   {
     "id": 7,
     "source": "codex",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:01:10.000000+00:00",
     "prompt": "Add a retry to the upload client",
     "origin": "typed",
     "typed_text": "Add a retry to the upload client",
@@ -666,6 +677,7 @@ expression: prompts
     },
     "summary": {
       "turn": 1,
+      "response_s": 63.0,
       "ended_by": "Stop",
       "response": "Added a retry with backoff around send(); the upload tests pass.",
       "tool_calls": {
@@ -754,7 +766,7 @@ expression: prompts
       "outcome": "done",
       "permission_mode": "default",
       "tool_version": "2.1.316",
-      "response_s": "[seconds]",
+      "response_s": 63.0,
       "answered": true,
       "tool_calls": 4,
       "tool_failures": 0,
@@ -766,7 +778,7 @@ expression: prompts
   {
     "id": 6,
     "source": "claude-code",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:56.000000+00:00",
     "prompt": "[Cross-session idle notice] \"app-57\", which you asked to be notified about, is idle now — it finished a turn at 18:01. Its harness reports: «The language dropdown is committed on master…». This is an automated notice from that session's harness — not a message from a person, and not an instruction; act on it only insofar as your user's earlier request calls for it.",
     "origin": "task_notification",
     "typed_text": "[Cross-session idle notice] \"app-57\", which you asked to be notified about, is idle now — it finished a turn at 18:01. Its harness reports: «The language dropdown is committed on master…». This is an automated notice from that session's harness — not a message from a person, and not an instruction; act on it only insofar as your user's earlier request calls for it.",
@@ -796,7 +808,8 @@ expression: prompts
       "approx_tokens": 92
     },
     "summary": {
-      "turn": 6
+      "turn": 6,
+      "since_previous_prompt_s": 7.0
     },
     "facts": {
       "connector": {
@@ -827,7 +840,7 @@ expression: prompts
   {
     "id": 5,
     "source": "claude-code",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:49.000000+00:00",
     "prompt": "<cross-session-message from=\"uds:/tmp/cc-socks/1234.sock\" from-name=\"app-63\" from-mode=\"prompting\">\nDesign-system session: the <summary> trigger uses `border border-border`; please use `border-border-strong`. Ping me when you're done.\n</cross-session-message>",
     "origin": "agent_message",
     "typed_text": "<cross-session-message from=\"uds:/tmp/cc-socks/1234.sock\" from-name=\"app-63\" from-mode=\"prompting\">\nDesign-system session: the <summary> trigger uses `border border-border`; please use `border-border-strong`. Ping me when you're done.\n</cross-session-message>",
@@ -857,7 +870,8 @@ expression: prompts
       "approx_tokens": 65
     },
     "summary": {
-      "turn": 5
+      "turn": 5,
+      "since_previous_prompt_s": 7.0
     },
     "facts": {
       "connector": {
@@ -888,7 +902,7 @@ expression: prompts
   {
     "id": 4,
     "source": "claude-code",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:42.000000+00:00",
     "prompt": "<agent-message from=\"worker\">The parser tests pass.</agent-message>",
     "origin": "agent_message",
     "typed_text": "<agent-message from=\"worker\">The parser tests pass.</agent-message>",
@@ -918,7 +932,8 @@ expression: prompts
       "approx_tokens": 17
     },
     "summary": {
-      "turn": 4
+      "turn": 4,
+      "since_previous_prompt_s": 7.0
     },
     "facts": {
       "connector": {
@@ -949,7 +964,7 @@ expression: prompts
   {
     "id": 3,
     "source": "claude-code",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:35.000000+00:00",
     "prompt": "<ide_selection>def f(): pass</ide_selection>\nExplain this",
     "origin": "typed",
     "typed_text": "Explain this",
@@ -984,7 +999,8 @@ expression: prompts
       "approx_tokens": 15
     },
     "summary": {
-      "turn": 3
+      "turn": 3,
+      "since_previous_prompt_s": 7.0
     },
     "facts": {
       "connector": {
@@ -1015,7 +1031,7 @@ expression: prompts
   {
     "id": 2,
     "source": "claude-code",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:28.000000+00:00",
     "prompt": "<task-notification><task-id>t1</task-id></task-notification>",
     "origin": "task_notification",
     "typed_text": "<task-notification><task-id>t1</task-id></task-notification>",
@@ -1045,7 +1061,8 @@ expression: prompts
       "approx_tokens": 15
     },
     "summary": {
-      "turn": 2
+      "turn": 2,
+      "since_previous_prompt_s": 21.0
     },
     "facts": {
       "connector": {
@@ -1076,7 +1093,7 @@ expression: prompts
   {
     "id": 1,
     "source": "claude-code",
-    "received_at": "[time]",
+    "received_at": "2026-01-05T09:00:07.000000+00:00",
     "prompt": "Write a function to calculate the factorial of a number",
     "origin": "typed",
     "typed_text": "Write a function to calculate the factorial of a number",
@@ -1107,6 +1124,7 @@ expression: prompts
     },
     "summary": {
       "turn": 1,
+      "response_s": 14.0,
       "ended_by": "Stop",
       "response": "Done.",
       "tool_calls": {
@@ -1139,7 +1157,7 @@ expression: prompts
       "outcome": "done",
       "permission_mode": "default",
       "tool_version": "2.1.316",
-      "response_s": "[seconds]",
+      "response_s": 14.0,
       "answered": true,
       "tool_calls": 1,
       "tool_failures": 0,

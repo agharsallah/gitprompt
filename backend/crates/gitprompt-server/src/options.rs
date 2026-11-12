@@ -1,11 +1,9 @@
 //! What the server reads from the outside world, injectable so tests (and the desktop shell) control
-//! it: the clock, the tool-version probe, git. Production defaults are [`AppOptions::default`].
+//! it: the clock (`crate::clock`), the tool-version probe, git. Production defaults are [`AppOptions::default`].
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-
-use jiff::Timestamp;
 
 use gitprompt_capture::probe::{VersionCache, VersionProbe};
 use gitprompt_core::JsonMap;
@@ -13,34 +11,8 @@ use gitprompt_core::git::{self, Commit, CommitsAfter, GitCache};
 use gitprompt_core::preferences::APPLIES_AT_START;
 use gitprompt_core::spec::Spec;
 
+use crate::clock::{Clock, SystemClock};
 use crate::dashboard::Dashboard;
-
-/// "Now", as the server sees it: the heartbeat window of `/api/sources`, the `before` a
-/// delete-events dry run fixes, compact and retention cutoffs, export `generated_at` and file
-/// names. (Row `received_at` stamps are the store's own.)
-pub trait Clock: Send + Sync {
-    fn now(&self) -> Timestamp;
-}
-
-/// The system clock.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct SystemClock;
-
-impl Clock for SystemClock {
-    fn now(&self) -> Timestamp {
-        Timestamp::now()
-    }
-}
-
-/// Always the same instant (tests).
-#[derive(Clone, Copy, Debug)]
-pub struct FixedClock(pub Timestamp);
-
-impl Clock for FixedClock {
-    fn now(&self) -> Timestamp {
-        self.0
-    }
-}
 
 /// The installed version of a tool (`version_cmd` of its spec), recorded in a prompt's context at
 /// ingest and shown on the Connectors page. `None`: not installed, or no version command.

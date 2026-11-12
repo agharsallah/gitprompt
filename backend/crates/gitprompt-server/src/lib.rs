@@ -20,6 +20,7 @@
 pub mod access_log;
 pub mod app;
 pub mod bus;
+pub mod clock;
 pub mod daemon;
 pub mod dashboard;
 pub mod error;
@@ -35,11 +36,10 @@ pub mod status;
 
 pub use app::App;
 pub use bus::{Bus, Notice, Subscription};
+pub use clock::{Clock, FixedClock, ManualClock, SystemClock};
 pub use daemon::{Daemon, DaemonError, DaemonOptions};
 pub use dashboard::{Dashboard, DashboardInfo, DashboardSource};
 pub use error::ApiError;
-pub use options::{
-    AppOptions, Clock, FixedClock, FixedVersion, GitProvider, NoGit, ProbeVersions, SystemClock, SystemGit, ToolVersionProbe,
-};
+pub use options::{AppOptions, FixedVersion, GitProvider, NoGit, ProbeVersions, SystemGit, ToolVersionProbe};
 pub use service::Service;
 pub use status::StatusOut;

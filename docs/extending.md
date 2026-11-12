@@ -32,6 +32,8 @@ The map is [`gitprompt-core/tests/architecture/rules.rs`](../backend/crates/gitp
 | `KERNEL` | core's only external crates. Everything depends on core, so whatever it pulls in, every crate does. | Keep the code (and its dependency) in the crate that needs it. |
 | `PURE` | core, insights and export do no I/O (files, processes, network, environment), except the core files listed, which read settings, specs and git facts. The list only shrinks: a listed file that stops doing I/O must leave it. | Take the data as an argument, or a trait the caller implements (`Env`, `gitprompt-capture::probe`), and do the I/O in the adapter that calls it. |
 | module cycles | Inside every crate, top-level modules (`src/x.rs` and `src/x/**`) form layers too: no two use each other, directly or around a loop. Only shipped code counts, not `#[cfg(test)]`. | Move the shared item to the module that owns the concept (usually the lower one) or into a new small module both use. Never merge the modules to hide the loop. |
+| `MAX_LINES` | A file under `src/` holds at most 500 lines, under `tests/` 800. The limits only go down. Functions have their own limits in `clippy.toml` (80 lines, nesting 4, 6 arguments); the web has the same in `eslint.config.js`. | Split the file by concept into a module folder (`x.rs` → `x/mod.rs` plus one file per part), tests by the behaviour they cover. A function over a limit: split it by step, return early, name a parameter group as a type. |
+| `MAX_COMPLEXITY`, `COMPLEX` | Every function (src and tests) has a cognitive complexity of at most 15, measured on the syntax tree (`complexity.rs`): each `if`, `match`, loop or `let … else` costs 1 plus its nesting depth, `else` and runs of `&&`/`||` 1; `?` and macros cost nothing. `COMPLEX` lists the few functions allowed above it, each with why; it only shrinks. | Split the function by step or concept, return early, turn nested loops into iterator chains or lookups. Only logic that is inherently that complex goes into `COMPLEX`, after the user agrees. |
 
 ### The code-quality dashboard: the map drawn from the code, a modularity score, coverage
 
@@ -118,7 +120,7 @@ The dashboard's API types are **generated** from the Rust wire types into `web/s
 
 ### Snapshots of the JSON
 
-`gitprompt-server/tests/api_snapshots.rs` ingests every conformance fixture and snapshots each read endpoint (insta, `tests/snapshots/`). Times, durations and temp paths are normalized. After an intended change, `just snapshots` rewrites them: review the diff before committing.
+`gitprompt-server/tests/api_snapshots.rs` ingests every conformance fixture and snapshots each read endpoint (insta, `tests/snapshots/`). The app runs on a `ManualClock` that moves a fixed step before each fixture, so times and durations are exact values; only the temp directory is normalized. Anything on the server that needs "now" reads the app's `Clock` (`gitprompt-server/src/clock.rs`), never the system clock. After an intended change, `just snapshots` rewrites them: review the diff before committing.
 
 ## A desktop (Tauri) command
 

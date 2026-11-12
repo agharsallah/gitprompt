@@ -7,7 +7,7 @@ expression: "get(&api, \"/api/search?q=retry\").await"
   "hits": [
     {
       "id": 10,
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:03:16.000000+00:00",
       "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
       "title": null,
       "project": {
@@ -37,7 +37,7 @@ expression: "get(&api, \"/api/search?q=retry\").await"
         "outcome": "done",
         "permission_mode": null,
         "tool_version": "2.1.316",
-        "response_s": "[seconds]",
+        "response_s": 28.0,
         "answered": false,
         "tool_calls": 2,
         "tool_failures": 1,
@@ -62,7 +62,7 @@ expression: "get(&api, \"/api/search?q=retry\").await"
     },
     {
       "id": 7,
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:01:10.000000+00:00",
       "session": "0190a1b2-0000-7000-8000-000000000001",
       "title": null,
       "project": {
@@ -101,7 +101,7 @@ expression: "get(&api, \"/api/search?q=retry\").await"
         "outcome": "done",
         "permission_mode": "default",
         "tool_version": "2.1.316",
-        "response_s": "[seconds]",
+        "response_s": 63.0,
         "answered": true,
         "tool_calls": 4,
         "tool_failures": 0,

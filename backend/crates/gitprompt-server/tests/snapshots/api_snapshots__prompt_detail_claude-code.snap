@@ -5,7 +5,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
 {
   "id": 1,
   "source": "claude-code",
-  "received_at": "[time]",
+  "received_at": "2026-01-05T09:00:07.000000+00:00",
   "prompt": "Write a function to calculate the factorial of a number",
   "origin": "typed",
   "typed_text": "Write a function to calculate the factorial of a number",
@@ -36,6 +36,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
   },
   "summary": {
     "turn": 1,
+    "response_s": 14.0,
     "ended_by": "Stop",
     "response": "Done.",
     "tool_calls": {
@@ -68,7 +69,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     "outcome": "done",
     "permission_mode": "default",
     "tool_version": "2.1.316",
-    "response_s": "[seconds]",
+    "response_s": 14.0,
     "answered": true,
     "tool_calls": 1,
     "tool_failures": 0,
@@ -90,15 +91,15 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "PostToolUse": 1,
       "Stop": 1
     },
-    "first_event_at": "[time]",
-    "last_event_at": "[time]"
+    "first_event_at": "2026-01-05T09:00:14.000000+00:00",
+    "last_event_at": "2026-01-05T09:00:21.000000+00:00"
   },
   "commits": {},
   "events": [
     {
       "id": 1,
       "source": "claude-code",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:00:14.000000+00:00",
       "event": "PostToolUse",
       "session_id": "abc123",
       "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -132,7 +133,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 2,
       "source": "claude-code",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:00:21.000000+00:00",
       "event": "Stop",
       "session_id": "abc123",
       "prompt_id": "550e8400-e29b-41d4-a716-446655440000",

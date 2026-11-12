@@ -45,6 +45,11 @@ Where each kind of change goes: `docs/extending.md`.
 - `backend/crates/gitprompt-server/tests/api_snapshots.rs` snapshots every read endpoint over the
   conformance fixtures (insta). After an intended API change run **`just snapshots`** and review the
   diff of `tests/snapshots/`; never accept snapshots you have not read.
+- Time is injected, never read: code on the server's paths takes "now" from the app's `Clock`
+  (`gitprompt-server/src/clock.rs`; the store stamps `received_at` with the same clock), never from
+  `Timestamp::now()`. Tests control it (`FixedClock`, or `ManualClock` + `advance`) instead of
+  redacting or sleeping, so time-derived values stay asserted. A flaky time value means a missing
+  injection: fix that, never widen the snapshot normalization.
 
 ## Guardrails (hooks, `.claude/hooks/README.md`)
 
@@ -59,6 +64,13 @@ Where each kind of change goes: `docs/extending.md`.
 
 - `just verify` runs what CI runs. Use pnpm (never npm) for the web; `uv` for any Python.
 - Keep code modular: small single-purpose files and functions, shared helpers over duplication.
+- Complexity has limits, the same in Rust and the web: cognitive complexity 15 (Rust: `MAX_COMPLEXITY`
+  in `rules.rs`, measured on the syntax tree, macros count as one call; web: sonarjs), 80 lines per
+  function, nesting 4, files 500 lines (Rust tests 800) or 400 (web). Over one, make the code
+  clearer: split by step or concept, return early, name a parameter group as a type, split a file
+  by concept. Never game the number with helpers that only move the branches. Only when the logic
+  is inherently that complex, and after the user agrees: an entry in `COMPLEX` (`rules.rs`) or
+  `#[expect(clippy::<lint>, reason = "...")]` for the clippy limits. `just quality complexity` lists them.
 
 ## Lint findings: fix the cause, never silence it
 

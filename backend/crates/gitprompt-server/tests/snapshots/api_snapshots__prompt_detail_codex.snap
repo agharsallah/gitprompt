@@ -5,7 +5,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
 {
   "id": 7,
   "source": "codex",
-  "received_at": "[time]",
+  "received_at": "2026-01-05T09:01:10.000000+00:00",
   "prompt": "Add a retry to the upload client",
   "origin": "typed",
   "typed_text": "Add a retry to the upload client",
@@ -37,6 +37,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
   },
   "summary": {
     "turn": 1,
+    "response_s": 63.0,
     "ended_by": "Stop",
     "response": "Added a retry with backoff around send(); the upload tests pass.",
     "tool_calls": {
@@ -125,7 +126,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     "outcome": "done",
     "permission_mode": "default",
     "tool_version": "2.1.316",
-    "response_s": "[seconds]",
+    "response_s": 63.0,
     "answered": true,
     "tool_calls": 4,
     "tool_failures": 0,
@@ -156,8 +157,8 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
       "Interrupt": 1,
       "SessionEnd": 1
     },
-    "first_event_at": "[time]",
-    "last_event_at": "[time]",
+    "first_event_at": "2026-01-05T09:01:03.000000+00:00",
+    "last_event_at": "2026-01-05T09:03:02.000000+00:00",
     "starts": [
       "startup",
       "resume"
@@ -176,7 +177,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 4,
       "source": "codex",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:01:17.000000+00:00",
       "event": "PostToolUse",
       "session_id": "0190a1b2-0000-7000-8000-000000000001",
       "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",
@@ -210,7 +211,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 5,
       "source": "codex",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:01:24.000000+00:00",
       "event": "PostModelRequest",
       "session_id": "0190a1b2-0000-7000-8000-000000000001",
       "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",
@@ -244,7 +245,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 6,
       "source": "codex",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:01:31.000000+00:00",
       "event": "PostToolUse",
       "session_id": "0190a1b2-0000-7000-8000-000000000001",
       "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",
@@ -278,7 +279,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 7,
       "source": "codex",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:01:38.000000+00:00",
       "event": "PostToolUse",
       "session_id": "0190a1b2-0000-7000-8000-000000000001",
       "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",
@@ -312,7 +313,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 8,
       "source": "codex",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:01:45.000000+00:00",
       "event": "PostToolUse",
       "session_id": "0190a1b2-0000-7000-8000-000000000001",
       "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",
@@ -347,7 +348,7 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     {
       "id": 11,
       "source": "codex",
-      "received_at": "[time]",
+      "received_at": "2026-01-05T09:02:13.000000+00:00",
       "event": "Stop",
       "session_id": "0190a1b2-0000-7000-8000-000000000001",
       "prompt_id": "0190a1b2-0000-7000-8000-0000000000a1",

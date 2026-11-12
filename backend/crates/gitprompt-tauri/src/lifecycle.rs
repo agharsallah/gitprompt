@@ -22,51 +22,61 @@ const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
 /// runs the daemon, forward its notices as [`CAPTURED_EVENT`].
 pub(crate) async fn start<R: Runtime>(app: AppHandle<R>, state: GitPrompt, options: AppOptions, daemon: DaemonOptions) {
     match Daemon::start(state.settings().clone(), options, daemon).await {
-        Ok(daemon) => {
-            let service = daemon.service();
-            match state.started(daemon) {
-                Ok(()) => {
-                    tracing::info!(url = %state.url(), "GitPrompt daemon running in the desktop app");
-                    tauri::async_runtime::spawn(forward(app.clone(), service));
-                }
-                Err(daemon) => {
-                    // The app began exiting while the daemon started.
-                    if let Err(e) = daemon.shutdown().await {
-                        tracing::warn!(error = %e, "GitPrompt did not stop cleanly");
-                    }
-                }
-            }
-        }
-        Err(DaemonError::AlreadyRunning { lock_file }) => {
-            tracing::info!(lock = %lock_file.display(), url = %state.url(), "GitPrompt already runs in another process; using it");
-            state.settle(DaemonStatus::External);
-        }
-        Err(e) => {
-            tracing::error!(error = %e, "GitPrompt daemon could not start");
-            state.settle(DaemonStatus::Failed { detail: e.to_string() });
-        }
+        Ok(daemon) => run(&app, &state, daemon).await,
+        Err(e) => not_started(&state, &e),
     }
     if let Err(e) = app.emit(STATUS_EVENT, state.status()) {
         tracing::warn!(error = %e, "could not emit the GitPrompt status");
     }
 }
 
-/// Every bus notice as a [`CAPTURED_EVENT`], until the daemon shuts down.
-async fn forward<R: Runtime>(app: AppHandle<R>, service: Service) {
+/// Hand the started daemon to `state` and forward its notices, or stop it again when the app
+/// began exiting while it started.
+async fn run<R: Runtime>(app: &AppHandle<R>, state: &GitPrompt, daemon: Daemon) {
+    // Subscribed before `state` hands the service out, so no notice published from then on is lost.
+    let notices = forward(app.clone(), &daemon.service());
+    match state.started(daemon) {
+        Ok(()) => {
+            tracing::info!(url = %state.url(), "GitPrompt daemon running in the desktop app");
+            tauri::async_runtime::spawn(notices);
+        }
+        Err(daemon) => {
+            if let Err(e) = daemon.shutdown().await {
+                tracing::warn!(error = %e, "GitPrompt did not stop cleanly");
+            }
+        }
+    }
+}
+
+/// Record why the daemon did not start: another process runs it (use that one), or it failed.
+fn not_started(state: &GitPrompt, error: &DaemonError) {
+    if let DaemonError::AlreadyRunning { lock_file } = error {
+        tracing::info!(lock = %lock_file.display(), url = %state.url(), "GitPrompt already runs in another process; using it");
+        state.settle(DaemonStatus::External);
+    } else {
+        tracing::error!(error = %error, "GitPrompt daemon could not start");
+        state.settle(DaemonStatus::Failed { detail: error.to_string() });
+    }
+}
+
+/// Every bus notice as a [`CAPTURED_EVENT`], until the daemon shuts down. Subscribes when called,
+/// not when the future first runs; holds no `Service`, so the store closes with the daemon.
+fn forward<R: Runtime>(app: AppHandle<R>, service: &Service) -> impl Future<Output = ()> + use<R> {
     let mut notices = service.bus().subscribe();
     let closing = service.closing();
-    drop(service); // the store closes with the daemon, not with this task
-    loop {
-        tokio::select! {
-            () = closing.cancelled() => return,
-            notice = notices.next() => match notice {
-                Some(notice) => {
-                    if let Err(e) = app.emit(CAPTURED_EVENT, notice) {
-                        tracing::warn!(error = %e, "could not emit a capture notice");
+    async move {
+        loop {
+            tokio::select! {
+                () = closing.cancelled() => return,
+                notice = notices.next() => match notice {
+                    Some(notice) => {
+                        if let Err(e) = app.emit(CAPTURED_EVENT, notice) {
+                            tracing::warn!(error = %e, "could not emit a capture notice");
+                        }
                     }
-                }
-                None => return,
-            },
+                    None => return,
+                },
+            }
         }
     }
 }
