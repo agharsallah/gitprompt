@@ -45,13 +45,7 @@ impl Db {
     /// Open (creating it and its schema) a database file in WAL mode: directory 0700, file 0600.
     pub(crate) fn open(path: &Path) -> DbResult<Db> {
         files::prepare(path)?;
-        let flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_NO_MUTEX;
-        let writer = Connection::open_with_flags(path, flags)?;
-        writer.busy_timeout(BUSY_TIMEOUT)?;
-        let mode: String = writer.query_row("pragma journal_mode = wal", [], |row| row.get(0))?;
-        if !mode.eq_ignore_ascii_case("wal") {
-            tracing::warn!(%mode, path = %path.display(), "the database is not in WAL mode: reads will wait behind writes");
-        }
+        let writer = open_writer(path)?;
         schema::create(&writer)?;
         files::make_private(path)?;
         tracing::debug!(path = %path.display(), "opened the database");
@@ -109,6 +103,19 @@ impl Db {
     fn lock_writer(&self) -> MutexGuard<'_, Connection> {
         self.writer.lock().unwrap_or_else(PoisonError::into_inner)
     }
+}
+
+/// The read-write connection to a database file, switched to WAL mode (a warning when SQLite
+/// refuses, e.g. on a network file system).
+fn open_writer(path: &Path) -> DbResult<Connection> {
+    let flags = OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE | OpenFlags::SQLITE_OPEN_NO_MUTEX;
+    let writer = Connection::open_with_flags(path, flags)?;
+    writer.busy_timeout(BUSY_TIMEOUT)?;
+    let mode: String = writer.query_row("pragma journal_mode = wal", [], |row| row.get(0))?;
+    if !mode.eq_ignore_ascii_case("wal") {
+        tracing::warn!(%mode, path = %path.display(), "the database is not in WAL mode: reads will wait behind writes");
+    }
+    Ok(writer)
 }
 
 /// A transaction at the top level, or a savepoint inside one.

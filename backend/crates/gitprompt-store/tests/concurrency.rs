@@ -40,23 +40,7 @@ fn readers_never_fail_and_never_go_back_in_time_while_a_writer_ingests() {
     let writing = AtomicBool::new(true);
 
     let reads: Vec<Result<usize, String>> = std::thread::scope(|scope| {
-        let readers: Vec<_> = (0..4)
-            .map(|_| {
-                scope.spawn(|| {
-                    let (mut seen, mut reads) = (0, 0);
-                    while writing.load(Ordering::Acquire) || reads == 0 {
-                        let now = store.prompt_ids().map_err(|e| e.to_string())?.len();
-                        store.search(&PromptFilter::default(), 20).map_err(|e| e.to_string())?;
-                        store.aggregate(&AggregateQuery::default()).map_err(|e| e.to_string())?;
-                        if now < seen {
-                            return Err(format!("saw {now} prompts after {seen}"));
-                        }
-                        (seen, reads) = (now, reads + 1);
-                    }
-                    Ok(reads)
-                })
-            })
-            .collect();
+        let readers: Vec<_> = (0..4).map(|_| scope.spawn(|| read_while(&store, &writing))).collect();
         for i in 0..300 {
             prompt(&format!("p{i}")).insert(&store);
         }
@@ -68,26 +52,46 @@ fn readers_never_fail_and_never_go_back_in_time_while_a_writer_ingests() {
     assert_eq!(store.prompt_ids().unwrap().len(), 300);
 }
 
+/// Reads (at least once) until `writing` ends: how many reads, or the first error or prompt count
+/// that went down.
+fn read_while(store: &Store, writing: &AtomicBool) -> Result<usize, String> {
+    let (mut seen, mut reads) = (0, 0);
+    while writing.load(Ordering::Acquire) || reads == 0 {
+        let now = store.prompt_ids().map_err(|e| e.to_string())?.len();
+        store.search(&PromptFilter::default(), 20).map_err(|e| e.to_string())?;
+        store.aggregate(&AggregateQuery::default()).map_err(|e| e.to_string())?;
+        if now < seen {
+            return Err(format!("saw {now} prompts after {seen}"));
+        }
+        (seen, reads) = (now, reads + 1);
+    }
+    Ok(reads)
+}
+
+/// Adds `count` prompts named `t<thread>-<i>`: the error of each that failed.
+fn write_prompts(store: &Store, thread: usize, count: usize) -> Vec<String> {
+    (0..count)
+        .filter_map(|i| {
+            let fields = obj(json!({"prompt_id": format!("t{thread}-{i}"), "prompt": "x"}));
+            store.add_prompt("claude-code", &fields, &obj(json!({})), &json!({})).err().map(|e| e.to_string())
+        })
+        .collect()
+}
+
 #[test]
 fn writes_from_several_threads_are_all_stored() {
     let dir = tempfile::tempdir().unwrap();
     let store = file_store(&dir);
 
     let errors: Vec<String> = std::thread::scope(|scope| {
-        let writers: Vec<_> = (0..4)
-            .map(|t| {
-                let store = &store;
-                scope.spawn(move || {
-                    (0..50)
-                        .filter_map(|i| {
-                            let fields = obj(json!({"prompt_id": format!("t{t}-{i}"), "prompt": "x"}));
-                            store.add_prompt("claude-code", &fields, &obj(json!({})), &json!({})).err().map(|e| e.to_string())
-                        })
-                        .collect::<Vec<_>>()
-                })
-            })
-            .collect();
-        writers.into_iter().flat_map(|w| w.join().unwrap()).collect()
+        let store = &store;
+        // Every writer starts before the first join, so they all write at once.
+        let writers: Vec<_> = (0..4).map(|t| scope.spawn(move || write_prompts(store, t, 50))).collect();
+        let mut errors = Vec::new();
+        for writer in writers {
+            errors.extend(writer.join().unwrap());
+        }
+        errors
     });
 
     assert_eq!(errors, Vec::<String>::new());

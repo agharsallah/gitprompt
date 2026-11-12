@@ -3,6 +3,7 @@
 //! this module only stores them).
 
 mod codec;
+mod insert;
 
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -15,8 +16,9 @@ use crate::decode;
 use crate::error::{DbResult, failure};
 use crate::schema;
 use crate::sql::json_list;
-use codec::{COLUMNS, USAGE, tool_kinds, usage, values};
+use codec::{USAGE, tool_kinds, usage};
 pub(crate) use codec::{index_row, row_columns, tool_kind};
+use insert::Inserts;
 
 /// Requests, tokens and cost.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -187,54 +189,9 @@ impl PromptIndex<'_> {
         let rows = entries.iter().map(|e| Ok((e, tool_kinds(&e.tools)?))).collect::<DbResult<Vec<_>>>()?;
         Ok(self.db.atomic(|conn| {
             delete(conn, &ids)?;
-            let mut row = conn.prepare_cached(&format!(
-                "insert into prompt_index ({}) values ({})",
-                COLUMNS.join(", "),
-                vec!["?"; COLUMNS.len()].join(", ")
-            ))?;
-            let mut model =
-                conn.prepare_cached(&format!("insert into prompt_index_model (id, model, {USAGE}) values (?, ?, ?, ?, ?, ?, ?, ?)"))?;
-            let mut tool = conn.prepare_cached("insert into prompt_index_tool (id, tool, kind, calls) values (?, ?, ?, ?)")?;
-            let mut work = conn.prepare_cached(&format!(
-                "insert into prompt_index_work (id, work, query_source, {USAGE}) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            ))?;
-            let mut text = conn.prepare_cached("insert into prompt_fts (rowid, typed_text) values (?, ?)")?;
+            let mut inserts = Inserts::prepare(conn)?;
             for (entry, kinds) in &rows {
-                let id = entry.row.id;
-                row.execute(rusqlite::params_from_iter(values(&entry.row)))?;
-                for m in &entry.models {
-                    let u = &m.usage;
-                    model.execute((
-                        id,
-                        &m.model,
-                        u.api_requests,
-                        u.cost_usd,
-                        u.input_tokens,
-                        u.output_tokens,
-                        u.cache_read_tokens,
-                        u.cache_creation_tokens,
-                    ))?;
-                }
-                for (t, kind) in entry.tools.iter().zip(kinds) {
-                    tool.execute((id, &t.tool, kind, t.calls))?;
-                }
-                for w in &entry.work {
-                    let u = &w.usage;
-                    work.execute((
-                        id,
-                        &w.work,
-                        &w.query_source,
-                        u.api_requests,
-                        u.cost_usd,
-                        u.input_tokens,
-                        u.output_tokens,
-                        u.cache_read_tokens,
-                        u.cache_creation_tokens,
-                    ))?;
-                }
-                if let Some(typed) = entry.row.typed_text.as_deref().filter(|t| !t.is_empty()) {
-                    text.execute((id, typed))?;
-                }
+                inserts.entry(entry, kinds)?;
             }
             Ok(entries.len())
         })?)

@@ -175,20 +175,23 @@ impl Store {
     /// row older than `since` is found by walking ids backwards, and only newer ids are read.
     pub fn hourly(&self, since: &str) -> Result<Vec<HourCount>> {
         Ok(self.db().read(|conn| {
-            let mut out = Vec::new();
-            for table in ["prompt", "event"] {
-                let older = format!("select id from {table} where received_at < ? order by id desc limit 1");
-                let older: i64 = decode::first(conn, &older, [since], |row| Ok(row.get(0)?))?.unwrap_or(0);
-                let counts = format!(
-                    "select source, substr(received_at, 1, 13) hour, count(*) n from {table} where id > ? and received_at >= ? group by source, hour"
-                );
-                out.extend(decode::all(conn, &counts, (older, since), |row| {
-                    Ok(HourCount { source: row.get("source")?, hour: row.get("hour")?, rows: count(row, "n")? })
-                })?);
-            }
+            let mut out = hourly_rows(conn, "prompt", since)?;
+            out.extend(hourly_rows(conn, "event", since)?);
             Ok(out)
         })?)
     }
+}
+
+/// [`Store::hourly`] for one table.
+fn hourly_rows(conn: &Connection, table: &str, since: &str) -> DbResult<Vec<HourCount>> {
+    let older = format!("select id from {table} where received_at < ? order by id desc limit 1");
+    let older: i64 = decode::first(conn, &older, [since], |row| Ok(row.get(0)?))?.unwrap_or(0);
+    let counts = format!(
+        "select source, substr(received_at, 1, 13) hour, count(*) n from {table} where id > ? and received_at >= ? group by source, hour"
+    );
+    decode::all(conn, &counts, (older, since), |row| {
+        Ok(HourCount { source: row.get("source")?, hour: row.get("hour")?, rows: count(row, "n")? })
+    })
 }
 
 /// `prompt_view` rows of these prompts, in the order given (unknown ids are skipped).

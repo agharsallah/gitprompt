@@ -55,16 +55,16 @@ impl Pool {
             if state.open < self.max {
                 state.open += 1;
                 drop(state);
-                return match self.open() {
-                    Ok(conn) => Ok(Lease { pool: self, conn: Some(conn) }),
-                    Err(e) => {
-                        self.forget_one();
-                        Err(e)
-                    }
-                };
+                return self.open_counted();
             }
             state = self.returned.wait(state).unwrap_or_else(PoisonError::into_inner);
         }
+    }
+
+    /// A new connection whose place `take` already counted in `open`; failing gives the place back.
+    fn open_counted(&self) -> DbResult<Lease<'_>> {
+        let conn = self.open().inspect_err(|_| self.forget_one())?;
+        Ok(Lease { pool: self, conn: Some(conn) })
     }
 
     fn open(&self) -> DbResult<Connection> {
