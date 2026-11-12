@@ -52,6 +52,7 @@ export function facts(overrides: Partial<Facts> = {}): Facts {
 			label: 'Claude Code',
 			assistant: 'Claude'
 		},
+		surface: null,
 		model: null,
 		models: [],
 		model_source: null,
@@ -78,6 +79,8 @@ export function event(overrides: Partial<Event> & { raw?: Event['raw'] } = {}): 
 		source: 'claude-code',
 		received_at: '2026-11-05T10:00:10.000Z',
 		event: 'PostToolUse',
+		session_id: null,
+		prompt_id: null,
 		fields: {},
 		raw: {},
 		...overrides
@@ -112,7 +115,10 @@ export function source(overrides: Partial<Source> = {}): Source {
 		not_collected: { PreToolUse: 'A decision point: GitPrompt stays out of decisions.' },
 		enabled: true,
 		capabilities: ['prompt', 'cwd', 'turn_end', 'answer', 'tools', 'subagents', 'origin_markers'],
+		needs_version: {},
 		join: 'prompt_id',
+		captures: [],
+		cannot_capture: {},
 		spec: {
 			name: 'claude-code.yaml',
 			path: '/gitprompt/sources/bundled/claude-code.yaml',
@@ -164,8 +170,10 @@ export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
 		distinct_texts: 0,
 		response_s_p50: null,
 		response_s_p90: null,
+		span_s: null,
 		first_at: null,
 		last_at: null,
+		parts: null,
 		...overrides
 	};
 }

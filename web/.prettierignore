@@ -10,3 +10,6 @@ bun.lockb
 
 # Coverage report (pnpm test:coverage)
 /coverage/
+
+# Generated from the Rust wire types (`just types`); checked by `cargo test`
+/src/lib/api/generated.ts

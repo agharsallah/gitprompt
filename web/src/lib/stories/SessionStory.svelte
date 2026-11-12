@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { Bot, FolderGit2, GitBranch } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
-	import type { Chapter as ChapterData, SessionStory } from '#lib/api/types.ts';
+	import type { SessionStory, StoryItem } from '#lib/api/types.ts';
 	import { duration, excerpt, integer, modelName, money, plural } from '#lib/shared/format.ts';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import Badge from '#lib/ui/Badge.svelte';
@@ -16,7 +16,9 @@
 	/** A session told as chapters: each prompt you typed, with system activity folded between. */
 	let { story, actions }: { story: SessionStory; actions?: Snippet } = $props();
 
-	const chapters = $derived(story.items.filter((i): i is ChapterData => i.kind === 'chapter'));
+	type ChapterItem = Extract<StoryItem, { kind: 'chapter' }>;
+
+	const chapters = $derived(story.items.filter((i): i is ChapterItem => i.kind === 'chapter'));
 	const turns = $derived(new Map(chapters.map((c) => [c.id, c.turn])));
 	const title = $derived(story.title ?? (excerpt(chapters[0]?.text, 100) || 'Untitled session'));
 	const span = $derived(

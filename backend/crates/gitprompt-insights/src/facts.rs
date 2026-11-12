@@ -4,6 +4,7 @@
 //! [`crate::indexer::entry`] projects it) and the source spec, so they need no `if source == ...`.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::JsonMap;
 use gitprompt_core::spec::{Spec, SurfaceRef, UsageValue};
@@ -34,7 +35,7 @@ pub const DOCS: &[(&str, &str)] = &[
 ];
 
 /// The tool that sent a prompt.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct Connector {
     /// Spec id.
     pub id: String,
@@ -47,7 +48,8 @@ pub struct Connector {
 
 /// Token counts of a turn. Reasoning tokens are part of the output tokens: `total` counts them once
 /// (input + output + cache read + cache creation).
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(rename = "TurnTokens")]
 pub struct Tokens {
     pub input: i64,
     pub output: i64,
@@ -58,7 +60,7 @@ pub struct Tokens {
 }
 
 /// Where the main model came from.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ModelSource {
     /// The turn's model calls.
@@ -68,7 +70,7 @@ pub enum ModelSource {
 }
 
 /// What every page shows about a turn.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct Facts {
     pub connector: Connector,
     /// `None` when the tool doesn't say where the prompt was typed.

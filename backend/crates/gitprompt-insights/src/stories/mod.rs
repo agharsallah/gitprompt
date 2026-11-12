@@ -19,6 +19,7 @@ use std::ops::Range;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::git::Commit;
 use gitprompt_core::spec::{Origin, Pattern, SurfaceRef, ToolKind};
@@ -67,7 +68,8 @@ pub fn project_repo(key: &str) -> Option<String> {
 }
 
 /// A project as stories name it.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(rename = "StoryProject")]
 pub struct ProjectRef {
     /// [`project_id`] of `repo`.
     pub id: String,
@@ -118,7 +120,7 @@ fn ended(row: &FactRow) -> Option<Instant> {
     Some(sent(row)?.plus_seconds(row.prompt.row.response_s.unwrap_or(0.0)))
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum PhaseReason {
     /// The first phase.
@@ -224,7 +226,7 @@ pub fn attribute_commits(prompts: &[FactRow], commits: &[Commit]) -> BTreeMap<i6
 }
 
 /// Commits, files, insertions and deletions summed.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct Diffstat {
     pub commits: u64,
     pub files: u64,
@@ -265,7 +267,7 @@ fn latest_end(prompts: &[FactRow]) -> Option<Instant> {
 // --- a session ---------------------------------------------------------------------------------
 
 /// What a marker stands for: a prompt of a system origin, or something that happened in a turn.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum MarkerKind {
     /// A `PreCompact` event of a turn.
@@ -294,7 +296,7 @@ impl MarkerKind {
 }
 
 /// System activity between chapters.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct Marker {
     pub kind: MarkerKind,
     /// The prompt it belongs to.
@@ -311,7 +313,7 @@ pub struct Marker {
 }
 
 /// A prompt you typed, with what its turn did.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct Chapter {
     pub id: i64,
     /// 1-based position among every prompt of the session (markers count).
@@ -353,7 +355,7 @@ pub enum SessionItem {
 
 /// One item of a session story. Serializes with `kind`: `chapter` (the chapter's fields) or
 /// `markers` (`items`).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum StoryItem {
     Chapter(Box<Chapter>),
@@ -374,7 +376,7 @@ pub fn group_markers(items: Vec<SessionItem>) -> Vec<StoryItem> {
     out
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 pub struct SessionTotals {
     pub chapters: u64,
     /// Every marker, before grouping.
@@ -393,7 +395,7 @@ pub struct SessionTotals {
 }
 
 /// One session as a narrative.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct SessionStory {
     pub session: String,
     /// The first title of its prompts.
@@ -440,7 +442,8 @@ pub fn session_story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, comm
 // --- a project ---------------------------------------------------------------------------------
 
 /// A prompt of a project story.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "StoryEntry")]
 pub struct ProjectEntry {
     pub id: i64,
     pub received_at: String,
@@ -465,7 +468,8 @@ pub struct ProjectEntry {
 }
 
 /// What a phase (or the whole project) amounted to, and how its prompts were written.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "StoryMeasures")]
 pub struct Measures {
     pub prompts: u64,
     /// Distinct sessions.
@@ -488,7 +492,8 @@ pub struct Measures {
     pub last_at: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "Phase")]
 pub struct ProjectPhase {
     /// 1-based.
     pub index: usize,
@@ -502,7 +507,7 @@ pub struct ProjectPhase {
 }
 
 /// How a project got built, prompt by prompt.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct ProjectStory {
     /// From the typed prompts (else every row); with no row naming a repo: `repo` as id source, name
     /// and repo, `git: false`.
@@ -529,7 +534,7 @@ pub fn project_story(
 // --- a prompt's lineage ------------------------------------------------------------------------
 
 /// Where a version was typed, relative to the prompt asked about.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum Place {
     /// The prompt asked about.
@@ -543,7 +548,7 @@ pub enum Place {
 }
 
 /// One version of a prompt.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct Version {
     pub id: i64,
     pub received_at: String,
@@ -568,7 +573,8 @@ pub struct Version {
     pub change: Option<Change>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "Lineage")]
 pub struct PromptLineage {
     pub id: i64,
     /// [`crate::lineage::THRESHOLD`]

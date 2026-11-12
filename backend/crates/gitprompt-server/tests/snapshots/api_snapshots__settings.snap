@@ -1,0 +1,49 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/settings\").await"
+---
+{
+  "file": "[root]/gitprompt/preferences.json",
+  "settings": {
+    "default_range": {
+      "value": "7d",
+      "default": "7d",
+      "source": "default",
+      "env": "GITPROMPT_DEFAULT_RANGE",
+      "locked": false,
+      "applies": "now"
+    },
+    "week_start": {
+      "value": "monday",
+      "default": "monday",
+      "source": "default",
+      "env": "GITPROMPT_WEEK_START",
+      "locked": false,
+      "applies": "now"
+    },
+    "event_retention_days": {
+      "value": null,
+      "default": null,
+      "source": "default",
+      "env": "GITPROMPT_EVENT_RETENTION_DAYS",
+      "locked": false,
+      "applies": "now"
+    },
+    "hide_secrets_on_ingest": {
+      "value": false,
+      "default": false,
+      "source": "default",
+      "env": "GITPROMPT_HIDE_SECRETS_ON_INGEST",
+      "locked": false,
+      "applies": "now"
+    },
+    "disabled_sources": {
+      "value": [],
+      "default": [],
+      "source": "default",
+      "env": "GITPROMPT_DISABLED_SOURCES",
+      "locked": false,
+      "applies": "now"
+    }
+  }
+}

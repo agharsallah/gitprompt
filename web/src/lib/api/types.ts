@@ -1,12 +1,20 @@
-// Types mirror the FastAPI response models (src/gitprompt/api/routes/*.py, insights/catalog.py,
-// sources/connection.py). The derived shapes (TurnSummary, PromptStats, SessionFacts) mirror
-// insights/derivations.py; GitContext mirrors core/git.py. Every derived value is optional: the
-// daemon leaves out what it could not derive (compact()), and older prompts may lack newer values.
+// The daemon's API types.
+//
+// Everything the daemon sends or accepts is GENERATED from the Rust wire types into generated.ts
+// (`just types`; `cargo test` fails while it is stale). Never copy a wire type here by hand: change
+// the Rust struct, regenerate, and import it from this module as before.
+//
+// This file only adds what the client defines itself: the filters and queries it builds, and
+// narrower views of the open-ended JSON maps (a prompt's `fields` and `context`).
+import type * as Wire from '#lib/api/generated.ts';
+
+export type * from '#lib/api/generated.ts';
+
+// --- open-ended maps, as the dashboard reads them ----------------------------------------------
+
 export type Meta = Record<string, unknown>;
 
-export type Annotation = { starred: boolean; rating: -1 | 0 | 1; tags: string[]; note: string };
-
-/** Fields the source spec maps (sources/bundled/*.yaml). */
+/** Fields the source spec maps (backend/crates/gitprompt-core/specs/*.yaml); others may follow. */
 export type PromptFields = {
 	event?: string;
 	prompt?: string;
@@ -18,7 +26,7 @@ export type PromptFields = {
 	session_title?: string;
 };
 
-/** Repository and tool state observed when the prompt was received (core/git.py). */
+/** Repository and tool state observed when the prompt was received (gitprompt-core git.rs). */
 export type GitContext = {
 	git_root?: string;
 	git_worktree?: boolean;
@@ -41,334 +49,27 @@ export type GitContext = {
 	tool_version?: string;
 };
 
-/** derivations.PROMPT_STATS */
-export type PromptStats = {
-	chars?: number;
-	words?: number;
-	lines?: number;
-	approx_tokens?: number;
-	slash_command?: string;
-	at_mentions?: string[];
-	urls?: string[];
-	code_blocks?: number;
-	questions?: number;
-	secrets?: string[];
+type Narrowed<T> = Omit<T, 'fields' | 'context'> & {
+	fields: PromptFields & Meta;
+	context: GitContext & Meta;
 };
 
-/** Telemetry usage of some API requests (derivations._usage_of). */
-export type Usage = {
-	api_requests: number;
-	input_tokens: number;
-	output_tokens: number;
-	cache_read_tokens: number;
-	cache_creation_tokens: number;
-	cost_usd: number;
-};
+export type Prompt = Narrowed<Wire.Prompt>;
+export type PromptDetail = Narrowed<Wire.PromptDetail>;
 
-/** derivations.TURN: what happened while the tool worked on one prompt. */
-export type TurnSummary = {
-	turn?: number;
-	since_previous_prompt_s?: number;
-	response_s?: number;
-	ended_by?: 'Stop' | 'StopFailure' | 'Interrupt' | string;
-	error?: unknown;
-	response?: string;
-	tool_calls?: Record<string, number>;
-	tool_failures?: number;
-	tool_time_s?: number;
-	files_written?: string[];
-	files_read?: string[];
-	bash_commands?: string[];
-	web?: string[];
-	mcp_tools?: string[];
-	/** Tool calls by kind (the source spec's `tool_kinds`): read, write, shell, web, mcp, agent, other. */
-	tool_kinds?: Record<string, number>;
-	/** The kind of each tool the turn used, by tool name. */
-	tool_kind_of?: Record<string, string>;
-	/** Tool calls made by subagents. */
-	subagent_tool_calls?: number;
-	/** git commits the agent ran. */
-	git_commits?: number;
-	slash_command?: string;
-	subagents?: Record<string, number>;
-	tasks?: string[];
-	notifications?: Record<string, number>;
-	permission_denied?: string[];
-	compactions?: number;
-	model_switches?: string[];
-	/** What started each compaction: auto or manual. */
-	compaction_triggers?: Record<string, number>;
-	/** What the failed tool calls reported. */
-	tool_errors?: string[];
-	/** What each subagent was asked (agent tools' inputs). */
-	subagent_tasks?: { task?: string | null; brief?: string | null }[];
-	/** Errors the tool reported during the turn (Copilot's ErrorOccurred). */
-	errors?: { name?: string; message?: string; context?: string; recoverable?: boolean }[];
-	/** Model calls per status the tool reported: completed, failed, cancelled. */
-	model_call_status?: Record<string, number>;
-	api_requests?: number;
-	models?: Record<string, number>;
-	input_tokens?: number;
-	output_tokens?: number;
-	cache_read_tokens?: number;
-	cache_creation_tokens?: number;
-	/** Output tokens spent reasoning, when the tool reports them (part of output_tokens). */
-	reasoning_tokens?: number;
-	cost_usd?: number;
-	/** Requests, tokens and cost per model. */
-	model_usage?: Record<string, Usage>;
-	/** Requests, tokens and cost per telemetry query_source (main thread, a subagent, a system call). */
-	work_usage?: Record<string, Usage>;
-	api_time_s?: number;
-	api_errors?: number;
-	tool_rejections?: number;
-};
+// --- views derived from the wire types ------------------------------------------------------
 
-/** derivations.SESSION: facts about the whole session. */
-export type SessionFacts = {
-	events?: Record<string, number>;
-	first_event_at?: string;
-	last_event_at?: string;
-	/** How the session started, then each time it was taken up again (SessionStart.source). */
-	starts?: string[];
-	ended?: string;
-	instructions_loaded?: string[];
-	cwd_changes?: string[];
-	config_changes?: string[];
-	metric_totals?: Record<string, number>;
-	environment?: Record<string, unknown>;
-	/** Each subagent that finished (SubagentStop): its type, how it stopped, its last message. */
-	subagent_results?: {
-		agent_id?: string;
-		agent_type?: string;
-		stop_reason?: string;
-		answer?: string;
-	}[];
-};
+/** One run of a word diff: the op and its text. */
+export type DiffOp = NonNullable<Wire.Version['diff']>[number];
 
-/** Who produced a prompt's text (insights/origin.py, docs/adr/0010-prompt-origin.md). */
-export type Origin =
-	| 'typed'
-	| 'slash_command'
-	| 'task_notification'
-	| 'agent_message'
-	| 'subagent'
-	| 'programmatic'
-	| 'unknown';
+export type MarkerGroup = Extract<Wire.StoryItem, { kind: 'markers' }>;
 
-/** A context block a tool added before or after what the user typed, e.g. an IDE selection. */
-export type Injected = { kind: string; chars: number };
-
-/** The tool that sent a prompt (insights/facts.py connector). */
-export type Connector = {
-	id: string;
-	/** e.g. "OpenAI Codex CLI" */
-	name: string;
-	/** The name on a badge, e.g. "Codex" (spec `short_name`). */
-	label: string;
-	/** Who answers, e.g. "Codex". */
-	assistant: string;
-};
-
-/**
- * Where a prompt was typed: the app or client of its tool (insights/surface.py, ADR-0022). `icon`
- * is a name from the spec, drawn by lib/prompts/surface.ts.
- */
-export type Surface = {
-	/** e.g. "desktop", "vscode", "cli" */
-	id: string;
-	/** e.g. "Desktop app" */
-	name: string;
-	icon: string;
-};
-
-/** Tokens of a turn's model calls (input without cached ones; reasoning is part of output). */
-export type TurnTokens = {
-	input: number;
-	output: number;
-	cache_read: number;
-	cache_creation: number;
-	reasoning: number;
-	total: number;
-};
-
-/**
- * What every page shows about a turn, computed once by the daemon (insights/facts.py, ADR-0021).
- * `tokens` and `cost_usd` are null when no model call reported them: say why (capabilities.ts),
- * never show zeros.
- */
-export type Facts = {
-	connector: Connector;
-	/** null: the tool doesn't say where the prompt was typed (never guessed). */
-	surface?: Surface | null;
-	model: string | null;
-	models: string[];
-	/** usage: from model calls; hook: the model the tool's hooks reported. */
-	model_source: 'usage' | 'hook' | null;
-	tokens: TurnTokens | null;
-	cost_usd: number | null;
-	api_requests: number;
-	outcome: TurnOutcome | null;
-	permission_mode: string | null;
-	tool_version: string | null;
-	response_s: number | null;
-	answered: boolean;
-	tool_calls: number;
-	tool_failures: number;
-	files_written: number;
-	git_commits: number;
-	subagents: number;
-};
-
-export type Prompt = {
-	id: number;
-	source: string;
-	received_at: string;
-	prompt: string | null; // as received, including injected context
-	origin: Origin;
-	typed_text: string | null; // the prompt without injected context
-	injected: Injected[];
-	fields: PromptFields & Meta; // mapped by the source spec
-	context: GitContext & Meta; // observed at ingest: git state, tool version
-	annotation: Annotation;
-	stats: PromptStats & Meta; // derived from the prompt text
-	summary: TurnSummary & Meta; // derived from the prompt's events
-	facts: Facts; // what every page shows about the turn
-};
-
-export type Event = {
-	id: number;
-	source: string;
-	received_at: string;
-	event: string | null;
-	fields: Meta;
-	raw: Meta;
-};
-
-export type Commit = { hash: string; subject: string; author: string; time: string };
-
-export type PromptDetail = Prompt & {
-	raw: Meta;
-	session: SessionFacts & Meta;
-	commits: { commits?: Commit[]; diffstat?: string; until?: string };
-	events: Event[];
-};
-
-export type Source = {
-	id: string;
-	name: string;
-	/** Who answers in the tool, e.g. "Claude" (spec `assistant`); empty when the spec doesn't say. */
-	assistant: string;
-	/** The tool's main connector when this one is an optional layer of it (e.g. telemetry). */
-	part_of: string | null;
-	/** Short name of this layer in its tool: "Hooks", "Telemetry". */
-	layer: string;
-	/** What this layer adds, in one line. */
-	summary: string;
-	detected: boolean;
-	version: string | null;
-	connected: boolean;
-	outdated: boolean;
-	config_file: string;
-	terms: string;
-	/** What the user still has to do in the tool once connected (spec `after_connect`), or empty. */
-	after_connect: string;
-	blocks: string[];
-	warnings: string[];
-	total: number;
-	unmapped: number;
-	events: number;
-	last_at: string | null;
-	/** Prompts + events received per UTC hour over the last 24 hours, the current hour last. */
-	hourly: number[];
-	/** Documented events GitPrompt keeps. */
-	collects: string[];
-	/** Event -> why it is received but not stored. */
-	not_stored: Record<string, string>;
-	/** Event -> why GitPrompt does not subscribe to it. */
-	not_collected: Record<string, string>;
-	/** False: turned off in GitPrompt (what it sends is discarded). */
-	enabled: boolean;
-	/** What this connector yields (spec `capabilities`); a tool has those of its connected layers. */
-	capabilities: Capability[];
-	/** Capabilities the installed version lacks -> the version that adds them (spec `capability_since`). */
-	needs_version?: Partial<Record<Capability, string>>;
-	/** How its events find their prompt: by the tool's prompt id, or the latest prompt of the session. */
-	join: 'prompt_id' | 'session';
-	/** The apps whose prompts reach this connector, and how they are told apart (spec `captures`). */
-	captures?: (Surface & { note: string })[];
-	/** Apps of the tool this connector can't capture -> why (spec `cannot_capture`). */
-	cannot_capture?: Record<string, string>;
-	/** The spec file in use. */
-	spec: SpecFile;
-	/** The user's override of this spec is broken, so the bundled one is used. */
-	spec_problem: SpecProblem | null;
-};
-
-/** Mirrors sources/spec.py `Capability`. */
-export type Capability =
-	| 'prompt'
-	| 'cwd'
-	| 'model'
-	| 'usage'
-	| 'cost'
-	| 'turn_end'
-	| 'answer'
-	| 'tools'
-	| 'subagents'
-	| 'origin_markers'
-	| 'transcript_path'
-	| 'session_lifecycle'
-	| 'session_metrics';
-
-export type SpecFile = {
-	name: string;
-	path: string;
-	/** Bundled with GitPrompt, or a file of yours in ~/.gitprompt/sources/. */
-	origin: 'bundled' | 'user';
-	/** A file of yours replacing the bundled one of the same name. */
-	overrides: boolean;
-};
-
-/** A spec file that can't be used (GET /api/sources/problems). */
-export type SpecProblem = {
-	file: SpecFile;
-	error: string;
-	/** Id of the bundled spec used instead, if any. */
-	fallback: string | null;
-};
-
-export type SpecText = { file: SpecFile; text: string };
-
-/** A change to a tool's config file: previewed (dry run) before it is applied. */
-export type Change = { file: string; diff: string; applied: boolean; backup: string | null };
+// --- what the client builds ---------------------------------------------------------------
 
 /** Source actions that change the tool's config file, so they go through the consent flow. */
 export type ConfigAction = 'connect' | 'disconnect';
 
-export type Updated = { updated: number };
-
-export type Field = {
-	/** Why GitPrompt deliberately leaves this field unused (the spec's `ignored`), if it does. */
-	unused?: string | null;
-	source: string;
-	event: string;
-	path: string;
-	count: number;
-	sample: unknown;
-	documented: boolean;
-};
-
-export type Catalog = {
-	fields: Field[];
-	not_captured: { source: string; event: string; reason: string }[];
-	derived: Record<string, string>;
-};
-
-/** How a turn ended (storage/store.py OUTCOME): `superseded` and `running` depend on later prompts and the clock. */
-export type TurnOutcome = 'done' | 'failed' | 'interrupted' | 'superseded' | 'running' | 'open';
-
-/** What a prompt or its turn contains (`has`, storage/store.py HAS). */
+/** What a prompt or its turn contains (`has`, gitprompt-store filter.rs). */
 export type Has =
 	| 'code'
 	| 'url'
@@ -383,7 +84,7 @@ export type Has =
 	| 'no_follow_up';
 
 /**
- * Single-valued prompt filters the Prompts page keeps in its URL (api/filters.py PromptFilters).
+ * Single-valued prompt filters the Prompts page keeps in its URL (gitprompt-store PromptFilter).
  * `origin`, `model`, `outcome` and `has` take several values and are handled on their own;
  * `since`/`until` are ISO-8601 instants.
  */
@@ -413,295 +114,10 @@ export const LIST_KEYS = ['origin', 'model', 'surface', 'outcome', 'has'] as con
 /** Every filter GET /api/prompts and GET /api/stats accept. Empty lists mean "any". */
 export type PromptQuery = Omit<Filters, 'session'> & {
 	session?: string | string[];
-	origin?: Origin[];
+	origin?: Wire.Origin[];
 	model?: string[];
 	/** Typed in one of these apps (Surface ids). */
 	surface?: string[];
-	outcome?: TurnOutcome[];
+	outcome?: Wire.TurnOutcome[];
 	has?: Has[];
-};
-
-/** GET /api/stats groupings (storage/stats.py GROUPS). */
-export type GroupBy =
-	| 'day' // local calendar day of the daemon's machine, YYYY-MM-DD
-	| 'day_hour' // local clock hour, "YYYY-MM-DD HH"
-	| 'hour' // local hour, "00".."23"
-	| 'weekday' // ISO weekday, "1" = Monday
-	| 'weekday_hour' // "1-09"
-	| 'origin'
-	| 'source'
-	| 'surface' // where it was typed; detail: its name
-	| 'session' // detail: title or first prompt; span_s
-	| 'session_length' // key: lower bound in seconds, zero-padded
-	| 'repo' // detail: owner/name of the remote
-	| 'branch'
-	| 'command'
-	| 'size' // typed characters; key: lower bound, zero-padded
-	| 'text' // the same typed text; detail: its start
-	| 'outcome' // TurnOutcome
-	| 'model'
-	| 'tool' // detail: the tool's kind
-	| 'tool_kind'
-	| 'work' // main, subagent, system
-	| 'query_source'; // detail: its kind of work
-
-/** How groups are sorted: by key, or by a measure, largest first. */
-export type StatsOrder = 'key' | 'prompts' | 'sessions' | 'cost_usd' | 'last_at';
-
-/** Measures of one group, or of all the prompts (`key` null). Mirrors api/routes/stats.py Bucket. */
-export type StatsBucket = Usage & {
-	key: string | null;
-	detail: string | null;
-	prompts: number;
-	sessions: number;
-	api_time_s: number;
-	api_errors: number;
-	tool_calls: number;
-	tool_failures: number;
-	tool_time_s: number;
-	subagent_tool_calls: number;
-	subagents: number;
-	files_written: number;
-	git_commits: number;
-	compactions: number;
-	denials: number;
-	rejections: number;
-	/** Prompts whose turn ended: the ones with a response time. */
-	ended: number;
-	failed: number;
-	/** Prompts with a later prompt in their session. */
-	followed: number;
-	with_code: number;
-	with_url: number;
-	with_mention: number;
-	with_secret: number;
-	with_commit: number;
-	distinct_texts: number;
-	response_s_p50: number | null;
-	response_s_p90: number | null;
-	span_s?: number | null;
-	first_at: string | null;
-	last_at: string | null;
-	parts?: StatsBucket[] | null;
-};
-
-/**
- * GET /api/stats. For `model`, `tool`, `tool_kind`, `work` and `query_source` a prompt counts in
- * each group it touched, with usage or tool calls split exactly between the groups.
- */
-export type Stats = {
-	group_by: GroupBy | null;
-	split_by: GroupBy | null;
-	totals: StatsBucket;
-	groups: StatsBucket[];
-};
-
-/** GET /api/stats/telemetry: what telemetry reports per session, over the sessions kept. */
-export type Telemetry = {
-	sessions: number;
-	/** Named like SessionFacts.metric_totals, e.g. "claude_code.lines_of_code.count[added]". */
-	metrics: Record<string, number>;
-	commands: { command: string; source: string | null; uses: number; sessions: number }[];
-};
-
-// --- Stories and search (api/routes/stories.py, insights/stories.py, ADR-0016) ---------------
-
-/** A commit made after a prompt, with its diffstat (core/git.history). */
-export type StoryCommit = Commit & { files: number; insertions: number; deletions: number };
-
-export type Diffstat = { commits: number; files: number; insertions: number; deletions: number };
-
-/** A project: `id` is the base64url of its git root (or folder), see lib/stories/story.ts. */
-export type StoryProject = { id: string; repo: string; name: string; git: boolean };
-
-/** A prompt you typed, as a chapter of its session's story. */
-export type Chapter = {
-	kind: 'chapter';
-	id: number;
-	turn: number;
-	received_at: string;
-	origin: Origin;
-	text: string;
-	clipped: boolean;
-	slash_command: string | null;
-	branch: string | null;
-	outcome: TurnOutcome;
-	response_s: number | null;
-	cost_usd: number;
-	tokens: number;
-	tool_calls: number;
-	tool_failures: number;
-	/** Tool calls by kind. */
-	tools: Record<string, number>;
-	files_written: number;
-	files: string[];
-	subagents: number;
-	git_commits: number;
-	commits: StoryCommit[];
-	diffstat: Diffstat | null;
-	/** An earlier chapter this one rewords or repeats. */
-	retry_of: number | null;
-	facts: Facts;
-};
-
-/** Something in a session you did not type: a system prompt, a subagent's brief, a compaction. */
-export type MarkerKind =
-	Exclude<Origin, 'typed' | 'slash_command'> | 'subagent_prompt' | 'compaction';
-
-export type Marker = {
-	kind: MarkerKind;
-	/** The prompt to open: the system prompt itself, or the turn it happened in. */
-	id: number;
-	received_at: string;
-	label: string | null;
-	detail: string | null;
-	excerpt: string | null;
-	clipped: boolean;
-};
-
-export type MarkerGroup = { kind: 'markers'; items: Marker[] };
-
-export type SessionStory = {
-	session: string;
-	title: string | null;
-	source: string | null;
-	/** The tool of the session. */
-	connector: Connector | null;
-	/** Where its prompts were typed, when the tool says. */
-	surface?: Surface | null;
-	/** Prompts per main model. */
-	models: Record<string, number>;
-	project: StoryProject | null;
-	branches: string[];
-	started_at: string | null;
-	ended_at: string | null;
-	totals: {
-		chapters: number;
-		markers: number;
-		cost_usd: number;
-		tool_calls: number;
-		files_written: number;
-		outcomes: Partial<Record<TurnOutcome, number>>;
-		retries: number;
-		diffstat: Diffstat | null;
-	};
-	items: (Chapter | MarkerGroup)[];
-};
-
-/** A prompt in a project story. */
-export type StoryEntry = {
-	id: number;
-	received_at: string;
-	session: string | null;
-	origin: Origin;
-	branch: string | null;
-	text: string;
-	clipped: boolean;
-	chars: number;
-	outcome: TurnOutcome;
-	response_s: number | null;
-	cost_usd: number;
-	tool_calls: number;
-	tool_failures: number;
-	tools: Record<string, number>;
-	files_written: number;
-	git_commits: number;
-	commits: StoryCommit[];
-	retry_of: number | null;
-	facts: Facts;
-};
-
-export type StoryMeasures = {
-	prompts: number;
-	sessions: number;
-	cost_usd: number;
-	tool_calls: number;
-	files_written: number;
-	outcomes: Partial<Record<TurnOutcome, number>>;
-	diffstat: Diffstat | null;
-	retries: number;
-	median_chars: number;
-	with_mention: number;
-	with_code: number;
-	first_at: string | null;
-	last_at: string | null;
-};
-
-export type Phase = StoryMeasures & {
-	index: number;
-	/** Why the phase began: the first prompt, a pause, or a lasting branch change. */
-	reason: 'start' | 'gap' | 'branch';
-	gap_s: number | null;
-	branches: string[];
-	items: StoryEntry[];
-};
-
-export type ProjectStory = StoryProject & {
-	/** Prompts of other origins in the project: counted, never shown as typed. */
-	system: number;
-	totals: StoryMeasures;
-	phases: Phase[];
-};
-
-export type DiffOp = ['equal' | 'delete' | 'insert', string];
-
-export type Version = {
-	id: number;
-	received_at: string;
-	session: string | null;
-	project: StoryProject | null;
-	origin: Origin;
-	text: string;
-	clipped: boolean;
-	similarity: number;
-	same_text: boolean;
-	place: 'self' | 'session' | 'project' | 'elsewhere';
-	outcome: TurnOutcome;
-	response_s: number | null;
-	cost_usd: number;
-	tool_failures: number;
-	/** How the wording changed from the version before. */
-	diff: DiffOp[] | null;
-	change: 'improved' | 'worse' | 'same' | null;
-};
-
-export type Lineage = { id: number; threshold: number; versions: Version[] };
-
-export type Segment = { text: string; hit: boolean };
-
-export type SearchHit = {
-	id: number;
-	received_at: string;
-	session: string | null;
-	title: string | null;
-	project: StoryProject | null;
-	branch: string | null;
-	origin: Origin;
-	outcome: TurnOutcome;
-	cost_usd: number;
-	facts: Facts;
-	snippet: Segment[];
-};
-
-export type SearchResults = { total: number; hits: SearchHit[] };
-
-/** GET /api/sources/recent: the newest prompt of one connector and surface (insights/captures.py). */
-export type RecentCapture = {
-	id: number;
-	connector: Connector;
-	surface: Surface | null;
-	received_at: string;
-	session: string | null;
-	title: string | null;
-	/** The main repository (also from a worktree), else the working directory. */
-	project: { repo: string; name: string } | null;
-	branch: string | null;
-	/** The linked worktree the prompt ran in. */
-	worktree: string | null;
-	model: string | null;
-	origin: Origin;
-	/** Prompts of this connector and surface. */
-	prompts: number;
-	/** What the surface rules read, e.g. { "app.entrypoint": "cli" }. */
-	signals: Record<string, unknown>;
 };

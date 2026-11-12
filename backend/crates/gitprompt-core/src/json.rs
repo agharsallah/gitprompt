@@ -3,6 +3,8 @@
 
 use indexmap::IndexMap;
 
+use crate::blank::Blank;
+
 pub type Json = serde_json::Value;
 pub type JsonMap = serde_json::Map<String, Json>;
 
@@ -105,16 +107,5 @@ fn flatten_into(value: &Json, path: String, out: &mut Vec<(String, Json)>) {
 
 /// Drop null, empty (`""`, `[]`, `{}`), `false` and zero values, so summaries show what happened.
 pub fn compact(data: &JsonMap) -> JsonMap {
-    data.iter().filter(|(_, v)| !is_empty_or_zero(v)).map(|(k, v)| (k.clone(), v.clone())).collect()
-}
-
-fn is_empty_or_zero(value: &Json) -> bool {
-    match value {
-        Json::Null => true,
-        Json::Bool(b) => !b,
-        Json::Number(n) => n.as_f64() == Some(0.0),
-        Json::String(s) => s.is_empty(),
-        Json::Array(items) => items.is_empty(),
-        Json::Object(map) => map.is_empty(),
-    }
+    data.iter().filter(|(_, v)| !v.is_blank()).map(|(k, v)| (k.clone(), v.clone())).collect()
 }

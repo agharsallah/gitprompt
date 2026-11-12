@@ -1,0 +1,5026 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/fields\").await"
+---
+{
+  "fields": [
+    {
+      "source": "claude-code",
+      "event": "*",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "*",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "*",
+      "path": "effort",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "*",
+      "path": "scratchpad_dir",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "ConfigChange",
+      "path": "file_path",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "ConfigChange",
+      "path": "source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "CwdChanged",
+      "path": "new_cwd",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "CwdChanged",
+      "path": "old_cwd",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "DirectoryAdded",
+      "path": "directory",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "DirectoryAdded",
+      "path": "source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "InstructionsLoaded",
+      "path": "file_path",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "InstructionsLoaded",
+      "path": "globs",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "InstructionsLoaded",
+      "path": "load_reason",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "InstructionsLoaded",
+      "path": "memory_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "InstructionsLoaded",
+      "path": "parent_file_path",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "InstructionsLoaded",
+      "path": "trigger_file_path",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Notification",
+      "path": "message",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Notification",
+      "path": "notification_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Notification",
+      "path": "title",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PermissionDenied",
+      "path": "reason",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PermissionDenied",
+      "path": "tool_input",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PermissionDenied",
+      "path": "tool_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PermissionDenied",
+      "path": "tool_use_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostCompact",
+      "path": "compact_summary",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostCompact",
+      "path": "trigger",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "cache_ttl",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "context_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "estimated_cache_write_usd",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "from_model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "pricing",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "prompt_cache_warm",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "requested_model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostModelSwitch",
+      "path": "to_model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "duration_ms",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "PostToolUse",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "mcp_server",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "permission_mode",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "prompt_id",
+      "count": 1,
+      "sample": "550e8400-e29b-41d4-a716-446655440000",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "session_id",
+      "count": 1,
+      "sample": "abc123",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "tool_input.file_path",
+      "count": 1,
+      "sample": "/work/app/f.py",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "tool_name",
+      "count": 1,
+      "sample": "Write",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "tool_response.success",
+      "count": 1,
+      "sample": true,
+      "documented": true,
+      "unused": "A tool's output as the model saw it. Kept in the stored event (Events tab, clipped at 10,000 characters) but not summarized: it can hold file contents, and Codex's has no exit code or duration."
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "tool_use_id",
+      "count": 1,
+      "sample": "t1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUse",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/transcript.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUseFailure",
+      "path": "duration_ms",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUseFailure",
+      "path": "error",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUseFailure",
+      "path": "is_interrupt",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUseFailure",
+      "path": "tool_input",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUseFailure",
+      "path": "tool_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolUseFailure",
+      "path": "tool_use_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PreCompact",
+      "path": "custom_instructions",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "PreCompact",
+      "path": "trigger",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SessionEnd",
+      "path": "reason",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "background_tasks",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "Stop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "last_assistant_message",
+      "count": 1,
+      "sample": "Done.",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "permission_mode",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "prompt_id",
+      "count": 1,
+      "sample": "550e8400-e29b-41d4-a716-446655440000",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "session_crons",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "session_id",
+      "count": 1,
+      "sample": "abc123",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "stop_hook_active",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": "Whether another Stop hook already made the agent continue. It says nothing about the turn, and GitPrompt's own hooks never make it continue."
+    },
+    {
+      "source": "claude-code",
+      "event": "Stop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/transcript.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "StopFailure",
+      "path": "error",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "StopFailure",
+      "path": "error_details",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "StopFailure",
+      "path": "last_assistant_message",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStart",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStart",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "agent_transcript_path",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "background_tasks",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "last_assistant_message",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "session_crons",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "SubagentStop",
+      "path": "stop_hook_active",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": "Whether another Stop hook already made the agent continue. It says nothing about the turn, and GitPrompt's own hooks never make it continue."
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCompleted",
+      "path": "task_description",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCompleted",
+      "path": "task_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCompleted",
+      "path": "task_subject",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCompleted",
+      "path": "team_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCompleted",
+      "path": "teammate_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCreated",
+      "path": "task_description",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCreated",
+      "path": "task_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCreated",
+      "path": "task_subject",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCreated",
+      "path": "team_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "TaskCreated",
+      "path": "teammate_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptExpansion",
+      "path": "command_args",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptExpansion",
+      "path": "command_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptExpansion",
+      "path": "command_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptExpansion",
+      "path": "expansion_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptExpansion",
+      "path": "prompt",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "cwd",
+      "count": 6,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "hook_event_name",
+      "count": 6,
+      "sample": "UserPromptSubmit",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "permission_mode",
+      "count": 6,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "prompt",
+      "count": 6,
+      "sample": "Write a function to calculate the factorial of a number",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "prompt_id",
+      "count": 6,
+      "sample": "550e8400-e29b-41d4-a716-446655440000",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "session_id",
+      "count": 6,
+      "sample": "abc123",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "session_title",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code",
+      "event": "UserPromptSubmit",
+      "path": "transcript_path",
+      "count": 6,
+      "sample": "/tmp/transcript.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "app.entrypoint",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "app.version",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "event.sequence",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "event.timestamp",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "organization.id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "prompt.id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "session.id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "terminal.type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "user.account_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "user.account_uuid",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "user.email",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "user.id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "vcs.owner.name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "vcs.provider.name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "vcs.repository.name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "*",
+      "path": "vcs.repository.url.full",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "attempt",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "client_request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "duration_ms",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "effort",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "error",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "query_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "speed",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_error",
+      "path": "status_code",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "attempt",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "category",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "effort",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "has_category",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "has_explanation",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "query_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "server_fallback_hop",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_refusal",
+      "path": "speed",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "cache_creation_1h_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "cache_creation_5m_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "cache_creation_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "cache_read_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "client_request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "cost_usd",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "cost_usd_micros",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "duration_ms",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "effort",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "input_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "output_tokens",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "query_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request",
+      "path": "speed",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "assistant_response",
+      "path": "message.uuid",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "assistant_response",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "assistant_response",
+      "path": "query_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "assistant_response",
+      "path": "request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "assistant_response",
+      "path": "response",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "assistant_response",
+      "path": "response_length",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.active_time.total",
+      "path": "type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.active_time.total",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.code_edit_tool.decision",
+      "path": "decision",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.code_edit_tool.decision",
+      "path": "language",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.code_edit_tool.decision",
+      "path": "source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.code_edit_tool.decision",
+      "path": "tool_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.code_edit_tool.decision",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.commit.count",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.cost.usage",
+      "path": "effort",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.cost.usage",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.cost.usage",
+      "path": "query_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.cost.usage",
+      "path": "speed",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.cost.usage",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.lines_of_code.count",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.lines_of_code.count",
+      "path": "type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.lines_of_code.count",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.pull_request.count",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.session.count",
+      "path": "start_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.session.count",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.token.usage",
+      "path": "effort",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.token.usage",
+      "path": "model",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.token.usage",
+      "path": "query_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.token.usage",
+      "path": "speed",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.token.usage",
+      "path": "type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "claude_code.token.usage",
+      "path": "value",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "classifier_category",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "classifier_verdict",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "decision",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "permission_mode",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "tool_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "tool_parameters",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "tool_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_decision",
+      "path": "tool_use_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "decision_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "decision_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "duration_ms",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "error_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "mcp_server_scope",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "request_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "success",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "tool_input",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "tool_input_size_bytes",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "tool_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "tool_parameters",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "tool_result_size_bytes",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "tool_result",
+      "path": "tool_use_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "user_prompt",
+      "path": "command_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "user_prompt",
+      "path": "command_source",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "user_prompt",
+      "path": "message.uuid",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "user_prompt",
+      "path": "prompt_length",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "Interrupt",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "model",
+      "count": 1,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "permission_mode",
+      "count": 1,
+      "sample": "bypassPermissions",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Interrupt",
+      "path": "turn_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a3",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "PostCompact",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "model",
+      "count": 1,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "trigger",
+      "count": 1,
+      "sample": "auto",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostCompact",
+      "path": "turn_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a3",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "cwd",
+      "count": 2,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "error",
+      "count": 2,
+      "sample": "stream disconnected before completion",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "hook_event_name",
+      "count": 2,
+      "sample": "PostModelRequest",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "model",
+      "count": 2,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "session_id",
+      "count": 2,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "status",
+      "count": 2,
+      "sample": "completed",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage",
+      "count": 1,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage.cache_write_input_tokens",
+      "count": 1,
+      "sample": 0,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage.cached_input_tokens",
+      "count": 1,
+      "sample": 9000,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage.input_tokens",
+      "count": 1,
+      "sample": 12000,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage.output_tokens",
+      "count": 1,
+      "sample": 300,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage.reasoning_output_tokens",
+      "count": 1,
+      "sample": 120,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "token_usage.total_tokens",
+      "count": 1,
+      "sample": 12300,
+      "documented": true,
+      "unused": "Input plus output tokens; GitPrompt adds up the kinds itself."
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "transcript_path",
+      "count": 2,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostModelRequest",
+      "path": "turn_id",
+      "count": 2,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "cwd",
+      "count": 4,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "hook_event_name",
+      "count": 4,
+      "sample": "PostToolUse",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "model",
+      "count": 4,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "permission_mode",
+      "count": 4,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "session_id",
+      "count": 4,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "tool_input.command",
+      "count": 3,
+      "sample": "pytest -q tests/test_upload.py",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "tool_input.message",
+      "count": 1,
+      "sample": "Find where the upload client sends chunks",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "tool_input.task_name",
+      "count": 1,
+      "sample": "find_send",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "tool_name",
+      "count": 4,
+      "sample": "Bash",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "tool_response",
+      "count": 4,
+      "sample": "3 passed in 0.12s\n",
+      "documented": true,
+      "unused": "A tool's output as the model saw it. Kept in the stored event (Events tab, clipped at 10,000 characters) but not summarized: it can hold file contents, and Codex's has no exit code or duration."
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "tool_use_id",
+      "count": 4,
+      "sample": "call_0001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "transcript_path",
+      "count": 4,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PostToolUse",
+      "path": "turn_id",
+      "count": 4,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "agent_id",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "agent_type",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "PreCompact",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "model",
+      "count": 1,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "trigger",
+      "count": 1,
+      "sample": "auto",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "PreCompact",
+      "path": "turn_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a3",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionEnd",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionEnd",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "SessionEnd",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionEnd",
+      "path": "reason",
+      "count": 1,
+      "sample": "other",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionEnd",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionEnd",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "cwd",
+      "count": 2,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "hook_event_name",
+      "count": 2,
+      "sample": "SessionStart",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "model",
+      "count": 2,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "permission_mode",
+      "count": 2,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "session_id",
+      "count": 2,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "source",
+      "count": 2,
+      "sample": "startup",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SessionStart",
+      "path": "transcript_path",
+      "count": 2,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "Stop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "last_assistant_message",
+      "count": 1,
+      "sample": "Added a retry with backoff around send(); the upload tests pass.",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "model",
+      "count": 1,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "permission_mode",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "stop_hook_active",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": "Whether another Stop hook already made the agent continue. It says nothing about the turn, and GitPrompt's own hooks never make it continue."
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "Stop",
+      "path": "turn_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "agent_id",
+      "count": 1,
+      "sample": "agent_0001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "agent_type",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "SubagentStart",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "model",
+      "count": 1,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "permission_mode",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStart",
+      "path": "turn_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-0000000000b1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "agent_id",
+      "count": 1,
+      "sample": "agent_0001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "agent_transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-subagent.jsonl",
+      "documented": true,
+      "unused": "The subagent's own transcript (SubagentStop). GitPrompt stores transcript paths but never reads transcripts, and Codex's subagent events join no prompt."
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "agent_type",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "SubagentStop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "last_assistant_message",
+      "count": 1,
+      "sample": "send() is in upload.py, line 42.",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "model",
+      "count": 1,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "permission_mode",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "session_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "stop_hook_active",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": "Whether another Stop hook already made the agent continue. It says nothing about the turn, and GitPrompt's own hooks never make it continue."
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "SubagentStop",
+      "path": "turn_id",
+      "count": 1,
+      "sample": "0190a1b2-0000-7000-8000-0000000000b1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "agent_id",
+      "count": 1,
+      "sample": "agent_0001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "agent_type",
+      "count": 1,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "cwd",
+      "count": 3,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "hook_event_name",
+      "count": 3,
+      "sample": "UserPromptSubmit",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "model",
+      "count": 3,
+      "sample": "gpt-5-codex",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "permission_mode",
+      "count": 3,
+      "sample": "default",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "prompt",
+      "count": 3,
+      "sample": "Add a retry to the upload client",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "session_id",
+      "count": 3,
+      "sample": "0190a1b2-0000-7000-8000-000000000001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "transcript_path",
+      "count": 3,
+      "sample": "/home/dev/.codex/sessions/2026/11/07/rollout-2026-11-07T10-00-00-0190a1b2-0000-7000-8000-000000000001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "codex",
+      "event": "UserPromptSubmit",
+      "path": "turn_id",
+      "count": 3,
+      "sample": "0190a1b2-0000-7000-8000-0000000000a1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "?",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "?",
+      "path": "prompt",
+      "count": 1,
+      "sample": "Ship it",
+      "documented": false,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "?",
+      "path": "sessionId",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": false,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "?",
+      "path": "timestamp",
+      "count": 1,
+      "sample": 1794045600000,
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "error.message",
+      "count": 1,
+      "sample": "rate limited",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "error.name",
+      "count": 1,
+      "sample": "RateLimitError",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "error_context",
+      "count": 1,
+      "sample": "model_call",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "ErrorOccurred",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "recoverable",
+      "count": 1,
+      "sample": true,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "ErrorOccurred",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "cwd",
+      "count": 2,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "hook_event_name",
+      "count": 2,
+      "sample": "PostToolUse",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "session_id",
+      "count": 2,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "timestamp",
+      "count": 2,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "tool_input.command",
+      "count": 1,
+      "sample": "ls src",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "tool_input.path",
+      "count": 1,
+      "sample": "README.md",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "tool_name",
+      "count": 2,
+      "sample": "bash",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "tool_result.result_type",
+      "count": 1,
+      "sample": "success",
+      "documented": true,
+      "unused": "Copilot's tool output: result_type repeats which event fired (PostToolUse or PostToolUseFailure) and text_result_for_llm is the output, kept in the stored event (Events tab) but not summarized."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUse",
+      "path": "tool_result.text_result_for_llm",
+      "count": 1,
+      "sample": "client.py",
+      "documented": true,
+      "unused": "Copilot's tool output: result_type repeats which event fired (PostToolUse or PostToolUseFailure) and text_result_for_llm is the output, kept in the stored event (Events tab) but not summarized."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "error",
+      "count": 1,
+      "sample": "File not found",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "PostToolUseFailure",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "tool_input.path",
+      "count": 1,
+      "sample": "client.py",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PostToolUseFailure",
+      "path": "tool_name",
+      "count": 1,
+      "sample": "edit",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "custom_instructions",
+      "count": 1,
+      "sample": null,
+      "documented": true,
+      "unused": "What you typed after /compact; kept in the PreCompact event, not a prompt."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "PreCompact",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/work/.copilot/transcript.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreCompact",
+      "path": "trigger",
+      "count": 1,
+      "sample": "auto",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionEnd",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionEnd",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "SessionEnd",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionEnd",
+      "path": "reason",
+      "count": 1,
+      "sample": "user_exit",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionEnd",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionEnd",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionStart",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionStart",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "SessionStart",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionStart",
+      "path": "initial_prompt",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionStart",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionStart",
+      "path": "source",
+      "count": 1,
+      "sample": "startup",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SessionStart",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "Stop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "stop_hook_active",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": "Whether another Stop hook already made the agent continue. It says nothing about the turn, and GitPrompt's own hooks never make it continue."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "stop_reason",
+      "count": 1,
+      "sample": "end_turn",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Stop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/work/.copilot/transcript.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "agent_display_name",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "agent_id",
+      "count": 1,
+      "sample": "sub-1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "agent_name",
+      "count": 1,
+      "sample": "explore",
+      "documented": true,
+      "unused": "The same value as agent_type on every payload seen."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "agent_type",
+      "count": 1,
+      "sample": "explore",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "SubagentStop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "last_assistant_message",
+      "count": 1,
+      "sample": "Found two callers.",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "session_id",
+      "count": 1,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "stop_reason",
+      "count": 1,
+      "sample": "end_turn",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "timestamp",
+      "count": 1,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "SubagentStop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/work/.copilot/transcript.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "agent_id",
+      "count": 1,
+      "sample": "sub-2",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "agent_type",
+      "count": 1,
+      "sample": "explore",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "cwd",
+      "count": 3,
+      "sample": "/work/app",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "hook_event_name",
+      "count": 3,
+      "sample": "UserPromptSubmit",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "parent_agent_id",
+      "count": 1,
+      "sample": "main",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "prompt",
+      "count": 3,
+      "sample": "Add a retry to the upload client",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "session_id",
+      "count": 3,
+      "sample": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "copilot-cli",
+      "event": "UserPromptSubmit",
+      "path": "timestamp",
+      "count": 3,
+      "sample": "[time]",
+      "documented": true,
+      "unused": "When Copilot sent the event. GitPrompt times events by when it received them, which the synchronous hooks keep within the hook's delivery time."
+    },
+    {
+      "source": "cursor",
+      "event": "*",
+      "path": "user_email",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "afterAgentResponse",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "text",
+      "count": 1,
+      "sample": "Added an optional coupon field and a test.",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "AgentResponse",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0002-bbbb",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "stop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "loop_count",
+      "count": 1,
+      "sample": 0,
+      "documented": false,
+      "unused": "How many automatic follow-ups ran before this stop; GitPrompt sends none."
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "status",
+      "count": 1,
+      "sample": "aborted",
+      "documented": false,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Interrupt",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "conversation_id",
+      "count": 3,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "cursor_version",
+      "count": 3,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "cwd",
+      "count": 3,
+      "sample": "/work/shop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "duration",
+      "count": 3,
+      "sample": 12,
+      "documented": true,
+      "unused": "A tool call's duration, in a unit the docs don't state; Cursor's tool timings are not summed."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "generation_id",
+      "count": 3,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "hook_event_name",
+      "count": 3,
+      "sample": "postToolUse",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "model",
+      "count": 3,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "model_id",
+      "count": 3,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "model_params.thinking",
+      "count": 3,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "tool_input.command",
+      "count": 1,
+      "sample": "pnpm test",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "tool_input.contents",
+      "count": 1,
+      "sample": "export function checkout(coupon?: string) {}",
+      "documented": true,
+      "unused": "The text a Write call wrote (unverified name); kept in the stored event, never summarized."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "tool_input.file_path",
+      "count": 2,
+      "sample": "/work/shop/src/checkout.ts",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "tool_name",
+      "count": 3,
+      "sample": "Read",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "tool_output",
+      "count": 3,
+      "sample": "{\"content\":\"export function checkout() {}\"}",
+      "documented": true,
+      "unused": "The tool's output as a JSON string; kept in the stored event (clipped), not summarized."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "tool_use_id",
+      "count": 3,
+      "sample": "tool-01",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "transcript_path",
+      "count": 3,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUse",
+      "path": "workspace_roots[]",
+      "count": 6,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "cwd",
+      "count": 1,
+      "sample": "/work/shop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "duration",
+      "count": 1,
+      "sample": 40,
+      "documented": true,
+      "unused": "A tool call's duration, in a unit the docs don't state; Cursor's tool timings are not summed."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "error_message",
+      "count": 1,
+      "sample": "connection refused",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "failure_type",
+      "count": 1,
+      "sample": "error",
+      "documented": true,
+      "unused": "Why a tool call failed (error, timeout, permission_denied); its error_message is shown."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "postToolUseFailure",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "is_interrupt",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": "Whether a failed tool call was interrupted; the turn's stop says how it ended."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "tool_input.query",
+      "count": 1,
+      "sample": "coupon",
+      "documented": true,
+      "unused": "An MCP tool's own argument (MCP inputs differ per tool); kept in the stored event."
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "tool_name",
+      "count": 1,
+      "sample": "MCP:search_issues",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "tool_use_id",
+      "count": 1,
+      "sample": "tool-04",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "PostToolUseFailure",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "duration_ms",
+      "count": 1,
+      "sample": 600000,
+      "documented": true,
+      "unused": "How long a subagent or session ran; kept in the stored event."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "error_message",
+      "count": 0,
+      "sample": null,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "final_status",
+      "count": 1,
+      "sample": "completed",
+      "documented": true,
+      "unused": "How the session ended; `reason` is shown."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0003-cccc",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "sessionEnd",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "is_background_agent",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "reason",
+      "count": 1,
+      "sample": "window_close",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionEnd",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "composer_mode",
+      "count": 1,
+      "sample": "agent",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "sessionStart",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "is_background_agent",
+      "count": 1,
+      "sample": false,
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "session_id",
+      "count": 1,
+      "sample": "sess-0001",
+      "documented": true,
+      "unused": "The id of the agent session on sessionStart; GitPrompt's session is the conversation."
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SessionStart",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "stop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "loop_count",
+      "count": 1,
+      "sample": 0,
+      "documented": true,
+      "unused": "How many automatic follow-ups ran before this stop; GitPrompt sends none."
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "status",
+      "count": 1,
+      "sample": "completed",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "Stop",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0003-cccc",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "stop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "loop_count",
+      "count": 1,
+      "sample": 0,
+      "documented": false,
+      "unused": "How many automatic follow-ups ran before this stop; GitPrompt sends none."
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "status",
+      "count": 1,
+      "sample": "error",
+      "documented": false,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "StopFailure",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "agent_transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001-sub.jsonl",
+      "documented": true,
+      "unused": "The subagent's transcript; GitPrompt stores transcript paths but never reads them."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "conversation_id",
+      "count": 1,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "cursor_version",
+      "count": 1,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "description",
+      "count": 1,
+      "sample": "Find tests",
+      "documented": true,
+      "unused": "A subagent's short description; kept in the SubagentStop event."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "duration_ms",
+      "count": 1,
+      "sample": 5400,
+      "documented": true,
+      "unused": "How long a subagent or session ran; kept in the stored event."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "generation_id",
+      "count": 1,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "hook_event_name",
+      "count": 1,
+      "sample": "subagentStop",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "loop_count",
+      "count": 1,
+      "sample": 0,
+      "documented": true,
+      "unused": "How many automatic follow-ups ran before this stop; GitPrompt sends none."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "message_count",
+      "count": 1,
+      "sample": 6,
+      "documented": true,
+      "unused": "Messages in a subagent's run; kept in the stored event."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "model",
+      "count": 1,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "model_id",
+      "count": 1,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "model_params.thinking",
+      "count": 1,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "modified_files",
+      "count": 1,
+      "sample": null,
+      "documented": true,
+      "unused": "Files a subagent changed; kept in the stored event."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "status",
+      "count": 1,
+      "sample": "completed",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "subagent_type",
+      "count": 1,
+      "sample": "explore",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "summary",
+      "count": 1,
+      "sample": "Tests are in src/checkout.test.ts",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "task",
+      "count": 1,
+      "sample": "Find the checkout tests",
+      "documented": true,
+      "unused": "What a subagent was asked; kept in the SubagentStop event."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "tool_call_count",
+      "count": 1,
+      "sample": 4,
+      "documented": true,
+      "unused": "Tool calls of a subagent's run; kept in the stored event."
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "transcript_path",
+      "count": 1,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "SubagentStop",
+      "path": "workspace_roots[]",
+      "count": 2,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "attachments",
+      "count": 2,
+      "sample": null,
+      "documented": true,
+      "unused": "Files and rules attached to the prompt; kept in the stored payload (Events tab)."
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "attachments[].file_path",
+      "count": 1,
+      "sample": "/work/shop/src/checkout.ts",
+      "documented": true,
+      "unused": "Files and rules attached to the prompt; kept in the stored payload (Events tab)."
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "attachments[].type",
+      "count": 1,
+      "sample": "file",
+      "documented": true,
+      "unused": "Files and rules attached to the prompt; kept in the stored payload (Events tab)."
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "conversation_id",
+      "count": 3,
+      "sample": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "cursor_version",
+      "count": 3,
+      "sample": "3.4.1",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "generation_id",
+      "count": 3,
+      "sample": "gen-0001-aaaa",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "hook_event_name",
+      "count": 3,
+      "sample": "beforeSubmitPrompt",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "model",
+      "count": 3,
+      "sample": "claude-sonnet-5",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "model_id",
+      "count": 3,
+      "sample": "model-sonnet-5",
+      "documented": true,
+      "unused": "The model's internal id; `model` names it."
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "model_params.thinking",
+      "count": 3,
+      "sample": "medium",
+      "documented": true,
+      "unused": "Model settings of the request (e.g. reasoning level); kept in the stored payload, not summarized yet."
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "prompt",
+      "count": 3,
+      "sample": "Add a coupon field to the checkout form",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "transcript_path",
+      "count": 3,
+      "sample": "/tmp/cursor-transcripts/c001.jsonl",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "cursor",
+      "event": "UserPromptSubmit",
+      "path": "workspace_roots[]",
+      "count": 5,
+      "sample": "/work/shared-lib",
+      "documented": true,
+      "unused": null
+    },
+    {
+      "source": "gitprompt",
+      "event": "context (at ingest)",
+      "path": "tool_version",
+      "count": 15,
+      "sample": "2.1.316",
+      "documented": false,
+      "unused": null
+    }
+  ],
+  "not_captured": [
+    {
+      "source": "claude-code",
+      "event": "SessionStart",
+      "reason": "Model and start type come from the telemetry source."
+    },
+    {
+      "source": "claude-code",
+      "event": "Setup",
+      "reason": "Runs only command hooks."
+    },
+    {
+      "source": "claude-code",
+      "event": "PreToolUse",
+      "reason": "A decision point (allow or deny a tool). GitPrompt stays out of decisions; PostToolUse has the same data."
+    },
+    {
+      "source": "claude-code",
+      "event": "PermissionRequest",
+      "reason": "A decision point (answer a permission prompt). Notification and PermissionDenied report the outcome."
+    },
+    {
+      "source": "claude-code",
+      "event": "PreModelSwitch",
+      "reason": "A decision point (can block a switch). PostModelSwitch reports the change."
+    },
+    {
+      "source": "claude-code",
+      "event": "Elicitation",
+      "reason": "A decision point (answers an MCP server's question)."
+    },
+    {
+      "source": "claude-code",
+      "event": "ElicitationResult",
+      "reason": "Can rewrite your answer to an MCP server; may hold values you typed into MCP forms."
+    },
+    {
+      "source": "claude-code",
+      "event": "WorktreeCreate",
+      "reason": "A hook here replaces Claude Code's own worktree creation."
+    },
+    {
+      "source": "claude-code",
+      "event": "WorktreeRemove",
+      "reason": "Only fires for worktrees that a WorktreeCreate hook made."
+    },
+    {
+      "source": "claude-code",
+      "event": "MessageDisplay",
+      "reason": "Fires for every streamed text chunk; Stop carries the final answer."
+    },
+    {
+      "source": "claude-code",
+      "event": "PostToolBatch",
+      "reason": "Repeats what PostToolUse already sends."
+    },
+    {
+      "source": "claude-code",
+      "event": "FileChanged",
+      "reason": "Needs a list of files to watch."
+    },
+    {
+      "source": "claude-code",
+      "event": "TeammateIdle",
+      "reason": "A decision point for agent teams."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "user_prompt text",
+      "reason": "OTEL_LOG_USER_PROMPTS is left off; the hooks source already captures the prompt."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "api_request_body / api_response_body",
+      "reason": "OTEL_LOG_RAW_API_BODIES is left off; it holds whole API requests including system prompts."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "traces",
+      "reason": "The traces exporter (beta) is left off."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "hook_registered",
+      "reason": "Not stored. One event per configured hook at every start-up; describes your config, not your work."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "plugin_loaded",
+      "reason": "Not stored. One event per plugin at every start-up."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "hook_execution_*",
+      "reason": "Not stored. Start and end of every hook run, including GitPrompt's own; the hooks source already records each event."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "mcp_server_connection",
+      "reason": "Not stored. MCP server connect and disconnect at every start-up."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "managed_settings_resolved",
+      "reason": "Not stored. Settings resolution at start-up."
+    },
+    {
+      "source": "claude-code-otel",
+      "event": "retention_sweep",
+      "reason": "Not stored. Claude Code's own housekeeping run."
+    },
+    {
+      "source": "codex",
+      "event": "PreToolUse",
+      "reason": "A decision point (can deny or rewrite a tool call). PostToolUse has the same data."
+    },
+    {
+      "source": "codex",
+      "event": "PermissionRequest",
+      "reason": "A decision point (answers an approval prompt)."
+    },
+    {
+      "source": "codex",
+      "event": "PreModelRequest",
+      "reason": "Repeats PostModelRequest without its outcome and tokens (diagnostic only, can't block)."
+    },
+    {
+      "source": "codex",
+      "event": "OpenTelemetry",
+      "reason": "Would add a cost estimate, reasoning effort and sandbox/approval policy, but must be written into config.toml and every record carries your account email (docs/adr/0019-codex-connector.md)."
+    },
+    {
+      "source": "codex",
+      "event": "notify",
+      "reason": "A program Codex runs after each turn (one per config, often already yours); Stop already reports the turn end and answer."
+    },
+    {
+      "source": "codex",
+      "event": "config.toml",
+      "reason": "Reasoning effort, sandbox mode and approval policy are only in your config (and its profiles and -c overrides), not in any hook payload; the file says what a new session defaults to, not what a session ran with."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PreToolUse",
+      "reason": "A decision point (can deny a tool call, fail-closed). PostToolUse has the same data."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "PermissionRequest",
+      "reason": "A decision point (answers a permission prompt)."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "subagentStart",
+      "reason": "Documented only in the camelCase form, which has no event name; SubagentStop reports each subagent."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "userPromptTransformed",
+      "reason": "Holds the runtime-expanded prompt (injected context); the typed text comes from UserPromptSubmit."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "Notification",
+      "reason": "UI notices only."
+    },
+    {
+      "source": "copilot-cli",
+      "event": "sessionStart prompt hooks",
+      "reason": "A `prompt` hook would add text to the session."
+    },
+    {
+      "source": "cursor",
+      "event": "preToolUse",
+      "reason": "A permission hook (can deny or rewrite a tool call; invalid JSON blocks). postToolUse has the same data."
+    },
+    {
+      "source": "cursor",
+      "event": "beforeShellExecution / beforeMCPExecution / beforeReadFile",
+      "reason": "Permission hooks; an answer that isn't valid JSON blocks the action."
+    },
+    {
+      "source": "cursor",
+      "event": "subagentStart",
+      "reason": "A permission hook (allow or deny a subagent). subagentStop reports each subagent."
+    },
+    {
+      "source": "cursor",
+      "event": "afterShellExecution / afterMCPExecution / afterFileEdit",
+      "reason": "Repeat what postToolUse already sends (afterFileEdit with the edited text)."
+    },
+    {
+      "source": "cursor",
+      "event": "afterAgentThought",
+      "reason": "The model's thinking text; not needed for the turn's outcome."
+    },
+    {
+      "source": "cursor",
+      "event": "preCompact",
+      "reason": "Observational, but its payload is not documented beyond token counts of the context."
+    },
+    {
+      "source": "cursor",
+      "event": "beforeTabFileRead / afterTabFileEdit",
+      "reason": "Tab completions, not prompts."
+    },
+    {
+      "source": "cursor",
+      "event": "workspaceOpen",
+      "reason": "Fires when a window opens; says nothing about prompts."
+    }
+  ],
+  "derived": {
+    "origin": "who produced the prompt: typed, slash_command, task_notification, agent_message, subagent, programmatic or unknown",
+    "typed_text": "the prompt without the context blocks a tool adds before or after it (IDE selection, system reminder)",
+    "injected": "the context blocks removed from the typed text: their kind (tag) and size in characters",
+    "surface": "where the prompt was typed: the app or client of its tool (cli, vscode, desktop...); null when unknown",
+    "stats.chars / words / lines / approx_tokens": "prompt size (tokens ≈ chars / 4)",
+    "stats.slash_command": "command the prompt starts with, e.g. /review",
+    "stats.at_mentions / urls / code_blocks / questions": "what the prompt references",
+    "stats.secrets": "kinds of credentials found in the prompt (values never shown)",
+    "summary.turn": "position of the prompt in its session",
+    "summary.since_previous_prompt_s": "think time since the previous prompt of the session",
+    "summary.response_s / ended_by / error": "time until Stop, StopFailure or Interrupt, and how it ended (Interrupt too when a tool call was interrupted, or the session ended first)",
+    "summary.response": "the agent's final answer (the spec's `answer` events: Stop.last_assistant_message by default)",
+    "summary.tool_calls / tool_failures / tool_time_s": "tools used for the prompt (PostToolUse*)",
+    "summary.files_written / files_read": "file paths touched by write and read tools (a path input, or the spec's tool_files pattern)",
+    "summary.bash_commands / web": "shell commands run, URLs fetched and searches made",
+    "summary.mcp_tools": "MCP tools used",
+    "summary.tool_kinds / tool_kind_of": "calls per kind (spec tool_kinds: read, write, shell, web, mcp, agent, other), and each tool's kind",
+    "summary.subagent_tool_calls": "tool calls made by subagents (their hook payload has agent_id)",
+    "summary.git_commits": "git commits the agent ran (shell commands with `git commit`)",
+    "summary.tool_errors": "what the failed tool calls reported (PostToolUseFailure.error)",
+    "summary.subagent_tasks": "what each subagent was asked: task name and brief (agent tools' inputs)",
+    "summary.slash_command": "slash command the prompt expanded (UserPromptExpansion, or telemetry user_prompt.command_name)",
+    "summary.subagents / tasks / notifications / permission_denied / compactions / model_switches": "agentic activity",
+    "summary.compaction_triggers": "what started each compaction: auto (the context was full) or manual",
+    "summary.errors": "errors the tool reported during the turn (ErrorOccurred): name, message, where, recoverable",
+    "summary.api_requests / models / *_tokens / cost_usd / api_time_s / api_errors": "model calls (the spec's `usage` events)",
+    "summary.reasoning_tokens": "output tokens spent reasoning, when the tool reports them",
+    "summary.model_call_status": "model calls per status the tool reported: completed, failed, cancelled",
+    "summary.model_usage": "requests, tokens and cost per model",
+    "summary.work_usage": "requests, tokens and cost per query_source: the main thread, a subagent, or a system call (telemetry)",
+    "summary.tool_rejections": "tool calls you rejected (telemetry)",
+    "session.events / first_event_at / last_event_at": "events received for the session, by type, and when",
+    "session.starts": "how the session started, then each time it was taken up again (SessionStart.source: startup, resume...)",
+    "session.ended / instructions_loaded / cwd_changes / config_changes": "end reason, instruction files, directory and config changes",
+    "session.modes / background": "the mode each session start reported (Cursor: composer_mode), and whether it ran as a background agent",
+    "session.subagent_results": "each subagent that finished: its type, how it stopped and its last message (SubagentStop)",
+    "session.metric_totals": "telemetry metric totals: lines of code, commits, active time, tokens, cost",
+    "session.environment": "app version, entrypoint, terminal, OS and account (telemetry resource attributes)",
+    "facts.connector": "the tool that sent the prompt: spec id, name, short name for badges, and who answers",
+    "facts.surface": "where the prompt was typed: id, name and icon of the app or client (spec `surface` rules); null when unknown",
+    "facts.model / model_source": "the model that answered: of the main thread's model calls, the one of most calls (usage; never a background or subagent call's model), else the model its hooks reported (hook)",
+    "facts.models": "every model the turn used",
+    "facts.tokens": "input, output, cache read, cache write, reasoning and total tokens; null when no model call reported any",
+    "facts.cost_usd": "the turn's cost; null unless a model call reported one",
+    "facts.api_requests": "model calls reported for the turn",
+    "facts.outcome": "how the turn ended: done, failed, interrupted, superseded, running or open",
+    "facts.permission_mode / tool_version": "as the tool reported them with the prompt",
+    "facts.response_s / answered": "time until the turn ended, and whether the end carried the final answer",
+    "facts.tool_calls / tool_failures / files_written / git_commits / subagents": "what the turn did",
+    "commits / diffstat": "commits made after the prompt, until the next prompt of the session",
+    "context.git_*": "repository state when the prompt was sent",
+    "context.tool_version": "tool version when the prompt was sent"
+  }
+}

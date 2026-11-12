@@ -1,0 +1,197 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
+---
+{
+  "session": "0190a1b2-0000-7000-8000-000000000001",
+  "title": null,
+  "source": "codex",
+  "connector": {
+    "id": "codex",
+    "name": "OpenAI Codex CLI",
+    "label": "Codex",
+    "assistant": "Codex"
+  },
+  "surface": null,
+  "models": {
+    "gpt-5-codex": 3
+  },
+  "project": {
+    "id": "L3dvcmsvYXBw",
+    "repo": "/work/app",
+    "name": "app",
+    "git": false
+  },
+  "branches": [],
+  "started_at": "[time]",
+  "ended_at": "[time]",
+  "totals": {
+    "chapters": 2,
+    "markers": 3,
+    "cost_usd": 0.0,
+    "tool_calls": 4,
+    "files_written": 1,
+    "outcomes": {
+      "done": 1,
+      "interrupted": 1
+    },
+    "retries": 0,
+    "diffstat": null
+  },
+  "items": [
+    {
+      "kind": "chapter",
+      "id": 7,
+      "turn": 1,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Add a retry to the upload client",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 3300,
+      "tool_calls": 4,
+      "tool_failures": 0,
+      "tools": {
+        "write": 1,
+        "shell": 2,
+        "agent": 1
+      },
+      "files_written": 1,
+      "files": [
+        "/work/app/upload.py"
+      ],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "codex",
+          "name": "OpenAI Codex CLI",
+          "label": "Codex",
+          "assistant": "Codex"
+        },
+        "surface": null,
+        "model": "gpt-5-codex",
+        "models": [
+          "gpt-5-codex"
+        ],
+        "model_source": "usage",
+        "tokens": {
+          "input": 3000,
+          "output": 300,
+          "cache_read": 9000,
+          "cache_creation": 0,
+          "reasoning": 120,
+          "total": 12300
+        },
+        "cost_usd": null,
+        "api_requests": 1,
+        "outcome": "done",
+        "permission_mode": "default",
+        "tool_version": "2.1.316",
+        "response_s": "[seconds]",
+        "answered": true,
+        "tool_calls": 4,
+        "tool_failures": 0,
+        "files_written": 1,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "markers",
+      "items": [
+        {
+          "kind": "subagent_prompt",
+          "id": 7,
+          "received_at": "[time]",
+          "label": "find_send",
+          "detail": null,
+          "excerpt": "Find where the upload client sends chunks",
+          "clipped": false
+        },
+        {
+          "kind": "subagent",
+          "id": 8,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": "Find where the upload client sends chunks",
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "id": 9,
+      "turn": 3,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Summarise this log",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "interrupted",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "tool_failures": 0,
+      "tools": {},
+      "files_written": 0,
+      "files": [],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "codex",
+          "name": "OpenAI Codex CLI",
+          "label": "Codex",
+          "assistant": "Codex"
+        },
+        "surface": null,
+        "model": "gpt-5-codex",
+        "models": [
+          "gpt-5-codex"
+        ],
+        "model_source": "usage",
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 1,
+        "outcome": "interrupted",
+        "permission_mode": "bypassPermissions",
+        "tool_version": "2.1.316",
+        "response_s": "[seconds]",
+        "answered": false,
+        "tool_calls": 0,
+        "tool_failures": 0,
+        "files_written": 0,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "markers",
+      "items": [
+        {
+          "kind": "compaction",
+          "id": 9,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": null,
+          "clipped": false
+        }
+      ]
+    }
+  ]
+}

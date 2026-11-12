@@ -2,7 +2,7 @@
 	import { FileCode, FilePen, Globe } from '@lucide/svelte';
 	import type { Prompt } from '#lib/api/types.ts';
 	import { byKind, KIND_INFO, kindOf, toolLabel } from '#lib/insights/tools.ts';
-	import { count, integer, plural, relativePath } from '#lib/shared/format.ts';
+	import { count, inline, integer, plural, present, relativePath } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import CodeBlock from '#lib/ui/CodeBlock.svelte';
@@ -59,7 +59,7 @@
 				s.errors.map(
 					(e) =>
 						[e.name, e.message].filter(Boolean).join(': ') +
-						(e.context ? ` (during ${e.context.replaceAll('_', ' ')})` : '') +
+						(e.context ? ` (during ${inline(e.context).replaceAll('_', ' ')})` : '') +
 						(e.recoverable ? ', recovered' : '')
 				)
 			],
@@ -155,11 +155,11 @@
 			</section>
 		{/if}
 
-		{#if s.web?.length}
+		{#if present(s.web).length}
 			<section class="block">
 				<h3>Web</h3>
 				<ul class="files">
-					{#each s.web as item, i (i)}
+					{#each present(s.web) as item, i (i)}
 						<li>
 							<Globe size={14} aria-hidden="true" />
 							{#if /^https?:\/\//.test(item)}

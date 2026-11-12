@@ -1,0 +1,191 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
+---
+{
+  "session": "abc123",
+  "title": null,
+  "source": "claude-code",
+  "connector": {
+    "id": "claude-code",
+    "name": "Claude Code",
+    "label": "Claude Code",
+    "assistant": "Claude"
+  },
+  "surface": null,
+  "models": {},
+  "project": {
+    "id": "L3dvcmsvYXBw",
+    "repo": "/work/app",
+    "name": "app",
+    "git": false
+  },
+  "branches": [],
+  "started_at": "[time]",
+  "ended_at": "[time]",
+  "totals": {
+    "chapters": 2,
+    "markers": 4,
+    "cost_usd": 0.0,
+    "tool_calls": 1,
+    "files_written": 1,
+    "outcomes": {
+      "done": 1,
+      "superseded": 1
+    },
+    "retries": 0,
+    "diffstat": null
+  },
+  "items": [
+    {
+      "kind": "chapter",
+      "id": 1,
+      "turn": 1,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Write a function to calculate the factorial of a number",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tools": {
+        "write": 1
+      },
+      "files_written": 1,
+      "files": [
+        "/work/app/f.py"
+      ],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "claude-code",
+          "name": "Claude Code",
+          "label": "Claude Code",
+          "assistant": "Claude"
+        },
+        "surface": null,
+        "model": null,
+        "models": [],
+        "model_source": null,
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "done",
+        "permission_mode": "default",
+        "tool_version": "2.1.316",
+        "response_s": "[seconds]",
+        "answered": true,
+        "tool_calls": 1,
+        "tool_failures": 0,
+        "files_written": 1,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "markers",
+      "items": [
+        {
+          "kind": "task_notification",
+          "id": 2,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": "<task-notification><task-id>t1</task-id></task-notification>",
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "id": 3,
+      "turn": 3,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Explain this",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "superseded",
+      "response_s": null,
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "tool_failures": 0,
+      "tools": {},
+      "files_written": 0,
+      "files": [],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "claude-code",
+          "name": "Claude Code",
+          "label": "Claude Code",
+          "assistant": "Claude"
+        },
+        "surface": null,
+        "model": null,
+        "models": [],
+        "model_source": null,
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "superseded",
+        "permission_mode": "default",
+        "tool_version": "2.1.316",
+        "response_s": null,
+        "answered": false,
+        "tool_calls": 0,
+        "tool_failures": 0,
+        "files_written": 0,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "markers",
+      "items": [
+        {
+          "kind": "agent_message",
+          "id": 4,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": "<agent-message from=\"worker\">The parser tests pass.</agent-message>",
+          "clipped": false
+        },
+        {
+          "kind": "agent_message",
+          "id": 5,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": "<cross-session-message from=\"uds:/tmp/cc-socks/1234.sock\" from-name=\"app-63\" from-mode=\"prompting\">\nDesign-system session: the <summary> trigger uses `border border-border`; please use `border-border-strong`. Ping me when you're done.\n</cross-session-message>",
+          "clipped": false
+        },
+        {
+          "kind": "task_notification",
+          "id": 6,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": "[Cross-session idle notice] \"app-57\", which you asked to be notified about, is idle now — it finished a turn at 18:01. Its harness reports: «The language dropdown is committed on master…». This is an automated notice from that session's harness — not a message from a person, and…",
+          "clipped": true
+        }
+      ]
+    }
+  ]
+}

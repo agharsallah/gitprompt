@@ -49,6 +49,8 @@ similar = "2"
 resvg = { version = "0.45", default-features = false, features = ["text", "system-fonts", "memmap-fonts"] }
 # Process memory and CPU for the health monitor; `system` only (no disks, networks, users).
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+# TypeScript types of the HTTP API, generated into web/src/lib/api/generated (`just types`).
+ts-rs = { version = "12", features = ["serde-json-impl", "indexmap-impl", "no-serde-warnings"] }
 # desktop (Tauri v2)
 tauri = "2.12"
 tauri-build = "2.7"
@@ -60,6 +62,7 @@ tempfile = "3"
 pretty_assertions = "1"
 proptest = "1"
 assert_cmd = "2"
+insta = { version = "1", features = ["json", "redactions"] }
 predicates = "3"
 
 # Every member opts in with `[lints] workspace = true`. CI runs clippy with `-D warnings`,

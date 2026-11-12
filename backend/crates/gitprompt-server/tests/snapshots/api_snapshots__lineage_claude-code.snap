@@ -1,0 +1,33 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/prompt/{id}\")).await"
+---
+{
+  "id": 1,
+  "threshold": 0.5,
+  "versions": [
+    {
+      "id": 1,
+      "received_at": "[time]",
+      "session": "abc123",
+      "project": {
+        "id": "L3dvcmsvYXBw",
+        "repo": "/work/app",
+        "name": "app",
+        "git": false
+      },
+      "origin": "typed",
+      "text": "Write a function to calculate the factorial of a number",
+      "clipped": false,
+      "similarity": 1.0,
+      "same_text": true,
+      "place": "self",
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tool_failures": 0,
+      "diff": null,
+      "change": null
+    }
+  ]
+}

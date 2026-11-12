@@ -16,13 +16,14 @@
 //! `{}`, `false` and `0` values left out, `gitprompt_core::json::compact`), and a `None` map key
 //! (a tool call without a tool name, a model call without a model) serializes as the key `"null"`.
 
-mod serial;
+pub mod serial;
 mod session;
 mod stats;
 mod turn;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize, Serializer};
+use ts_rs::TS;
 
 use gitprompt_core::spec::{Origin, Pattern, Spec, ToolKind, Usage};
 use gitprompt_core::{Json, JsonMap};
@@ -77,7 +78,8 @@ pub const SUBAGENT_PREFIX: &str = "agent:";
 // --- prompt text -----------------------------------------------------------------------------
 
 /// What the prompt text itself says.
-#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Deserialize, TS)]
+#[ts(as = "serial::PromptStatsOut")]
 pub struct PromptStats {
     /// Characters (not bytes).
     pub chars: usize,
@@ -106,7 +108,7 @@ pub struct PromptStats {
 /// Compacted (zeros and empty lists left out), as `PromptOut.stats`.
 impl Serialize for PromptStats {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        serial::prompt_stats(self).serialize(s)
+        serial::PromptStatsOut::from(self).serialize(s)
     }
 }
 
@@ -185,7 +187,7 @@ pub fn usage_of(calls: &[ModelCall]) -> UsageTotals {
 }
 
 /// What an agent tool was asked.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct SubagentTask {
     /// The first of [`TASK_INPUTS`] with a value.
     pub task: Option<String>,
@@ -194,7 +196,8 @@ pub struct SubagentTask {
 }
 
 /// An error the tool reported during the turn ([`ERROR_EVENTS`]). Serialized compacted.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[ts(optional_fields)]
 pub struct TurnError {
     /// `error.name`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -212,7 +215,8 @@ pub struct TurnError {
 
 /// What happened while the tool worked on one prompt. Counts keyed by name keep `None` for events
 /// that didn't name one.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, TS)]
+#[ts(as = "serial::TurnSummaryOut")]
 pub struct TurnSummary {
     // position
     /// Position of the prompt in its session.
@@ -309,7 +313,7 @@ pub struct TurnSummary {
 /// `PromptOut.summary`.
 impl Serialize for TurnSummary {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        serial::turn_summary(self).serialize(s)
+        serial::TurnSummaryOut::from(self).serialize(s)
     }
 }
 
@@ -324,7 +328,8 @@ pub fn turn(prompt: &PromptView, events: &[EventRow], spec: Option<&Spec>) -> Tu
 // --- the whole session: every event that shares the prompt's session_id ----------------------
 
 /// A subagent that finished (`SubagentStop`). Serialized compacted.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[ts(optional_fields)]
 pub struct SubagentResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<String>,
@@ -340,7 +345,9 @@ pub struct SubagentResult {
 }
 
 /// Session-wide facts.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, TS)]
+#[ts(as = "serial::SessionSummaryOut")]
+#[ts(rename = "SessionFacts")]
 pub struct SessionSummary {
     /// Events per name.
     pub events: IndexMap<Option<String>, u64>,
@@ -371,7 +378,7 @@ pub struct SessionSummary {
 /// Compacted, as `PromptDetail.session`.
 impl Serialize for SessionSummary {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        serial::session_summary(self).serialize(s)
+        serial::SessionSummaryOut::from(self).serialize(s)
     }
 }
 

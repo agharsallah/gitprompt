@@ -1,0 +1,518 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
+---
+{
+  "id": 13,
+  "source": "cursor",
+  "received_at": "[time]",
+  "prompt": "Add a coupon field to the checkout form",
+  "origin": "typed",
+  "typed_text": "Add a coupon field to the checkout form",
+  "injected": [],
+  "fields": {
+    "event": "UserPromptSubmit",
+    "prompt": "Add a coupon field to the checkout form",
+    "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "prompt_id": "gen-0001-aaaa",
+    "cwd": "/work/shop",
+    "model": "claude-sonnet-5",
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "tool_version": "3.4.1"
+  },
+  "context": {
+    "tool_version": "2.1.316"
+  },
+  "annotation": {
+    "starred": false,
+    "rating": 0,
+    "tags": [],
+    "note": ""
+  },
+  "stats": {
+    "chars": 39,
+    "words": 8,
+    "lines": 1,
+    "approx_tokens": 10
+  },
+  "summary": {
+    "turn": 1,
+    "ended_by": "Stop",
+    "response": "Added an optional coupon field and a test.",
+    "tool_calls": {
+      "Read": 1,
+      "Write": 1,
+      "Shell": 1,
+      "MCP:search_issues": 1
+    },
+    "tool_failures": 1,
+    "files_written": [
+      "/work/shop/src/checkout.ts"
+    ],
+    "files_read": [
+      "/work/shop/src/checkout.ts"
+    ],
+    "bash_commands": [
+      "pnpm test"
+    ],
+    "mcp_tools": [
+      "MCP:search_issues"
+    ],
+    "tool_kinds": {
+      "read": 1,
+      "write": 1,
+      "shell": 1,
+      "mcp": 1
+    },
+    "tool_kind_of": {
+      "Read": "read",
+      "Write": "write",
+      "Shell": "shell",
+      "MCP:search_issues": "mcp"
+    },
+    "tool_errors": [
+      "connection refused"
+    ]
+  },
+  "facts": {
+    "connector": {
+      "id": "cursor",
+      "name": "Cursor",
+      "label": "Cursor",
+      "assistant": "Cursor"
+    },
+    "surface": null,
+    "model": "claude-sonnet-5",
+    "models": [
+      "claude-sonnet-5"
+    ],
+    "model_source": "hook",
+    "tokens": null,
+    "cost_usd": null,
+    "api_requests": 0,
+    "outcome": "done",
+    "permission_mode": null,
+    "tool_version": "3.4.1",
+    "response_s": "[seconds]",
+    "answered": true,
+    "tool_calls": 4,
+    "tool_failures": 1,
+    "files_written": 1,
+    "git_commits": 0,
+    "subagents": 0
+  },
+  "raw": {
+    "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "generation_id": "gen-0001-aaaa",
+    "model": "claude-sonnet-5",
+    "model_id": "model-sonnet-5",
+    "model_params": {
+      "thinking": "medium"
+    },
+    "hook_event_name": "beforeSubmitPrompt",
+    "cursor_version": "3.4.1",
+    "workspace_roots": [
+      "/work/shop",
+      "/work/shared-lib"
+    ],
+    "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+    "prompt": "Add a coupon field to the checkout form",
+    "attachments": [
+      {
+        "type": "file",
+        "file_path": "/work/shop/src/checkout.ts"
+      }
+    ]
+  },
+  "session": {
+    "events": {
+      "SessionStart": 1,
+      "PostToolUse": 3,
+      "PostToolUseFailure": 1,
+      "SubagentStop": 1,
+      "AgentResponse": 1,
+      "Stop": 1,
+      "Interrupt": 1,
+      "StopFailure": 1,
+      "SessionEnd": 1
+    },
+    "first_event_at": "[time]",
+    "last_event_at": "[time]",
+    "modes": [
+      "agent"
+    ],
+    "ended": "window_close",
+    "subagent_results": [
+      {
+        "agent_type": "explore",
+        "stop_reason": "completed",
+        "answer": "Tests are in src/checkout.test.ts"
+      }
+    ]
+  },
+  "commits": {},
+  "events": [
+    {
+      "id": 28,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "SessionStart",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "SessionStart",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "sessionStart",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "session_id": "sess-0001",
+        "is_background_agent": false,
+        "composer_mode": "agent"
+      }
+    },
+    {
+      "id": 29,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "PostToolUse",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "PostToolUse",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "Read",
+        "tool_use_id": "tool-01",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "postToolUse",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "Read",
+        "tool_input": {
+          "file_path": "/work/shop/src/checkout.ts"
+        },
+        "tool_output": "{\"content\":\"export function checkout() {}\"}",
+        "tool_use_id": "tool-01",
+        "cwd": "/work/shop",
+        "duration": 12
+      }
+    },
+    {
+      "id": 30,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "PostToolUse",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "PostToolUse",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "Write",
+        "tool_use_id": "tool-02",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "postToolUse",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/work/shop/src/checkout.ts",
+          "contents": "export function checkout(coupon?: string) {}"
+        },
+        "tool_output": "{\"ok\":true}",
+        "tool_use_id": "tool-02",
+        "cwd": "/work/shop",
+        "duration": 20
+      }
+    },
+    {
+      "id": 31,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "PostToolUse",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "PostToolUse",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "Shell",
+        "tool_use_id": "tool-03",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "postToolUse",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "Shell",
+        "tool_input": {
+          "command": "pnpm test"
+        },
+        "tool_output": "{\"exit_code\":0}",
+        "tool_use_id": "tool-03",
+        "cwd": "/work/shop",
+        "duration": 3100
+      }
+    },
+    {
+      "id": 32,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "PostToolUseFailure",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "PostToolUseFailure",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "MCP:search_issues",
+        "tool_use_id": "tool-04",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "postToolUseFailure",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "tool_name": "MCP:search_issues",
+        "tool_input": {
+          "query": "coupon"
+        },
+        "tool_use_id": "tool-04",
+        "cwd": "/work/shop",
+        "error_message": "connection refused",
+        "failure_type": "error",
+        "duration": 40,
+        "is_interrupt": false
+      }
+    },
+    {
+      "id": 33,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "SubagentStop",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "SubagentStop",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "agent_type": "explore",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "subagentStop",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "subagent_type": "explore",
+        "status": "completed",
+        "task": "Find the checkout tests",
+        "description": "Find tests",
+        "summary": "Tests are in src/checkout.test.ts",
+        "duration_ms": 5400,
+        "message_count": 6,
+        "tool_call_count": 4,
+        "loop_count": 0,
+        "modified_files": [],
+        "agent_transcript_path": "/tmp/cursor-transcripts/c001-sub.jsonl"
+      }
+    },
+    {
+      "id": 34,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "AgentResponse",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "AgentResponse",
+        "prompt": "Added an optional coupon field and a test.",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "afterAgentResponse",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "text": "Added an optional coupon field and a test."
+      }
+    },
+    {
+      "id": 35,
+      "source": "cursor",
+      "received_at": "[time]",
+      "event": "Stop",
+      "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "prompt_id": "gen-0001-aaaa",
+      "fields": {
+        "event": "Stop",
+        "session_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "prompt_id": "gen-0001-aaaa",
+        "cwd": "/work/shop",
+        "model": "claude-sonnet-5",
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "tool_version": "3.4.1"
+      },
+      "raw": {
+        "conversation_id": "5f0c1a2e-0000-4000-8000-00000000c001",
+        "generation_id": "gen-0001-aaaa",
+        "model": "claude-sonnet-5",
+        "model_id": "model-sonnet-5",
+        "model_params": {
+          "thinking": "medium"
+        },
+        "hook_event_name": "stop",
+        "cursor_version": "3.4.1",
+        "workspace_roots": [
+          "/work/shop",
+          "/work/shared-lib"
+        ],
+        "transcript_path": "/tmp/cursor-transcripts/c001.jsonl",
+        "status": "completed",
+        "loop_count": 0
+      }
+    }
+  ]
+}

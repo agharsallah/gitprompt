@@ -40,12 +40,27 @@ A new wire format is a variant of `Format` (`spec.rs`) and an arm in `gitprompt-
 
 - A prompt filter: a field on `PromptFilter` (`gitprompt-store/src/filter.rs`) and one function in `gitprompt-store/src/sql/filter.rs`; parse it from the query string in `gitprompt-server/src/query.rs`. It then works for prompts, stats, stories, search and export.
 - A `has` condition: a variant of `Has` and its line in `sql/filter.rs`.
-- A grouping: a variant of `GroupBy` and one line in `gitprompt-store/src/stats/groups.rs` (and `GroupBy` in `web/src/lib/api/types.ts`).
-- A measure: `stats/aggregate.rs` and a field on `Bucket`.
+- A grouping: a variant of `GroupBy` and one line in `gitprompt-store/src/stats/groups.rs`, then `just types`.
+- A measure: `stats/aggregate.rs` and a field on `Bucket`, then `just types`.
 
 ## An API route
 
 A method on `Service` (`gitprompt-server/src/service.rs`, where the work happens, on a blocking thread), a handler in the matching `routes/<group>.rs` (parse, call, serialize; nothing else), its wire type in `model.rs`, and a test in `gitprompt-server/tests/<group>.rs` through the router. Read routes are open to the dashboard; a write route goes in that module's `writes()` so it needs the `X-GitPrompt` header. Errors are `gitprompt_core::Error`: their HTTP status is `Error::status`.
+
+### Wire types and their TypeScript
+
+The dashboard's API types are **generated** from the Rust wire types into `web/src/lib/api/generated.ts` (ts-rs); never write one by hand in TypeScript.
+
+1. Derive `TS` next to `Serialize` on the wire type and on every type it contains. Name it as the dashboard does with `#[ts(rename = "...")]`. A type whose JSON differs from its fields (a custom `Serialize`) gets `#[ts(as = "TheWireStruct")]`, like the derivation summaries in `insights/src/derivations/serial.rs`.
+2. A field left out of the JSON is `#[serde(default, skip_serializing_if = ...)]`, which makes it optional in TypeScript; an omitted `Option` also gets `#[ts(optional)]` so it reads `?: T`, not `?: T | null`.
+3. A new endpoint's answer or body: add it to `roots()` in `gitprompt-server/tests/ts_types.rs`.
+4. `just types` rewrites `generated.ts` and type-checks the dashboard. `cargo test` fails while the file is stale, so CI catches a forgotten regeneration.
+
+`web/src/lib/api/types.ts` re-exports the generated types and adds only what the client builds itself (filters, queries, narrower views of open-ended maps).
+
+### Snapshots of the JSON
+
+`gitprompt-server/tests/api_snapshots.rs` ingests every conformance fixture and snapshots each read endpoint (insta, `tests/snapshots/`). Times, durations and temp paths are normalized. After an intended change, `just snapshots` rewrites them: review the diff before committing.
 
 ## A desktop (Tauri) command
 

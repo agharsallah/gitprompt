@@ -1,0 +1,428 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/sources\").await"
+---
+[
+  {
+    "id": "claude-code",
+    "name": "Claude Code",
+    "assistant": "Claude",
+    "part_of": null,
+    "layer": "Hooks",
+    "summary": "Your prompts, the tools each turn used, files touched and how the turn ended.",
+    "enabled": true,
+    "detected": false,
+    "version": "2.1.316",
+    "connected": false,
+    "outdated": false,
+    "config_file": "[root]/home/.claude/settings.json",
+    "terms": "Uses Claude Code's documented hooks feature in your own user settings. GitPrompt only receives the hook payloads Claude Code sends to it on this machine and always answers \"no output\". It does not read credentials, proxy or inspect API traffic, change your prompts, or send anything off this machine.",
+    "after_connect": "",
+    "blocks": [],
+    "warnings": [],
+    "total": 6,
+    "unmapped": 0,
+    "events": 2,
+    "last_at": "[time]",
+    "hourly": "[hourly]",
+    "collects": [
+      "UserPromptSubmit",
+      "UserPromptExpansion",
+      "PostToolUse",
+      "PostToolUseFailure",
+      "PermissionDenied",
+      "Notification",
+      "SubagentStart",
+      "SubagentStop",
+      "TaskCreated",
+      "TaskCompleted",
+      "Stop",
+      "StopFailure",
+      "InstructionsLoaded",
+      "ConfigChange",
+      "CwdChanged",
+      "DirectoryAdded",
+      "PreCompact",
+      "PostCompact",
+      "PostModelSwitch",
+      "SessionEnd"
+    ],
+    "not_stored": {},
+    "not_collected": {
+      "SessionStart": "Model and start type come from the telemetry source.",
+      "Setup": "Runs only command hooks.",
+      "PreToolUse": "A decision point (allow or deny a tool). GitPrompt stays out of decisions; PostToolUse has the same data.",
+      "PermissionRequest": "A decision point (answer a permission prompt). Notification and PermissionDenied report the outcome.",
+      "PreModelSwitch": "A decision point (can block a switch). PostModelSwitch reports the change.",
+      "Elicitation": "A decision point (answers an MCP server's question).",
+      "ElicitationResult": "Can rewrite your answer to an MCP server; may hold values you typed into MCP forms.",
+      "WorktreeCreate": "A hook here replaces Claude Code's own worktree creation.",
+      "WorktreeRemove": "Only fires for worktrees that a WorktreeCreate hook made.",
+      "MessageDisplay": "Fires for every streamed text chunk; Stop carries the final answer.",
+      "PostToolBatch": "Repeats what PostToolUse already sends.",
+      "FileChanged": "Needs a list of files to watch.",
+      "TeammateIdle": "A decision point for agent teams."
+    },
+    "capabilities": [
+      "prompt",
+      "cwd",
+      "turn_end",
+      "answer",
+      "tools",
+      "subagents",
+      "origin_markers",
+      "transcript_path",
+      "session_lifecycle"
+    ],
+    "needs_version": {},
+    "join": "prompt_id",
+    "captures": [
+      {
+        "id": "cli",
+        "name": "CLI",
+        "icon": "terminal",
+        "note": "Claude Code in a terminal."
+      },
+      {
+        "id": "vscode",
+        "name": "VS Code",
+        "icon": "code",
+        "note": "The VS Code extension (Cursor and other VS Code forks run the same extension)."
+      },
+      {
+        "id": "desktop",
+        "name": "Desktop app",
+        "icon": "app-window",
+        "note": "The Code tab of Claude Desktop: it runs the hooks in ~/.claude/settings.json. Told apart from the CLI only with the telemetry layer (Desktop may only export telemetry set in managed settings: unverified for user settings)."
+      },
+      {
+        "id": "sdk",
+        "name": "SDK",
+        "icon": "braces",
+        "note": "claude -p and the Agent SDK (also marked as programmatic)."
+      }
+    ],
+    "cannot_capture": {
+      "Claude Desktop chat": "Chat conversations have no hooks, telemetry or local API. The only export is the account data export (Settings > Privacy, sent by email), and GitPrompt never reads the app's local storage.",
+      "Cowork": "Configured through your claude.ai account, not ~/.claude, so these hooks don't run there."
+    },
+    "spec": {
+      "name": "claude-code.yaml",
+      "path": "bundled:claude-code.yaml",
+      "origin": "bundled",
+      "overrides": false
+    },
+    "spec_problem": null
+  },
+  {
+    "id": "claude-code-otel",
+    "name": "Claude Code telemetry (model, tokens, cost)",
+    "assistant": "",
+    "part_of": "claude-code",
+    "layer": "Telemetry",
+    "summary": "Model, tokens, cost and API timings for each prompt. Optional; needs the hooks layer for prompts.",
+    "enabled": true,
+    "detected": false,
+    "version": "2.1.316",
+    "connected": false,
+    "outdated": false,
+    "config_file": "[root]/home/.claude/settings.json",
+    "terms": "Uses Claude Code's documented OpenTelemetry settings in your own user settings, with this machine as the only destination. Applies to sessions started after connecting. If telemetry is already configured by your organization or by you, GitPrompt does not change it. Nothing leaves this machine; disconnecting removes exactly the values GitPrompt added.",
+    "after_connect": "",
+    "blocks": [],
+    "warnings": [],
+    "total": 0,
+    "unmapped": 0,
+    "events": 0,
+    "last_at": null,
+    "hourly": "[hourly]",
+    "collects": [
+      "user_prompt",
+      "assistant_response",
+      "tool_result",
+      "tool_decision",
+      "api_request",
+      "api_error",
+      "api_refusal",
+      "claude_code.session.count",
+      "claude_code.lines_of_code.count",
+      "claude_code.cost.usage",
+      "claude_code.token.usage",
+      "claude_code.code_edit_tool.decision",
+      "claude_code.active_time.total",
+      "claude_code.commit.count",
+      "claude_code.pull_request.count"
+    ],
+    "not_stored": {
+      "hook_registered": "Not stored. One event per configured hook at every start-up; describes your config, not your work.",
+      "plugin_loaded": "Not stored. One event per plugin at every start-up.",
+      "hook_execution_*": "Not stored. Start and end of every hook run, including GitPrompt's own; the hooks source already records each event.",
+      "mcp_server_connection": "Not stored. MCP server connect and disconnect at every start-up.",
+      "managed_settings_resolved": "Not stored. Settings resolution at start-up.",
+      "retention_sweep": "Not stored. Claude Code's own housekeeping run."
+    },
+    "not_collected": {
+      "user_prompt text": "OTEL_LOG_USER_PROMPTS is left off; the hooks source already captures the prompt.",
+      "api_request_body / api_response_body": "OTEL_LOG_RAW_API_BODIES is left off; it holds whole API requests including system prompts.",
+      "traces": "The traces exporter (beta) is left off."
+    },
+    "capabilities": [
+      "model",
+      "usage",
+      "cost",
+      "session_metrics",
+      "origin_markers"
+    ],
+    "needs_version": {},
+    "join": "prompt_id",
+    "captures": [],
+    "cannot_capture": {},
+    "spec": {
+      "name": "claude-code-otel.yaml",
+      "path": "bundled:claude-code-otel.yaml",
+      "origin": "bundled",
+      "overrides": false
+    },
+    "spec_problem": null
+  },
+  {
+    "id": "codex",
+    "name": "OpenAI Codex CLI",
+    "assistant": "Codex",
+    "part_of": null,
+    "layer": "Hooks",
+    "summary": "Your prompts, the model and its tokens, the tools each turn used, subagents and Codex's final answer.",
+    "enabled": true,
+    "detected": false,
+    "version": "2.1.316",
+    "connected": false,
+    "outdated": false,
+    "config_file": "[root]/home/.codex/hooks.json",
+    "terms": "Uses Codex's documented hooks in your own hooks file ($CODEX_HOME/hooks.json, usually ~/.codex/hooks.json); your config.toml is not changed. GitPrompt only receives the hook payloads Codex sends to it on this machine and always answers with no output, so it cannot change or block a prompt. It stores the transcript path Codex reports but never reads the transcript, and it does not read credentials, proxy traffic, or send anything off this machine.",
+    "after_connect": "Codex runs a new or changed hook only after you trust it: open Codex, type /hooks and trust GitPrompt's hooks (once after connecting, and again after an update or a token rotation).",
+    "blocks": [],
+    "warnings": [],
+    "total": 3,
+    "unmapped": 0,
+    "events": 15,
+    "last_at": "[time]",
+    "hourly": "[hourly]",
+    "collects": [
+      "SessionStart",
+      "UserPromptSubmit",
+      "PostToolUse",
+      "SubagentStart",
+      "SubagentStop",
+      "PreCompact",
+      "PostCompact",
+      "Stop",
+      "Interrupt",
+      "SessionEnd",
+      "PostModelRequest"
+    ],
+    "not_stored": {},
+    "not_collected": {
+      "PreToolUse": "A decision point (can deny or rewrite a tool call). PostToolUse has the same data.",
+      "PermissionRequest": "A decision point (answers an approval prompt).",
+      "PreModelRequest": "Repeats PostModelRequest without its outcome and tokens (diagnostic only, can't block).",
+      "OpenTelemetry": "Would add a cost estimate, reasoning effort and sandbox/approval policy, but must be written into config.toml and every record carries your account email (docs/adr/0019-codex-connector.md).",
+      "notify": "A program Codex runs after each turn (one per config, often already yours); Stop already reports the turn end and answer.",
+      "config.toml": "Reasoning effort, sandbox mode and approval policy are only in your config (and its profiles and -c overrides), not in any hook payload; the file says what a new session defaults to, not what a session ran with."
+    },
+    "capabilities": [
+      "prompt",
+      "cwd",
+      "model",
+      "usage",
+      "turn_end",
+      "answer",
+      "tools",
+      "subagents",
+      "origin_markers",
+      "transcript_path",
+      "session_lifecycle"
+    ],
+    "needs_version": {},
+    "join": "prompt_id",
+    "captures": [
+      {
+        "id": "cli",
+        "name": "CLI",
+        "icon": "terminal",
+        "note": "The Codex CLI (codex, codex exec)."
+      },
+      {
+        "id": "desktop",
+        "name": "Desktop app",
+        "icon": "app-window",
+        "note": "The Codex desktop app, which reads the same hooks file. Shown as Codex with no surface."
+      },
+      {
+        "id": "vscode",
+        "name": "VS Code",
+        "icon": "code",
+        "note": "The Codex IDE extension (unverified that it runs hooks). Shown as Codex with no surface."
+      }
+    ],
+    "cannot_capture": {},
+    "spec": {
+      "name": "codex.yaml",
+      "path": "bundled:codex.yaml",
+      "origin": "bundled",
+      "overrides": false
+    },
+    "spec_problem": null
+  },
+  {
+    "id": "copilot-cli",
+    "name": "GitHub Copilot CLI",
+    "assistant": "Copilot",
+    "part_of": null,
+    "layer": "Hooks",
+    "summary": "Your prompts, the tools each turn used, subagents and how the turn ended. Also captures the Copilot agent in VS Code, which reads the same hooks folder.",
+    "enabled": true,
+    "detected": false,
+    "version": "2.1.316",
+    "connected": false,
+    "outdated": false,
+    "config_file": "[root]/home/.copilot/hooks/gitprompt.json",
+    "terms": "Uses GitHub Copilot CLI's documented hooks, in a hooks file of your own (~/.copilot/hooks/gitprompt.json); none of your files are edited. Copilot drops the output of prompt hooks from config files, so GitPrompt cannot change or block a prompt. It does not read credentials, proxy traffic, or send anything off this machine. The Copilot agent in VS Code reads the same folder, so its prompts are captured too.",
+    "after_connect": "",
+    "blocks": [],
+    "warnings": [],
+    "total": 3,
+    "unmapped": 0,
+    "events": 10,
+    "last_at": "[time]",
+    "hourly": "[hourly]",
+    "collects": [
+      "UserPromptSubmit",
+      "PostToolUse",
+      "PostToolUseFailure",
+      "SubagentStop",
+      "Stop",
+      "PreCompact",
+      "SessionStart",
+      "SessionEnd",
+      "ErrorOccurred"
+    ],
+    "not_stored": {},
+    "not_collected": {
+      "PreToolUse": "A decision point (can deny a tool call, fail-closed). PostToolUse has the same data.",
+      "PermissionRequest": "A decision point (answers a permission prompt).",
+      "subagentStart": "Documented only in the camelCase form, which has no event name; SubagentStop reports each subagent.",
+      "userPromptTransformed": "Holds the runtime-expanded prompt (injected context); the typed text comes from UserPromptSubmit.",
+      "Notification": "UI notices only.",
+      "sessionStart prompt hooks": "A `prompt` hook would add text to the session."
+    },
+    "capabilities": [
+      "prompt",
+      "cwd",
+      "turn_end",
+      "tools",
+      "subagents",
+      "origin_markers",
+      "transcript_path",
+      "session_lifecycle"
+    ],
+    "needs_version": {},
+    "join": "session",
+    "captures": [
+      {
+        "id": "cli",
+        "name": "CLI",
+        "icon": "terminal",
+        "note": "GitHub Copilot CLI."
+      },
+      {
+        "id": "vscode",
+        "name": "VS Code",
+        "icon": "code",
+        "note": "The Copilot agent in VS Code, which reads the same hooks folder (Preview). Shown with no surface."
+      }
+    ],
+    "cannot_capture": {},
+    "spec": {
+      "name": "copilot-cli.yaml",
+      "path": "bundled:copilot-cli.yaml",
+      "origin": "bundled",
+      "overrides": false
+    },
+    "spec_problem": null
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor",
+    "assistant": "Cursor",
+    "part_of": null,
+    "layer": "Hooks",
+    "summary": "Your prompts in Cursor's agent, the model, the tools each turn used, the final answer and how the turn ended.",
+    "enabled": true,
+    "detected": false,
+    "version": "2.1.316",
+    "connected": false,
+    "outdated": false,
+    "config_file": "[root]/home/.cursor/hooks.json",
+    "terms": "Uses Cursor's documented hooks in your user hooks file (~/.cursor/hooks.json). GitPrompt only receives the hook payloads Cursor sends to it on this machine (without your account email, which is removed before storing) and always answers \"continue\" or nothing, so it cannot block or change a prompt. It stores the transcript path Cursor reports but never reads the transcript, and it does not read Cursor's own data, credentials or traffic, or send anything off this machine.",
+    "after_connect": "Restart Cursor (or reload its window) so it reads the new hooks.",
+    "blocks": [],
+    "warnings": [],
+    "total": 3,
+    "unmapped": 0,
+    "events": 11,
+    "last_at": "[time]",
+    "hourly": "[hourly]",
+    "collects": [
+      "SessionStart",
+      "UserPromptSubmit",
+      "PostToolUse",
+      "PostToolUseFailure",
+      "SubagentStop",
+      "AgentResponse",
+      "Stop",
+      "SessionEnd"
+    ],
+    "not_stored": {},
+    "not_collected": {
+      "preToolUse": "A permission hook (can deny or rewrite a tool call; invalid JSON blocks). postToolUse has the same data.",
+      "beforeShellExecution / beforeMCPExecution / beforeReadFile": "Permission hooks; an answer that isn't valid JSON blocks the action.",
+      "subagentStart": "A permission hook (allow or deny a subagent). subagentStop reports each subagent.",
+      "afterShellExecution / afterMCPExecution / afterFileEdit": "Repeat what postToolUse already sends (afterFileEdit with the edited text).",
+      "afterAgentThought": "The model's thinking text; not needed for the turn's outcome.",
+      "preCompact": "Observational, but its payload is not documented beyond token counts of the context.",
+      "beforeTabFileRead / afterTabFileEdit": "Tab completions, not prompts.",
+      "workspaceOpen": "Fires when a window opens; says nothing about prompts."
+    },
+    "capabilities": [
+      "prompt",
+      "cwd",
+      "model",
+      "turn_end",
+      "answer",
+      "tools",
+      "transcript_path",
+      "session_lifecycle"
+    ],
+    "needs_version": {},
+    "join": "prompt_id",
+    "captures": [
+      {
+        "id": "cursor",
+        "name": "Cursor",
+        "icon": "mouse-pointer",
+        "note": "Agent chats in the Cursor app (the IDE), in every window and workspace. Claude Code's extension inside Cursor is captured by the Claude Code connector instead."
+      }
+    ],
+    "cannot_capture": {
+      "Cursor CLI": "The docs list hooks for the app; forum reports say cursor-agent skips beforeSubmitPrompt and stop (always with -p). Prompts that do arrive can't be told apart from the IDE.",
+      "Tab completions": "Not prompts; their hooks (beforeTabFileRead, afterTabFileEdit) aren't subscribed."
+    },
+    "spec": {
+      "name": "cursor.yaml",
+      "path": "bundled:cursor.yaml",
+      "origin": "bundled",
+      "overrides": false
+    },
+    "spec_problem": null
+  }
+]

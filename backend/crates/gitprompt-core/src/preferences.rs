@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::files::atomic_write;
 use crate::{Env, Error, Json, JsonMap, Result};
@@ -15,7 +16,7 @@ use crate::{Env, Error, Json, JsonMap, Result};
 pub const ENV_PREFIX: &str = "GITPROMPT_";
 pub const FILE_NAME: &str = "preferences.json";
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub enum RangeId {
     #[serde(rename = "24h")]
     Day,
@@ -28,7 +29,7 @@ pub enum RangeId {
     All,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum WeekStart {
     #[default]
@@ -36,7 +37,7 @@ pub enum WeekStart {
     Sunday,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(deny_unknown_fields, default)]
 pub struct Preferences {
     /// Time window the insight pages open with.
@@ -57,7 +58,7 @@ pub const KEYS: &[&str] = &["default_range", "week_start", "event_retention_days
 /// Keys that need a daemon restart to take effect (none today).
 pub const APPLIES_AT_START: &[&str] = &[];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ValueSource {
     Env,
@@ -65,7 +66,7 @@ pub enum ValueSource {
     Default,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum Applies {
     Now,

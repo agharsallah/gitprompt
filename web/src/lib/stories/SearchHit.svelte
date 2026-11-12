@@ -25,7 +25,7 @@
 	<div class="body">
 		<p class="meta">
 			<time datetime={h.received_at}>{shortDate(h.received_at)}, {timeOfDay(h.received_at)}</time>
-			<ConnectorBadge connector={h.facts.connector} surface={h.facts.surface} />
+			{#if h.facts}<ConnectorBadge connector={h.facts.connector} surface={h.facts.surface} />{/if}
 			{#if h.project}<span class="project">{h.project.name}</span>{/if}
 			{#if h.branch}<span class="branch"><GitBranch size={12} aria-hidden="true" />{h.branch}</span
 				>{/if}

@@ -23,7 +23,18 @@ const MODEL_HINT = {
 	hook: 'Model the tool reported with the prompt'
 };
 
-export function factsView(f: Facts): FactsView {
+/** What a turn without facts shows: no tool, model, tokens or cost. */
+const NO_FACTS: FactsView = {
+	tool: { label: '', name: '' },
+	assistant: 'Agent',
+	model: null,
+	tokens: null,
+	cost: null,
+	permissionMode: null
+};
+
+export function factsView(f: Facts | null): FactsView {
+	if (!f) return NO_FACTS;
 	const t = f.tokens;
 	return {
 		tool: { label: f.connector.label, name: f.connector.name },

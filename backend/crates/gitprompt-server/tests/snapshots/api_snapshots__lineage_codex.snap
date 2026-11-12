@@ -1,0 +1,61 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/prompt/{id}\")).await"
+---
+{
+  "id": 7,
+  "threshold": 0.5,
+  "versions": [
+    {
+      "id": 7,
+      "received_at": "[time]",
+      "session": "0190a1b2-0000-7000-8000-000000000001",
+      "project": {
+        "id": "L3dvcmsvYXBw",
+        "repo": "/work/app",
+        "name": "app",
+        "git": false
+      },
+      "origin": "typed",
+      "text": "Add a retry to the upload client",
+      "clipped": false,
+      "similarity": 1.0,
+      "same_text": true,
+      "place": "self",
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tool_failures": 0,
+      "diff": null,
+      "change": null
+    },
+    {
+      "id": 10,
+      "received_at": "[time]",
+      "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "project": {
+        "id": "L3dvcmsvYXBw",
+        "repo": "/work/app",
+        "name": "app",
+        "git": false
+      },
+      "origin": "typed",
+      "text": "Add a retry to the upload client",
+      "clipped": false,
+      "similarity": 1.0,
+      "same_text": true,
+      "place": "project",
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tool_failures": 1,
+      "diff": [
+        [
+          "equal",
+          "Add a retry to the upload client"
+        ]
+      ],
+      "change": "same"
+    }
+  ]
+}

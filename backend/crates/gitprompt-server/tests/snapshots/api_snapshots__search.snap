@@ -1,0 +1,128 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/search?q=retry\").await"
+---
+{
+  "total": 2,
+  "hits": [
+    {
+      "id": 10,
+      "received_at": "[time]",
+      "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "title": null,
+      "project": {
+        "id": "L3dvcmsvYXBw",
+        "repo": "/work/app",
+        "name": "app",
+        "git": false
+      },
+      "branch": null,
+      "origin": "typed",
+      "outcome": "done",
+      "cost_usd": 0.0,
+      "facts": {
+        "connector": {
+          "id": "copilot-cli",
+          "name": "GitHub Copilot CLI",
+          "label": "Copilot CLI",
+          "assistant": "Copilot"
+        },
+        "surface": null,
+        "model": null,
+        "models": [],
+        "model_source": null,
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "done",
+        "permission_mode": null,
+        "tool_version": "2.1.316",
+        "response_s": "[seconds]",
+        "answered": false,
+        "tool_calls": 2,
+        "tool_failures": 1,
+        "files_written": 1,
+        "git_commits": 0,
+        "subagents": 0
+      },
+      "snippet": [
+        {
+          "text": "Add a ",
+          "hit": false
+        },
+        {
+          "text": "retry",
+          "hit": true
+        },
+        {
+          "text": " to the upload client",
+          "hit": false
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "received_at": "[time]",
+      "session": "0190a1b2-0000-7000-8000-000000000001",
+      "title": null,
+      "project": {
+        "id": "L3dvcmsvYXBw",
+        "repo": "/work/app",
+        "name": "app",
+        "git": false
+      },
+      "branch": null,
+      "origin": "typed",
+      "outcome": "done",
+      "cost_usd": 0.0,
+      "facts": {
+        "connector": {
+          "id": "codex",
+          "name": "OpenAI Codex CLI",
+          "label": "Codex",
+          "assistant": "Codex"
+        },
+        "surface": null,
+        "model": "gpt-5-codex",
+        "models": [
+          "gpt-5-codex"
+        ],
+        "model_source": "usage",
+        "tokens": {
+          "input": 3000,
+          "output": 300,
+          "cache_read": 9000,
+          "cache_creation": 0,
+          "reasoning": 120,
+          "total": 12300
+        },
+        "cost_usd": null,
+        "api_requests": 1,
+        "outcome": "done",
+        "permission_mode": "default",
+        "tool_version": "2.1.316",
+        "response_s": "[seconds]",
+        "answered": true,
+        "tool_calls": 4,
+        "tool_failures": 0,
+        "files_written": 1,
+        "git_commits": 0,
+        "subagents": 0
+      },
+      "snippet": [
+        {
+          "text": "Add a ",
+          "hit": false
+        },
+        {
+          "text": "retry",
+          "hit": true
+        },
+        {
+          "text": " to the upload client",
+          "hit": false
+        }
+      ]
+    }
+  ]
+}

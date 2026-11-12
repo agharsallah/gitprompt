@@ -1,6 +1,7 @@
 //! Stored rows as the store returns them.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::{Json, JsonMap};
 
@@ -36,7 +37,8 @@ pub struct PromptView {
 }
 
 /// A stored event that is not a prompt (table `event`).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(rename = "Event")]
 pub struct EventRow {
     pub id: i64,
     pub source: String,
@@ -46,6 +48,7 @@ pub struct EventRow {
     pub prompt_id: Option<String>,
     pub fields: JsonMap,
     /// Long strings clipped (`core::json::clip`).
+    #[ts(type = "Record<string, unknown>")]
     pub raw: Json,
 }
 

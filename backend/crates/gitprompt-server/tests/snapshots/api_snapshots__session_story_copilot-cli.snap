@@ -1,0 +1,167 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
+---
+{
+  "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+  "title": null,
+  "source": "copilot-cli",
+  "connector": {
+    "id": "copilot-cli",
+    "name": "GitHub Copilot CLI",
+    "label": "Copilot CLI",
+    "assistant": "Copilot"
+  },
+  "surface": null,
+  "models": {},
+  "project": {
+    "id": "L3dvcmsvYXBw",
+    "repo": "/work/app",
+    "name": "app",
+    "git": false
+  },
+  "branches": [],
+  "started_at": "[time]",
+  "ended_at": "[time]",
+  "totals": {
+    "chapters": 2,
+    "markers": 2,
+    "cost_usd": 0.0,
+    "tool_calls": 2,
+    "files_written": 0,
+    "outcomes": {
+      "done": 1,
+      "superseded": 1
+    },
+    "retries": 0,
+    "diffstat": null
+  },
+  "items": [
+    {
+      "kind": "chapter",
+      "id": 10,
+      "turn": 1,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Add a retry to the upload client",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 2,
+      "tool_failures": 1,
+      "tools": {
+        "write": 1,
+        "shell": 1
+      },
+      "files_written": 1,
+      "files": [],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "copilot-cli",
+          "name": "GitHub Copilot CLI",
+          "label": "Copilot CLI",
+          "assistant": "Copilot"
+        },
+        "surface": null,
+        "model": null,
+        "models": [],
+        "model_source": null,
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "done",
+        "permission_mode": null,
+        "tool_version": "2.1.316",
+        "response_s": "[seconds]",
+        "answered": false,
+        "tool_calls": 2,
+        "tool_failures": 1,
+        "files_written": 1,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "chapter",
+      "id": 11,
+      "turn": 2,
+      "received_at": "[time]",
+      "origin": "slash_command",
+      "text": "/review the staged changes",
+      "clipped": false,
+      "slash_command": "/review",
+      "branch": null,
+      "outcome": "superseded",
+      "response_s": null,
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "tool_failures": 0,
+      "tools": {},
+      "files_written": 0,
+      "files": [],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "copilot-cli",
+          "name": "GitHub Copilot CLI",
+          "label": "Copilot CLI",
+          "assistant": "Copilot"
+        },
+        "surface": null,
+        "model": null,
+        "models": [],
+        "model_source": null,
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "superseded",
+        "permission_mode": null,
+        "tool_version": "2.1.316",
+        "response_s": null,
+        "answered": false,
+        "tool_calls": 0,
+        "tool_failures": 0,
+        "files_written": 0,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "markers",
+      "items": [
+        {
+          "kind": "compaction",
+          "id": 11,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": null,
+          "clipped": false
+        },
+        {
+          "kind": "subagent",
+          "id": 12,
+          "received_at": "[time]",
+          "label": null,
+          "detail": null,
+          "excerpt": "List the callers of upload()",
+          "clipped": false
+        }
+      ]
+    }
+  ]
+}

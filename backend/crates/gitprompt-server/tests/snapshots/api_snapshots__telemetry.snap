@@ -1,0 +1,9 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/stats/telemetry\").await"
+---
+{
+  "sessions": 4,
+  "metrics": {},
+  "commands": []
+}

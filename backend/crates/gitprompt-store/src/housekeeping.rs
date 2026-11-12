@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 use jiff::{SignedDuration, Timestamp};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::preferences::PreferenceFile;
 use gitprompt_core::spec::Spec;
@@ -24,7 +25,8 @@ use crate::time;
 /// How often the daemon applies `event_retention_days`.
 pub const RETENTION_EVERY: std::time::Duration = std::time::Duration::from_secs(6 * 3600);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(rename = "RemovalReason")]
 pub enum Why {
     #[serde(rename = "dropped by spec")]
     DroppedBySpec,

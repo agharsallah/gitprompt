@@ -1,0 +1,33 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/prompt/{id}\")).await"
+---
+{
+  "id": 13,
+  "threshold": 0.5,
+  "versions": [
+    {
+      "id": 13,
+      "received_at": "[time]",
+      "session": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "project": {
+        "id": "L3dvcmsvc2hvcA",
+        "repo": "/work/shop",
+        "name": "shop",
+        "git": false
+      },
+      "origin": "typed",
+      "text": "Add a coupon field to the checkout form",
+      "clipped": false,
+      "similarity": 1.0,
+      "same_text": true,
+      "place": "self",
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tool_failures": 1,
+      "diff": null,
+      "change": null
+    }
+  ]
+}

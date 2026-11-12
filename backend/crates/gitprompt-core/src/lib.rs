@@ -3,6 +3,7 @@
 //!
 //! Port of `src/gitprompt/core/*`, `sources/spec.py` and `insights/redaction.py`.
 
+pub mod blank;
 pub mod env;
 pub mod error;
 pub mod files;
@@ -15,6 +16,7 @@ pub mod secrets;
 pub mod settings;
 pub mod spec;
 
+pub use blank::Blank;
 pub use env::Env;
 pub use error::{Error, Result};
 pub use json::{Json, JsonMap};

@@ -17,7 +17,7 @@
 	import type { Annotation, PromptDetail, Source } from '#lib/api/types.ts';
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
-	import { compact, count, duration, integer, plural, when } from '#lib/shared/format.ts';
+	import { compact, count, duration, inline, integer, plural, when } from '#lib/shared/format.ts';
 	import { Task } from '#lib/shared/task.svelte.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
@@ -102,7 +102,8 @@
 		!!text && (text.length > 1400 || text.split('\n').length > 18);
 	let expanded = $state(false);
 	let promptExpanded = $state(false);
-	const longResponse = $derived(isLong(s.response));
+	const response = $derived(s.response == null ? null : inline(s.response));
+	const longResponse = $derived(isLong(response));
 	const longPrompt = $derived(isLong(text));
 
 	const textFacts = $derived(
@@ -299,12 +300,12 @@
 		/>
 	</section>
 
-	{#if s.response}
+	{#if response}
 		<section class="voice agent" aria-labelledby="prompt-{prompt.id}-answer">
 			<h2 id="prompt-{prompt.id}-answer" class="who">
 				<span class="avatar" aria-hidden="true"></span>{agent}
 			</h2>
-			<div class={['said', 'response', longResponse && !expanded && 'folded']}>{s.response}</div>
+			<div class={['said', 'response', longResponse && !expanded && 'folded']}>{response}</div>
 			{#if longResponse}
 				<button
 					class="more"

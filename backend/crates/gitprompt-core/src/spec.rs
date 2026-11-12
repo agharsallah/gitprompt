@@ -15,6 +15,7 @@ use std::time::SystemTime;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_norway::{Mapping as YamlMap, Value as Yaml};
+use ts_rs::TS;
 
 use crate::json::{Mapping, pluck};
 use crate::settings::expand_tilde;
@@ -106,7 +107,7 @@ pub enum Format {
 }
 
 /// Who produced a prompt's text (ADR-0010).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum Origin {
     Typed,
@@ -119,7 +120,7 @@ pub enum Origin {
 }
 
 /// What a connector can feed into the dashboard (docs/sources.md "Capabilities per tool").
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum Capability {
     Prompt,
@@ -138,7 +139,7 @@ pub enum Capability {
 }
 
 /// How events that are not prompts find their prompt.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum Join {
     /// By the mapped `prompt_id`, which the tool sends on every event.
@@ -150,7 +151,7 @@ pub enum Join {
 }
 
 /// What a tool call does.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum ToolKind {
     Read,
@@ -294,7 +295,8 @@ fn default_icon() -> String {
 }
 
 /// `{id, name, icon}` of a surface, for a prompt's facts.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(rename = "Surface")]
 pub struct SurfaceRef {
     pub id: String,
     pub name: String,
@@ -661,7 +663,7 @@ fn is_tag(tag: &str) -> bool {
     chars.next().is_some_and(|c| c.is_ascii_alphabetic()) && chars.all(|c| c.is_alphanumeric() || matches!(c, '_' | ':' | '-'))
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum SpecOrigin {
     Bundled,

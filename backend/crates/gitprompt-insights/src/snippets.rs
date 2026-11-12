@@ -4,6 +4,7 @@
 //! and widths count characters, not bytes.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::text::{is_space, words};
 
@@ -12,7 +13,7 @@ pub const WIDTH: usize = 180;
 pub const ELLIPSIS: &str = "…";
 
 /// A piece of a snippet; `hit` pieces are matches.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct Segment {
     pub text: String,
     pub hit: bool,

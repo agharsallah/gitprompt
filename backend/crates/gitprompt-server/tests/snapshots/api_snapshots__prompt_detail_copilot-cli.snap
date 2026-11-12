@@ -1,0 +1,233 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
+---
+{
+  "id": 10,
+  "source": "copilot-cli",
+  "received_at": "[time]",
+  "prompt": "Add a retry to the upload client",
+  "origin": "typed",
+  "typed_text": "Add a retry to the upload client",
+  "injected": [],
+  "fields": {
+    "event": "UserPromptSubmit",
+    "prompt": "Add a retry to the upload client",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "cwd": "/work/app",
+    "prompt_id": "copilot-cli#10"
+  },
+  "context": {
+    "tool_version": "2.1.316"
+  },
+  "annotation": {
+    "starred": false,
+    "rating": 0,
+    "tags": [],
+    "note": ""
+  },
+  "stats": {
+    "chars": 32,
+    "words": 7,
+    "lines": 1,
+    "approx_tokens": 8
+  },
+  "summary": {
+    "turn": 1,
+    "ended_by": "Stop",
+    "tool_calls": {
+      "bash": 1,
+      "edit": 1
+    },
+    "tool_failures": 1,
+    "files_written": [
+      "client.py"
+    ],
+    "bash_commands": [
+      "ls src"
+    ],
+    "tool_kinds": {
+      "shell": 1,
+      "write": 1
+    },
+    "tool_kind_of": {
+      "bash": "shell",
+      "edit": "write"
+    },
+    "tool_errors": [
+      "File not found"
+    ]
+  },
+  "facts": {
+    "connector": {
+      "id": "copilot-cli",
+      "name": "GitHub Copilot CLI",
+      "label": "Copilot CLI",
+      "assistant": "Copilot"
+    },
+    "surface": null,
+    "model": null,
+    "models": [],
+    "model_source": null,
+    "tokens": null,
+    "cost_usd": null,
+    "api_requests": 0,
+    "outcome": "done",
+    "permission_mode": null,
+    "tool_version": "2.1.316",
+    "response_s": "[seconds]",
+    "answered": false,
+    "tool_calls": 2,
+    "tool_failures": 1,
+    "files_written": 1,
+    "git_commits": 0,
+    "subagents": 0
+  },
+  "raw": {
+    "hook_event_name": "UserPromptSubmit",
+    "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "timestamp": "[time]",
+    "cwd": "/work/app",
+    "prompt": "Add a retry to the upload client"
+  },
+  "session": {
+    "events": {
+      "SessionStart": 1,
+      "PostToolUse": 1,
+      "PostToolUseFailure": 1,
+      "SubagentStop": 1,
+      "Stop": 1,
+      "PreCompact": 1,
+      "ErrorOccurred": 1,
+      "SessionEnd": 1,
+      "null": 1
+    },
+    "first_event_at": "[time]",
+    "last_event_at": "[time]",
+    "starts": [
+      "startup"
+    ],
+    "ended": "user_exit",
+    "subagent_results": [
+      {
+        "agent_id": "sub-1",
+        "agent_type": "explore",
+        "stop_reason": "end_turn",
+        "answer": "Found two callers."
+      }
+    ]
+  },
+  "commits": {},
+  "events": [
+    {
+      "id": 19,
+      "source": "copilot-cli",
+      "received_at": "[time]",
+      "event": "PostToolUse",
+      "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "prompt_id": "copilot-cli#10",
+      "fields": {
+        "event": "PostToolUse",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "cwd": "/work/app",
+        "tool_name": "bash",
+        "prompt_id": "copilot-cli#10"
+      },
+      "raw": {
+        "hook_event_name": "PostToolUse",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "timestamp": "[time]",
+        "cwd": "/work/app",
+        "tool_name": "bash",
+        "tool_input": {
+          "command": "ls src"
+        },
+        "tool_result": {
+          "result_type": "success",
+          "text_result_for_llm": "client.py"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "source": "copilot-cli",
+      "received_at": "[time]",
+      "event": "PostToolUseFailure",
+      "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "prompt_id": "copilot-cli#10",
+      "fields": {
+        "event": "PostToolUseFailure",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "cwd": "/work/app",
+        "tool_name": "edit",
+        "prompt_id": "copilot-cli#10"
+      },
+      "raw": {
+        "hook_event_name": "PostToolUseFailure",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "timestamp": "[time]",
+        "cwd": "/work/app",
+        "tool_name": "edit",
+        "tool_input": {
+          "path": "client.py"
+        },
+        "error": "File not found"
+      }
+    },
+    {
+      "id": 21,
+      "source": "copilot-cli",
+      "received_at": "[time]",
+      "event": "SubagentStop",
+      "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "prompt_id": "copilot-cli#10",
+      "fields": {
+        "event": "SubagentStop",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "cwd": "/work/app",
+        "transcript_path": "/work/.copilot/transcript.jsonl",
+        "agent_id": "sub-1",
+        "agent_type": "explore",
+        "stop_reason": "end_turn",
+        "prompt_id": "copilot-cli#10"
+      },
+      "raw": {
+        "hook_event_name": "SubagentStop",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "timestamp": "[time]",
+        "cwd": "/work/app",
+        "transcript_path": "/work/.copilot/transcript.jsonl",
+        "agent_id": "sub-1",
+        "agent_type": "explore",
+        "agent_name": "explore",
+        "last_assistant_message": "Found two callers.",
+        "stop_reason": "end_turn"
+      }
+    },
+    {
+      "id": 22,
+      "source": "copilot-cli",
+      "received_at": "[time]",
+      "event": "Stop",
+      "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+      "prompt_id": "copilot-cli#10",
+      "fields": {
+        "event": "Stop",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "cwd": "/work/app",
+        "transcript_path": "/work/.copilot/transcript.jsonl",
+        "stop_reason": "end_turn",
+        "prompt_id": "copilot-cli#10"
+      },
+      "raw": {
+        "hook_event_name": "Stop",
+        "session_id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+        "timestamp": "[time]",
+        "cwd": "/work/app",
+        "transcript_path": "/work/.copilot/transcript.jsonl",
+        "stop_reason": "end_turn",
+        "stop_hook_active": false
+      }
+    }
+  ]
+}

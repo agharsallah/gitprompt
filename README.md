@@ -220,10 +220,14 @@ Filters, search and statistics run in SQL on a prompt index: one row per prompt 
 just            # list every task
 just dev        # Rust daemon (restarts on change with cargo-watch) + Vite with hot reload on :5173
 just verify     # what CI runs: fmt, clippy, cargo-deny, every Rust test (unit, integration, end-to-end), web checks and build
+just types      # regenerate the dashboard's API types from the Rust wire types (never hand-written)
+just snapshots  # rewrite the API JSON snapshots after an intended change, then review the diff
 just doctor     # debug an install: one line per problem, with its fix
 just bench      # ingest throughput and dashboard read latencies on synthetic data
 just cov        # Rust line coverage report
 ```
+
+The TypeScript types in [`web/src/lib/api/generated.ts`](web/src/lib/api/generated.ts) are generated from the Rust structs with [ts-rs](https://github.com/Aleph-Alpha/ts-rs): `cargo test` fails when they are stale, and every read endpoint's JSON is snapshot-tested over the conformance fixtures, so a field renamed in Rust fails the build instead of breaking the dashboard.
 
 `GITPROMPT_LOG_LEVEL=debug gitprompt serve` logs each request with its status and duration (slow ones are warnings at the default level). More in [docs/extending.md](docs/extending.md#debugging).
 

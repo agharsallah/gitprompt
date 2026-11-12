@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::Json;
 use gitprompt_core::json::{flatten, is_no_value};
@@ -17,7 +18,7 @@ pub const SAMPLE_CHARS: usize = 200;
 pub const ANY_EVENT: &str = "*";
 
 /// One (source, event, path).
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct Field {
     pub source: String,
     pub event: String,
@@ -36,14 +37,14 @@ pub struct Field {
 }
 
 /// An event (or data) a source can't or doesn't capture, and why.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct NotCaptured {
     pub source: String,
     pub event: String,
     pub reason: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct Catalog {
     /// Sorted by (source, event, path).
     pub fields: Vec<Field>,

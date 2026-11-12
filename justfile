@@ -90,6 +90,18 @@ lint: target-guard
     cd backend && cargo clippy --workspace --all-targets -- -D warnings
     pnpm --dir web lint
 
+# Regenerate the dashboard's API types (web/src/lib/api/generated.ts) from the Rust wire types.
+# Run after changing any type the API sends or accepts; `cargo test` (and CI) fails while it is stale.
+types: target-guard
+    cd backend && UPDATE_TS_TYPES=1 cargo test -q -p gitprompt-server --test ts_types
+    pnpm --dir web check
+
+# Rewrite the API JSON snapshots (backend/crates/gitprompt-server/tests/snapshots) after an intended
+# API change, then review them with `git diff`; CI fails on any snapshot that differs
+snapshots: target-guard
+    cd backend && INSTA_UPDATE=always cargo test -q -p gitprompt-server --test api_snapshots
+    git status --short backend/crates/gitprompt-server/tests/snapshots
+
 # Format Rust and web code in place
 fmt: target-guard
     cd backend && cargo fmt --all

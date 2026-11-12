@@ -2,12 +2,14 @@
 //! filter is a compile error rather than a runtime `ValueError`. Empty values are ignored.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::spec::{Origin, ToolKind};
 
 /// How a turn ended, in the dashboard's words.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(rename = "TurnOutcome")]
 pub enum Outcome {
     /// Ended by `Stop` (or any end other than below).
     Done,

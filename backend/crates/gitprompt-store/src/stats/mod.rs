@@ -8,6 +8,7 @@ mod groups;
 mod sessions;
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_core::{Error, Result};
 
@@ -17,7 +18,7 @@ use crate::filter::PromptFilter;
 /// Session length buckets, in seconds (lower bounds).
 pub const SESSION_LENGTHS: &[u32] = &[0, 60, 300, 900, 1800, 3600, 7200, 14400];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum GroupBy {
     /// Local calendar day, YYYY-MM-DD (ordered by key).
@@ -55,8 +56,9 @@ pub enum GroupBy {
     QuerySource,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
+#[ts(rename = "StatsOrder")]
 pub enum Order {
     Key,
     Prompts,
@@ -85,8 +87,9 @@ impl Default for AggregateQuery {
 }
 
 /// The measures of one bucket (totals, a group or a part). Absent measures are 0.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 #[serde(default)]
+#[ts(rename = "StatsBucket")]
 pub struct Bucket {
     pub key: Option<String>,
     pub detail: Option<String>,
@@ -132,7 +135,7 @@ pub struct Bucket {
     pub parts: Option<Vec<Bucket>>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 pub struct Aggregate {
     pub totals: Bucket,
     pub groups: Vec<Bucket>,
@@ -151,7 +154,7 @@ pub fn quantile(sorted: &[f64], q: f64) -> Option<f64> {
     Some(gitprompt_core::numbers::round(value, 1))
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct CommandUse {
     pub command: String,
     pub source: Option<String>,
@@ -160,7 +163,7 @@ pub struct CommandUse {
 }
 
 /// Per-session telemetry over the sessions of the prompts a filter keeps.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 pub struct Telemetry {
     pub sessions: i64,
     /// metric name -> total, rounded to 4 decimals.

@@ -16,6 +16,7 @@ thiserror.workspace = true
 fancy-regex.workspace = true
 getrandom.workspace = true
 tracing.workspace = true
+ts-rs.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

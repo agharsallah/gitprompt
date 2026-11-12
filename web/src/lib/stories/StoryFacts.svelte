@@ -23,7 +23,7 @@
 			files_written: number;
 			commits: StoryCommit[];
 			git_commits: number;
-			facts: Facts;
+			facts: Facts | null;
 		};
 		tool?: boolean;
 	} = $props();
@@ -40,7 +40,10 @@
 </script>
 
 <span class="facts">
-	{#if tool}<ConnectorBadge connector={turn.facts.connector} surface={turn.facts.surface} />{/if}
+	{#if tool && turn.facts}<ConnectorBadge
+			connector={turn.facts.connector}
+			surface={turn.facts.surface}
+		/>{/if}
 	{#if turn.response_s != null}
 		<span class="fact" title="Time until the tool finished"
 			><Timer size={13} aria-hidden="true" /><span class="sr-only">Worked for </span>{duration(

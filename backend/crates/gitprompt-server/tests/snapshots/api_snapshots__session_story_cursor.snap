@@ -1,0 +1,207 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
+---
+{
+  "session": "5f0c1a2e-0000-4000-8000-00000000c001",
+  "title": null,
+  "source": "cursor",
+  "connector": {
+    "id": "cursor",
+    "name": "Cursor",
+    "label": "Cursor",
+    "assistant": "Cursor"
+  },
+  "surface": null,
+  "models": {
+    "claude-sonnet-5": 3
+  },
+  "project": {
+    "id": "L3dvcmsvc2hvcA",
+    "repo": "/work/shop",
+    "name": "shop",
+    "git": false
+  },
+  "branches": [],
+  "started_at": "[time]",
+  "ended_at": "[time]",
+  "totals": {
+    "chapters": 3,
+    "markers": 0,
+    "cost_usd": 0.0,
+    "tool_calls": 4,
+    "files_written": 1,
+    "outcomes": {
+      "done": 1,
+      "interrupted": 1,
+      "failed": 1
+    },
+    "retries": 0,
+    "diffstat": null
+  },
+  "items": [
+    {
+      "kind": "chapter",
+      "id": 13,
+      "turn": 1,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Add a coupon field to the checkout form",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "done",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 4,
+      "tool_failures": 1,
+      "tools": {
+        "read": 1,
+        "write": 1,
+        "shell": 1,
+        "mcp": 1
+      },
+      "files_written": 1,
+      "files": [
+        "/work/shop/src/checkout.ts"
+      ],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "cursor",
+          "name": "Cursor",
+          "label": "Cursor",
+          "assistant": "Cursor"
+        },
+        "surface": null,
+        "model": "claude-sonnet-5",
+        "models": [
+          "claude-sonnet-5"
+        ],
+        "model_source": "hook",
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "done",
+        "permission_mode": null,
+        "tool_version": "3.4.1",
+        "response_s": "[seconds]",
+        "answered": true,
+        "tool_calls": 4,
+        "tool_failures": 1,
+        "files_written": 1,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "chapter",
+      "id": 14,
+      "turn": 2,
+      "received_at": "[time]",
+      "origin": "slash_command",
+      "text": "/review the coupon change",
+      "clipped": false,
+      "slash_command": "/review",
+      "branch": null,
+      "outcome": "interrupted",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "tool_failures": 0,
+      "tools": {},
+      "files_written": 0,
+      "files": [],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "cursor",
+          "name": "Cursor",
+          "label": "Cursor",
+          "assistant": "Cursor"
+        },
+        "surface": null,
+        "model": "claude-sonnet-5",
+        "models": [
+          "claude-sonnet-5"
+        ],
+        "model_source": "hook",
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "interrupted",
+        "permission_mode": null,
+        "tool_version": "3.4.1",
+        "response_s": "[seconds]",
+        "answered": false,
+        "tool_calls": 0,
+        "tool_failures": 0,
+        "files_written": 0,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    },
+    {
+      "kind": "chapter",
+      "id": 15,
+      "turn": 3,
+      "received_at": "[time]",
+      "origin": "typed",
+      "text": "Why does the build fail?",
+      "clipped": false,
+      "slash_command": null,
+      "branch": null,
+      "outcome": "failed",
+      "response_s": "[seconds]",
+      "cost_usd": 0.0,
+      "tokens": 0,
+      "tool_calls": 0,
+      "tool_failures": 0,
+      "tools": {},
+      "files_written": 0,
+      "files": [],
+      "subagents": 0,
+      "git_commits": 0,
+      "commits": [],
+      "diffstat": null,
+      "retry_of": null,
+      "facts": {
+        "connector": {
+          "id": "cursor",
+          "name": "Cursor",
+          "label": "Cursor",
+          "assistant": "Cursor"
+        },
+        "surface": null,
+        "model": "claude-sonnet-5",
+        "models": [
+          "claude-sonnet-5"
+        ],
+        "model_source": "hook",
+        "tokens": null,
+        "cost_usd": null,
+        "api_requests": 0,
+        "outcome": "failed",
+        "permission_mode": null,
+        "tool_version": "3.4.1",
+        "response_s": "[seconds]",
+        "answered": false,
+        "tool_calls": 0,
+        "tool_failures": 0,
+        "files_written": 0,
+        "git_commits": 0,
+        "subagents": 0
+      }
+    }
+  ]
+}

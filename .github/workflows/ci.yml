@@ -57,6 +57,8 @@ jobs:
               - *workflow
               - backend/**
               - rust-toolchain.toml
+              # Generated from the Rust wire types; `cargo test` fails when it differs from them.
+              - web/src/lib/api/generated.ts
             web:
               - *workflow
               - web/**

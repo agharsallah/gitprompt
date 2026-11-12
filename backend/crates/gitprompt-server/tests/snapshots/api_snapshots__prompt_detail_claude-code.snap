@@ -1,0 +1,159 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
+---
+{
+  "id": 1,
+  "source": "claude-code",
+  "received_at": "[time]",
+  "prompt": "Write a function to calculate the factorial of a number",
+  "origin": "typed",
+  "typed_text": "Write a function to calculate the factorial of a number",
+  "injected": [],
+  "fields": {
+    "event": "UserPromptSubmit",
+    "prompt": "Write a function to calculate the factorial of a number",
+    "session_id": "abc123",
+    "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+    "cwd": "/work/app",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "permission_mode": "default"
+  },
+  "context": {
+    "tool_version": "2.1.316"
+  },
+  "annotation": {
+    "starred": false,
+    "rating": 0,
+    "tags": [],
+    "note": ""
+  },
+  "stats": {
+    "chars": 55,
+    "words": 10,
+    "lines": 1,
+    "approx_tokens": 14
+  },
+  "summary": {
+    "turn": 1,
+    "ended_by": "Stop",
+    "response": "Done.",
+    "tool_calls": {
+      "Write": 1
+    },
+    "files_written": [
+      "/work/app/f.py"
+    ],
+    "tool_kinds": {
+      "write": 1
+    },
+    "tool_kind_of": {
+      "Write": "write"
+    }
+  },
+  "facts": {
+    "connector": {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "label": "Claude Code",
+      "assistant": "Claude"
+    },
+    "surface": null,
+    "model": null,
+    "models": [],
+    "model_source": null,
+    "tokens": null,
+    "cost_usd": null,
+    "api_requests": 0,
+    "outcome": "done",
+    "permission_mode": "default",
+    "tool_version": "2.1.316",
+    "response_s": "[seconds]",
+    "answered": true,
+    "tool_calls": 1,
+    "tool_failures": 0,
+    "files_written": 1,
+    "git_commits": 0,
+    "subagents": 0
+  },
+  "raw": {
+    "session_id": "abc123",
+    "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+    "transcript_path": "/tmp/transcript.jsonl",
+    "cwd": "/work/app",
+    "permission_mode": "default",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "Write a function to calculate the factorial of a number"
+  },
+  "session": {
+    "events": {
+      "PostToolUse": 1,
+      "Stop": 1
+    },
+    "first_event_at": "[time]",
+    "last_event_at": "[time]"
+  },
+  "commits": {},
+  "events": [
+    {
+      "id": 1,
+      "source": "claude-code",
+      "received_at": "[time]",
+      "event": "PostToolUse",
+      "session_id": "abc123",
+      "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+      "fields": {
+        "event": "PostToolUse",
+        "session_id": "abc123",
+        "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+        "cwd": "/work/app",
+        "transcript_path": "/tmp/transcript.jsonl",
+        "permission_mode": "default",
+        "tool_name": "Write",
+        "tool_use_id": "t1"
+      },
+      "raw": {
+        "session_id": "abc123",
+        "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+        "transcript_path": "/tmp/transcript.jsonl",
+        "cwd": "/work/app",
+        "permission_mode": "default",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "/work/app/f.py"
+        },
+        "tool_response": {
+          "success": true
+        },
+        "tool_use_id": "t1"
+      }
+    },
+    {
+      "id": 2,
+      "source": "claude-code",
+      "received_at": "[time]",
+      "event": "Stop",
+      "session_id": "abc123",
+      "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+      "fields": {
+        "event": "Stop",
+        "session_id": "abc123",
+        "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+        "cwd": "/work/app",
+        "transcript_path": "/tmp/transcript.jsonl",
+        "permission_mode": "default"
+      },
+      "raw": {
+        "session_id": "abc123",
+        "prompt_id": "550e8400-e29b-41d4-a716-446655440000",
+        "transcript_path": "/tmp/transcript.jsonl",
+        "cwd": "/work/app",
+        "permission_mode": "default",
+        "hook_event_name": "Stop",
+        "stop_hook_active": false,
+        "last_assistant_message": "Done."
+      }
+    }
+  ]
+}

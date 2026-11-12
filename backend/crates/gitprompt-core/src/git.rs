@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use fancy_regex::{NoExpand, Regex};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::{Json, JsonMap};
 
@@ -204,7 +205,8 @@ fn last_commit(cwd: &Path) -> JsonMap {
 }
 
 /// One commit, as `commits` and `history` report it.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(rename = "StoryCommit")]
 pub struct Commit {
     pub hash: String,
     pub subject: String,
@@ -220,27 +222,37 @@ pub struct Commit {
 }
 
 /// Commits made after a prompt.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct CommitsAfter {
-    /// Serialized as `{hash, subject, author, time}` only: these commits carry no diffstat (the whole
-    /// range's is in `diffstat`), so their zero counts would be noise on the wire.
+    /// Serialized as [`CommitHeader`]s: these commits carry no diffstat (the whole range's is in
+    /// `diffstat`), so their zero counts would be noise on the wire.
     #[serde(skip_serializing_if = "Vec::is_empty", default, serialize_with = "commit_headers")]
+    #[ts(as = "Vec<CommitHeader>")]
     pub commits: Vec<Commit>,
     /// `git diff --shortstat start end`, when `start` is known and there are commits.
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    #[ts(optional)]
     pub diffstat: Option<String>,
+    /// The end of the range (the next prompt's head, else `HEAD`); empty, and left out, outside a
+    /// repository.
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub until: String,
 }
 
+/// A commit without its diffstat, as [`CommitsAfter`] writes it.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, TS)]
+#[ts(rename = "Commit")]
+pub struct CommitHeader {
+    pub hash: String,
+    pub subject: String,
+    pub author: String,
+    pub time: String,
+}
+
 fn commit_headers<S: serde::Serializer>(commits: &[Commit], serializer: S) -> Result<S::Ok, S::Error> {
-    #[derive(Serialize)]
-    struct Header<'a> {
-        hash: &'a str,
-        subject: &'a str,
-        author: &'a str,
-        time: &'a str,
-    }
-    serializer.collect_seq(commits.iter().map(|c| Header { hash: &c.hash, subject: &c.subject, author: &c.author, time: &c.time }))
+    let header =
+        |c: &Commit| CommitHeader { hash: c.hash.clone(), subject: c.subject.clone(), author: c.author.clone(), time: c.time.clone() };
+    serializer.collect_seq(commits.iter().map(header))
 }
 
 /// `start..end` when the head at prompt time is known, otherwise everything on `end` since `since`

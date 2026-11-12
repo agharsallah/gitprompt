@@ -1,0 +1,5 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/sources/problems\").await"
+---
+[]

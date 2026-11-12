@@ -11,7 +11,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use tokio_util::sync::CancellationToken;
 
 use gitprompt_capture::connection::{self, Connection, StateFacts};
@@ -19,12 +18,12 @@ use gitprompt_capture::pipeline::{CaptureOptions, Captured, GitProbe, Observer, 
 use gitprompt_capture::probe::{self, VersionProbe};
 use gitprompt_capture::rotation;
 use gitprompt_capture::spool::{Spool, drain_into_pipeline};
-use gitprompt_core::git::Commit;
+use gitprompt_core::git::{Commit, CommitsAfter};
 use gitprompt_core::preferences::PreferenceFile;
 use gitprompt_core::spec::{Format, Spec, SpecCache, SpecSet, read_spec_file};
 use gitprompt_core::{Error, Json, JsonMap, Settings, secrets};
 use gitprompt_export::{Context, ExportError, Request, Zone, charts, html, naming};
-use gitprompt_insights::derivations::{self, Derived};
+use gitprompt_insights::derivations::{self, Derived, SessionSummary};
 use gitprompt_insights::facts::{FactRow, attach};
 use gitprompt_insights::indexer::{Indexer, prompt_facts};
 use gitprompt_insights::snippets::{WIDTH, highlight};
@@ -41,8 +40,8 @@ use crate::health::{Health, Monitor, ProcessSampler, Sample};
 use crate::model::{
     Annotation, Backup, CapturedSurface, Catalog, Change, ChartInfo, CompactIn, DataOut, DeleteIn, Enabled, ExportFile, ExportKind,
     ExportQuery, HOURS, Injected, Lineage, ProjectStory, PromptDetail, PromptOut, PromptQuery, RecentCapture, ReportOut, Rotation,
-    SearchResults, SecurityOut, SessionStory, SettingOut, SettingsOut, SettingsSaved, SourceEvents, SourceOut, SpecProblemOut, SpecText,
-    Stats, StatsQuery, Telemetry, Updated,
+    SearchHit, SearchResults, SecurityOut, SessionStory, SettingOut, SettingsOut, SettingsSaved, SourceEvents, SourceOut, SpecProblemOut,
+    SpecText, Stats, StatsQuery, Telemetry, Updated,
 };
 use crate::options::{AppOptions, GitProvider, ToolVersionProbe};
 use crate::query::iso;
@@ -245,21 +244,10 @@ fn export_error(error: ExportError) -> ApiError {
     }
 }
 
-fn to_json(value: &impl Serialize) -> ApiResult<Json> {
-    Ok(serde_json::to_value(value).map_err(Error::from)?)
-}
-
-fn to_map(value: &impl Serialize) -> ApiResult<JsonMap> {
-    Ok(match to_json(value)? {
-        Json::Object(map) => map,
-        _ => JsonMap::new(),
-    })
-}
-
 /// A prompt as the list shows it, from its derivations and facts.
-fn prompt_out(derived: &Derived, spec: Option<&Spec>, outcome: Option<gitprompt_store::Outcome>) -> ApiResult<PromptOut> {
+fn prompt_out(derived: &Derived, spec: Option<&Spec>, outcome: Option<gitprompt_store::Outcome>) -> PromptOut {
     let row = &derived.prompt.row;
-    Ok(PromptOut {
+    PromptOut {
         id: row.id,
         source: row.source.clone(),
         received_at: row.received_at.clone(),
@@ -270,10 +258,10 @@ fn prompt_out(derived: &Derived, spec: Option<&Spec>, outcome: Option<gitprompt_
         fields: row.fields.clone(),
         context: row.context.clone(),
         annotation: derived.prompt.annotation.clone().into(),
-        stats: to_map(&derived.stats)?,
-        summary: to_map(&derived.summary)?,
-        facts: prompt_facts(derived, spec, outcome).into(),
-    })
+        stats: derived.stats.clone(),
+        summary: derived.summary.clone(),
+        facts: prompt_facts(derived, spec, outcome),
+    }
 }
 
 /// The id a prompt's turn events carry.
@@ -465,13 +453,14 @@ impl Service {
                 }
             }
             let outcomes = store.outcomes(&rows.iter().map(|r| r.row.id).collect::<Vec<_>>())?;
-            rows.iter()
+            Ok(rows
+                .iter()
                 .map(|row| {
                     let spec = set.get(&row.row.source).map(AsRef::as_ref);
                     let turn = turn_id(row).and_then(|pid| events.get(&pid)).map_or(&[][..], Vec::as_slice);
                     prompt_out(&derivations::derive(row, turn, spec), spec, outcomes.get(&row.row.id).copied())
                 })
-                .collect()
+                .collect())
         })
         .await
     }
@@ -487,12 +476,12 @@ impl Service {
             };
             let spec = set.get(&row.row.source).map(AsRef::as_ref);
             let outcome = store.outcomes(&[id])?.get(&id).copied();
-            let prompt = prompt_out(&derivations::derive(&row, &events, spec), spec, outcome)?;
+            let prompt = prompt_out(&derivations::derive(&row, &events, spec), spec, outcome);
             let session = match row.row.fields.get("session_id").and_then(Json::as_str) {
-                Some(sid) if !sid.is_empty() => to_map(&derivations::session(&store.events_for_session(sid)?))?,
-                _ => JsonMap::new(),
+                Some(sid) if !sid.is_empty() => derivations::session(&store.events_for_session(sid)?),
+                _ => SessionSummary::default(),
             };
-            let commits = commits_after(inner, &row)?;
+            let commits = commits_after(inner, &row);
             Ok(PromptDetail { prompt, raw: row.row.raw.clone(), session, commits, events })
         })
         .await
@@ -729,7 +718,7 @@ impl Service {
     pub async fn fields(&self) -> ApiResult<Catalog> {
         self.run(|inner| {
             let set = inner.spec_set();
-            to_json(&catalog::build_catalog(&inner.store.samples(SAMPLES)?, set.specs.values().map(AsRef::as_ref)))
+            Ok(catalog::build_catalog(&inner.store.samples(SAMPLES)?, set.specs.values().map(AsRef::as_ref)))
         })
         .await
     }
@@ -842,7 +831,7 @@ impl Service {
                 kinds: spec.map_or(&none_kinds, |s| &s.tool_kinds),
                 tool_files: spec.map_or(&none_files, |s| &s.tool_files),
             };
-            to_json(&stories::session_story(&session, &rows, tools, &commits))
+            Ok(stories::session_story(&session, &rows, tools, &commits))
         })
         .await
     }
@@ -863,7 +852,7 @@ impl Service {
             let system = total - i64::try_from(rows.len()).unwrap_or(i64::MAX);
             let commits = inner.log(&rows);
             let tool_kinds = inner.store.tool_kinds(&rows.iter().map(|r| r.prompt.row.id).collect::<Vec<_>>())?;
-            to_json(&stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
+            Ok(stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
         })
         .await
     }
@@ -875,7 +864,7 @@ impl Service {
             let target = attach(vec![target], &set.specs).pop().ok_or_else(|| Error::NotFound("prompt not found".into()))?;
             let filter = PromptFilter { origin: USER_ORIGINS.to_vec(), ..PromptFilter::default() };
             let candidates = inner.timeline(&set, &filter, Some(LINEAGE_CANDIDATES), true)?;
-            to_json(&stories::prompt_lineage(&target, &candidates))
+            Ok(stories::prompt_lineage(&target, &candidates))
         })
         .await
     }
@@ -891,19 +880,19 @@ impl Service {
                 .iter()
                 .map(|r| {
                     let row = &r.prompt.row;
-                    json!({
-                        "id": row.id,
-                        "received_at": row.received_at,
-                        "session": row.session,
-                        "title": row.title,
-                        "project": stories::project_of(std::slice::from_ref(r)),
-                        "branch": row.branch,
-                        "origin": row.origin,
-                        "outcome": r.prompt.outcome,
-                        "cost_usd": row.usage.cost_usd,
-                        "facts": r.facts,
-                        "snippet": highlight(row.typed_text.as_deref(), query.filter.q.as_deref(), WIDTH),
-                    })
+                    SearchHit {
+                        id: row.id,
+                        received_at: row.received_at.clone(),
+                        session: row.session.clone(),
+                        title: row.title.clone(),
+                        project: stories::project_of(std::slice::from_ref(r)),
+                        branch: row.branch.clone(),
+                        origin: row.origin.clone(),
+                        outcome: r.prompt.outcome,
+                        cost_usd: row.usage.cost_usd,
+                        facts: r.facts.clone(),
+                        snippet: highlight(row.typed_text.as_deref(), query.filter.q.as_deref(), WIDTH),
+                    }
                 })
                 .collect();
             Ok(SearchResults { total: u64::try_from(total).unwrap_or(0), hits })
@@ -994,13 +983,13 @@ impl Service {
     }
 }
 
-/// Commits made in the prompt's checkout until the next prompt of the session (or now); `{}`
-/// outside a repository.
-fn commits_after(inner: &Inner, row: &PromptView) -> ApiResult<JsonMap> {
+/// Commits made in the prompt's checkout until the next prompt of the session (or now); empty
+/// (`{}` on the wire) outside a repository.
+fn commits_after(inner: &Inner, row: &PromptView) -> CommitsAfter {
     let context = &row.row.context;
     let text = |key: &str| context.get(key).and_then(Json::as_str).filter(|v| !v.is_empty());
-    let Some(root) = text("git_root") else { return Ok(JsonMap::new()) };
+    let Some(root) = text("git_root") else { return CommitsAfter::default() };
     let checkout = text("git_worktree_root").unwrap_or(root); // a worktree has its own HEAD
     let end = row.next_head.as_deref().unwrap_or("HEAD");
-    to_map(&inner.options.git.commits(Path::new(checkout), text("git_head"), end, &row.row.received_at))
+    inner.options.git.commits(Path::new(checkout), text("git_head"), end, &row.row.received_at)
 }

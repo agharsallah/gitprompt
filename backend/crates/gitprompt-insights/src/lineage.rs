@@ -4,6 +4,7 @@
 use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use gitprompt_store::Outcome;
 
@@ -90,8 +91,9 @@ pub fn is_version(a: &str, b: &str) -> bool {
 }
 
 /// A run of a word diff.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(rename = "DiffOpKind")]
 pub enum Op {
     Equal,
     Delete,
@@ -155,8 +157,9 @@ fn tokens(text: &str) -> Vec<&str> {
 }
 
 /// From one version's outcome to the next.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "lowercase")]
+#[ts(rename = "OutcomeChange")]
 pub enum Change {
     Improved,
     Worse,

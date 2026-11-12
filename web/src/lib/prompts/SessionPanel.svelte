@@ -2,7 +2,14 @@
 	import { FileText, FolderInput, Settings2 } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import type { PromptDetail } from '#lib/api/types.ts';
-	import { duration, humanize, integer, plural, relativePath } from '#lib/shared/format.ts';
+	import {
+		duration,
+		humanize,
+		integer,
+		plural,
+		present,
+		relativePath
+	} from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import KeyValue from '#lib/ui/KeyValue.svelte';
@@ -53,8 +60,8 @@
 	const lists = $derived(
 		[
 			{ label: 'Instruction files loaded', items: s.instructions_loaded ?? [], icon: FileText },
-			{ label: 'Directory changes', items: s.cwd_changes ?? [], icon: FolderInput },
-			{ label: 'Config changes', items: s.config_changes ?? [], icon: Settings2 }
+			{ label: 'Directory changes', items: present(s.cwd_changes), icon: FolderInput },
+			{ label: 'Config changes', items: present(s.config_changes), icon: Settings2 }
 		].filter((l) => l.items.length)
 	);
 </script>

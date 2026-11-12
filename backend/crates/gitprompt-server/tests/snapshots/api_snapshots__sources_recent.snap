@@ -1,0 +1,98 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/sources/recent\").await"
+---
+[
+  {
+    "id": 15,
+    "connector": {
+      "id": "cursor",
+      "name": "Cursor",
+      "label": "Cursor",
+      "assistant": "Cursor"
+    },
+    "surface": null,
+    "received_at": "[time]",
+    "session": "5f0c1a2e-0000-4000-8000-00000000c001",
+    "title": null,
+    "project": {
+      "repo": "/work/notes",
+      "name": "notes"
+    },
+    "branch": null,
+    "worktree": null,
+    "model": "claude-sonnet-5",
+    "origin": "typed",
+    "prompts": 3,
+    "signals": {}
+  },
+  {
+    "id": 12,
+    "connector": {
+      "id": "copilot-cli",
+      "name": "GitHub Copilot CLI",
+      "label": "Copilot CLI",
+      "assistant": "Copilot"
+    },
+    "surface": null,
+    "received_at": "[time]",
+    "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "title": null,
+    "project": {
+      "repo": "/work/app",
+      "name": "app"
+    },
+    "branch": null,
+    "worktree": null,
+    "model": null,
+    "origin": "subagent",
+    "prompts": 3,
+    "signals": {}
+  },
+  {
+    "id": 9,
+    "connector": {
+      "id": "codex",
+      "name": "OpenAI Codex CLI",
+      "label": "Codex",
+      "assistant": "Codex"
+    },
+    "surface": null,
+    "received_at": "[time]",
+    "session": "0190a1b2-0000-7000-8000-000000000001",
+    "title": null,
+    "project": {
+      "repo": "/work/app",
+      "name": "app"
+    },
+    "branch": null,
+    "worktree": null,
+    "model": "gpt-5-codex",
+    "origin": "typed",
+    "prompts": 3,
+    "signals": {}
+  },
+  {
+    "id": 6,
+    "connector": {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "label": "Claude Code",
+      "assistant": "Claude"
+    },
+    "surface": null,
+    "received_at": "[time]",
+    "session": "abc123",
+    "title": null,
+    "project": {
+      "repo": "/work/app",
+      "name": "app"
+    },
+    "branch": null,
+    "worktree": null,
+    "model": null,
+    "origin": "task_notification",
+    "prompts": 6,
+    "signals": {}
+  }
+]

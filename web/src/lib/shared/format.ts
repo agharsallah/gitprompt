@@ -48,6 +48,10 @@ export function count(value: unknown): number {
 	return Object.values(value).reduce((sum: number, n) => sum + (toNumber(n) ?? 0), 0);
 }
 
+/** The items that are there: a list the daemon may pad with nulls (an event without the value). */
+export const present = <T>(items: readonly (T | null)[] | undefined): T[] =>
+	(items ?? []).filter((item): item is T => item != null);
+
 /** One-line rendering of any JSON value. */
 export const inline = (value: unknown): string =>
 	typeof value === 'string' ? value : (JSON.stringify(value) ?? String(value));
