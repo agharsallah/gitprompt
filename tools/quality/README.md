@@ -3,13 +3,14 @@
 One page for every quality report on the backend and the web dashboard.
 
 ```bash
-just quality                  # opens the dashboard at once, then builds every report while it fills in
+just quality                  # opens the dashboard at once, then builds every report whose inputs changed
 just quality web              # one area            just quality backend/lint   one report
 just quality lint             # a report name, in every area (backend/lint and web/lint)
 just quality --view           # open the dashboard as last built, build nothing
 just quality --list           # areas and reports
 just quality --no-open ...    # build without opening a browser (CI, scripts)
 just quality --jobs=1 ...     # reports at once (default: half the cores, at most 4)
+just quality --force ...      # rebuild reports whose inputs did not change too
 ```
 
 The dashboard is `target/quality/index.html` (git-ignored). It works straight from disk, no server:
@@ -20,6 +21,21 @@ files done), its last output lines, its time against the last run, what it waits
 result as it lands. The terminal shows the same in a live block, one line per running report. A
 failed report does not stop the others (exit status 1 at the end); its page keeps the previous
 result under the error, with a link to its log (`target/quality/logs/`).
+
+## Only what changed
+
+A report whose inputs did not change since its last successful run keeps its result: the build
+marks it up to date (`=`) instead of running it, so after a web-only change only the web reports
+run, and with nothing changed `just quality` takes a second. `--force` rebuilds anyway (to measure
+the benchmark again on a quieter machine, say); a failed report always runs again.
+
+A report's inputs (`lib/fingerprint.mjs`) are its area's (`areas.mjs`: `backend/` and the API types
+file it is checked against; `web/`), its own `inputs` (Lighthouse adds `backend/` and the demo
+data), its file, the dashboard's code (`lib/`, `areas.mjs`) and the `justfile`. They are hashed by
+path and content as in the working tree (git's content ids, so staging or committing never changes
+the hash, only an edit does); ignored files (`target/`, `node_modules/`, build output) never count. Things
+outside the repository (a new Rust toolchain, an updated global tool) do not count either: use
+`--force` after one.
 
 ## Side by side
 
@@ -59,7 +75,8 @@ configs the gate uses (`rules.rs`, `clippy.toml`, `eslint.config.js`), so the pa
 disagree.
 
 The full run takes a few minutes (coverage, a release build for the benchmark, Lighthouse); `just
-quality <report>` refreshes one in seconds to minutes and keeps the others.
+quality <report>` refreshes one in seconds to minutes and keeps the others. Unchanged reports are
+kept as they are (above).
 
 ## How it is built
 
@@ -68,7 +85,8 @@ tools/quality/
   quality.mjs            the command: selection, then the runner
   areas.mjs              the areas (Backend, Web): one line each
   lib/
-    registry.mjs         finds reports/<area>/NN-<name>.mjs; id <area>/<name>
+    registry.mjs         finds reports/<area>/NN-<name>.mjs; id <area>/<name>; its inputs
+    fingerprint.mjs      hashes a report's inputs: is its last result still up to date?
     scheduler.mjs        which report runs when: places, `after`, longest first, measurements alone
     runner.mjs           runs them through the scheduler, writes progress and results as it goes
     context.mjs          what a report gets: exec (logged, live), step, once, alone, cleanup, readJson
@@ -122,6 +140,8 @@ export default {
   `dataOnStdout` keeps JSON a report parses out of the live view. Commands of one report may run
   together (`Promise.all`) when they do not depend on each other.
 - `after: ['backend/tests']` (next to `title`) waits for those reports when they are in the build.
+- `inputs: ['tools/seed-demo.py']` (next to `title`): files or folders outside its area its result
+  depends on; the area's own come with it.
 - `ctx.alone(reason, fn)` runs `fn` once every other report is done, with nothing else running:
   for timings. Build everything `fn` needs before calling it.
 - `ctx.step(text)` shows what the report is doing; `ctx.artifacts` is its own folder for files;

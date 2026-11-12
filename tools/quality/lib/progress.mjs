@@ -4,11 +4,20 @@
 const TTY = process.stdout.isTTY;
 const FRAMES = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏';
 const paint = (code, text) => (TTY ? `\x1b[${code}m${text}\x1b[0m` : text);
-const MARKS = { done: paint(32, '✓'), failed: paint(31, '✗'), skipped: paint(90, '–') };
+const MARKS = { done: paint(32, '✓'), failed: paint(31, '✗'), skipped: paint(90, '–'), fresh: paint(90, '=') };
 
 export function duration(msTotal) {
 	const seconds = Math.round(msTotal / 1000);
 	return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${String(seconds % 60).padStart(2, '0')}s`;
+}
+
+/** `just now`, `12 min ago`, `3 h ago`, `2 days ago`. */
+export function ago(timestamp) {
+	const minutes = Math.round((Date.now() - timestamp) / 60_000);
+	if (minutes < 1) return 'just now';
+	if (minutes < 60) return `${minutes} min ago`;
+	const hours = Math.round(minutes / 60);
+	return hours < 36 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`;
 }
 
 /** `1m12s / ~3m27s`: elapsed, and the last duration when there is one. */
@@ -23,13 +32,21 @@ export function doing(step) {
 	return [step.detail, step.activity].filter(Boolean).join(' · ');
 }
 
-/** Observes build.steps (runner.mjs) until stop(); finished(step, result) prints a result line. */
+/**
+ * Observes build.steps (runner.mjs) until stop(); finished(step, result) prints a result line,
+ * kept(step, record) the line of a report kept as it was (its inputs did not change).
+ */
 export function createProgress(build, width) {
 	const total = build.steps.length;
 	let done = 0;
 	const prefix = () => `[${String(done).padStart(String(total).length)}/${total}]`;
 	const view = TTY ? liveBlock(build, width) : plainLines(build, width);
 	return {
+		kept(step, record) {
+			done += 1;
+			const headline = record.headline ? `${record.headline.value} ${record.headline.label}` : '';
+			view.print(`  ${MARKS.fresh} ${prefix()} ${step.id.padEnd(width)}  ${headline}  ${paint(90, `up to date, built ${ago(record.generated_at)}`)}`);
+		},
 		finished(step, result) {
 			done += 1;
 			const line = `  ${MARKS[step.state]} ${prefix()} ${step.id.padEnd(width)}  ${result.line}  ${paint(90, duration(step.finished_at - step.started_at))}`;

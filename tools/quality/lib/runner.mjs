@@ -1,15 +1,17 @@
 // Runs the selected reports side by side (scheduler.mjs). Every change (report started, step,
 // output line, finished) reaches status.js within a moment, so an open dashboard shows the build
 // as it goes; each finished report's page lands in data/. A failed or skipped report never stops
-// the others.
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+// the others. A report whose inputs did not change since its last success keeps its result
+// (fingerprint.mjs), unless `force`.
+import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { createContext, missing } from './context.mjs';
-import { PATHS, OUT, fromRepo } from './paths.mjs';
+import { fingerprints, upToDate } from './fingerprint.mjs';
+import { PATHS, OUT, REPO, fromRepo } from './paths.mjs';
 import { createProgress, duration } from './progress.mjs';
 import { gate, schedule } from './scheduler.mjs';
-import { loadState, writeData, writeStatus } from './status.mjs';
+import { dataPath, loadState, writeData, writeStatus } from './status.mjs';
 
 /** Output lines kept per running report for the dashboard. */
 const TAIL_LINES = 14;
@@ -27,16 +29,18 @@ export async function installHub() {
 	await writeFile(PATHS.index, page.replace(/(src|href)="([\w-]+\.(?:js|css))"/g, `$1="$2?v=${Date.now()}"`));
 }
 
-/** Resolves true when every selected report succeeded (skipped ones count as fine). */
-export async function run(all, selected, { jobs, onStarted } = {}) {
+/** Resolves true when every selected report succeeded (skipped and up-to-date ones count as fine). */
+export async function run(all, selected, { jobs, force = false, onStarted } = {}) {
 	await installHub();
 	const state = await loadState();
 	const expected = (report) => state.reports[report.id]?.work_ms ?? state.reports[report.id]?.duration_ms;
+	const hashes = await fingerprints(REPO, selected, (report) => report.inputs);
+	const kept = force ? new Set() : await upToDate(selected, state.reports, hashes, hasPage);
 	const build = {
 		started_at: Date.now(),
 		running: true,
 		jobs,
-		steps: selected.map((report) => ({ id: report.id, state: 'queued', expected_ms: expected(report) }))
+		steps: selected.map((report) => (kept.has(report.id) ? { id: report.id, state: 'fresh', built_at: state.reports[report.id].generated_at } : { id: report.id, state: 'queued', expected_ms: expected(report) }))
 	};
 	const stepOf = (report) => build.steps.find((step) => step.id === report.id);
 	// Measurements wait until nothing else is left: no report running except those waiting to
@@ -65,8 +69,9 @@ export async function run(all, selected, { jobs, onStarted } = {}) {
 		process.exit(130);
 	};
 	process.once('SIGINT', interrupted);
+	for (const step of build.steps.filter((s) => s.state === 'fresh')) progress.kept(step, state.reports[step.id]);
 
-	await schedule(selected, {
+	await schedule(selected.filter((report) => !kept.has(report.id)), {
 		jobs,
 		expected,
 		onWaiting: (report, ids) => {
@@ -81,7 +86,9 @@ export async function run(all, selected, { jobs, onStarted } = {}) {
 				const result = await runOne(report, { build: shared, slots, live: liveView(step, save, shared.gate) });
 				Object.assign(step, { state: result.state, finished_at: Date.now(), message: result.message });
 				for (const key of ['detail', 'activity', 'tail', 'waiting', 'measuring']) delete step[key];
-				state.reports[report.id] = { ...state.reports[report.id], ...result.record };
+				// The inputs hashed when the build started: a file edited meanwhile makes the next build run it again.
+				const inputs = result.state === 'done' ? { inputs: hashes[report.id] } : {};
+				state.reports[report.id] = { ...state.reports[report.id], ...result.record, ...inputs };
 				save.now();
 				progress.finished(step, result);
 			} finally {
@@ -133,14 +140,23 @@ function finish(build) {
 	build.finished_at = Date.now();
 }
 
-/** `9 of 11 reports built in 5m12s (12m40s of work, 4 at a time), 2 failed` */
+/** `9 of 10 reports built in 5m12s (12m40s of work, 4 at a time), 1 failed; 1 up to date …` */
 function summary(build) {
-	const total = build.steps.length;
+	const fresh = build.steps.filter((s) => s.state === 'fresh').length;
+	const total = build.steps.length - fresh;
+	if (total === 0) return 'every report is up to date: no input changed since its last build (--force rebuilds them)';
+	const kept = fresh ? `; ${fresh} up to date (inputs unchanged; --force rebuilds them)` : '';
 	const failed = build.steps.filter((s) => s.state === 'failed').length;
 	const work = build.steps.reduce((sum, s) => sum + (s.finished_at && s.started_at ? s.finished_at - s.started_at : 0), 0);
 	const parallel = build.jobs > 1 && total > 1 ? ` (${duration(work)} of work, ${build.jobs} at a time)` : '';
-	return `${total - failed} of ${total} reports built in ${duration(build.finished_at - build.started_at)}${parallel}${failed ? `, ${failed} failed` : ''}`;
+	return `${total - failed} of ${total} reports built in ${duration(build.finished_at - build.started_at)}${parallel}${failed ? `, ${failed} failed` : ''}${kept}`;
 }
+
+const hasPage = (report) =>
+	stat(dataPath(report)).then(
+		() => true,
+		() => false
+	);
 
 /** fn() at most every `ms` (the last call always lands); fn.now() at once. */
 function throttled(fn, ms) {

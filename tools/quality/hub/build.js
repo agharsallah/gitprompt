@@ -5,7 +5,7 @@
 
 (function () {
 	const { h, ago, duration } = window.Q;
-	const ICONS = { queued: '○', running: '', done: '✓', failed: '✕', skipped: '–' };
+	const ICONS = { queued: '○', running: '', done: '✓', failed: '✕', skipped: '–', fresh: '=' };
 	/**
 	 * Folds the reader opened or closed, by key: the page redraws every second and they stay as the
 	 * reader left them. (A fold created open fires `toggle` too: only a change from how it was drawn counts.)
@@ -49,6 +49,7 @@
 		if (step.state === 'running') return step.waiting || step.detail || '';
 		if (step.state === 'queued') return step.waiting ? `queued · ${step.waiting}` : 'queued';
 		if (step.state === 'done') return `${report?.headline?.value ?? ''} ${report?.headline?.label ?? ''}`;
+		if (step.state === 'fresh') return `${report?.headline?.value ?? ''} ${report?.headline?.label ?? ''} · up to date, built ${ago(step.built_at)}`;
 		return (step.message || '').split('\n')[0];
 	}
 
@@ -78,14 +79,18 @@
 	}
 
 	function head(build) {
-		const total = build.steps.length;
+		const fresh = build.steps.filter((s) => s.state === 'fresh').length;
+		const total = build.steps.length - fresh;
+		const kept = fresh ? ` · ${fresh} up to date` : '';
 		const failed = build.steps.filter((s) => s.state === 'failed').length;
 		if (build.running) {
 			const queued = build.steps.filter((s) => s.state === 'queued').length;
-			return [h('b', {}, `Building ${finishedCount(build)} of ${total}`), h('span', { class: 'muted' }, `${runningCount(build)} running · ${queued} queued · up to ${build.jobs || 1} at a time · `, clock(build.started_at))];
+			return [h('b', {}, `Building ${finishedCount(build) - fresh} of ${total}`), h('span', { class: 'muted' }, `${runningCount(build)} running · ${queued} queued${kept} · up to ${build.jobs || 1} at a time · `, clock(build.started_at))];
 		}
-		const saved = build.jobs > 1 ? ` · ${duration(work(build))} of work, ${build.jobs} at a time` : '';
-		return [h('b', {}, failed ? `Last build: ${failed} of ${total} failed` : `Last build: ${total} ${total === 1 ? 'report' : 'reports'} built`), h('span', { class: 'muted' }, `${ago(build.finished_at)} · took ${duration(build.finished_at - build.started_at)}${saved}`)];
+		if (total === 0) return [h('b', {}, 'Last build: every report up to date'), h('span', { class: 'muted' }, `${ago(build.finished_at)} · no input changed since their last build`)];
+		const saved = build.jobs > 1 && total > 1 ? ` · ${duration(work(build))} of work, ${build.jobs} at a time` : '';
+		const built = failed ? `Last build: ${failed} of ${total} failed` : `Last build: ${total} ${total === 1 ? 'report' : 'reports'} built`;
+		return [h('b', {}, built + kept), h('span', { class: 'muted' }, `${ago(build.finished_at)} · took ${duration(build.finished_at - build.started_at)}${saved}`)];
 	}
 
 	/** lookup: { reportById, areaOf }. Running reports first, then queued, then finished. */

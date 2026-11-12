@@ -8,6 +8,7 @@
 //   just quality --list             the areas and reports
 //   just quality --no-open ...      build without opening a browser (CI, scripts)
 //   just quality --jobs=1 ...       reports at once (default: half the cores, at most 4)
+//   just quality --force ...        rebuild reports whose inputs did not change too
 //
 // Adding a report: tools/quality/README.md.
 import { spawn } from 'node:child_process';
@@ -23,7 +24,7 @@ const args = process.argv.slice(2);
 const options = args.filter((arg) => arg.startsWith('--'));
 const flags = new Set(options.filter((arg) => !arg.includes('=')));
 const selectors = args.filter((arg) => !arg.startsWith('--'));
-const known = new Set(['--view', '--list', '--no-open']);
+const known = new Set(['--view', '--list', '--no-open', '--force']);
 const unknown = options.filter((option) => !known.has(option) && !option.startsWith('--jobs='));
 if (unknown.length > 0) fail(`unknown option ${unknown.join(', ')} (options: ${[...known, '--jobs=N'].join(', ')})`);
 const jobs = jobsOption(options.find((option) => option.startsWith('--jobs=')));
@@ -54,7 +55,7 @@ try {
 
 const atOnce = Math.min(jobs, selected.length);
 console.log(`\n  GitPrompt quality · ${selected.length} of ${reports.length} reports, ${atOnce} at a time · ${fromRepo(PATHS.index)}\n`);
-const ok = await run(reports, selected, { jobs: atOnce, onStarted: () => flags.has('--no-open') || openPage(PATHS.index) });
+const ok = await run(reports, selected, { jobs: atOnce, force: flags.has('--force'), onStarted: () => flags.has('--no-open') || openPage(PATHS.index) });
 process.exit(ok ? 0 : 1);
 
 function openPage(path) {

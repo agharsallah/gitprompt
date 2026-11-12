@@ -29,6 +29,8 @@ export default {
 		{ command: 'pnpm', install: 'https://pnpm.io/installation' },
 		{ command: 'cargo', install: 'https://rustup.rs' }
 	],
+	/** The daemon that serves the pages, and the demo data it serves. */
+	inputs: ['backend', 'tools/seed-demo.py'],
 	async run(ctx) {
 		const { url } = await demoDaemon(ctx);
 		// Scores on a machine busy with other reports would measure them, not the dashboard.
