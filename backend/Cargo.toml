@@ -107,6 +107,15 @@ or_fun_call = "warn"                    # unwrap_or(f()) builds the value even w
 # (2026-11): thin LTO 14.6 / 21.2 MB → + strip symbols 12.5 / 17.7 MB → + fat LTO 11.7 / 16.7 MB,
 # at ~1.5 min more release build time. `panic` stays "unwind" on purpose: a panicking request
 # handler or tokio task must not take the whole daemon down.
+# Debug builds keep line tables (readable backtraces) but not full debug info, which made up most
+# of backend/target (tens of GB). Dependencies get none. Set `debug = true` locally to step through
+# variables in a debugger. Stale builds are also pruned by `just target-guard` (justfile).
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 lto = "fat"
 codegen-units = 1

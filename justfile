@@ -15,6 +15,8 @@ default:
 # scripts write absolute paths into it: after the checkout is moved or renamed (e.g. rust/ ->
 # backend/) a build fails on files under the old path. Every Cargo recipe runs this first; it
 # remembers where backend/target was built and starts clean when that changes.
+# Cargo also never deletes outdated builds, so backend/target only grows (it reached 60 GB): the
+# guard cleans it once it is over GITPROMPT_TARGET_MAX_GB (default 20).
 [private]
 target-guard:
     #!/usr/bin/env bash
@@ -25,7 +27,19 @@ target-guard:
         echo "backend/ moved from $(cat "$stamp"): cleaning backend/target (cached absolute paths)"
         (cd backend && cargo clean)
     fi
+    max_gb="${GITPROMPT_TARGET_MAX_GB:-20}"
+    if [ -d backend/target ]; then
+        size_gb=$(( $(du -sk backend/target | cut -f1) / 1024 / 1024 ))
+        if [ "$size_gb" -ge "$max_gb" ]; then
+            echo "backend/target is ${size_gb} GB (limit ${max_gb} GB): cleaning stale builds"
+            (cd backend && cargo clean)
+        fi
+    fi
     mkdir -p backend/target && printf '%s' "$here" > "$stamp"
+
+# Delete the Rust build cache (backend/target)
+clean:
+    cd backend && cargo clean
 
 # Install the web dependencies and fetch the Rust crates
 setup: target-guard
