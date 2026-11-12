@@ -193,7 +193,22 @@ pub fn capture_at(
     observer: &Observer<'_>,
     received_at: Option<Timestamp>,
 ) -> Result<Captured> {
-    capture_then(spec, store, body, options, observer, received_at, |_, _| Ok(()))
+    capture_then(spec, store, Arrival { body, received_at }, options, observer, |_, _| Ok(()))
+}
+
+/// A request body as it reached GitPrompt.
+#[derive(Clone, Copy, Debug)]
+pub struct Arrival<'a> {
+    pub body: &'a Json,
+    /// When its rows count as received; `None` = now (a replayed spool payload keeps its time).
+    pub received_at: Option<Timestamp>,
+}
+
+impl<'a> Arrival<'a> {
+    /// `body`, received now.
+    pub fn now(body: &'a Json) -> Self {
+        Arrival { body, received_at: None }
+    }
 }
 
 /// [`capture_at`], then `then` with what was stored, in the same transaction (not called when no
@@ -203,20 +218,20 @@ pub fn capture_at(
 pub fn capture_then(
     spec: &Spec,
     store: &Store,
-    body: &Json,
+    arrival: Arrival<'_>,
     options: CaptureOptions,
     observer: &Observer<'_>,
-    received_at: Option<Timestamp>,
     then: impl FnOnce(&Store, &Captured) -> Result<()>,
 ) -> Result<Captured> {
     if !options.enabled {
         return Ok(Captured::default());
     }
-    let rows: Vec<NewRow> = decode(spec.format, body).into_iter().filter_map(|payload| prepare(spec, payload, options, observer)).collect();
+    let rows: Vec<NewRow> =
+        decode(spec.format, arrival.body).into_iter().filter_map(|payload| prepare(spec, payload, options, observer)).collect();
     if rows.is_empty() {
         return Ok(Captured::default());
     }
-    let received_at = received_at.map(iso);
+    let received_at = arrival.received_at.map(iso);
     store.transaction(|store| {
         let mut captured = Captured::default();
         for row in rows {

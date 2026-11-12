@@ -36,44 +36,50 @@ pub fn version_of(output: &str) -> Option<String> {
     dotted_number(output).or_else(|| output.split_whitespace().next().map(str::to_owned))
 }
 
-/// The leftmost `\d+(\.\d+)+([-+][\w.]+)?` of `text`, trailing dots removed.
+/// The leftmost `\d+(\.\d+)+([-+][\w.]+)?` of `text`, trailing dots removed: the first place a
+/// [`version_at`] starts.
 fn dotted_number(text: &str) -> Option<String> {
-    let chars: Vec<(usize, char)> = text.char_indices().collect();
-    let is_digit = |i: usize| chars.get(i).is_some_and(|(_, c)| c.is_ascii_digit());
-    let is_word = |i: usize| chars.get(i).is_some_and(|(_, c)| c.is_alphanumeric() || *c == '_' || *c == '.');
-    let at = |i: usize| chars.get(i).map(|(_, c)| *c);
-    let mut start = 0;
-    while start < chars.len() {
-        if !is_digit(start) {
-            start += 1;
-            continue;
-        }
-        let mut end = start;
-        while is_digit(end) {
-            end += 1;
-        }
-        // A run of digits starts a version only when a `.<digit>` follows it.
-        if !(at(end) == Some('.') && is_digit(end + 1)) {
-            start = end;
-            continue;
-        }
-        while at(end) == Some('.') && is_digit(end + 1) {
-            end += 1;
-            while is_digit(end) {
-                end += 1;
-            }
-        }
-        if matches!(at(end), Some('-' | '+')) && is_word(end + 1) {
-            end += 1;
-            while is_word(end) {
-                end += 1;
-            }
-        }
-        let byte_end = chars.get(end).map_or(text.len(), |(i, _)| *i);
-        let byte_start = chars.get(start)?.0;
-        return Some(text.get(byte_start..byte_end)?.trim_end_matches('.').to_owned());
+    let version = text.char_indices().find_map(|(at, _)| text.get(at..).and_then(version_at))?;
+    Some(version.trim_end_matches('.').to_owned())
+}
+
+/// The version `text` starts with: a dotted release (`\d+(\.\d+)+`), then an optional suffix
+/// (`[-+][\w.]+`).
+fn version_at(text: &str) -> Option<&str> {
+    let release = dotted_len(text)?;
+    let suffix = text.get(release..).map_or(0, suffix_len);
+    text.get(..release + suffix)
+}
+
+/// The length of the `\d+(\.\d+)+` `text` starts with; `None` without one (a lone number isn't).
+fn dotted_len(text: &str) -> Option<usize> {
+    let first = digits_len(text);
+    if first == 0 {
+        return None;
     }
-    None
+    let mut len = first;
+    while let Some(part) = text.get(len..).and_then(dot_part_len) {
+        len += part;
+    }
+    (len > first).then_some(len)
+}
+
+/// The length of the `\.\d+` `text` starts with.
+fn dot_part_len(text: &str) -> Option<usize> {
+    let digits = digits_len(text.strip_prefix('.')?);
+    (digits > 0).then_some(1 + digits)
+}
+
+/// The length of the `[-+][\w.]+` `text` starts with; 0 without one.
+fn suffix_len(text: &str) -> usize {
+    let Some(rest) = text.strip_prefix(['-', '+']) else { return 0 };
+    let word: usize = rest.chars().take_while(|c| c.is_alphanumeric() || matches!(c, '_' | '.')).map(char::len_utf8).sum();
+    if word == 0 { 0 } else { 1 + word }
+}
+
+/// How many ASCII digits `text` starts with.
+fn digits_len(text: &str) -> usize {
+    text.bytes().take_while(u8::is_ascii_digit).count()
 }
 
 /// The numeric release parts of a version (`0.164.0-alpha.2` -> `[0, 164, 0]`), ignoring `-pre`
@@ -424,6 +430,14 @@ mod tests {
     fn a_number_without_a_dot_is_not_a_version() {
         assert_eq!(version_of("build 42 of 1.5").as_deref(), Some("1.5"));
         assert_eq!(version_of("42").as_deref(), Some("42"));
+    }
+
+    #[test]
+    fn the_leftmost_dotted_number_wins_after_any_text() {
+        assert_eq!(version_of("é 12.3 then 4.5").as_deref(), Some("12.3"));
+        assert_eq!(version_of("v1..2 3.4").as_deref(), Some("3.4"));
+        assert_eq!(version_of("x1.2-rc.1. done").as_deref(), Some("1.2-rc.1"));
+        assert_eq!(version_of("1.2-é_ü+x").as_deref(), Some("1.2-é_ü"));
     }
 
     #[test]

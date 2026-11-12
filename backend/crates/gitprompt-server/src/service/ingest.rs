@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use gitprompt_capture::pipeline::{CaptureOptions, Captured, GitProbe, Observer, capture_then};
+use gitprompt_capture::pipeline::{Arrival, CaptureOptions, Captured, GitProbe, Observer, capture_then};
 use gitprompt_capture::probe::VersionProbe;
 use gitprompt_capture::spool::{Spool, drain_into_pipeline};
 use gitprompt_core::spec::{Format, Spec};
@@ -48,7 +48,7 @@ impl Inner {
         if !options.enabled {
             return Ok(Notice::default());
         }
-        let captured = self.observed(|observer| capture_then(spec, &self.store, payload, options, observer, None, mark))?;
+        let captured = self.observed(|observer| capture_then(spec, &self.store, Arrival::now(payload), options, observer, mark))?;
         Ok(self.announce(&captured))
     }
 

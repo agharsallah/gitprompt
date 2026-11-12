@@ -126,10 +126,7 @@ impl Forwarder<'_> {
     fn deliver(&self, source: &str, stdin: &[u8]) -> Outcome {
         match self.transport.send(&build_request(&self.receiver, source, &self.token, stdin)) {
             Ok(status) if (200..300).contains(&status) => Outcome::Delivered { status },
-            Ok(status) => {
-                tracing::warn!(%source, status, "the receiver refused a hook payload; not queued");
-                Outcome::Rejected { status }
-            }
+            Ok(status) => rejected(source, status),
             Err(unreachable) => {
                 tracing::info!(%source, error = %unreachable, "GitPrompt is not running; queueing the payload");
                 self.queue(source, stdin)
@@ -149,4 +146,10 @@ impl Forwarder<'_> {
             }
         }
     }
+}
+
+/// The receiver answered but refused the payload: queueing it would only be refused again later.
+fn rejected(source: &str, status: u16) -> Outcome {
+    tracing::warn!(%source, status, "the receiver refused a hook payload; not queued");
+    Outcome::Rejected { status }
 }

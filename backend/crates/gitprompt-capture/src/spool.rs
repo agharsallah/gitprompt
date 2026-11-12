@@ -227,14 +227,7 @@ impl Spool {
         // after that), so hooks spooling while the daemon starts can't keep the drain going forever;
         // anything appended later waits for the next start.
         for _ in 0..2 {
-            if !draining.exists() {
-                match std::fs::rename(&queue, &draining) {
-                    Ok(()) => {}
-                    Err(e) if e.kind() == io::ErrorKind::NotFound => break,
-                    Err(e) => return Err(e.into()),
-                }
-            }
-            if !self.drain_file(source, ingest, &mut drained)? {
+            if !take_queue(&queue, &draining)? || !self.drain_file(source, ingest, &mut drained)? {
                 break;
             }
         }
@@ -249,22 +242,29 @@ impl Spool {
         // Wait for an append that locked the file before it was renamed.
         File::open(&draining)?.lock()?;
         for (line, end) in read_lines(&draining, read_offset(&offset_file)?)? {
-            if let Some(spooled) = Spooled::parse(&line) {
-                match ingest(spooled) {
-                    Ok(()) => drained.ingested += 1,
-                    Err(e) => {
-                        tracing::warn!(%source, error = %e, "spooled payload not ingested; it stays queued");
-                        return Ok(false);
-                    }
-                }
-            } else {
-                self.set_aside(source, &line)?;
-                drained.corrupted += 1;
+            if !self.drain_line(source, &line, ingest, drained)? {
+                return Ok(false);
             }
             atomic_write(&offset_file, &end.to_string(), FILE_MODE)?;
         }
         std::fs::remove_file(&draining)?;
         remove_if_exists(&offset_file)?;
+        Ok(true)
+    }
+
+    /// Hand one queued line to `ingest`, or set it aside when it is not a payload. `false` when
+    /// `ingest` failed: the line stays queued.
+    fn drain_line(&self, source: &str, line: &str, ingest: &mut dyn FnMut(Spooled) -> Result<()>, drained: &mut Drained) -> Result<bool> {
+        let Some(spooled) = Spooled::parse(line) else {
+            self.set_aside(source, line)?;
+            drained.corrupted += 1;
+            return Ok(true);
+        };
+        if let Err(e) = ingest(spooled) {
+            tracing::warn!(%source, error = %e, "spooled payload not ingested; it stays queued");
+            return Ok(false);
+        }
+        drained.ingested += 1;
         Ok(true)
     }
 
@@ -292,11 +292,7 @@ pub fn drain_into_pipeline(
 ) -> Result<(BTreeMap<String, Drained>, Captured)> {
     let mut report = BTreeMap::new();
     let mut total = Captured::default();
-    for source in spool.sources()? {
-        let Some(spec) = specs.get(&source) else {
-            tracing::info!(%source, "spooled payloads of a source without a spec are kept");
-            continue;
-        };
+    for (source, spec) in drainable(spool, specs)? {
         let options = CaptureOptions::for_source(preferences, &source);
         let mut ingest = |spooled: Spooled| {
             total.absorb(capture_at(spec, store, &spooled.payload, options, observer, spooled.spooled_at)?);
@@ -310,6 +306,32 @@ pub fn drain_into_pipeline(
         }
     }
     Ok((report, total))
+}
+
+/// The sources with queued payloads and a spec to capture them with; the others keep their queue.
+fn drainable<'s>(spool: &Spool, specs: &'s BTreeMap<String, Arc<Spec>>) -> Result<Vec<(String, &'s Spec)>> {
+    let mut out = Vec::new();
+    for source in spool.sources()? {
+        let Some(spec) = specs.get(&source) else {
+            tracing::info!(%source, "spooled payloads of a source without a spec are kept");
+            continue;
+        };
+        out.push((source, &**spec));
+    }
+    Ok(out)
+}
+
+/// Make sure there is a draining file: what an interrupted drain left, else the queue moved aside
+/// (hooks then append to a new queue). `false` when there is neither.
+fn take_queue(queue: &Path, draining: &Path) -> io::Result<bool> {
+    if draining.exists() {
+        return Ok(true);
+    }
+    match std::fs::rename(queue, draining) {
+        Ok(()) => Ok(true),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e),
+    }
 }
 
 /// `^[a-z0-9][a-z0-9-]*$`: safe as a file name and in a shell command.
