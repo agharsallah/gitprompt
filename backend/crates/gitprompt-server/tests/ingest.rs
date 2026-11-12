@@ -116,21 +116,36 @@ async fn open_stream(api: &Api) -> Stream {
 impl Stream {
     /// The JSON of the next `data:` event (comments and keep-alives skipped), within 5 s.
     async fn next_notice(&mut self) -> Value {
-        let read = async {
-            loop {
-                while let Some(end) = self.buffer.find("\n\n") {
-                    let event: String = self.buffer.drain(..end + 2).collect();
-                    if let Some(data) = event.lines().find_map(|l| l.strip_prefix("data:")) {
-                        return serde_json::from_str::<Value>(data.trim()).expect("notice is JSON");
-                    }
-                }
-                let frame = self.body.frame().await.expect("stream open").expect("frame");
-                if let Some(bytes) = frame.data_ref() {
-                    self.buffer.push_str(std::str::from_utf8(bytes).expect("utf-8"));
-                }
+        tokio::time::timeout(Duration::from_secs(5), self.read_notice()).await.expect("a notice within 5 s")
+    }
+
+    /// The next `data:` event, reading frames until one is complete.
+    async fn read_notice(&mut self) -> Value {
+        loop {
+            if let Some(notice) = self.take_buffered_notice() {
+                return notice;
             }
-        };
-        tokio::time::timeout(Duration::from_secs(5), read).await.expect("a notice within 5 s")
+            self.read_frame().await;
+        }
+    }
+
+    /// The first complete `data:` event already buffered, consuming it and anything before it.
+    fn take_buffered_notice(&mut self) -> Option<Value> {
+        while let Some(end) = self.buffer.find("\n\n") {
+            let event: String = self.buffer.drain(..end + 2).collect();
+            if let Some(data) = event.lines().find_map(|l| l.strip_prefix("data:")) {
+                return Some(serde_json::from_str(data.trim()).expect("notice is JSON"));
+            }
+        }
+        None
+    }
+
+    /// Append the next body frame's text to the buffer (waiting for it).
+    async fn read_frame(&mut self) {
+        let frame = self.body.frame().await.expect("stream open").expect("frame");
+        if let Some(bytes) = frame.data_ref() {
+            self.buffer.push_str(std::str::from_utf8(bytes).expect("utf-8"));
+        }
     }
 }
 
@@ -187,6 +202,13 @@ fn is_subset(expected: &Value, actual: &Value) -> bool {
     expected.as_object().expect("object").iter().all(|(k, v)| actual.get(k) == Some(v))
 }
 
+/// An event fixture: its position among all of the tool's fixtures, its name, its content.
+type EventCase<'a> = (usize, &'a String, &'a Value);
+
+fn stored_as<'a>(cases: &'a [(String, Value)], kind: &'a str) -> impl Iterator<Item = (usize, &'a (String, Value))> + 'a {
+    cases.iter().enumerate().filter(move |(_, (_, c))| c["expect"]["stored_as"] == kind)
+}
+
 /// Replay a tool's fixtures in file-name order, then read everything back through the API.
 /// Returns every mismatch (empty = the connector conforms end to end).
 async fn conformance(tool: &str) -> Vec<String> {
@@ -196,69 +218,78 @@ async fn conformance(tool: &str) -> Vec<String> {
         api.ingest(tool, case["payload"].clone()).await;
     }
     let mut problems = Vec::new();
-
-    let stored_events: f64 = api.json("/api/data").await["events"]
-        .as_array()
-        .expect("events")
-        .iter()
-        .filter(|s| s["source"] == tool)
-        .map(|s| num(&s["rows"]))
-        .sum();
-    let expected_events = cases.iter().filter(|(_, c)| c["expect"]["stored_as"] == "event").count();
-    if stored_events as usize != expected_events {
-        problems.push(format!("{expected_events} events expected, {stored_events} stored"));
-    }
+    problems.extend(stored_events_problem(&api, tool, &cases).await);
 
     let mut listed = api.json_with("/api/prompts", &[("source", tool), ("limit", "200")]).await.as_array().expect("list").clone();
     listed.reverse(); // oldest first, like the fixtures
-    let prompt_cases: Vec<&(String, Value)> = cases.iter().filter(|(_, c)| c["expect"]["stored_as"] == "prompt").collect();
+    let prompt_cases: Vec<(usize, &(String, Value))> = stored_as(&cases, "prompt").collect();
     if listed.len() != prompt_cases.len() {
         problems.push(format!("{} prompts expected, {} listed", prompt_cases.len(), listed.len()));
     }
     // Event rows are stored in fixture order, so the n-th event row (by id) is the n-th event case.
-    let event_cases: Vec<(usize, &String, &Value)> =
-        cases.iter().enumerate().filter(|(_, (_, c))| c["expect"]["stored_as"] == "event").map(|(i, (n, c))| (i, n, c)).collect();
+    let event_cases: Vec<EventCase<'_>> = stored_as(&cases, "event").map(|(i, (n, c))| (i, n, c)).collect();
     let mut joined = 0;
-    for ((name, case), prompt) in prompt_cases.iter().map(|(n, c)| (n, c)).zip(&listed) {
-        let expect = &case["expect"];
-        if !is_subset(&expect["fields"], &prompt["fields"]) {
-            problems.push(format!("{name}: fields {}", prompt["fields"]));
-        }
-        if prompt["fields"]["prompt_id"].as_str().is_none_or(str::is_empty) {
-            problems.push(format!("{name}: no prompt id"));
-        }
-        if prompt["origin"] != expect["origin"] {
-            problems.push(format!("{name}: origin {}", prompt["origin"]));
-        }
-        if expect.get("typed_text").is_some() && prompt["typed_text"] != expect["typed_text"] {
-            problems.push(format!("{name}: typed_text {}", prompt["typed_text"]));
-        }
-        let position = cases.iter().position(|(n, _)| n == name).expect("a fixture");
+    for ((position, (name, case)), prompt) in prompt_cases.into_iter().zip(&listed) {
+        problems.extend(prompt_problems(name, &case["expect"], prompt));
         let detail = api.json(&format!("/api/prompts/{}", prompt["id"])).await;
-        for event in detail["events"].as_array().expect("events") {
-            let row = event["id"].as_u64().expect("event id") as usize;
-            let Some(&(at, event_name, event_case)) = event_cases.get(row - 1) else {
-                problems.push(format!("{name}: joined an unknown event row {row}"));
-                continue;
-            };
-            let turn = &event_case["expect"]["turn"];
-            if turn == name.as_str() {
-                joined += 1;
-                if !is_subset(&event_case["expect"]["fields"], &event["fields"]) {
-                    problems.push(format!("{event_name}: fields {}", event["fields"]));
-                }
-            } else if !(turn.is_null() && at < position) {
-                // `turn: null` means no prompt had its id when it arrived (the Python kit's check);
-                // a session start sent before its prompt, with that prompt's id, joins it later.
-                problems.push(format!("{event_name}: joined {name}, expected {turn}"));
-            }
-        }
+        joined += joined_events(name, position, &detail, &event_cases, &mut problems);
     }
     let expected_joined = cases.iter().filter(|(_, c)| c["expect"]["turn"].is_string()).count();
     if joined != expected_joined {
         problems.push(format!("{expected_joined} events should join a prompt, {joined} did"));
     }
     problems
+}
+
+/// A mismatch between the event rows stored for `tool` and its event fixtures.
+async fn stored_events_problem(api: &Api, tool: &str, cases: &[(String, Value)]) -> Option<String> {
+    let data = api.json("/api/data").await;
+    let stored: f64 = data["events"].as_array().expect("events").iter().filter(|s| s["source"] == tool).map(|s| num(&s["rows"])).sum();
+    let expected = stored_as(cases, "event").count();
+    (stored as usize != expected).then(|| format!("{expected} events expected, {stored} stored"))
+}
+
+/// How the listed `prompt` differs from what fixture `name` expects of it.
+fn prompt_problems(name: &str, expect: &Value, prompt: &Value) -> Vec<String> {
+    let mut problems = Vec::new();
+    if !is_subset(&expect["fields"], &prompt["fields"]) {
+        problems.push(format!("{name}: fields {}", prompt["fields"]));
+    }
+    if prompt["fields"]["prompt_id"].as_str().is_none_or(str::is_empty) {
+        problems.push(format!("{name}: no prompt id"));
+    }
+    if prompt["origin"] != expect["origin"] {
+        problems.push(format!("{name}: origin {}", prompt["origin"]));
+    }
+    if expect.get("typed_text").is_some() && prompt["typed_text"] != expect["typed_text"] {
+        problems.push(format!("{name}: typed_text {}", prompt["typed_text"]));
+    }
+    problems
+}
+
+/// How many of the events joined to prompt `name` (fixture number `position`) its event fixtures
+/// expect there; every other join is recorded in `problems`.
+fn joined_events(name: &str, position: usize, detail: &Value, event_cases: &[EventCase<'_>], problems: &mut Vec<String>) -> usize {
+    let mut joined = 0;
+    for event in detail["events"].as_array().expect("events") {
+        let row = event["id"].as_u64().expect("event id") as usize;
+        let Some(&(at, event_name, event_case)) = row.checked_sub(1).and_then(|i| event_cases.get(i)) else {
+            problems.push(format!("{name}: joined an unknown event row {row}"));
+            continue;
+        };
+        let turn = &event_case["expect"]["turn"];
+        if turn == name {
+            joined += 1;
+            if !is_subset(&event_case["expect"]["fields"], &event["fields"]) {
+                problems.push(format!("{event_name}: fields {}", event["fields"]));
+            }
+        } else if !(turn.is_null() && at < position) {
+            // `turn: null` means no prompt had its id when it arrived (the Python kit's check);
+            // a session start sent before its prompt, with that prompt's id, joins it later.
+            problems.push(format!("{event_name}: joined {name}, expected {turn}"));
+        }
+    }
+    joined
 }
 
 #[tokio::test]

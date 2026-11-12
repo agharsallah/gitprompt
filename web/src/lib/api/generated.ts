@@ -369,6 +369,8 @@ with_code: number, first_at: string | null, last_at: string | null, };
 export type PhaseReason = "start" | "gap" | "branch";
 
 /**
+ * Candidates whose raw sizes differ more than `LENGTH_RATIO × SIZE_SLACK` can't pass
+ * [`LENGTH_RATIO`] once normalized (normalizing removes a little): skipped before any shingling.
  * Where a version was typed, relative to the prompt asked about.
  */
 

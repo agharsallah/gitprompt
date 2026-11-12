@@ -52,15 +52,11 @@ fn ingester(service: Service, filled: usize, stream: usize, deadline: Instant) -
     tokio::spawn(async move {
         let mut rng = Rng(0xD1B5_4A32_D192_ED03 ^ stream as u64);
         let first = filled + (stream + 1) * 1_000_000;
+        let payloads = (first..).flat_map(|turn| turn_payloads(&mut rng, turn, 3));
         let mut stored = 0;
-        for turn in first.. {
-            for payload in turn_payloads(&mut rng, turn, 3) {
-                if Instant::now() >= deadline {
-                    return Ok(stored);
-                }
-                service.ingest("claude-code", payload).await.map_err(|e| format!("ingest: {e}"))?;
-                stored += 1;
-            }
+        for payload in payloads.take_while(|_| Instant::now() < deadline) {
+            service.ingest("claude-code", payload).await.map_err(|e| format!("ingest: {e}"))?;
+            stored += 1;
         }
         Ok(stored)
     })

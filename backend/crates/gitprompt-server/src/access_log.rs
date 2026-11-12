@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use axum::extract::{Request, State};
+use axum::http::Method;
 use axum::middleware::Next;
 use axum::response::Response;
 
@@ -21,14 +22,18 @@ pub(crate) async fn log_request(State(health): State<Arc<Health>>, request: Requ
     let path = request.uri().path().to_owned();
     let start = Instant::now();
     let response = next.run(request).await;
-    let elapsed = start.elapsed();
+    let ms = start.elapsed().as_secs_f64() * 1000.0;
     let status = response.status().as_u16();
-    let ms = elapsed.as_secs_f64() * 1000.0;
     health.record(method.as_str(), &path, status, ms);
+    log_line(&method, &path, status, ms);
+    response
+}
+
+/// The request's log line: `warn` when it was slow, `debug` otherwise.
+fn log_line(method: &Method, path: &str, status: u16, ms: f64) {
     if is_slow(ms) {
         tracing::warn!(target: "gitprompt_server::http", %method, path, status, ms, "slow request");
     } else {
         tracing::debug!(target: "gitprompt_server::http", %method, path, status, ms, "request");
     }
-    response
 }

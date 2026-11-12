@@ -18,6 +18,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tracing::Subscriber;
+use tracing_subscriber::filter::ParseError;
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::registry::LookupSpan;
@@ -112,33 +113,42 @@ pub fn filter(value: Option<&str>) -> String {
 pub fn init(config: &LogConfig) -> io::Result<()> {
     let (filter, bad_filter) = match EnvFilter::try_new(&config.filter) {
         Ok(filter) => (filter, None),
-        Err(e) => (EnvFilter::new(DEFAULT_FILTER), Some(e.to_string())),
+        Err(e) => (EnvFilter::new(DEFAULT_FILTER), Some(e)),
     };
     let (file, file_error) = match config.file.as_deref().map(open_log_file).transpose() {
         Ok(file) => (file, None),
         Err(e) => (None, Some(e)),
     };
-    let mut layers = Vec::new();
-    if config.stderr {
-        layers.push(layer(config.format, io::stderr, io::stderr().is_terminal()));
-    }
-    if let Some(file) = file {
-        layers.push(layer(config.format, Arc::new(file), false));
-    }
-    if tracing_subscriber::registry().with(filter).with(layers).try_init().is_err() {
+    if tracing_subscriber::registry().with(filter).with(layers(config, file)).try_init().is_err() {
         return Ok(()); // already installed: the first configuration stays
     }
     if let Some(error) = bad_filter {
-        tracing::warn!(filter = %config.filter, %error, "{LEVEL_ENV} is not a valid filter; using {DEFAULT_FILTER}");
+        warn_invalid_filter(&config.filter, &error);
     }
-    match file_error {
-        Some(error) => {
-            let file = config.file.as_deref().map(Path::display);
-            tracing::warn!(file = ?file, %error, "cannot open the log file; logging to stderr only");
-            Err(error)
-        }
-        None => Ok(()),
-    }
+    let Some(error) = file_error else { return Ok(()) };
+    warn_no_log_file(config.file.as_deref(), &error);
+    Err(error)
+}
+
+/// Logged once the subscriber is installed: `filter` did not parse, [`DEFAULT_FILTER`] is used.
+fn warn_invalid_filter(filter: &str, error: &ParseError) {
+    tracing::warn!(filter = %filter, %error, "{LEVEL_ENV} is not a valid filter; using {DEFAULT_FILTER}");
+}
+
+/// Logged once the subscriber is installed: the log file could not be opened, stderr only.
+fn warn_no_log_file(file: Option<&Path>, error: &io::Error) {
+    let file = file.map(Path::display);
+    tracing::warn!(file = ?file, %error, "cannot open the log file; logging to stderr only");
+}
+
+/// The formatting layers `config` asks for: stderr (colored on a terminal) and the opened log file.
+fn layers<S>(config: &LogConfig, file: Option<File>) -> Vec<Box<dyn Layer<S> + Send + Sync>>
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+{
+    let stderr = config.stderr.then(|| layer(config.format, io::stderr, io::stderr().is_terminal()));
+    let file = file.map(|file| layer(config.format, Arc::new(file), false));
+    stderr.into_iter().chain(file).collect()
 }
 
 /// One formatting layer writing to `writer`.
