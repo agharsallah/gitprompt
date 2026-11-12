@@ -96,45 +96,60 @@ fn serve_answers_healthz_and_a_second_serve_on_the_same_home_fails_fast_naming_t
 fn every_fixture_delivered_through_the_hook_command_is_stored_as_its_expectation_says() {
     let home = home();
     let (served, cases) = seeded(&home);
-    let mut problems = Vec::new();
-    let mut tools: Vec<&str> = cases.iter().map(|f| f.tool.as_str()).collect();
-    tools.dedup();
     let data = served.json("/api/data");
-    for tool in tools {
-        let mine: Vec<&Fixture> = cases.iter().filter(|f| f.tool == tool).collect();
-        let stored_as = |kind: &'static str| mine.iter().copied().filter(move |f| f.case["expect"]["stored_as"] == kind);
-
-        let events: u64 =
-            data["events"].as_array().expect("events").iter().filter(|s| s["source"] == tool).filter_map(|s| s["rows"].as_u64()).sum();
-        let expected_events = stored_as("event").count() as u64;
-        if events != expected_events {
-            problems.push(format!("{tool}: {expected_events} events expected, {events} stored"));
-        }
-
-        let mut listed = served.json(&format!("/api/prompts?source={tool}&limit=200")).as_array().expect("prompt list").clone();
-        listed.reverse(); // oldest first, the order the fixtures were delivered in
-        let expected: Vec<&Fixture> = stored_as("prompt").collect();
-        if listed.len() != expected.len() {
-            problems.push(format!("{tool}: {} prompts expected, {} listed", expected.len(), listed.len()));
-        }
-        for (fixture, prompt) in expected.iter().zip(&listed) {
-            let (name, expect) = (&fixture.name, &fixture.case["expect"]);
-            if prompt["source"] != tool {
-                problems.push(format!("{tool}/{name}: source {}", prompt["source"]));
-            }
-            if !is_subset(&expect["fields"], &prompt["fields"]) {
-                problems.push(format!("{tool}/{name}: fields {}", prompt["fields"]));
-            }
-            if prompt["origin"] != expect["origin"] {
-                problems.push(format!("{tool}/{name}: origin {}", prompt["origin"]));
-            }
-            if expect.get("typed_text").is_some() && prompt["typed_text"] != expect["typed_text"] {
-                problems.push(format!("{tool}/{name}: typed_text {}", prompt["typed_text"]));
-            }
+    let mut problems = Vec::new();
+    // `fixtures()` lists them tool by tool, so each chunk is one tool's.
+    for mine in cases.chunk_by(|a, b| a.tool == b.tool) {
+        let tool = mine[0].tool.as_str();
+        problems.extend(count_problem(tool, "events", stored_as(mine, "event").count(), events_stored(&data, tool)));
+        let listed = prompts_listed(&served, tool);
+        problems.extend(count_problem(tool, "prompts", stored_as(mine, "prompt").count(), listed.len()));
+        for (fixture, prompt) in stored_as(mine, "prompt").zip(&listed) {
+            problems.extend(prompt_problems(fixture, prompt));
         }
     }
     assert_eq!(problems, Vec::<String>::new());
     served.stop();
+}
+
+/// The fixtures whose expectation says they are stored as `kind` (`prompt` or `event`).
+fn stored_as<'a>(fixtures: &'a [Fixture], kind: &'a str) -> impl Iterator<Item = &'a Fixture> {
+    fixtures.iter().filter(move |f| f.case["expect"]["stored_as"] == kind)
+}
+
+/// The events `/api/data` holds for `tool`.
+fn events_stored(data: &Value, tool: &str) -> usize {
+    let events = data["events"].as_array().expect("events");
+    events.iter().filter(|s| s["source"] == tool).filter_map(|s| s["rows"].as_u64()).sum::<u64>() as usize
+}
+
+/// `tool`'s prompts as listed, oldest first: the order the fixtures were delivered in.
+fn prompts_listed(served: &Served, tool: &str) -> Vec<Value> {
+    let mut listed = served.json(&format!("/api/prompts?source={tool}&limit=200")).as_array().expect("prompt list").clone();
+    listed.reverse();
+    listed
+}
+
+/// A problem unless as many `what` were found as expected.
+fn count_problem(tool: &str, what: &str, expected: usize, found: usize) -> Option<String> {
+    (found != expected).then(|| format!("{tool}: {expected} {what} expected, {found} found"))
+}
+
+/// Each field of a stored prompt that differs from its fixture's expectation (`typed_text` only
+/// when the fixture expects one).
+fn prompt_problems(fixture: &Fixture, prompt: &Value) -> Vec<String> {
+    let expect = &fixture.case["expect"];
+    let checks = [
+        ("source", prompt["source"] == fixture.tool.as_str()),
+        ("fields", is_subset(&expect["fields"], &prompt["fields"])),
+        ("origin", prompt["origin"] == expect["origin"]),
+        ("typed_text", expect.get("typed_text").is_none() || prompt["typed_text"] == expect["typed_text"]),
+    ];
+    checks
+        .into_iter()
+        .filter(|(_, ok)| !ok)
+        .map(|(field, _)| format!("{}/{}: {field} {}", fixture.tool, fixture.name, prompt[field]))
+        .collect()
 }
 
 // --- (c) every read route the dashboard uses ---
@@ -187,148 +202,210 @@ const GROUP_BYS: [&str; 21] = [
     "query_source",
 ];
 
+/// The read routes of one served daemon, checked one after another; every problem is collected so
+/// a single run names all of them.
+struct RouteCheck<'a> {
+    served: &'a Served,
+    problems: Vec<String>,
+}
+
+impl RouteCheck<'_> {
+    /// `GET path` as JSON: `null` (and a problem) unless it answers 200 with a JSON content type.
+    fn fetch(&mut self, path: &str) -> Value {
+        let response = self.served.get(path);
+        if response.status != 200 {
+            self.problem(format!("{path}: {} {}", response.status, response.text()));
+            return Value::Null;
+        }
+        if !response.header("content-type").is_some_and(|t| t.starts_with("application/json")) {
+            self.problem(format!("{path}: content-type {:?}", response.header("content-type")));
+        }
+        response.json()
+    }
+
+    /// [`Self::fetch`] `path`, which must be an object with each of `keys` of the given kind.
+    fn object(&mut self, path: &str, keys: &[(&str, &str)]) -> Value {
+        let value = self.fetch(path);
+        self.shape(path, &value, keys);
+        value
+    }
+
+    /// [`Self::fetch`] `path`, which must be an array.
+    fn array(&mut self, path: &str) -> Value {
+        let value = self.fetch(path);
+        if !value.is_array() {
+            self.problem(format!("{path}: an array expected, got {}", kind(&value)));
+        }
+        value
+    }
+
+    fn shape(&mut self, path: &str, value: &Value, keys: &[(&str, &str)]) {
+        self.problems.extend(shape(path, value, keys));
+    }
+
+    fn problem(&mut self, problem: String) {
+        self.problems.push(problem);
+    }
+}
+
+/// The prompt list and one prompt's detail; the id of the claude-code prompt of session `abc123`.
+fn check_prompts(check: &mut RouteCheck<'_>) -> i64 {
+    let list = check.array("/api/prompts?limit=50").as_array().cloned().unwrap_or_default();
+    if list.is_empty() || list.len() > 50 {
+        check.problem(format!("/api/prompts?limit=50: {} prompts", list.len()));
+    }
+    for prompt in &list {
+        check.shape("/api/prompts[]", prompt, &[("id", "number"), ("source", "string"), ("fields", "object"), ("facts", "object")]);
+    }
+    let claude = list.iter().find(|p| p["fields"]["session_id"] == "abc123").expect("a claude-code prompt of session abc123");
+    let id = claude["id"].as_i64().expect("prompt id");
+    check.object(&format!("/api/prompts/{id}"), &[("id", "number"), ("raw", "object"), ("events", "array"), ("session", "object")]);
+    id
+}
+
+/// `/api/stats` ungrouped, by every `group_by`, and its telemetry.
+fn check_stats(check: &mut RouteCheck<'_>) {
+    check.object("/api/stats", &[("totals", "object"), ("groups", "array")]);
+    for group_by in GROUP_BYS {
+        let path = format!("/api/stats?group_by={group_by}");
+        let stats = check.object(&path, &[("group_by", "string"), ("totals", "object"), ("groups", "array")]);
+        if stats["group_by"] != group_by {
+            check.problem(format!("{path}: group_by {}", stats["group_by"]));
+        }
+    }
+    check.object("/api/stats/telemetry", &[("sessions", "number"), ("metrics", "object"), ("commands", "array")]);
+}
+
+/// The Connectors page: every bundled tool listed, recent deliveries, problems, a spec.
+fn check_sources(check: &mut RouteCheck<'_>) {
+    let sources = check.array("/api/sources");
+    let ids: Vec<&str> = sources.as_array().map(|s| s.iter().filter_map(|s| s["id"].as_str()).collect()).unwrap_or_default();
+    for tool in ["claude-code", "codex", "copilot-cli", "cursor"].into_iter().filter(|tool| !ids.contains(tool)) {
+        check.problem(format!("/api/sources: no {tool} in {ids:?}"));
+    }
+    check.array("/api/sources/recent");
+    check.array("/api/sources/problems");
+    check.object("/api/sources/claude-code/spec", &[("file", "object")]);
+}
+
+/// Fields, settings, data and security pages.
+fn check_settings(check: &mut RouteCheck<'_>) {
+    check.object("/api/fields", &[("fields", "array"), ("not_captured", "array"), ("derived", "object")]);
+    check.object("/api/settings", &[("file", "string"), ("settings", "object")]);
+    check.object("/api/data", &[("home", "string"), ("db_path", "string"), ("events", "array"), ("backups", "array")]);
+    check.object("/api/security", &[("token_file", "string"), ("connected", "array")]);
+}
+
+/// The session story, its project's story and prompt `id`'s lineage.
+fn check_stories(check: &mut RouteCheck<'_>, id: i64) {
+    let story = check.object("/api/stories/session/abc123", &[("session", "string"), ("project", "object")]);
+    let project = story["project"]["id"].as_str().unwrap_or_default();
+    check.object(&format!("/api/stories/project/{project}"), &[("repo", "string"), ("totals", "object"), ("phases", "array")]);
+    let path = format!("/api/stories/prompt/{id}");
+    let lineage = check.fetch(&path);
+    if !lineage.is_object() {
+        check.problem(format!("{path}: an object expected, got {}", kind(&lineage)));
+    }
+}
+
+/// Search finds the codex prompt; the session's charts export is not empty.
+fn check_search_and_charts(check: &mut RouteCheck<'_>) {
+    let search = check.object("/api/search?q=retry", &[("total", "number"), ("hits", "array")]);
+    if search["total"].as_u64().unwrap_or_default() == 0 {
+        check.problem(format!("/api/search?q=retry: no hit for the codex prompt: {search}"));
+    }
+    let charts = check.fetch("/api/export/session/charts?id=abc123");
+    if charts.as_array().is_none_or(Vec::is_empty) {
+        check.problem(format!("/api/export/session/charts: {charts}"));
+    }
+}
+
+/// An unknown API path is a JSON 404, not the dashboard; `/` is the dashboard when one is built
+/// or embedded, else a 404 (only the status is stable).
+fn check_fallbacks(check: &mut RouteCheck<'_>) {
+    let unknown = check.served.get("/api/nope");
+    if unknown.status != 404 || unknown.json().get("detail").is_none() {
+        check.problem(format!("/api/nope: {} {}", unknown.status, unknown.text()));
+    }
+    let root = check.served.get("/").status;
+    if root != 200 && root != 404 {
+        check.problem(format!("/: {root}"));
+    }
+}
+
 #[test]
 fn every_read_route_the_dashboard_uses_answers_200_with_its_json_shape() {
     let home = home();
     let (served, _) = seeded(&home);
-    let mut problems = Vec::new();
-    let mut fetch = |path: &str| -> Value {
-        let response = served.get(path);
-        if response.status != 200 {
-            problems.push(format!("{path}: {} {}", response.status, response.text()));
-            return Value::Null;
-        }
-        if !response.header("content-type").is_some_and(|t| t.starts_with("application/json")) {
-            problems.push(format!("{path}: content-type {:?}", response.header("content-type")));
-        }
-        response.json()
-    };
-
-    let prompts = fetch("/api/prompts?limit=50");
-    let list = prompts.as_array().cloned().unwrap_or_default();
-    let mut found: Vec<String> = Vec::new();
-    if list.is_empty() || list.len() > 50 {
-        found.push(format!("/api/prompts?limit=50: {} prompts", list.len()));
-    }
-    for prompt in &list {
-        found.extend(shape("/api/prompts[]", prompt, &[("id", "number"), ("source", "string"), ("fields", "object"), ("facts", "object")]));
-    }
-    let claude = list.iter().find(|p| p["fields"]["session_id"] == "abc123").expect("a claude-code prompt of session abc123");
-    let id = claude["id"].as_i64().expect("prompt id");
-
-    let detail = fetch(&format!("/api/prompts/{id}"));
-    found.extend(shape("/api/prompts/{id}", &detail, &[("id", "number"), ("raw", "object"), ("events", "array"), ("session", "object")]));
-    found.extend(shape("/api/stats", &fetch("/api/stats"), &[("totals", "object"), ("groups", "array")]));
-    for group_by in GROUP_BYS {
-        let path = format!("/api/stats?group_by={group_by}");
-        let stats = fetch(&path);
-        found.extend(shape(&path, &stats, &[("group_by", "string"), ("totals", "object"), ("groups", "array")]));
-        if stats["group_by"] != group_by {
-            found.push(format!("{path}: group_by {}", stats["group_by"]));
-        }
-    }
-    let telemetry = fetch("/api/stats/telemetry");
-    found.extend(shape("/api/stats/telemetry", &telemetry, &[("sessions", "number"), ("metrics", "object"), ("commands", "array")]));
-
-    let sources = fetch("/api/sources");
-    let ids: Vec<&str> = sources.as_array().map(|s| s.iter().filter_map(|s| s["id"].as_str()).collect()).unwrap_or_default();
-    for tool in ["claude-code", "codex", "copilot-cli", "cursor"] {
-        if !ids.contains(&tool) {
-            found.push(format!("/api/sources: no {tool} in {ids:?}"));
-        }
-    }
-    for path in ["/api/sources/recent", "/api/sources/problems"] {
-        let value = fetch(path);
-        if !value.is_array() {
-            found.push(format!("{path}: an array expected, got {}", kind(&value)));
-        }
-    }
-    found.extend(shape("/api/sources/claude-code/spec", &fetch("/api/sources/claude-code/spec"), &[("file", "object")]));
-    found.extend(shape("/api/fields", &fetch("/api/fields"), &[("fields", "array"), ("not_captured", "array"), ("derived", "object")]));
-    found.extend(shape("/api/settings", &fetch("/api/settings"), &[("file", "string"), ("settings", "object")]));
-    found.extend(shape(
-        "/api/data",
-        &fetch("/api/data"),
-        &[("home", "string"), ("db_path", "string"), ("events", "array"), ("backups", "array")],
-    ));
-    found.extend(shape("/api/security", &fetch("/api/security"), &[("token_file", "string"), ("connected", "array")]));
-
-    let story = fetch("/api/stories/session/abc123");
-    found.extend(shape("/api/stories/session/abc123", &story, &[("session", "string"), ("project", "object")]));
-    let project = story["project"]["id"].as_str().unwrap_or_default().to_owned();
-    let path = format!("/api/stories/project/{project}");
-    found.extend(shape(&path, &fetch(&path), &[("repo", "string"), ("totals", "object"), ("phases", "array")]));
-    let lineage = fetch(&format!("/api/stories/prompt/{id}"));
-    if !lineage.is_object() {
-        found.push(format!("/api/stories/prompt/{id}: an object expected, got {}", kind(&lineage)));
-    }
-    let search = fetch("/api/search?q=retry");
-    found.extend(shape("/api/search?q=retry", &search, &[("total", "number"), ("hits", "array")]));
-    if search["total"].as_u64().unwrap_or_default() == 0 {
-        found.push(format!("/api/search?q=retry: no hit for the codex prompt: {search}"));
-    }
-    let charts = fetch("/api/export/session/charts?id=abc123");
-    if charts.as_array().is_none_or(Vec::is_empty) {
-        found.push(format!("/api/export/session/charts: {charts}"));
-    }
-
-    // An unknown API path is a JSON 404, not the dashboard.
-    let unknown = served.get("/api/nope");
-    if unknown.status != 404 || unknown.json().get("detail").is_none() {
-        found.push(format!("/api/nope: {} {}", unknown.status, unknown.text()));
-    }
-    // `/` is the dashboard when one is built or embedded, else a 404: only the status is stable.
-    let root = served.get("/").status;
-    if root != 200 && root != 404 {
-        found.push(format!("/: {root}"));
-    }
-
-    problems.extend(found);
-    assert_eq!(problems, Vec::<String>::new());
+    let mut check = RouteCheck { served: &served, problems: Vec::new() };
+    let id = check_prompts(&mut check);
+    check_stats(&mut check);
+    check_sources(&mut check);
+    check_settings(&mut check);
+    check_stories(&mut check, id);
+    check_search_and_charts(&mut check);
+    check_fallbacks(&mut check);
+    assert_eq!(check.problems, Vec::<String>::new());
     served.stop();
 }
+
+/// Every export format with the media type it is served as.
+const EXPORT_FORMATS: [(&str, &str); 6] = [
+    ("md", "text/markdown"),
+    ("html", "text/html"),
+    ("csv", "text/csv"),
+    ("json", "application/json"),
+    ("svg", "image/svg+xml"),
+    ("png", "image/png"),
+];
 
 #[test]
 fn every_export_kind_renders_in_every_format_with_its_media_type() {
     let home = home();
     let (served, _) = seeded(&home);
     let project = served.json("/api/stories/session/abc123")["project"]["id"].as_str().expect("project id").to_owned();
-    let kinds = [("session", Some("abc123".to_owned())), ("project", Some(project)), ("overview", None), ("prompts", None)];
-    let formats = [
-        ("md", "text/markdown"),
-        ("html", "text/html"),
-        ("csv", "text/csv"),
-        ("json", "application/json"),
-        ("svg", "image/svg+xml"),
-        ("png", "image/png"),
+    // Each kind with the query its id adds.
+    let kinds = [
+        ("session", "&id=abc123".to_owned()),
+        ("project", format!("&id={project}")),
+        ("overview", String::new()),
+        ("prompts", String::new()),
     ];
-    let mut problems = Vec::new();
-    for (kind, id) in &kinds {
-        for (format, media_type) in formats {
-            let id = id.as_ref().map(|id| format!("&id={id}")).unwrap_or_default();
-            let path = format!("/api/export/{kind}?format={format}{id}");
-            let response: Response = served.get(&path);
-            if response.status != 200 {
-                problems.push(format!("{path}: {} {}", response.status, response.text()));
-                continue;
-            }
-            if !response.header("content-type").is_some_and(|t| t.starts_with(media_type)) {
-                problems.push(format!("{path}: content-type {:?}", response.header("content-type")));
-            }
-            let body_ok = match format {
-                "png" => response.body.starts_with(b"\x89PNG\r\n\x1a\n"),
-                "svg" => response.text().contains("<svg"),
-                "json" => serde_json::from_slice::<Value>(&response.body).is_ok_and(|v| v.is_object() || v.is_array()),
-                "html" => response.text().to_ascii_lowercase().contains("<html"),
-                _ => !response.body.is_empty(),
-            };
-            if !body_ok {
-                problems.push(format!("{path}: not a {format} body ({} bytes)", response.body.len()));
-            }
-        }
-    }
+    let paths = kinds.iter().flat_map(|(kind, id)| {
+        EXPORT_FORMATS.iter().map(move |&(format, media_type)| (format!("/api/export/{kind}?format={format}{id}"), format, media_type))
+    });
+    let problems: Vec<String> = paths.flat_map(|(path, format, media_type)| export_problems(&served, &path, format, media_type)).collect();
     assert_eq!(problems, Vec::<String>::new());
     served.stop();
+}
+
+/// What is wrong with the export at `path`: not a 200, or else a content type other than
+/// `media_type` and a body that is not a `format` document.
+fn export_problems(served: &Served, path: &str, format: &str, media_type: &str) -> Vec<String> {
+    let response: Response = served.get(path);
+    if response.status != 200 {
+        return vec![format!("{path}: {} {}", response.status, response.text())];
+    }
+    let mut problems = Vec::new();
+    let content_type = response.header("content-type");
+    if !content_type.is_some_and(|t| t.starts_with(media_type)) {
+        problems.push(format!("{path}: content-type {content_type:?}"));
+    }
+    if !is_document(format, &response) {
+        problems.push(format!("{path}: not a {format} body ({} bytes)", response.body.len()));
+    }
+    problems
+}
+
+/// Whether the body looks like a `format` document (its signature, or at least not empty).
+fn is_document(format: &str, response: &Response) -> bool {
+    match format {
+        "png" => response.body.starts_with(b"\x89PNG\r\n\x1a\n"),
+        "svg" => response.text().contains("<svg"),
+        "json" => serde_json::from_slice::<Value>(&response.body).is_ok_and(|v| v.is_object() || v.is_array()),
+        "html" => response.text().to_ascii_lowercase().contains("<html"),
+        _ => !response.body.is_empty(),
+    }
 }
 
 // --- (d) the live-update stream ---

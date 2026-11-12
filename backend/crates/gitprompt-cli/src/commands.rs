@@ -6,12 +6,13 @@ use std::time::Instant;
 use jiff::Timestamp;
 
 use gitprompt_capture::Connection;
-use gitprompt_capture::forwarder::{Forwarder, Transport, build_request};
+use gitprompt_capture::forwarder::{Forwarder, HookRequest, Transport, Unreachable, build_request};
 use gitprompt_capture::probe::detected;
 use gitprompt_capture::spool::Spool;
-use gitprompt_core::spec::load_specs;
+use gitprompt_core::spec::{Spec, load_specs};
 use gitprompt_core::{Json, Settings};
-use gitprompt_insights::captures;
+use gitprompt_insights::Specs;
+use gitprompt_insights::captures::{self, RecentCapture};
 use gitprompt_insights::indexer::Indexer;
 use gitprompt_server::{AppOptions, Daemon, DaemonOptions, Dashboard};
 use gitprompt_store::{Store, housekeeping};
@@ -122,58 +123,79 @@ fn ago(now: Timestamp, iso: &str) -> String {
 
 pub(crate) fn check(settings: &Settings, io: &mut Io<'_>) -> Outcome {
     let specs = load_specs(settings);
-    let db = settings.db_path();
-    let rows = if db.exists() {
-        let store = Store::open(&db)?;
-        Indexer::new(specs.clone()).ensure(&store)?;
-        captures::recent(&store, &specs)?
-    } else {
-        writeln!(io.stdout, "No database yet at {}: start GitPrompt and send a prompt first.", db.display())?;
-        Vec::new()
-    };
+    let captures = recent_captures(settings, &specs, io)?;
     let now = Timestamp::now();
-    for spec in specs.values().filter(|s| s.part_of.is_none()) {
-        let layers = std::iter::once(spec).chain(specs.values().filter(|s| s.part_of.as_deref() == Some(spec.id.as_str())));
-        let state: Vec<String> = layers
-            .map(|s| {
-                let layer = if s.layer.is_empty() { "hooks" } else { s.layer.as_str() };
-                let connected = if Connection::new(s, settings).connected() { "connected" } else { "not connected" };
-                format!("{layer} {connected}")
-            })
-            .collect();
-        let found = if detected(spec, settings) { "" } else { " (not detected on this machine)" };
-        writeln!(io.stdout, "\n{}: {}{found}", spec.name, state.join(", "))?;
-        let mine: Vec<_> = rows.iter().filter(|r| r.connector.id == spec.id).collect();
-        for r in &mine {
-            let place = r.surface.as_ref().map_or("surface unknown", |s| s.name.as_str());
-            let project = r.project.as_ref().map(|p| p.name.as_str()).filter(|n| !n.is_empty()).unwrap_or("no folder");
-            let branch = r.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default();
-            let session: String = r.session.as_deref().unwrap_or("-").chars().take(12).collect();
-            let signals: Vec<String> = r
-                .signals
-                .iter()
-                .map(|(k, v)| match v {
-                    Json::String(text) => format!("{k}={text}"),
-                    other => format!("{k}={other}"),
-                })
-                .collect();
-            let signals = if signals.is_empty() { String::new() } else { format!("  {}", signals.join(" ")) };
-            writeln!(
-                io.stdout,
-                "  {place:<16} {:>9}  {project}{branch}  session {session}  {}  {} prompts{signals}",
-                ago(now, &r.received_at),
-                r.model.as_deref().unwrap_or("no model"),
-                grouped(u64::try_from(r.prompts).unwrap_or(0)),
-            )?;
-        }
+    for tool in specs.values().filter(|s| s.part_of.is_none()) {
+        writeln!(io.stdout, "\n{}", tool_status(tool, &specs, settings))?;
+        let mine: Vec<String> = captures.iter().filter(|c| c.connector.id == tool.id).map(|c| capture_line(c, now)).collect();
         if mine.is_empty() {
             writeln!(io.stdout, "  no prompt captured yet")?;
         }
-        for (app, why) in &spec.cannot_capture {
+        for line in mine {
+            writeln!(io.stdout, "  {line}")?;
+        }
+        for (app, why) in &tool.cannot_capture {
             writeln!(io.stdout, "  not capturable: {app}: {why}")?;
         }
     }
     Ok(0)
+}
+
+/// The latest capture of each tool, with the index brought up to date first; none (and a note
+/// saying so) before the database exists.
+fn recent_captures(settings: &Settings, specs: &Specs, io: &mut Io<'_>) -> Result<Vec<RecentCapture>, Failure> {
+    let db = settings.db_path();
+    if !db.exists() {
+        writeln!(io.stdout, "No database yet at {}: start GitPrompt and send a prompt first.", db.display())?;
+        return Ok(Vec::new());
+    }
+    let store = Store::open(&db)?;
+    Indexer::new(specs.clone()).ensure(&store)?;
+    Ok(captures::recent(&store, specs)?)
+}
+
+/// `<name>: <layer> connected, <layer> not connected…`, over the tool and the layers that are
+/// `part_of` it, noting a tool not detected on this machine.
+fn tool_status(tool: &Spec, specs: &Specs, settings: &Settings) -> String {
+    let layers = std::iter::once(tool).chain(specs.values().map(AsRef::as_ref).filter(|s| s.part_of.as_deref() == Some(tool.id.as_str())));
+    let state: Vec<String> = layers.map(|layer| layer_status(layer, settings)).collect();
+    let found = if detected(tool, settings) { "" } else { " (not detected on this machine)" };
+    format!("{}: {}{found}", tool.name, state.join(", "))
+}
+
+/// `<layer> connected` or `<layer> not connected`; a spec without a layer is the tool's hooks.
+fn layer_status(spec: &Spec, settings: &Settings) -> String {
+    let layer = if spec.layer.is_empty() { "hooks" } else { spec.layer.as_str() };
+    let connected = if Connection::new(spec, settings).connected() { "connected" } else { "not connected" };
+    format!("{layer} {connected}")
+}
+
+/// One capture: where, when, which folder and branch, session, model, prompts, then its signals.
+fn capture_line(capture: &RecentCapture, now: Timestamp) -> String {
+    let place = capture.surface.as_ref().map_or("surface unknown", |s| s.name.as_str());
+    let project = capture.project.as_ref().map(|p| p.name.as_str()).filter(|n| !n.is_empty()).unwrap_or("no folder");
+    let branch = capture.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default();
+    let session: String = capture.session.as_deref().unwrap_or("-").chars().take(12).collect();
+    format!(
+        "{place:<16} {:>9}  {project}{branch}  session {session}  {}  {} prompts{}",
+        ago(now, &capture.received_at),
+        capture.model.as_deref().unwrap_or("no model"),
+        grouped(u64::try_from(capture.prompts).unwrap_or(0)),
+        signals(capture),
+    )
+}
+
+/// `  k=v k=v` (a string value unquoted), or nothing without signals.
+fn signals(capture: &RecentCapture) -> String {
+    let pairs: Vec<String> = capture
+        .signals
+        .iter()
+        .map(|(key, value)| match value {
+            Json::String(text) => format!("{key}={text}"),
+            other => format!("{key}={other}"),
+        })
+        .collect();
+    if pairs.is_empty() { String::new() } else { format!("  {}", pairs.join(" ")) }
 }
 
 /// Forward the payload on stdin; prints only the reply the tool expects; always 0.
@@ -199,37 +221,35 @@ pub(crate) fn drain(settings: &Settings, io: &mut Io<'_>) -> Outcome {
     let spool = Spool::of(settings);
     let token = settings.token()?;
     let receiver = settings.receiver();
-    let transport = HttpTransport;
     let mut delivered = 0;
     let mut down = false;
     for source in spool.sources()? {
         let mut send = |payload: Json| -> gitprompt_core::Result<()> {
-            let body = serde_json::to_vec(&payload)?;
-            match transport.send(&build_request(&receiver, &source, &token, &body)) {
-                Ok(status) => {
-                    if !(200..300).contains(&status) {
-                        tracing::warn!(%source, status, "the receiver refused a spooled payload; dropped");
-                    }
-                    Ok(())
-                }
-                Err(unreachable) => {
-                    down = true;
-                    Err(gitprompt_core::Error::Conflict(unreachable.to_string()))
-                }
-            }
+            let request = build_request(&receiver, &source, &token, &serde_json::to_vec(&payload)?);
+            deliver(&HttpTransport, &request, &source).map_err(|unreachable| {
+                down = true;
+                gitprompt_core::Error::Conflict(unreachable.to_string())
+            })
         };
         delivered += spool.drain(&source, &mut send)?.ingested;
         if down {
             break;
         }
     }
-    let mut left = 0;
-    for source in spool.sources()? {
-        left += spool.pending(&source)?.len();
-    }
+    let left = spool.sources()?.iter().map(|source| spool.pending(source).map(|pending| pending.len())).sum::<Result<usize, _>>()?;
     if down {
         return Err(Failure(format!("GitPrompt is not running on {receiver}: {left} spooled payloads left.")));
     }
     writeln!(io.stdout, "Delivered {delivered} spooled payloads, {left} left.")?;
     Ok(0)
+}
+
+/// Send one spooled payload. A refusal (any non-2xx answer) drops it with a warning; only a
+/// daemon that cannot be reached is an error, which keeps the payload spooled.
+fn deliver(transport: &impl Transport, request: &HookRequest, source: &str) -> Result<(), Unreachable> {
+    let status = transport.send(request)?;
+    if !(200..300).contains(&status) {
+        tracing::warn!(%source, status, "the receiver refused a spooled payload; dropped");
+    }
+    Ok(())
 }
