@@ -3,6 +3,8 @@
 //! report builders. Every value is synthetic; nothing touches the network or the real home folder.
 #![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
+pub mod reading;
+
 use std::collections::BTreeSet;
 
 use indexmap::IndexMap;

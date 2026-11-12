@@ -6,7 +6,7 @@ use std::fmt::Write as _;
 use indexmap::IndexMap;
 
 use super::read::{count, counted};
-use super::{DASH, PROMPT_COLUMNS, RAW_CHARS, fact_columns, fields, figure, json, merge, pick, present, report, section, truthy};
+use super::{DASH, Heading, PROMPT_COLUMNS, RAW_CHARS, fact_columns, fields, figure, json, merge, pick, present, report, section, truthy};
 use super::{
     bars, describe_filters, integer, model, money, origin_label, outcome_chart, outcome_label, plural, reported, tokens, tool, when,
 };
@@ -27,7 +27,7 @@ pub fn prompts(data: &PromptsExport, options: &Options, zone: Zone) -> (Report, 
     }
     let rows = items.iter().map(|item| row(item, *options)).collect();
     let subtitle = describe_filters(&data.filters, zone);
-    (report(Kind::Prompts, &data.generated_at, "Prompts".to_string(), subtitle, sections, *options, zone), rows)
+    (report(Heading { kind: Kind::Prompts, title: "Prompts".to_string(), subtitle }, sections, &data.generated_at, *options, zone), rows)
 }
 
 fn summary(data: &PromptsExport) -> Section {

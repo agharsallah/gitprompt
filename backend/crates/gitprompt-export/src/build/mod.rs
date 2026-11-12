@@ -99,8 +99,17 @@ pub fn build(input: &ExportInput, options: &Options, zone: Zone) -> (Report, Vec
 
 // --- shared by the builders ----------------------------------------------------------------------
 
-/// The report's head and notes around its sections.
-fn report(kind: Kind, generated_at: &str, title: String, subtitle: String, sections: Vec<Section>, options: Options, zone: Zone) -> Report {
+/// What a report is and the lines it opens with.
+struct Heading {
+    kind: Kind,
+    title: String,
+    subtitle: String,
+}
+
+/// The report: its heading, when it was generated and the notes on what the options left out,
+/// around its sections.
+fn report(heading: Heading, sections: Vec<Section>, generated_at: &str, options: Options, zone: Zone) -> Report {
+    let Heading { kind, title, subtitle } = heading;
     Report { kind, title, subtitle, generated_at: when(Some(generated_at), false, zone), sections, notes: notes(&options, kind) }
 }
 

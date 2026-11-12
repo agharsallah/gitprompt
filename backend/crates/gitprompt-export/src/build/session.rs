@@ -4,7 +4,7 @@
 use indexmap::IndexMap;
 
 use super::read::{count, counted, known_marker, seconds_between};
-use super::{DASH, commit_line, fact_columns, figure, json, merge, present, report, section, tally};
+use super::{DASH, Heading, commit_line, fact_columns, figure, json, merge, present, report, section, tally};
 use super::{bars, changes, duration, integer, money, outcome_chart, outcome_label, plural, span, tokens, when};
 use crate::input::{Chapter, Marker, SessionExport, StoryItem};
 use crate::redact::Options;
@@ -38,7 +38,7 @@ pub fn session(data: &SessionExport, options: &Options, zone: Zone) -> (Report, 
     let span = span(story.started_at.as_deref(), story.ended_at.as_deref(), zone);
     let place = [story.project.as_ref().and_then(|p| p.name.as_deref()), Some(branches.as_str()), Some(span.as_str())];
     let subtitle = place.into_iter().filter_map(present).collect::<Vec<_>>().join(" · ");
-    (report(Kind::Session, &data.generated_at, title, subtitle, sections, *options, zone), rows)
+    (report(Heading { kind: Kind::Session, title, subtitle }, sections, &data.generated_at, *options, zone), rows)
 }
 
 fn chapters(data: &SessionExport) -> impl Iterator<Item = &Chapter> {

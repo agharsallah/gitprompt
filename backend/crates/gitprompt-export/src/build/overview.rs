@@ -6,7 +6,7 @@ use gitprompt_core::Json;
 use gitprompt_store::stats::Bucket;
 
 use super::read::count;
-use super::{BUCKET_COLUMNS, OVERVIEW_GROUPS, fields, figure, pick, present, report, section};
+use super::{BUCKET_COLUMNS, Heading, OVERVIEW_GROUPS, fields, figure, pick, present, report, section};
 use super::{bars, describe_filters, duration, integer, money, origin_label, outcome_chart, outcome_label, when};
 use crate::input::{OverviewExport, OverviewGroups};
 use crate::redact::Options;
@@ -55,7 +55,7 @@ pub fn overview(data: &OverviewExport, options: &Options, zone: Zone) -> (Report
     let mut rows = vec![total_row(&data.totals)];
     rows.extend(by.iter().flat_map(|(name, buckets)| buckets.iter().map(|(shown, b)| bucket_row(name, shown, b))));
     let subtitle = describe_filters(&data.filters, zone);
-    (report(Kind::Overview, &data.generated_at, "Overview".to_string(), subtitle, sections, *options, zone), rows)
+    (report(Heading { kind: Kind::Overview, title: "Overview".to_string(), subtitle }, sections, &data.generated_at, *options, zone), rows)
 }
 
 fn group<'a>(groups: &'a OverviewGroups, name: &str) -> &'a [Bucket] {

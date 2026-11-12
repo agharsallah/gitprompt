@@ -1,7 +1,7 @@
 //! A project: how it got built, phase by phase.
 
 use super::read::{count, counted};
-use super::{DASH, commit_line, fact_columns, fields, figure, json, merge, present, report, section, tools_line};
+use super::{DASH, Heading, commit_line, fact_columns, fields, figure, json, merge, present, report, section, tools_line};
 use super::{bars, changes, integer, model, money, outcome_chart, outcome_label, phase_reason, plural, reported, span, tool, when};
 use crate::input::{Measures, Phase, ProjectExport, ProjectPrompt};
 use crate::redact::Options;
@@ -38,7 +38,7 @@ pub fn project(data: &ProjectExport, options: &Options, zone: Zone) -> (Report, 
     let span = span(totals.first_at.as_deref(), totals.last_at.as_deref(), zone);
     let subtitle = [story.repo.as_deref(), Some(span.as_str())].into_iter().filter_map(present).collect::<Vec<_>>().join(" · ");
     let title = present(story.name.as_deref()).unwrap_or("Project").to_string();
-    (report(Kind::Project, &data.generated_at, title, subtitle, sections, *options, zone), rows)
+    (report(Heading { kind: Kind::Project, title, subtitle }, sections, &data.generated_at, *options, zone), rows)
 }
 
 fn measures(m: &Measures) -> Block {
