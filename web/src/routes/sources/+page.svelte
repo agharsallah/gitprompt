@@ -25,7 +25,7 @@
 		if (!review) return;
 		const url = new URL(page.url.href);
 		url.searchParams.delete('connect');
-		replaceState(url, page.state);
+		void replaceState(url, page.state);
 	});
 </script>
 

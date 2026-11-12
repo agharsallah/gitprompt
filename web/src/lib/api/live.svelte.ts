@@ -53,11 +53,11 @@ export const live = new Live();
  *
  *     $effect(() => liveUpdates(reload));
  */
-export function liveUpdates(onchange: () => void, settleMs = 400): () => void {
+export function liveUpdates(onchange: () => unknown, settleMs = 400): () => void {
 	let timer: ReturnType<typeof setTimeout>;
 	const unsubscribe = live.subscribe(() => {
 		clearTimeout(timer);
-		timer = setTimeout(onchange, settleMs);
+		timer = setTimeout(() => void onchange(), settleMs);
 	});
 	return () => {
 		clearTimeout(timer);

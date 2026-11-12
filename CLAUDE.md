@@ -31,3 +31,14 @@ Where each kind of change goes: `docs/extending.md`.
 
 - `just verify` runs what CI runs. Use pnpm (never npm) for the web; `uv` for any Python.
 - Keep code modular: small single-purpose files and functions, shared helpers over duplication.
+
+## Lint findings: fix the cause, never silence it
+
+- Never write `eslint-disable` (any form, in TS or in Svelte markup), `@ts-ignore`,
+  `@ts-expect-error` or `@ts-nocheck`, and never type anything `any`. ESLint rejects all of them
+  (`web/eslint.config.js`), and a hook lints every web file Claude edits.
+- Fix the finding at its root: narrow `unknown` with type guards, give the value a real type
+  (`unknown`, a generic, a type from `generated.ts`), handle the case the rule points at. A cast
+  (`as`) only to quiet a rule is silencing too.
+- If a rule is genuinely wrong for this codebase, turn it off once in `web/eslint.config.js` with a
+  comment saying why, and say so to the user; never per line.

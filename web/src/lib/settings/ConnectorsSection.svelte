@@ -26,7 +26,7 @@
 
 	const toggle = (s: Source) => {
 		busy = s.id;
-		task
+		void task
 			.run(async () => {
 				await api.setEnabled(s.id, !s.enabled);
 				await refreshAll();

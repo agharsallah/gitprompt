@@ -65,7 +65,7 @@ export class Resource<T> {
 						key: k,
 						at,
 						has: keep,
-						value: keep ? last!.value : undefined,
+						value: keep ? last.value : undefined,
 						failed: true,
 						error
 					};

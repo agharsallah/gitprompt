@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Event } from '#lib/api/types.ts';
-	import { eventTime, toolDetail } from '#lib/insights/timeline.ts';
+	import { eventTime, text, toolDetail } from '#lib/insights/timeline.ts';
 	import { kindOf, KIND_INFO } from '#lib/insights/tools.ts';
 	import { modelName } from '#lib/shared/format.ts';
 	import CodeBlock from '#lib/ui/CodeBlock.svelte';
@@ -36,7 +36,7 @@
 		return [
 			tool,
 			tool && toolDetail(e.raw.tool_input),
-			e.raw.model && modelName(String(e.raw.model)),
+			text(e.raw.model) && modelName(text(e.raw.model)),
 			e.raw.agent_type,
 			e.raw.notification_type,
 			e.raw.query_source

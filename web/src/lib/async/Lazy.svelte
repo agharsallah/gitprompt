@@ -1,4 +1,4 @@
-<script lang="ts" generics="Props extends Record<string, any>">
+<script lang="ts" generics="Props extends Record<string, unknown>">
 	import type { Component, Snippet } from 'svelte';
 	import Loading from '#lib/async/Loading.svelte';
 	import Boundary from '#lib/errors/Boundary.svelte';
@@ -22,7 +22,7 @@
 		what,
 		pending
 	}: {
-		load: () => Promise<{ default: Component<Props, any, any> }>;
+		load: () => Promise<{ default: Component<Props> }>;
 		props: Props;
 		when?: 'now' | 'visible';
 		label: string;
@@ -31,7 +31,7 @@
 		pending: Snippet;
 	} = $props();
 
-	let Loaded = $state.raw<Component<Props, any, any> | null>(null);
+	let Loaded = $state.raw<Component<Props> | null>(null);
 	let error = $state.raw<unknown>(null);
 	let attempt = $state(0);
 	let near = $state(false);

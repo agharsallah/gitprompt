@@ -16,7 +16,7 @@
 
 	const signals = (c: RecentCapture) =>
 		Object.entries(c.signals)
-			.map(([k, v]) => `${k} = ${v}`)
+			.map(([k, v]) => `${k} = ${typeof v === 'string' ? v : JSON.stringify(v)}`)
 			.join(', ');
 </script>
 

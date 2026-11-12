@@ -46,7 +46,7 @@
 	const offered = $derived(OPTIONS.filter((o) => !o.kinds || o.kinds.includes(target.kind)));
 	const relaxed = $derived(loosened(options).filter((k) => offered.some((o) => o.key === k)));
 	const modes = $derived([
-		...FORMATS.map((f) => ({ value: f.value as Mode, label: f.label })),
+		...FORMATS.map((f) => ({ value: f.value, label: f.label })),
 		{ value: 'chart' as Mode, label: 'One chart' }
 	]);
 	const hint = $derived(
@@ -84,7 +84,7 @@
 		const opts = { ...options };
 		const current = mode;
 		const wanted = chart;
-		task.run(async () => {
+		void task.run(async () => {
 			if (current === 'chart') {
 				const list: ChartInfo[] = await (await fetch(chartsUrl(target, opts))).json();
 				const id = list.some((c) => c.id === wanted) ? wanted : (list[0]?.id ?? '');
@@ -112,7 +112,9 @@
 	function downloadPng() {
 		const svg = preview;
 		if (!svg) return;
-		saving.run(async () => save(await png(svg.text), chartFileName(target.kind, chart, 'png')));
+		void saving.run(async () =>
+			save(await png(svg.text), chartFileName(target.kind, chart, 'png'))
+		);
 	}
 
 	function close() {

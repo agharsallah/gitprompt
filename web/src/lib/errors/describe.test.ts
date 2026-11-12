@@ -74,4 +74,13 @@ describe('messageOf', () => {
 		expect(messageOf('c')).toBe('c');
 		expect(messageOf(undefined)).toBe('');
 	});
+
+	it('never says "[object Object]"', () => {
+		expect(messageOf(42)).toBe('42');
+		expect(messageOf({ message: { code: 7 } })).toBe('{"code":7}');
+		expect(messageOf({ status: 'down' })).toBe('{"status":"down"}');
+		const circular: Record<string, unknown> = {};
+		circular.self = circular;
+		expect(messageOf(circular)).toBe('');
+	});
 });

@@ -12,7 +12,6 @@ const DASH = '—';
 const MINUTE = 60;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
-const WEEK = 7 * DAY;
 
 /** A Date for an ISO string or Date, or null when there is none or it doesn't parse. */
 function toDate(value: Date | string | null | undefined): Date | null {

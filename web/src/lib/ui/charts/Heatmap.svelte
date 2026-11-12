@@ -30,13 +30,13 @@
 
 	function open(r: number, c: number) {
 		const href = hrefFor?.(r, c);
-		if (href) goto(href);
+		if (href) void goto(href);
 	}
 
 	const max = $derived(Math.max(...values.flat(), 0));
 	let width = $state(0);
 	let active = $state<{ r: number; c: number; x: number; y: number } | null>(null);
-	let cells: HTMLElement[] = $state([]);
+	const cells: HTMLElement[] = $state([]);
 
 	function point(r: number, c: number) {
 		const el = cells[r * columns.length + c];

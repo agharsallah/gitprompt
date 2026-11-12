@@ -12,7 +12,7 @@
 	// The dialog's code is fetched when it is about to be needed (pointer over or focus on the
 	// button), not with the page. A failed fetch is said next to the button.
 	type DialogProps = { target: ExportTarget; open?: boolean };
-	let Dialog = $state.raw<Component<DialogProps, {}, 'open'> | null>(null);
+	let Dialog = $state.raw<Component<DialogProps, Record<string, never>, 'open'> | null>(null);
 	let pending: Promise<unknown> | null = null;
 	let busy = $state(false);
 	let failure = $state('');

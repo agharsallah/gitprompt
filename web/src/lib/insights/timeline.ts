@@ -42,6 +42,10 @@ const num = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
+/** A raw field as text: strings and numbers as they are, anything else (objects, null) empty. */
+export const text = (v: unknown): string =>
+	typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
+
 /** The most telling input of a tool call, as one line. */
 export function toolDetail(input: unknown): string {
 	if (typeof input === 'string') {
@@ -79,7 +83,7 @@ export function turnTimeline(
 		const end = (eventTime(e) - t0) / 1000;
 		const duration = num(e.raw.duration_ms) / 1000;
 		if (e.event && TOOL_EVENTS.has(e.event)) {
-			const name = String(e.raw.tool_name ?? e.fields.tool_name ?? 'tool');
+			const name = text(e.raw.tool_name) || text(e.fields.tool_name) || 'tool';
 			spans.push({
 				id: e.id,
 				row: kindOf(name, kinds),
@@ -90,8 +94,8 @@ export function turnTimeline(
 				failed: e.event === 'PostToolUseFailure'
 			});
 		} else if (e.event === 'api_request') {
-			const model = String(e.raw.model ?? '');
-			const purpose = e.raw.query_source ? String(e.raw.query_source).replaceAll('_', ' ') : '';
+			const model = text(e.raw.model);
+			const purpose = text(e.raw.query_source).replaceAll('_', ' ');
 			spans.push({
 				id: e.id,
 				row: 'model',

@@ -50,7 +50,7 @@
 	function select(column: Column) {
 		if (onselect) return onselect(column);
 		const href = hrefFor?.(column);
-		if (href) goto(href);
+		if (href) void goto(href);
 	}
 	const clickable = $derived(!!(onselect || hrefFor));
 

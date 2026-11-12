@@ -22,8 +22,7 @@ export function projectId(repo: string): string {
 export const anchor = (id: number) => `prompt-${id}`;
 
 /** The rail node for a turn outcome: superseded and open both draw an open node. */
-export const railOutcome = (o: TurnOutcome): Outcome =>
-	o === 'superseded' ? 'open' : (o as Outcome);
+export const railOutcome = (o: TurnOutcome): Outcome => (o === 'superseded' ? 'open' : o);
 
 export type MarkerInfo = { label: string; plural: string; icon: LucideIcon; hint: string };
 

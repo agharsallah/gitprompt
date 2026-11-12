@@ -44,8 +44,21 @@ function statusOf(error: Source, fallback?: number): number | null {
 export function messageOf(error: Source): string {
 	if (isHttpError(error)) return error.body.message;
 	if (error instanceof Error) return error.message;
-	if (error && typeof error === 'object' && 'message' in error) return String(error.message);
-	return error === undefined || error === null ? '' : String(error);
+	if (error && typeof error === 'object' && 'message' in error) return textOf(error.message);
+	return textOf(error);
+}
+
+/** Any thrown value as text: primitives as they are, other objects as JSON (never "[object Object]"). */
+function textOf(value: unknown): string {
+	if (value === undefined || value === null) return '';
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint')
+		return value.toString();
+	try {
+		return JSON.stringify(value) ?? '';
+	} catch {
+		return ''; // circular: nothing readable to show
+	}
 }
 
 /**

@@ -97,7 +97,7 @@
 
 	const cancel = () => {
 		preview = null;
-		focusHeading();
+		void focusHeading();
 	};
 
 	const recheck = () =>
@@ -143,7 +143,7 @@
 
 	onMount(() => {
 		if (autoReview && (current.action === 'connect' || current.action === 'update'))
-			review('connect');
+			void review('connect');
 	});
 </script>
 

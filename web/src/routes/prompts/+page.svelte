@@ -169,72 +169,70 @@
 					<ListSkeleton variant="rows" rows={8} />
 				</div>
 			{/snippet}
-			{#snippet children()}
-				<div class="listing">
-					<PromptFilters
-						range={page.url.searchParams.get('range')}
-						{cleared}
-						filters={data.filters}
-						lists={data.lists}
-						{show}
-						{counts}
-						origins={data.origins}
-						{originCounts}
-						{facetOptions}
-					/>
+			<div class="listing">
+				<PromptFilters
+					range={page.url.searchParams.get('range')}
+					{cleared}
+					filters={data.filters}
+					lists={data.lists}
+					{show}
+					{counts}
+					origins={data.origins}
+					{originCounts}
+					{facetOptions}
+				/>
 
-					<p class="summary muted" aria-live="polite">
-						{#if show.length}
-							{plural(shown.length, 'prompt')} match, among the {prompts.length} loaded
-						{:else if data.filters.before || prompts.length >= matching}
-							{plural(prompts.length, 'prompt')}{data.filters.before ? ', older ones' : ''}
-						{:else}
-							Newest {prompts.length} of {plural(matching, 'prompt')}
-						{/if}
-					</p>
+				<p class="summary muted" aria-live="polite">
+					{#if show.length}
+						{plural(shown.length, 'prompt')} match, among the {prompts.length} loaded
+					{:else if data.filters.before || prompts.length >= matching}
+						{plural(prompts.length, 'prompt')}{data.filters.before ? ', older ones' : ''}
+					{:else}
+						Newest {prompts.length} of {plural(matching, 'prompt')}
+					{/if}
+				</p>
 
-					<div class="list">
-						{#if shown.length}
-							<PromptList prompts={shown} {selectedId} {hrefFor} />
-						{:else if filtered}
-							<EmptyState title="No prompts match these filters">
-								Try fewer words, another tool, model or outcome, more origins, or
-								<a href={cleared}>clear all filters</a>.
-							</EmptyState>
-						{:else}
-							<EmptyState title="No prompts yet">
-								Connect a source, then type a prompt in it: it shows up here as soon as you send it.
-								{#snippet actions()}
-									<Button variant="primary" href={resolve('/sources')}>Connect a source</Button>
-								{/snippet}
-							</EmptyState>
-						{/if}
-					</div>
-
-					{#if full || data.filters.before}
-						<nav class="pager" aria-label="More prompts">
-							{#if data.filters.before}
-								<Button href={url({ before: null, limit: null, id: null })} size="sm"
-									>Newest prompts</Button
-								>
-							{/if}
-							{#if full && data.limit < MAX_LIMIT}
-								<Button
-									href={url({ limit: String(data.limit + PAGE) })}
-									size="sm"
-									data-sveltekit-reset="false"
-								>
-									Show {PAGE} more
-								</Button>
-							{:else if full && last}
-								<Button href={url({ before: String(last.id), limit: null, id: null })} size="sm"
-									>Older prompts</Button
-								>
-							{/if}
-						</nav>
+				<div class="list">
+					{#if shown.length}
+						<PromptList prompts={shown} {selectedId} {hrefFor} />
+					{:else if filtered}
+						<EmptyState title="No prompts match these filters">
+							Try fewer words, another tool, model or outcome, more origins, or
+							<a href={cleared}>clear all filters</a>.
+						</EmptyState>
+					{:else}
+						<EmptyState title="No prompts yet">
+							Connect a source, then type a prompt in it: it shows up here as soon as you send it.
+							{#snippet actions()}
+								<Button variant="primary" href={resolve('/sources')}>Connect a source</Button>
+							{/snippet}
+						</EmptyState>
 					{/if}
 				</div>
-			{/snippet}
+
+				{#if full || data.filters.before}
+					<nav class="pager" aria-label="More prompts">
+						{#if data.filters.before}
+							<Button href={url({ before: null, limit: null, id: null })} size="sm"
+								>Newest prompts</Button
+							>
+						{/if}
+						{#if full && data.limit < MAX_LIMIT}
+							<Button
+								href={url({ limit: String(data.limit + PAGE) })}
+								size="sm"
+								data-sveltekit-reset="false"
+							>
+								Show {PAGE} more
+							</Button>
+						{:else if full && last}
+							<Button href={url({ before: String(last.id), limit: null, id: null })} size="sm"
+								>Older prompts</Button
+							>
+						{/if}
+					</nav>
+				{/if}
+			</div>
 		</Deferred>
 	</div>
 

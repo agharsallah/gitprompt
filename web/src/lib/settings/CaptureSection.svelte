@@ -72,7 +72,7 @@
 					class="draft"
 					onsubmit={(e) => {
 						e.preventDefault();
-						if (valid) review();
+						if (valid) void review();
 					}}
 				>
 					<TextField

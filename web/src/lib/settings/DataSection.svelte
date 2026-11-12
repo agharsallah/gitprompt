@@ -132,7 +132,7 @@
 				class="delete"
 				onsubmit={(e) => {
 					e.preventDefault();
-					reviewDelete();
+					void reviewDelete();
 				}}
 			>
 				{#if data.events.length}

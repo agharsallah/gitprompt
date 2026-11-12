@@ -36,7 +36,10 @@
 			text = (await api.spec(source.id)).text;
 		});
 	$effect(() => {
-		if (open) untrack(() => text === null && !task.busy && load());
+		if (open)
+			untrack(() => {
+				if (text === null && !task.busy) void load();
+			});
 	});
 </script>
 

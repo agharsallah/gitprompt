@@ -15,7 +15,7 @@
 	}: { tabs: Tab[]; selected: T; label: string; panel: Snippet<[T]> } = $props();
 
 	const id = $props.id();
-	let buttons: HTMLButtonElement[] = $state([]);
+	const buttons: HTMLButtonElement[] = $state([]);
 
 	function move(event: KeyboardEvent, index: number) {
 		const enabled = tabs.map((t, i) => (t.disabled ? -1 : i)).filter((i) => i >= 0);
