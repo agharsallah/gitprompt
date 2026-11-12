@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::watch;
 
 use gitprompt_core::Settings;
-use gitprompt_server::{Daemon, Service};
+use gitprompt_server::{Daemon, DaemonError, Service};
 
 use crate::error::CommandError;
 use crate::native::Opener;
@@ -139,22 +139,31 @@ impl GitPrompt {
     /// closes, the lock is released. The status is [`DaemonStatus::Stopped`] afterwards (an
     /// external daemon keeps running).
     pub async fn shutdown(&self) {
-        let daemon = {
-            let mut slot = self.daemon();
-            self.inner.status.send_replace(DaemonStatus::Stopped);
-            slot.take()
-        };
-        if let Some(daemon) = daemon {
-            match daemon.shutdown().await {
-                Ok(()) => tracing::info!("GitPrompt stopped"),
-                Err(e) => tracing::warn!(error = %e, "GitPrompt did not stop cleanly"),
-            }
+        if let Some(daemon) = self.take_daemon() {
+            log_stop(daemon.shutdown().await);
         }
+    }
+
+    /// Mark the status [`DaemonStatus::Stopped`] and take the in-process daemon out of its slot,
+    /// under the slot's lock so a start settling at the same time hands its daemon back (see
+    /// [`GitPrompt::started`]).
+    fn take_daemon(&self) -> Option<Daemon> {
+        let mut slot = self.daemon();
+        self.inner.status.send_replace(DaemonStatus::Stopped);
+        slot.take()
     }
 
     fn daemon(&self) -> MutexGuard<'_, Option<Daemon>> {
         // Nothing panics while holding the lock; a poisoned slot is still consistent.
         self.inner.daemon.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// How the in-process daemon stopped.
+fn log_stop(stopped: Result<(), DaemonError>) {
+    match stopped {
+        Ok(()) => tracing::info!("GitPrompt stopped"),
+        Err(e) => tracing::warn!(error = %e, "GitPrompt did not stop cleanly"),
     }
 }
 
