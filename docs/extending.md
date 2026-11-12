@@ -61,8 +61,9 @@ to compare before and after a refactor: a split that leaves propagation cost unc
 code around.
 
 Changing the map is a design decision, not a fix: agree on it first, then edit `rules.rs` and this
-page in the same change, and say why in the commit. Claude Code asks before editing `rules.rs`, and
-re-runs `just arch` before finishing a turn that touched Rust code.
+page in the same change, and say why in the commit. Claude Code asks before editing `rules.rs` (and
+the other guardrails), and its quality gate runs these checks, clippy and the tests of the changed
+crates before it finishes a turn (`.claude/hooks/README.md`).
 
 ### A new crate (a layer or a bounded context)
 

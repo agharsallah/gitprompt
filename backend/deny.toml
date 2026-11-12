@@ -60,11 +60,12 @@ exceptions = []
 ignore = true
 
 [bans]
-# Duplicate versions are reported but don't fail. The ones that exist today all come from upstream
-# crates pinning an older major (listed in `skip` below, each with its puller), so the report starts
-# clean and a newly added duplicate stands out. Before adding a skip, check that no bump of ours
-# unifies it (`cargo tree -i <crate>@<version>`); drop an entry once upstream catches up.
-multiple-versions = "warn"
+# Duplicate versions fail. The ones that exist today all come from upstream crates pinning an older
+# major: `skip` below lists each with the crate that pulls it, an explicit baseline that only shrinks.
+# A new duplicate: first check that no bump of ours unifies it (`cargo tree -i <crate>@<version>`);
+# a skip is a decision the user approves (editing this file asks). `just deps` also fails on a skip
+# that no longer matches anything (upstream caught up): delete that entry.
+multiple-versions = "deny"
 # Wildcard versions (`*`) are denied, except for path dependencies inside the workspace.
 wildcards = "deny"
 allow-wildcard-paths = true

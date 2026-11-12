@@ -20,10 +20,29 @@ export default defineConfig({
 	],
 	server: { proxy: { '/api': daemon } },
 	test: {
-		include: ['src/**/*.test.ts'],
-		environment: 'node',
 		// Day grouping uses the local calendar: pin a zone with daylight saving to keep tests honest.
 		env: { TZ: 'Europe/Berlin' },
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: 'unit',
+					include: ['src/**/*.test.ts'],
+					exclude: ['src/**/*.svelte.test.ts'],
+					environment: 'node'
+				}
+			},
+			{
+				// Tests of runes ($effect in a .svelte.ts module) need Svelte's browser build.
+				extends: true,
+				resolve: { conditions: ['browser'] },
+				test: {
+					name: 'runes',
+					include: ['src/**/*.svelte.test.ts'],
+					environment: './src/lib/testing/client-environment.ts'
+				}
+			}
+		],
 		coverage: {
 			include: ['src/lib/**/*.ts'],
 			// The display helpers are pure and every branch is a corner case someone hit: keep them whole.

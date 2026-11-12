@@ -93,7 +93,15 @@ deps:
     for tool in cargo-deny cargo-machete; do
         command -v "$tool" >/dev/null || { echo "missing $tool: cargo install --locked $tool" >&2; exit 1; }
     done
-    cargo deny --locked check
+    # A skip in deny.toml that matches nothing any more is only a warning to cargo-deny: fail on it, so
+    # the list of accepted duplicates shrinks as upstream crates catch up.
+    out="$(cargo deny --locked check 2>&1)" || { echo "$out"; exit 1; }
+    echo "$out" | tail -1
+    if grep -q 'unmatched-skip' <<<"$out"; then
+        grep -A3 'unmatched-skip' <<<"$out"
+        echo "deny.toml skips a duplicate that no longer exists: delete that entry" >&2
+        exit 1
+    fi
     cargo machete
 
 # Rust tests (all crates, end-to-end included) and web tests

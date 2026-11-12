@@ -46,6 +46,15 @@ Where each kind of change goes: `docs/extending.md`.
   conformance fixtures (insta). After an intended API change run **`just snapshots`** and review the
   diff of `tests/snapshots/`; never accept snapshots you have not read.
 
+## Guardrails (hooks, `.claude/hooks/README.md`)
+
+- Frozen and generated files are refused (`legacy/python/`, `generated.ts`). Guardrails ask the user
+  first: `rules.rs`, `deny.toml`, lint/format/type configs, `vite.config.ts`, API snapshots, CI, the
+  `justfile`, the hooks. Never route around them with a shell command or a script; ask.
+- Before you finish, the quality gate runs the checks of everything the working tree changed (Rust
+  fmt, architecture, clippy, tests and types; dependencies; web lint, types, tests and coverage).
+  When it blocks, fix the cause and finish again; never weaken a check to pass.
+
 ## Checks
 
 - `just verify` runs what CI runs. Use pnpm (never npm) for the web; `uv` for any Python.

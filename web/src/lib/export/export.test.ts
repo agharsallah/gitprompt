@@ -3,9 +3,11 @@ import {
 	chartFileName,
 	chartsUrl,
 	exportUrl,
+	FORMATS,
 	loosened,
 	OPTIONS,
-	PRIVATE_DEFAULTS
+	PRIVATE_DEFAULTS,
+	subject
 } from '#lib/export/export.ts';
 
 describe('export options', () => {
@@ -18,6 +20,35 @@ describe('export options', () => {
 		});
 		expect(loosened(PRIVATE_DEFAULTS)).toEqual([]);
 		expect(loosened({ ...PRIVATE_DEFAULTS, prompt_text: true })).toEqual(['prompt_text']);
+	});
+
+	it('list every option that differs from the most private choice', () => {
+		const open = {
+			prompt_text: true,
+			relative_paths: false,
+			drop_identity: false,
+			drop_raw: false
+		};
+		expect(loosened(open)).toEqual(['prompt_text', 'relative_paths', 'drop_identity', 'drop_raw']);
+		expect(loosened({ ...PRIVATE_DEFAULTS, drop_raw: false })).toEqual(['drop_raw']);
+	});
+
+	it('cannot be loosened by changing the defaults', () => {
+		expect(Object.isFrozen(PRIVATE_DEFAULTS)).toBe(true);
+	});
+
+	it('offer raw payloads only where they exist', () => {
+		const kinds = Object.fromEntries(OPTIONS.map((o) => [o.key, o.kinds]));
+		expect(kinds).toEqual({
+			prompt_text: undefined,
+			relative_paths: undefined,
+			drop_identity: undefined,
+			drop_raw: ['prompts']
+		});
+	});
+
+	it('offer each document format once', () => {
+		expect(FORMATS.map((f) => f.value)).toEqual(['html', 'md', 'csv', 'json']);
 	});
 
 	it('describe every option and never offer to show secrets', () => {
@@ -43,6 +74,34 @@ describe('export URLs', () => {
 		});
 	});
 
+	it('send loosened options as they are, and no download or chart unless asked', () => {
+		const options = { ...PRIVATE_DEFAULTS, prompt_text: true, drop_identity: false };
+		const url = new URL(exportUrl({ kind: 'project', id: 'p' }, 'html', options), 'http://x');
+		expect(url.pathname).toBe('/api/export/project');
+		expect(url.searchParams.get('prompt_text')).toBe('true');
+		expect(url.searchParams.get('drop_identity')).toBe('false');
+		expect(url.searchParams.has('download')).toBe(false);
+		expect(url.searchParams.has('chart')).toBe(false);
+		const plain = new URL(
+			exportUrl({ kind: 'project', id: 'p' }, 'html', options, { download: false, chart: '' }),
+			'http://x'
+		);
+		expect(plain.searchParams.has('download')).toBe(false);
+		expect(plain.searchParams.has('chart')).toBe(false);
+	});
+
+	it('cover every page of a selection: no limit either', () => {
+		const target = { kind: 'overview' as const, query: { repo: '/r', limit: 50 } };
+		const url = new URL(exportUrl(target, 'json', PRIVATE_DEFAULTS), 'http://x');
+		expect(url.searchParams.has('limit')).toBe(false);
+		const charts = new URL(chartsUrl(target, PRIVATE_DEFAULTS), 'http://x');
+		expect(charts.pathname).toBe('/api/export/overview/charts');
+		expect(charts.searchParams.get('repo')).toBe('/r');
+		expect(charts.searchParams.has('limit')).toBe(false);
+		expect(charts.searchParams.has('format')).toBe(false);
+		expect(charts.searchParams.get('drop_raw')).toBe('true');
+	});
+
 	it('carry the filters of a selection, without paging', () => {
 		const target = {
 			kind: 'prompts' as const,
@@ -64,5 +123,20 @@ describe('export URLs', () => {
 		expect(chartFileName('overview', 'tool-kinds', 'png')).toBe(
 			'gitprompt-overview-tool-kinds.png'
 		);
+	});
+
+	it('make chart names safe and lower case', () => {
+		expect(chartFileName('session', 'Tools / By Kind', 'svg')).toBe(
+			'gitprompt-session-tools-by-kind.svg'
+		);
+	});
+});
+
+describe('subject', () => {
+	it('names what is exported', () => {
+		expect(subject('session')).toBe('this session');
+		expect(subject('project')).toBe('this project');
+		expect(subject('overview')).toBe('the Overview');
+		expect(subject('prompts')).toBe('these prompts');
 	});
 });
