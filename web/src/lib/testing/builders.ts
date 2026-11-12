@@ -4,6 +4,7 @@
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
 import type { Event, Facts, Prompt, Source, StatsBucket } from '#lib/api/types.ts';
+import type { PreferenceKey, Preferences, Setting, SettingsState } from '#lib/api/settings.ts';
 
 let nextId = 1;
 
@@ -175,5 +176,27 @@ export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
 		last_at: null,
 		parts: null,
 		...overrides
+	};
+}
+
+/** GET /api/settings with these values, each a default the daemon applies at once. */
+export function settingsState(values: Preferences): SettingsState {
+	const setting = <K extends PreferenceKey>(key: K): Setting<K> => ({
+		value: values[key],
+		default: values[key],
+		source: 'default',
+		env: `GITPROMPT_${key.toUpperCase()}`,
+		locked: false,
+		applies: 'now'
+	});
+	return {
+		file: '/home/dev/.gitprompt/preferences.json',
+		settings: {
+			default_range: setting('default_range'),
+			week_start: setting('week_start'),
+			event_retention_days: setting('event_retention_days'),
+			hide_secrets_on_ingest: setting('hide_secrets_on_ingest'),
+			disabled_sources: setting('disabled_sources')
+		}
 	};
 }

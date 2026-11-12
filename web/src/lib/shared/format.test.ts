@@ -15,6 +15,7 @@ import {
 	percent,
 	pick,
 	plural,
+	present,
 	relative,
 	relativePath,
 	shortDate,
@@ -58,6 +59,13 @@ describe('count', () => {
 	it.each([[undefined], [null], [7], ['abc'], [true]])('is 0 for %j', (value) =>
 		expect(count(value)).toBe(0)
 	);
+});
+
+describe('present', () => {
+	it('drops the nulls the daemon pads a list with', () =>
+		expect(present(['a', null, 'b'])).toEqual(['a', 'b']));
+	it('reads a missing list as empty', () => expect(present(undefined)).toEqual([]));
+	it('keeps falsy values that are there', () => expect(present([0, '', null])).toEqual([0, '']));
 });
 
 describe('inline', () => {

@@ -179,8 +179,11 @@ function named(key: string, value: string): string {
 	if (key === 'project') return `Project: ${folder(value) ?? value}`;
 	if (key === 'q') return `Search: “${value}”`;
 	if (key === 'tag') return `Tag: ${value}`;
-	const facet = FACETS[key as keyof typeof FACETS];
-	if (facet) return `${facet.label}: ${facet.name(value)}`;
+	// Own keys only: a remembered URL may carry any name, `toString` included.
+	if (Object.hasOwn(FACETS, key)) {
+		const facet = FACETS[key as keyof typeof FACETS];
+		return `${facet.label}: ${facet.name(value)}`;
+	}
 	return pinLabel(key, value) ?? `${key}: ${value}`;
 }
 

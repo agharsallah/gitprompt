@@ -19,24 +19,7 @@ import {
 	viewQuery,
 	viewSearch
 } from '#lib/settings/views.ts';
-
-function memoryStorage() {
-	const items = new Map<string, string>();
-	let writes = 0;
-	return {
-		items,
-		writes: () => writes,
-		getItem: (k: string) => items.get(k) ?? null,
-		setItem: (k: string, v: string) => {
-			writes++;
-			items.set(k, v);
-		},
-		removeItem: (k: string) => {
-			writes++;
-			items.delete(k);
-		}
-	};
-}
+import { memoryStorage } from '#lib/testing/storage.ts';
 
 const blocked = {
 	getItem: () => {
@@ -208,6 +191,14 @@ describe('in words, for Settings', () => {
 		expect(describeView('/', s)).toBe('Model: Opus 5.5, Project: app');
 		expect(describeView('/sessions', s)).toBe('Sort: Most turns, Project: api, Search: “fix”');
 		expect(describeView('/prompts', s)).toBe('Tuesdays, Agent committed, Tag: wip');
+	});
+
+	it('names an unknown key plainly, even one Object itself has (a link may carry any name)', () => {
+		const s = memoryStorage();
+		keepView('/prompts', '?toString=1&constructor=x&hasOwnProperty=y&zzz=2', s);
+		expect(describeView('/prompts', s)).toBe(
+			'toString: 1, constructor: x, hasOwnProperty: y, zzz: 2'
+		);
 	});
 
 	it('gives every page its own key under the gitprompt- prefix', () => {

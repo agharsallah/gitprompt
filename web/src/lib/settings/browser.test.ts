@@ -1,14 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BROWSER_PREFERENCES, read, stored } from '#lib/settings/browser.ts';
-
-function memoryStorage() {
-	const items = new Map<string, string>();
-	return {
-		getItem: (k: string) => items.get(k) ?? null,
-		setItem: (k: string, v: string) => void items.set(k, v),
-		removeItem: (k: string) => void items.delete(k)
-	};
-}
+import { memoryStorage } from '#lib/testing/storage.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -41,5 +33,30 @@ describe('browser-only preferences', () => {
 		const keys = BROWSER_PREFERENCES.map((p) => p.key);
 		expect(new Set(keys).size).toBe(keys.length);
 		expect(keys.every((k) => k.startsWith('gitprompt-'))).toBe(true);
+	});
+});
+
+describe('each listed preference', () => {
+	const pref = (key: string) => {
+		const found = BROWSER_PREFERENCES.find((p) => p.key === key);
+		if (!found) throw new Error(`no preference ${key}`);
+		return found;
+	};
+
+	it('describes its value and resets it', () => {
+		vi.stubGlobal('localStorage', memoryStorage());
+		vi.stubGlobal('document', { documentElement: { dataset: {} } });
+		for (const p of BROWSER_PREFERENCES) {
+			expect(typeof p.current()).toBe('string');
+			expect(() => p.reset()).not.toThrow();
+		}
+		expect(pref('gitprompt-theme').current()).toBe('Match system');
+		expect(pref('gitprompt-update-hint').current()).toBe('Shown');
+		localStorage.setItem('gitprompt-update-hint', 'x');
+		expect(pref('gitprompt-update-hint').current()).toBe(
+			'Hidden until another connection needs an update'
+		);
+		pref('gitprompt-update-hint').reset();
+		expect(read('gitprompt-update-hint')).toBeNull();
 	});
 });

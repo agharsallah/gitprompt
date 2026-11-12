@@ -22,11 +22,23 @@ import { queryParams, type StatsQuery } from '#lib/api/query.ts';
 
 type Fetch = typeof fetch;
 
-/** The daemon's error message: `detail` from FastAPI (a string, or a list of validation errors). */
+/**
+ * The daemon's error message: its `detail` string, or a list of validation errors (`{loc, msg}`).
+ * Anything else, or a body that is not JSON, falls back to the HTTP status text.
+ */
 async function errorText(response: Response): Promise<string> {
-	const detail = (await response.json().catch(() => null))?.detail;
-	if (Array.isArray(detail)) return detail.map((d) => `${d.loc?.join('.')}: ${d.msg}`).join('; ');
-	return detail ?? response.statusText;
+	const detail: unknown = (await response.json().catch(() => null))?.detail;
+	if (typeof detail === 'string' && detail) return detail;
+	if (Array.isArray(detail) && detail.length) return detail.map(validationText).join('; ');
+	return response.statusText || `HTTP ${response.status}`;
+}
+
+function validationText(entry: unknown): string {
+	if (entry === null || typeof entry !== 'object') return String(entry);
+	const { loc, msg } = entry as { loc?: unknown; msg?: unknown };
+	const where = Array.isArray(loc) ? loc.join('.') : '';
+	const what = typeof msg === 'string' ? msg : JSON.stringify(entry);
+	return where ? `${where}: ${what}` : what;
 }
 
 /** The daemon answered with an error status. The message keeps the status and path first. */

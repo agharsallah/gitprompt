@@ -71,8 +71,9 @@ export function pins(filters: Filters, lists: Lists): Pin[] {
 export function pinLabel(key: string, value: string): string | undefined {
 	const lists: Lists = { model: [], surface: [], outcome: [], has: [] };
 	const filters: Filters = {};
-	if (key in lists) lists[key as keyof Lists].push(value as never);
-	else if (key in LABELS) filters[key as keyof Filters] = value;
+	// Own keys only: a remembered URL may carry any name, `toString` included.
+	if (Object.hasOwn(lists, key)) lists[key as keyof Lists].push(value as never);
+	else if (Object.hasOwn(LABELS, key)) filters[key as keyof Filters] = value;
 	else return undefined;
 	return pins(filters, lists)[0]?.label;
 }
