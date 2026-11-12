@@ -20,7 +20,9 @@ default:
 # backend/) a build fails on files under the old path. Every Cargo recipe runs this first; it
 # remembers where backend/target was built and starts clean when that changes.
 # Cargo also never deletes outdated builds, so backend/target only grows (it reached 60 GB): the
-# guard cleans it once it is over GITPROMPT_TARGET_MAX_GB (default 20).
+# guard cleans it once it is over GITPROMPT_TARGET_MAX_GB (default 20). `just quality` runs the guard
+# once before its reports and sets GITPROMPT_TARGET_GUARDED, so no report's recipe cleans mid-build
+# (that would delete what an earlier report wrote, such as the llvm-cov output).
 [private]
 target-guard:
     #!/usr/bin/env bash
@@ -32,7 +34,7 @@ target-guard:
         (cd backend && cargo clean)
     fi
     max_gb="${GITPROMPT_TARGET_MAX_GB:-20}"
-    if [ -d backend/target ]; then
+    if [ -d backend/target ] && [ -z "${GITPROMPT_TARGET_GUARDED:-}" ]; then
         size_gb=$(( $(du -sk backend/target | cut -f1) / 1024 / 1024 ))
         if [ "$size_gb" -ge "$max_gb" ]; then
             echo "backend/target is ${size_gb} GB (limit ${max_gb} GB): cleaning stale builds"
@@ -82,8 +84,12 @@ install: target-guard
 # --- checks ---
 
 # Everything CI runs: format, lint, dependency checks, Rust tests (unit, integration, end-to-end), web checks, tests and build
-verify: lint deps test
+verify: lint deps test tools-test
     pnpm --dir web build
+
+# The quality dashboard's own tests (tools/quality/test): scheduling, live output parsing
+tools-test:
+    node --test 'tools/quality/test/*.test.mjs'
 
 # Dependency checks: advisories, licenses, duplicates, sources (backend/deny.toml) and unused crates (needs: cargo install --locked cargo-deny cargo-machete)
 deps:
@@ -129,10 +135,11 @@ arch-report *flags: target-guard
 
 # Opens target/quality/index.html at once, then builds while it fills in live. Select with an area,
 # a report or a name (`just quality web`, `just quality backend/lint`, `just quality lint`); `--view`
-# opens it without building, `--list` lists the reports, `--no-open` skips the browser.
+# opens it without building, `--list` lists the reports, `--no-open` skips the browser, `--jobs=N`
+# sets how many reports run side by side (default: half the cores, at most 4).
 # Code-quality dashboard: backend and web reports (tests, coverage, architecture, lint, performance...)
-quality *args:
-    node tools/quality/quality.mjs {{ args }}
+quality *args: target-guard
+    GITPROMPT_TARGET_GUARDED=1 node tools/quality/quality.mjs {{ args }}
 
 # Regenerate the dashboard's API types (web/src/lib/api/generated.ts) from the Rust wire types.
 # Run after changing any type the API sends or accepts; `cargo test` (and CI) fails while it is stale.

@@ -9,14 +9,34 @@ just quality lint             # a report name, in every area (backend/lint and w
 just quality --view           # open the dashboard as last built, build nothing
 just quality --list           # areas and reports
 just quality --no-open ...    # build without opening a browser (CI, scripts)
+just quality --jobs=1 ...     # reports at once (default: half the cores, at most 4)
 ```
 
 The dashboard is `target/quality/index.html` (git-ignored). It works straight from disk, no server:
 the build writes scripts the page loads (`status.js`, `data/…`), and the page reads `status.js`
-again every second while a build runs, so you watch the build: which report runs, its current step
-and elapsed time, each result as it lands. The terminal shows the same progress. A failed report
-does not stop the others (exit status 1 at the end); its page keeps the previous result under the
-error, with a link to its log (`target/quality/logs/`).
+again every second while a build runs, so you watch the build: which reports run, the command each
+one runs, what it is doing (crates compiled, the test binary running and tests passed so far, test
+files done), its last output lines, its time against the last run, what it waits for, and each
+result as it lands. The terminal shows the same in a live block, one line per running report. A
+failed report does not stop the others (exit status 1 at the end); its page keeps the previous
+result under the error, with a link to its log (`target/quality/logs/`).
+
+## Side by side
+
+Reports run in parallel (`--jobs`, default half the cores and at most 4: a Rust build alone uses
+every core), the longest one (by its last run) first. Three rules keep that safe:
+
+- A report waits for the ones in its `after` (when they are in the same build): the architecture
+  page draws the coverage `backend/tests` writes.
+- A step several reports need runs once (`lib/shared.mjs`): the SvelteKit sync, the web build,
+  clippy, the daemon build, the demo daemon. Anything several reports write belongs there.
+- A measurement runs last and alone (`ctx.alone`): the load benchmark and Lighthouse build what
+  they need side by side with the rest, then measure one after the other once every other report
+  is done, so their timings never measure a busy machine and they never hold up the others.
+
+Cargo commands on the same `backend/target` profile still take turns on cargo's own lock (the
+dashboard shows the wait); coverage builds into its own folder and the benchmark in release, so
+those really run side by side. `just quality --jobs=1` runs one report at a time, as before.
 
 ## Reports
 
@@ -38,8 +58,8 @@ Both Complexity pages share one builder (`lib/complexity.mjs`) and read their li
 configs the gate uses (`rules.rs`, `clippy.toml`, `eslint.config.js`), so the page and the gate never
 disagree.
 
-The full run takes a while (coverage, a release build for the benchmark, Lighthouse); `just quality
-<report>` refreshes one in seconds to minutes and keeps the others.
+The full run takes a few minutes (coverage, a release build for the benchmark, Lighthouse); `just
+quality <report>` refreshes one in seconds to minutes and keeps the others.
 
 ## How it is built
 
@@ -49,14 +69,17 @@ tools/quality/
   areas.mjs              the areas (Backend, Web): one line each
   lib/
     registry.mjs         finds reports/<area>/NN-<name>.mjs; id <area>/<name>
-    runner.mjs           runs them in order, writes progress and results as it goes
-    context.mjs          what a report gets: exec (logged), step, once, cleanup, readJson
-    shared.mjs           steps several reports share, once per build: web build, daemon, demo daemon
+    scheduler.mjs        which report runs when: places, `after`, longest first, measurements alone
+    runner.mjs           runs them through the scheduler, writes progress and results as it goes
+    context.mjs          what a report gets: exec (logged, live), step, once, alone, cleanup, readJson
+    output.mjs           live output: whole lines, and what a cargo command is doing
+    shared.mjs           steps several reports share, once per build: sync, web build, clippy, daemon
     spec.mjs             the page blocks and tone helpers
     status.mjs           status.js, state.json, data/<area>/<name>.js
     progress.mjs         the terminal progress
-  hub/                   the page (index.html, app.js, render.js, style.css), copied to target/quality
+  hub/                   the page (index.html, app.js, build.js, render.js, style.css), copied to target/quality
   reports/<area>/NN-<name>.mjs
+  test/                  node --test 'tools/quality/test/*.test.mjs'
 ```
 
 A report never writes HTML: it returns its page as data, and the hub draws every report the same
@@ -65,7 +88,7 @@ embedded in the page.
 
 ## Adding a report
 
-One file: `reports/<area>/NN-<name>.mjs` (NN orders the run and the sidebar). Nothing else changes.
+One file: `reports/<area>/NN-<name>.mjs` (NN orders the sidebar). Nothing else changes.
 
 ```js
 import { join } from 'node:path';
@@ -91,13 +114,21 @@ export default {
 };
 ```
 
-- `ctx.exec(command, args, { cwd, env, label, allowFailure })` runs a command; its output goes to
-  the report's log, `label` to the progress line and the dashboard. It rejects on a non-zero exit
-  unless `allowFailure` (for tools that exit 1 when they find something).
+- `ctx.exec(command, args, { cwd, env, label, allowFailure, activity, dataOnStdout })` runs a
+  command; its output goes to the report's log and, line by line, to the live view; `label` to the
+  progress line and the dashboard. It rejects on a non-zero exit unless `allowFailure` (for tools
+  that exit 1 when they find something). `activity: cargoActivity()` (`lib/output.mjs`), or any
+  `line => text | undefined`, says what the command is doing instead of its raw last line;
+  `dataOnStdout` keeps JSON a report parses out of the live view. Commands of one report may run
+  together (`Promise.all`) when they do not depend on each other.
+- `after: ['backend/tests']` (next to `title`) waits for those reports when they are in the build.
+- `ctx.alone(reason, fn)` runs `fn` once every other report is done, with nothing else running:
+  for timings. Build everything `fn` needs before calling it.
 - `ctx.step(text)` shows what the report is doing; `ctx.artifacts` is its own folder for files;
   `ctx.fromHub(path)` turns a file into a link the page can open or embed.
-- `ctx.once(key, fn)` runs a step once per build, whichever report asks first: put shared steps in
-  `lib/shared.mjs` (`webBuild`, `daemonBinary`, `demoDaemon`). `ctx.cleanup(fn)` runs after the build.
+- `ctx.once(key, fn)` runs a step once per build, whichever report asks first; the others wait for
+  it and say so. Put shared steps in `lib/shared.mjs` (`webSync`, `webBuild`, `clippy`,
+  `daemonBinary`, `demoDaemon`). `ctx.cleanup(fn)` runs after the build.
 - Blocks (`lib/spec.mjs`): `kpis`, `bars`, `table` (sortable, filterable when long), `checks`,
   `embed`, `links`, `note`. Tones: `good`, `warn`, `bad`, `neutral`; `tone`, `toneBelow`, `toneZero`
   pick one from a number.

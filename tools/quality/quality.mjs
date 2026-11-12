@@ -7,6 +7,7 @@
 //   just quality --view             open the dashboard as last built, build nothing
 //   just quality --list             the areas and reports
 //   just quality --no-open ...      build without opening a browser (CI, scripts)
+//   just quality --jobs=1 ...       reports at once (default: half the cores, at most 4)
 //
 // Adding a report: tools/quality/README.md.
 import { spawn } from 'node:child_process';
@@ -16,13 +17,16 @@ import { AREAS } from './areas.mjs';
 import { PATHS, fromRepo } from './lib/paths.mjs';
 import { discover, select } from './lib/registry.mjs';
 import { installHub, run } from './lib/runner.mjs';
+import { DEFAULT_JOBS } from './lib/scheduler.mjs';
 
 const args = process.argv.slice(2);
-const flags = new Set(args.filter((arg) => arg.startsWith('--')));
+const options = args.filter((arg) => arg.startsWith('--'));
+const flags = new Set(options.filter((arg) => !arg.includes('=')));
 const selectors = args.filter((arg) => !arg.startsWith('--'));
 const known = new Set(['--view', '--list', '--no-open']);
-const unknown = [...flags].filter((flag) => !known.has(flag));
-if (unknown.length > 0) fail(`unknown option ${unknown.join(', ')} (options: ${[...known].join(', ')})`);
+const unknown = options.filter((option) => !known.has(option) && !option.startsWith('--jobs='));
+if (unknown.length > 0) fail(`unknown option ${unknown.join(', ')} (options: ${[...known, '--jobs=N'].join(', ')})`);
+const jobs = jobsOption(options.find((option) => option.startsWith('--jobs=')));
 
 const reports = await discover();
 
@@ -48,13 +52,22 @@ try {
 	fail(error.message);
 }
 
-console.log(`\n  GitPrompt quality · ${selected.length} of ${reports.length} reports · ${fromRepo(PATHS.index)}\n`);
-const ok = await run(reports, selected, { onStarted: () => flags.has('--no-open') || openPage(PATHS.index) });
+const atOnce = Math.min(jobs, selected.length);
+console.log(`\n  GitPrompt quality · ${selected.length} of ${reports.length} reports, ${atOnce} at a time · ${fromRepo(PATHS.index)}\n`);
+const ok = await run(reports, selected, { jobs: atOnce, onStarted: () => flags.has('--no-open') || openPage(PATHS.index) });
 process.exit(ok ? 0 : 1);
 
 function openPage(path) {
 	const [command, ...rest] = process.platform === 'darwin' ? ['open'] : process.platform === 'win32' ? ['cmd', '/c', 'start', '""'] : ['xdg-open'];
 	spawn(command, [...rest, path], { stdio: 'ignore', detached: true }).unref();
+}
+
+/** `--jobs=N` → N (at least 1); absent → DEFAULT_JOBS. */
+function jobsOption(option) {
+	if (!option) return DEFAULT_JOBS;
+	const count = Number(option.slice('--jobs='.length));
+	if (!Number.isInteger(count) || count < 1) fail(`${option}: give a whole number of reports at once, 1 or more`);
+	return count;
 }
 
 function fail(message) {

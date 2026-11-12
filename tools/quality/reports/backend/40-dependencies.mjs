@@ -16,10 +16,12 @@ export default {
 		{ command: 'cargo-machete', install: 'cargo install --locked cargo-machete' }
 	],
 	async run(ctx) {
-		const deny = await ctx.exec('cargo', ['deny', '--locked', '--format', 'json', 'check'], { cwd: ctx.backend, label: 'cargo deny check', allowFailure: true });
+		const [deny, machete] = await Promise.all([
+			ctx.exec('cargo', ['deny', '--locked', '--format', 'json', 'check'], { cwd: ctx.backend, label: 'cargo deny check', allowFailure: true }),
+			ctx.exec('cargo', ['machete'], { cwd: ctx.backend, label: 'cargo machete', allowFailure: true })
+		]);
 		const { diagnostics, summary } = parseDeny(deny.stderr);
 		if (!summary) throw new Error(`cargo deny gave no summary (exit ${deny.code}); see the log`);
-		const machete = await ctx.exec('cargo', ['machete'], { cwd: ctx.backend, label: 'cargo machete', allowFailure: true });
 		const unused = parseMachete(machete.stdout);
 		const lock = await readFile(join(ctx.backend, 'Cargo.lock'), 'utf8');
 		return page(diagnostics, summary, unused, (lock.match(/^\[\[package\]\]$/gm) || []).length);

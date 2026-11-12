@@ -1,7 +1,9 @@
 // Every Rust test, run once under cargo llvm-cov (`just cov`): which passed, which failed, and the
 // lines they reach, per crate and per file, with llvm-cov's line-by-line report.
+import { cp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { cargoActivity } from '../../lib/output.mjs';
 import { bars, coverageCell, embed, kpis, note, pct, plural, table, tone } from '../../lib/spec.mjs';
 
 export default {
@@ -9,14 +11,23 @@ export default {
 	description: 'Every Rust test (unit, integration, end-to-end) under cargo llvm-cov: results per crate and the lines they reach.',
 	needs: [{ command: 'cargo-llvm-cov', install: 'cargo install cargo-llvm-cov' }],
 	async run(ctx) {
-		const result = await ctx.exec('just', ['cov'], { label: 'running every test with coverage (just cov)', allowFailure: true });
+		const result = await ctx.exec('just', ['cov'], { label: 'running every test with coverage (just cov)', allowFailure: true, activity: cargoActivity() });
 		// cargo prints "Running <binary>" on stderr and its results on stdout: parse them in order.
 		const runs = parseRuns(result.output, await packagesByTarget(ctx));
 		if (runs.length === 0) throw new Error(`no test ran: just cov exited ${result.code}; see the log`);
 		const coverage = result.code === 0 ? await ctx.readJson(join(ctx.backend, 'target/llvm-cov/summary.json')) : null;
+		if (coverage) await keepHtml(ctx);
 		return page(ctx, runs, coverage);
 	}
 };
+
+/** The line-by-line report goes into the dashboard's own folder: a later report's `just` recipe can
+ *  clean backend/target (target-guard), which would leave the embedded frame pointing at nothing. */
+async function keepHtml(ctx) {
+	const kept = join(ctx.artifacts, 'llvm-cov');
+	await rm(kept, { recursive: true, force: true });
+	await cp(join(ctx.backend, 'target/llvm-cov/html'), kept, { recursive: true });
+}
 
 /** Target name (as cargo prints it, `_` for `-`) → its package: the CLI's binary `gitprompt` is gitprompt-cli. */
 async function packagesByTarget(ctx) {
@@ -160,7 +171,7 @@ function page(ctx, runs, coverage) {
 				weakest.map((file) => ({ path: file.path, lines: file.lines.count, coverage: coverageCell(file.lines.covered, file.lines.count) })),
 				'Files with at least 10 coverable lines.'
 			),
-			embed('Line by line (cargo llvm-cov)', ctx.fromHub(join(ctx.backend, 'target/llvm-cov/html/index.html')))
+			embed('Line by line (cargo llvm-cov)', ctx.fromHub(join(ctx.artifacts, 'llvm-cov/index.html')))
 		);
 	}
 	return {

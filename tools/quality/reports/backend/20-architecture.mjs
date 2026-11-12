@@ -3,13 +3,16 @@
 // interactive page (layers, module matrix, coverage per crate when tests ran first).
 import { join } from 'node:path';
 
+import { cargoActivity } from '../../lib/output.mjs';
 import { checks, coverageCell, embed, kpis, pct, table, tone, toneBelow } from '../../lib/spec.mjs';
 
 export default {
 	title: 'Architecture',
 	description: 'Crate layers and module dependencies drawn from the code, the architecture rules, and a modularity score.',
+	/** Draws coverage per crate from the llvm-cov summary the tests report writes. */
+	after: ['backend/tests'],
 	async run(ctx) {
-		await ctx.exec('just', ['arch-report'], { label: 'drawing the architecture (just arch-report)' });
+		await ctx.exec('just', ['arch-report'], { label: 'drawing the architecture (just arch-report)', activity: cargoActivity() });
 		const report = await ctx.readJson(join(ctx.backend, 'target/architecture/report.json'));
 		const findings = report.checks.reduce((total, check) => total + check.problems.length, 0);
 		const part = (name) => report.score.parts.find((p) => p.name === name)?.value ?? null;

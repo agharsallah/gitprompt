@@ -127,7 +127,22 @@ h1, h2, h3 { letter-spacing: -0.01em; margin: 0; }
 .step-detail { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-running .step-detail { color: var(--accent); }
 .st-failed .step-detail { color: var(--bad); }
-.step-time { color: var(--muted); font-size: 12.5px; }
+.step-time { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.s-waiting { color: var(--warn); }
+.is-waiting .step-detail { color: var(--warn); }
+.step-live { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.step-activity { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step-bar { height: 3px; background: var(--sunken); border-radius: 2px; overflow: hidden; }
+.step-bar i { display: block; height: 100%; background: var(--accent-soft); border-right: 2px solid var(--accent); transition: width 0.9s linear; }
+.step-output summary { cursor: pointer; color: var(--muted); font-size: 12px; width: max-content; }
+.step-output summary:hover { color: var(--accent); }
+.step-output pre { margin: 4px 0 2px; padding: 8px 10px; background: var(--sunken); color: var(--text); border-radius: 6px; font-family: var(--mono); font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-all; }
+.card-live { display: flex; flex-direction: column; min-width: 0; }
+.card-live span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.callout.live-callout { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+.live-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.live-callout .step-time { color: inherit; }
+.live-callout .step-live { color: var(--text); }
 .area { margin-top: 28px; }
 .area-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .area-head h2 { font-size: 18px; }
@@ -220,6 +235,7 @@ tbody tr:hover { background: var(--sunken); }
 	.headline-tile { text-align: left; }
 	.step { grid-template-columns: 16px minmax(0, 1fr) auto; }
 	.step-detail { grid-column: 2 / -1; }
+	.step > .step-time { grid-row: 1; grid-column: 3; }
 	.bar-row { grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) auto; }
 	.embed-bar { margin: 0 0 8px; }
 }

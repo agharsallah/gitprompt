@@ -1,12 +1,13 @@
 // The dashboard shell: sidebar (areas and their reports), overview (live build progress and every
 // report's card), and one page per report drawn from its data. Reads status.js again every second
-// while a build runs, so pages fill in as reports finish. Classic script; uses window.Q (render.js).
+// while a build runs, so pages fill in as reports finish. Classic script; uses window.Q (render.js)
+// and window.QB (build.js: the build in progress).
 'use strict';
 
 (function () {
 	const { h, rich, ago, duration, block } = window.Q;
+	const { ICONS } = window.QB;
 	const view = { status: null, data: {}, requested: {}, drawn: { route: null, version: null } };
-	const ICONS = { queued: '○', running: '', done: '✓', failed: '✕', skipped: '–' };
 
 	window.qualityStatus = (status) => {
 		view.status = status;
@@ -93,15 +94,7 @@
 				)
 			)
 		);
-		document.getElementById('build-pill').replaceChildren(buildPill(build));
-	}
-
-	function buildPill(build) {
-		if (!build) return h('span', { class: 'pill' }, 'never built');
-		const done = build.steps.filter((s) => !['queued', 'running'].includes(s.state)).length;
-		if (build.running) return h('span', { class: 'pill p-running' }, h('span', { class: 'spinner small' }), `building ${done}/${build.steps.length}`);
-		const failed = build.steps.filter((s) => s.state === 'failed').length;
-		return h('span', { class: `pill ${failed ? 'p-failed' : 'p-done'}` }, failed ? `${failed} failed` : 'up to date', ' · ', ago(build.finished_at));
+		document.getElementById('build-pill').replaceChildren(window.QB.pill(build));
 	}
 
 	function overview() {
@@ -110,7 +103,7 @@
 			'div',
 			{ class: 'page' },
 			h('header', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Code quality'), h('p', { class: 'lead' }, rich('Every report on the backend and the web dashboard. `just quality` rebuilds them all and this page fills in as they finish; `just quality <area or report>` rebuilds some.')))),
-			build ? buildPanel(build) : h('p', { class: 'callout c-neutral' }, rich('Nothing built yet: run `just quality`.')),
+			build ? window.QB.panel(build, { reportById, areaOf }) : h('p', { class: 'callout c-neutral' }, rich('Nothing built yet: run `just quality`.')),
 			areas.map((area) =>
 				h(
 					'section',
@@ -126,43 +119,14 @@
 		);
 	}
 
-	function buildPanel(build) {
-		const total = build.steps.length;
-		const finished = build.steps.filter((s) => !['queued', 'running'].includes(s.state)).length;
-		const failed = build.steps.filter((s) => s.state === 'failed').length;
-		const rows = build.steps.map((step) => {
-			const report = reportById(step.id);
-			const took = step.finished_at ? duration(step.finished_at - step.started_at) : null;
-			return h(
-				'li',
-				{ class: `step st-${step.state}` },
-				step.state === 'running' ? h('span', { class: 'spinner' }) : h('span', { class: `state-icon s-${step.state}` }, ICONS[step.state]),
-				h('a', { class: 'step-name', href: `#${step.id}` }, h('span', { class: 'muted' }, `${areaOf(report?.area)?.title || ''} · `), report?.title || step.id),
-				h('span', { class: 'step-detail' }, step.state === 'running' ? step.detail || '' : step.state === 'done' ? `${report?.headline?.value ?? ''} ${report?.headline?.label ?? ''}` : (step.message || '').split('\n')[0]),
-				h('span', { class: 'step-time mono', 'data-since': step.state === 'running' ? step.started_at : undefined }, step.state === 'running' ? duration(Date.now() - step.started_at) : took || '')
-			);
-		});
-		const head = build.running
-			? [h('b', {}, `Building ${finished} of ${total}`), h('span', { class: 'muted mono', 'data-since': build.started_at }, duration(Date.now() - build.started_at))]
-			: [h('b', {}, failed ? `Last build: ${failed} of ${total} failed` : `Last build: ${total} ${total === 1 ? 'report' : 'reports'} built`), h('span', { class: 'muted' }, `${ago(build.finished_at)} · took ${duration(build.finished_at - build.started_at)}`)];
-		const panel = h(
-			'details',
-			{ class: `build ${build.running ? 'is-running' : failed ? 'is-failed' : 'is-done'}`, open: build.running || failed ? true : undefined },
-			h('summary', {}, h('span', { class: 'build-head' }, head)),
-			h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': finished }, h('i', { style: `width:${(finished / total) * 100}%` })),
-			h('ol', { class: 'steps' }, rows)
-		);
-		return panel;
-	}
-
 	function card(report) {
 		const state = stateOf(report);
 		const headline = report.headline;
 		const footer =
 			state === 'running'
-				? h('span', { class: 't-accent' }, stepOf(report.id)?.detail || 'running…')
+				? runningFoot(stepOf(report.id))
 				: state === 'queued'
-					? h('span', { class: 'muted' }, 'queued')
+					? h('span', { class: 'muted' }, 'queued', stepOf(report.id)?.waiting ? ` · ${stepOf(report.id).waiting}` : '')
 					: state === 'failed'
 						? h('span', { class: 't-bad' }, 'last run failed', report.generated_at ? ' · showing the previous result' : '')
 						: state === 'skipped'
@@ -180,6 +144,12 @@
 			h('p', { class: 'card-summary' }, report.summary || report.description),
 			h('div', { class: 'card-foot' }, footer)
 		);
+	}
+
+	/** A running report's card: what it waits for, or its step and latest activity. */
+	function runningFoot(step) {
+		if (step?.waiting) return h('span', { class: 't-warn' }, '⧗ ', step.waiting);
+		return h('span', { class: 'card-live' }, h('span', { class: 't-accent' }, step?.detail || 'running…'), step?.activity ? h('span', { class: 'mono muted' }, step.activity) : null);
 	}
 
 	function drawReport(main, report) {
@@ -221,8 +191,7 @@
 			)
 		];
 		if (page?.summary) head.push(h('p', { class: 'summary-line' }, page.summary));
-		if (state === 'running') head.push(h('p', { class: 'callout c-accent' }, h('span', { class: 'spinner small' }), ' Rebuilding: ', step?.detail || '…', ' ', h('span', { class: 'mono', 'data-since': step?.started_at }, duration(Date.now() - (step?.started_at || Date.now())))));
-		if (state === 'queued') head.push(h('p', { class: 'callout c-neutral' }, 'Queued in the current build.'));
+		if ((state === 'running' || state === 'queued') && step) head.push(window.QB.reportCallout(step));
 		if (state === 'failed') head.push(h('div', { class: 'callout c-bad' }, h('b', {}, 'The last run failed'), page ? ' (below: the previous result).' : '.', h('pre', {}, report.message || ''), h('a', { href: report.log, target: '_blank', rel: 'noopener' }, 'Full log ↗')));
 		if (state === 'skipped') head.push(h('p', { class: 'callout c-warn' }, 'Skipped: ', report.message));
 		return head;
@@ -233,10 +202,6 @@
 			target.dataset.copied = 'true';
 			setTimeout(() => delete target.dataset.copied, 1200);
 		});
-	}
-
-	function tick() {
-		for (const node of document.querySelectorAll('[data-since]')) node.textContent = duration(Date.now() - Number(node.dataset.since));
 	}
 
 	function setupTheme() {
@@ -264,6 +229,6 @@
 		draw();
 		document.getElementById('main').scrollTop = 0;
 	});
-	setInterval(tick, 1000);
+	setInterval(window.QB.tick, 1000);
 	poll();
 })();

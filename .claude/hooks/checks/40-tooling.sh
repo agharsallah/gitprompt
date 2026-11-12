@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The tooling around the code: the quality dashboard's scripts parse (tools/quality), shell scripts
-# pass shellcheck, and the hooks still guard what they should (.claude/hooks/test.sh).
+# The tooling around the code: the quality dashboard's scripts parse and its tests pass
+# (tools/quality, `just tools-test`), shell scripts pass shellcheck, and the hooks still guard what
+# they should (.claude/hooks/test.sh).
 # Sourced by quality-gate.sh: check_paths and check_run.
 
 # Git pathspecs (a * crosses folders).
@@ -16,6 +17,9 @@ check_run() {
 		*.sh) if command -v shellcheck >/dev/null; then shellcheck -x "$f" || ok=1; fi ;;
 		esac
 	done <<<"$files"
+	if grep -qE '^tools/quality/.*\.mjs$' <<<"$files"; then
+		node --test 'tools/quality/test/*.test.mjs' >/dev/null 2>&1 || node --test 'tools/quality/test/*.test.mjs' || ok=1
+	fi
 	if grep -qE '^\.claude/(hooks/|settings\.json)' <<<"$files"; then
 		jq empty .claude/settings.json || ok=1
 		bash .claude/hooks/test.sh || ok=1

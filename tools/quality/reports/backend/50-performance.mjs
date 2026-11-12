@@ -1,5 +1,6 @@
 // The load benchmark with its budgets, as CI checks it (`just perf`): ingest throughput, every
 // dashboard read alone and under concurrent ingest with a slow git, the database writer, peak memory.
+import { cargoActivity } from '../../lib/output.mjs';
 import { bars, checks, kpis, mb, ms, plural, table, toneBelow } from '../../lib/spec.mjs';
 
 /** The default budget of the benchmark (--max-read-p95-ms). */
@@ -9,11 +10,17 @@ export default {
 	title: 'Performance',
 	description: 'Load benchmark in release mode: ingest throughput, read latencies alone and under load, writer contention, memory.',
 	async run(ctx) {
-		const result = await ctx.exec('cargo', ['run', '--release', '-q', '-p', 'gitprompt-server', '--example', 'load', '--', '--check', '--json'], {
-			cwd: ctx.backend,
-			label: 'load benchmark (release build, then about a minute of load)',
-			allowFailure: true
-		});
+		const example = ['--release', '-p', 'gitprompt-server', '--example', 'load'];
+		await ctx.exec('cargo', ['build', ...example], { cwd: ctx.backend, label: 'building the benchmark (release)', activity: cargoActivity() });
+		// Latencies on a machine busy with other reports would measure them, not the daemon.
+		const result = await ctx.alone('latencies', () =>
+			ctx.exec('cargo', ['run', '-q', ...example, '--', '--check', '--json'], {
+				cwd: ctx.backend,
+				label: 'load benchmark (about a minute of load)',
+				allowFailure: true,
+				dataOnStdout: true
+			})
+		);
 		const start = result.stdout.indexOf('{');
 		if (start < 0) throw new Error(`the benchmark printed no results (exit ${result.code}); see the log`);
 		return page(JSON.parse(result.stdout.slice(start)));

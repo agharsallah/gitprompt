@@ -4,6 +4,7 @@
 import { join, relative } from 'node:path';
 
 import { complexityPage } from '../../lib/complexity.mjs';
+import { webSync } from '../../lib/shared.mjs';
 
 /** Rules measured (value read from the message) rather than only counted. */
 const MEASURED = ['sonarjs/cognitive-complexity', 'max-lines-per-function', 'max-lines'];
@@ -16,6 +17,7 @@ export default {
 	description: 'Function cognitive complexity and length, file sizes, and the other complexity limits ESLint enforces.',
 	needs: [{ command: 'pnpm', install: 'https://pnpm.io/installation' }],
 	async run(ctx) {
+		await webSync(ctx);
 		const limits = await configuredLimits(ctx);
 		const out = join(ctx.artifacts, 'eslint-complexity.json');
 		const measureAll = [
@@ -42,7 +44,7 @@ export default {
 
 /** The limits as configured, from ESLint's resolved config for a source file. */
 async function configuredLimits(ctx) {
-	const printed = await ctx.exec('pnpm', ['--dir', 'web', 'exec', 'eslint', '--print-config', 'src/lib/shared/format.ts'], { label: 'eslint --print-config' });
+	const printed = await ctx.exec('pnpm', ['--dir', 'web', 'exec', 'eslint', '--print-config', 'src/lib/shared/format.ts'], { label: 'eslint --print-config', dataOnStdout: true });
 	const rules = JSON.parse(printed.stdout).rules;
 	const option = (rule) => rules[rule]?.[1];
 	return {

@@ -6,6 +6,8 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 import { complexityPage } from '../../lib/complexity.mjs';
+import { cargoActivity } from '../../lib/output.mjs';
+import { clippy as runClippy } from '../../lib/shared.mjs';
 import { parseClippy } from './30-lint.mjs';
 
 const RULES = 'crates/gitprompt-core/tests/architecture/rules.rs';
@@ -21,13 +23,10 @@ export default {
 		await ctx.exec('cargo', ['test', '-q', '-p', 'gitprompt-core', '--test', 'architecture', 'complexity_report'], {
 			cwd: ctx.backend,
 			env: { COMPLEXITY_JSON: out },
-			label: 'measure every function (architecture test)'
+			label: 'measure every function (architecture test)',
+			activity: cargoActivity()
 		});
-		const clippy = await ctx.exec('cargo', ['clippy', '--workspace', '--all-targets', '--message-format=json', '-q'], {
-			cwd: ctx.backend,
-			label: 'cargo clippy (nesting, arguments, lines)',
-			allowFailure: true
-		});
+		const clippy = await runClippy(ctx);
 		const findings = parseClippy(clippy.stdout).filter((f) => CLIPPY_LIMITS.includes(f.lint));
 		const sources = await rustSources(ctx.backend);
 		const fileLimits = maxLines(rules);

@@ -2,6 +2,7 @@
 // coverage per folder and file, and vitest's line-by-line report.
 import { join, relative } from 'node:path';
 
+import { webSync } from '../../lib/shared.mjs';
 import { bars, checks, coverageCell, embed, groupBy, kpis, ms, note, pct, plural, table, tone } from '../../lib/spec.mjs';
 
 export default {
@@ -11,10 +12,12 @@ export default {
 	async run(ctx) {
 		const coverageDir = join(ctx.artifacts, 'coverage');
 		const results = join(ctx.artifacts, 'vitest.json');
+		await webSync(ctx);
 		const run = await ctx.exec(
 			'pnpm',
-			['--dir', 'web', 'exec', 'vitest', 'run', '--coverage', '--coverage.reporter=json-summary', '--coverage.reporter=html', `--coverage.reportsDirectory=${coverageDir}`, '--reporter=json', `--outputFile=${results}`],
-			{ label: 'vitest run --coverage', allowFailure: true }
+			// The default reporter prints each test file as it finishes: the live progress.
+			['--dir', 'web', 'exec', 'vitest', 'run', '--coverage', '--coverage.reporter=json-summary', '--coverage.reporter=html', `--coverage.reportsDirectory=${coverageDir}`, '--reporter=json', '--reporter=default', `--outputFile.json=${results}`],
+			{ label: 'vitest run --coverage', allowFailure: true, activity: vitestActivity() }
 		);
 		if (!(await ctx.exists(results))) throw new Error(`vitest wrote no results (exit ${run.code}); see the log`);
 		const tests = await ctx.readJson(results);
@@ -24,6 +27,22 @@ export default {
 		return page(ctx, tests, coverage, { exitCode: run.code, thresholds }, join(coverageDir, 'index.html'));
 	}
 };
+
+/** `12 test files done · 230 tests passed, 1 failed · src/lib/x.test.ts`, from the default reporter's lines. */
+export function vitestActivity() {
+	let files = 0;
+	let passed = 0;
+	let failed = 0;
+	return (line) => {
+		const file = line.match(/^\s*([✓❯×✗])\s+(?:\|[\w-]+\|\s+)?(\S+\.(?:test|spec)\.\S+)\s+\((\d+) tests?(?:\s*\|\s*(\d+) failed)?/);
+		if (!file) return undefined;
+		files += 1;
+		const failures = Number(file[4] || 0);
+		failed += failures;
+		passed += Number(file[3]) - failures;
+		return `${files} test files done · ${passed} tests passed${failed ? `, ${failed} failed` : ''} · ${file[2]}`;
+	};
+}
 
 function page(ctx, tests, coverage, { exitCode, thresholds }, html) {
 	const rel = (path) => relative(ctx.web, path);

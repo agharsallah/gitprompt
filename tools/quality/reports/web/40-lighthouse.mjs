@@ -31,21 +31,27 @@ export default {
 	],
 	async run(ctx) {
 		const { url } = await demoDaemon(ctx);
-		const results = [];
-		for (const page of PAGES) {
-			const slug = page.path === '/' ? 'home' : page.path.slice(1).replaceAll('/', '-');
-			const base = join(ctx.artifacts, slug);
-			await ctx.exec(
-				'pnpm',
-				['dlx', LIGHTHOUSE, `${url}${page.path}`, '--quiet', '--preset=desktop', '--output=json', '--output=html', `--output-path=${base}`, `--only-categories=${CATEGORIES.map((c) => c.key).join(',')}`, '--chrome-flags=--headless=new --no-first-run --no-default-browser-check'],
-				{ label: `Lighthouse ${page.path} (${results.length + 1}/${PAGES.length})` }
-			);
-			const report = await ctx.readJson(`${base}.report.json`);
-			results.push({ page, html: `${base}.report.html`, report });
-		}
-		return render(ctx, results);
+		// Scores on a machine busy with other reports would measure them, not the dashboard.
+		return render(ctx, await ctx.alone('page loads', () => audit(ctx, url)));
 	}
 };
+
+/** Lighthouse on every page, one after another. */
+async function audit(ctx, url) {
+	const results = [];
+	for (const page of PAGES) {
+		const slug = page.path === '/' ? 'home' : page.path.slice(1).replaceAll('/', '-');
+		const base = join(ctx.artifacts, slug);
+		await ctx.exec(
+			'pnpm',
+			['dlx', LIGHTHOUSE, `${url}${page.path}`, '--quiet', '--preset=desktop', '--output=json', '--output=html', `--output-path=${base}`, `--only-categories=${CATEGORIES.map((c) => c.key).join(',')}`, '--chrome-flags=--headless=new --no-first-run --no-default-browser-check'],
+			{ label: `Lighthouse ${page.path} (${results.length + 1}/${PAGES.length})` }
+		);
+		const report = await ctx.readJson(`${base}.report.json`);
+		results.push({ page, html: `${base}.report.html`, report });
+	}
+	return results;
+}
 
 const score = (report, key) => Math.round((report.categories[key]?.score ?? 0) * 100);
 const metric = (report, id) => report.audits[id]?.numericValue ?? null;

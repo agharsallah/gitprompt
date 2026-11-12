@@ -1,5 +1,6 @@
 // Clippy (the workspace's pedantic set; CI turns every warning into an error) and rustfmt: every
 // finding, by lint, by crate and by place.
+import { clippy as runClippy } from '../../lib/shared.mjs';
 import { groupBy, kpis, note, plural, table, toneZero } from '../../lib/spec.mjs';
 
 /** Findings listed one by one (the rest are counted). */
@@ -9,13 +10,11 @@ export default {
 	title: 'Lint',
 	description: 'Clippy findings (pedantic; warnings fail CI) and files rustfmt would change.',
 	async run(ctx) {
-		const clippy = await ctx.exec('cargo', ['clippy', '--workspace', '--all-targets', '--message-format=json', '-q'], {
-			cwd: ctx.backend,
-			label: 'cargo clippy --workspace --all-targets',
-			allowFailure: true
-		});
+		const [clippy, fmt] = await Promise.all([
+			runClippy(ctx),
+			ctx.exec('cargo', ['fmt', '--all', '--check'], { cwd: ctx.backend, label: 'cargo fmt --check', allowFailure: true })
+		]);
 		const findings = parseClippy(clippy.stdout);
-		const fmt = await ctx.exec('cargo', ['fmt', '--all', '--check'], { cwd: ctx.backend, label: 'cargo fmt --check', allowFailure: true });
 		const unformatted = [...new Set([...fmt.stdout.matchAll(/^Diff in (.+?)(?: at line \d+)?:$/gm)].map((m) => m[1].replace(`${ctx.repo}/`, '')))];
 		return page(findings, unformatted);
 	}

@@ -1,5 +1,7 @@
-// Build steps several reports need, each done once per build (ctx.once): the web build, the
-// daemon binary, and a daemon with demo data to measure the dashboard against.
+// Build steps several reports need, each done once per build (ctx.once): SvelteKit's generated
+// types, the web build, clippy, the daemon binary, and a daemon with demo data to measure the
+// dashboard against. Reports run side by side, so whatever writes into web/ or backend/target for
+// several of them belongs here.
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
@@ -7,16 +9,42 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { installed } from './context.mjs';
+import { cargoActivity } from './output.mjs';
+
+/**
+ * web/.svelte-kit (the types and tsconfig every web tool reads), written once before any of them
+ * runs: later syncs (vite build runs one) only write what changed, so nothing is rewritten while
+ * another report reads it.
+ */
+export function webSync(ctx) {
+	return ctx.once('the SvelteKit sync', () => ctx.exec('pnpm', ['--dir', 'web', 'exec', 'svelte-kit', 'sync'], { label: 'svelte-kit sync' }));
+}
 
 /** web/build, built once per build. */
 export function webBuild(ctx) {
-	return ctx.once('web-build', () => ctx.exec('pnpm', ['--dir', 'web', 'build'], { label: 'building the web dashboard (vite build)' }));
+	return ctx.once('the web build', async () => {
+		await webSync(ctx);
+		return ctx.exec('pnpm', ['--dir', 'web', 'build'], { label: 'building the web dashboard (vite build)' });
+	});
+}
+
+/** `cargo clippy` on the whole workspace as JSON, once per build (the lint and complexity reports read it). */
+export function clippy(ctx) {
+	return ctx.once('clippy', () =>
+		ctx.exec('cargo', ['clippy', '--workspace', '--all-targets', '--message-format=json'], {
+			cwd: ctx.backend,
+			label: 'cargo clippy --workspace --all-targets',
+			allowFailure: true,
+			activity: cargoActivity(),
+			dataOnStdout: true
+		})
+	);
 }
 
 /** backend/target/debug/gitprompt, built once per build. */
 export function daemonBinary(ctx) {
-	return ctx.once('daemon-binary', async () => {
-		await ctx.exec('cargo', ['build', '-q', '-p', 'gitprompt-cli'], { cwd: ctx.backend, label: 'building the daemon (cargo build)' });
+	return ctx.once('the daemon build', async () => {
+		await ctx.exec('cargo', ['build', '-p', 'gitprompt-cli'], { cwd: ctx.backend, label: 'building the daemon (cargo build)', activity: cargoActivity() });
 		return join(ctx.backend, 'target', 'debug', process.platform === 'win32' ? 'gitprompt.exe' : 'gitprompt');
 	});
 }
@@ -27,7 +55,7 @@ export function daemonBinary(ctx) {
  * Resolves { url }.
  */
 export function demoDaemon(ctx) {
-	return ctx.once('demo-daemon', async () => {
+	return ctx.once('the demo daemon', async () => {
 		await webBuild(ctx);
 		const binary = await daemonBinary(ctx);
 		const home = await mkdtemp(join(tmpdir(), 'gitprompt-quality-'));
@@ -59,7 +87,8 @@ function freePort() {
 async function ready(url, timeoutMs) {
 	const until = Date.now() + timeoutMs;
 	while (Date.now() < until) {
-		const ok = await fetch(url).then(
+		// One attempt never waits long: a request the daemon took while starting may never be answered.
+		const ok = await fetch(url, { signal: AbortSignal.timeout(2_000) }).then(
 			(response) => response.ok,
 			() => false
 		);

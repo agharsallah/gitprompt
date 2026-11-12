@@ -2,6 +2,7 @@
 // type errors and warnings, and files Prettier would reformat.
 import { join, relative } from 'node:path';
 
+import { webSync } from '../../lib/shared.mjs';
 import { groupBy, kpis, note, plural, table, toneZero } from '../../lib/spec.mjs';
 
 /** Findings listed one by one (the rest are counted). */
@@ -12,15 +13,18 @@ export default {
 	description: 'ESLint findings, svelte-check type errors and Prettier formatting: what `just lint` and CI fail on.',
 	needs: [{ command: 'pnpm', install: 'https://pnpm.io/installation' }],
 	async run(ctx) {
-		await ctx.exec('pnpm', ['--dir', 'web', 'exec', 'svelte-kit', 'sync'], { label: 'svelte-kit sync' });
+		await webSync(ctx);
 		const eslintFile = join(ctx.artifacts, 'eslint.json');
-		await ctx.exec('pnpm', ['--dir', 'web', 'exec', 'eslint', '.', '--format', 'json', '--output-file', eslintFile], { label: 'eslint .', allowFailure: true });
+		// Three tools reading the same files: they run side by side.
+		const [, check, prettier] = await Promise.all([
+			ctx.exec('pnpm', ['--dir', 'web', 'exec', 'eslint', '.', '--format', 'json', '--output-file', eslintFile], { label: 'eslint .', allowFailure: true }),
+			ctx.exec('pnpm', ['--dir', 'web', 'exec', 'svelte-check', '--tsconfig', './tsconfig.json', '--output', 'machine'], { label: 'svelte-check (types)', allowFailure: true }),
+			ctx.exec('pnpm', ['--dir', 'web', 'exec', 'prettier', '--list-different', '.'], { label: 'prettier --list-different', allowFailure: true })
+		]);
 		if (!(await ctx.exists(eslintFile))) throw new Error('eslint wrote no results; see the log');
 		const eslint = (await ctx.readJson(eslintFile)).flatMap((file) => file.messages.map((m) => ({ ...m, file: relative(ctx.web, file.filePath) })));
 		const files = (await ctx.readJson(eslintFile)).length;
-		const check = await ctx.exec('pnpm', ['--dir', 'web', 'exec', 'svelte-check', '--tsconfig', './tsconfig.json', '--output', 'machine'], { label: 'svelte-check (types)', allowFailure: true });
 		const types = parseSvelteCheck(check.stdout);
-		const prettier = await ctx.exec('pnpm', ['--dir', 'web', 'exec', 'prettier', '--list-different', '.'], { label: 'prettier --list-different', allowFailure: true });
 		const unformatted = prettier.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
 		return page(eslint, files, types, unformatted);
 	}
