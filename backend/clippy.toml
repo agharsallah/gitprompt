@@ -7,5 +7,13 @@ allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-indexing-slicing-in-tests = true
 
+# Complexity (lints in Cargo.toml; cognitive complexity is MAX_COMPLEXITY in the architecture rules).
+# A function over a limit does more than one thing: split it by step or concept. When the logic is
+# inherently that complex, #[expect(clippy::<lint>, reason = "...")] on the function says why; the
+# guard asks the user first and the quality dashboard lists every one.
+too-many-lines-threshold = 80           # default 100
+excessive-nesting-threshold = 4
+too-many-arguments-threshold = 6        # default 7; more is a struct waiting to be named
+
 # Proper nouns that doc_markdown should not ask to wrap in backticks. ".." keeps clippy's defaults.
 doc-valid-idents = ["GitPrompt", "SQLite", "SvelteKit", "FastAPI", "OpenAI", "MacCormack", ".."]

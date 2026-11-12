@@ -64,6 +64,9 @@ proptest = "1"
 assert_cmd = "2"
 insta = { version = "1", features = ["json", "redactions"] }
 predicates = "3"
+# the architecture test reads the sources as syntax trees (complexity); already in the lock file
+syn = { version = "2", default-features = false, features = ["full", "parsing", "visit", "printing"] }
+proc-macro2 = { version = "1", features = ["span-locations"] }
 
 # Every member opts in with `[lints] workspace = true`. CI runs clippy with `-D warnings`,
 # so each `warn` below is a hard gate there while staying a soft nudge in the editor.
@@ -102,6 +105,14 @@ allow_attributes_without_reason = "warn" # every #[allow]/#[expect] says why
 redundant_clone = "warn"
 needless_collect = "warn"
 or_fun_call = "warn"                    # unwrap_or(f()) builds the value even when unused
+# Duplication, on the syntax tree: pedantic already has match_same_arms and
+# same_functions_in_if_condition, the defaults have if_same_then_else and ifs_same_cond.
+branches_sharing_code = "warn"          # the same statements at the start or end of every if branch
+# Complexity: limits in clippy.toml. Cognitive complexity and file length are architecture rules
+# (rules.rs: MAX_COMPLEXITY, MAX_LINES), measured on the source: clippy's cognitive_complexity counts
+# what macros expand to, so two `tracing` calls alone went over the limit.
+# too_many_lines and too_many_arguments come with pedantic and the default set.
+excessive_nesting = "warn"              # restriction; blocks nested deeper than the threshold
 
 # Size: release builds are what ship (CLI + desktop app). Measured on the gitprompt CLI / desktop app
 # (2026-11): thin LTO 14.6 / 21.2 MB → + strip symbols 12.5 / 17.7 MB → + fat LTO 11.7 / 16.7 MB,

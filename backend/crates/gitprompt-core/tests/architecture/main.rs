@@ -17,6 +17,7 @@
 )]
 
 mod checks;
+mod complexity;
 mod coverage;
 mod metrics;
 mod modules;
@@ -55,6 +56,32 @@ fn pure_crates_do_no_io() {
 #[test]
 fn no_crate_has_a_module_cycle() {
     checks::no_module_cycles(&packages()).assert_clean();
+}
+
+#[test]
+fn files_stay_small() {
+    checks::files_stay_small(&packages()).assert_clean();
+}
+
+#[test]
+fn functions_stay_simple() {
+    checks::functions_stay_simple(&packages()).assert_clean();
+}
+
+/// `COMPLEXITY_JSON=<file>`: every function's complexity and length, for the quality dashboard.
+#[test]
+fn complexity_report() {
+    let Some(out) = std::env::var_os("COMPLEXITY_JSON") else { return };
+    let rows: Vec<serde_json::Value> = checks::measured_functions(&packages())
+        .iter()
+        .map(|f| {
+            serde_json::json!({
+                "file": workspace::shown(&f.file), "line": f.line, "name": f.name,
+                "complexity": f.complexity, "lines": f.lines,
+            })
+        })
+        .collect();
+    std::fs::write(out, serde_json::to_string(&rows).unwrap()).unwrap();
 }
 
 /// `just arch-report` (`ARCH_REPORT=1`): the map drawn from the code, with the modularity score.

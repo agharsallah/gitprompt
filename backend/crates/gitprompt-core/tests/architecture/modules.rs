@@ -153,24 +153,28 @@ fn leading_ident(text: &str) -> Option<String> {
 /// Item name -> module, for each `use` in the crate roots that brings an item of a module to the
 /// root (`pub use origin::{Classified, Origin as Kind};`).
 fn reexports(src: &Path, modules: &BTreeSet<String>) -> BTreeMap<String, String> {
-    let mut found = BTreeMap::new();
-    for root in ["lib.rs", "main.rs"].map(|name| src.join(name)).iter().filter(|path| path.exists()) {
-        let code = read_code(root);
-        for (at, _) in code.match_indices("use ") {
-            if !starts_path(&code, at) {
-                continue;
-            }
-            let body = code[at + "use ".len()..].split(';').next().unwrap_or_default().trim();
-            let body = body.trim_start_matches("crate::").trim_start_matches("self::");
-            let Some((module, tree)) = body.split_once("::") else { continue };
-            if modules.contains(module) {
-                for name in leaf_names(tree) {
-                    found.insert(name, module.to_owned());
-                }
-            }
+    let roots = ["lib.rs", "main.rs"].map(|name| src.join(name));
+    roots.iter().filter(|path| path.exists()).flat_map(|root| reexports_in(&read_code(root), modules)).collect()
+}
+
+/// (item name, module) for each name a `use` in `code` brings from one of `modules`.
+fn reexports_in(code: &str, modules: &BTreeSet<String>) -> Vec<(String, String)> {
+    let mut found = Vec::new();
+    for path in use_paths(code) {
+        let Some((module, tree)) = path.split_once("::") else { continue };
+        if modules.contains(module) {
+            found.extend(leaf_names(tree).into_iter().map(|name| (name, module.to_owned())));
         }
     }
     found
+}
+
+/// The use tree of every `use` statement in `code`, without its `crate::` or `self::` prefix.
+fn use_paths(code: &str) -> impl Iterator<Item = &str> {
+    code.match_indices("use ").filter(|(at, _)| starts_path(code, *at)).map(|(at, _)| {
+        let body = code[at + "use ".len()..].split(';').next().unwrap_or_default().trim();
+        body.trim_start_matches("crate::").trim_start_matches("self::")
+    })
 }
 
 /// The names a use tree binds: the last segment of each leaf, or its `as` alias.

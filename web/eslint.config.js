@@ -3,6 +3,7 @@ import { includeIgnoreFile } from '@eslint/compat';
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import sonarjs from 'eslint-plugin-sonarjs';
 import svelte from 'eslint-plugin-svelte';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
@@ -34,6 +35,40 @@ export default defineConfig(
 				{ 'ts-expect-error': true, 'ts-ignore': true, 'ts-nocheck': true, 'ts-check': false }
 			]
 		}
+	},
+	{
+		// Duplication, compared on the syntax tree: a copied function body, branches that do the same
+		// thing, a condition or operand written twice. Unlike a token copy-paste scan, renamed or
+		// reformatted copies still match and boilerplate (imports, headers) never does.
+		// no-duplicate-string stays off: repeated labels and class names are not duplicated logic.
+		plugins: { sonarjs },
+		rules: {
+			'sonarjs/no-identical-functions': 'error',
+			'sonarjs/no-duplicated-branches': 'error',
+			'sonarjs/no-all-duplicated-branches': 'error',
+			'sonarjs/no-identical-conditions': 'error',
+			'sonarjs/no-identical-expressions': 'error'
+		}
+	},
+	{
+		// Complexity, the same limits as the backend (clippy.toml): a function over one does more than one
+		// thing, so split it by step or concept. Cognitive complexity weighs nesting and broken flow
+		// (sonarjs); cyclomatic counts paths. File length in non-blank, non-comment lines.
+		rules: {
+			'sonarjs/cognitive-complexity': ['error', 15],
+			complexity: ['error', 15],
+			'max-depth': ['error', 4],
+			'max-params': ['error', 5],
+			'max-nested-callbacks': ['error', 4],
+			'max-lines-per-function': ['error', { max: 80, skipBlankLines: true, skipComments: true }],
+			'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }]
+		}
+	},
+	{
+		// A test file is one `describe` callback holding every case: its length is the file's, which
+		// max-lines already limits.
+		files: ['**/*.test.ts', '**/*.svelte.test.ts'],
+		rules: { 'max-lines-per-function': 'off' }
 	},
 	{
 		languageOptions: {

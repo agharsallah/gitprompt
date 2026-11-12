@@ -27,10 +27,16 @@ error, with a link to its log (`target/quality/logs/`).
 | Backend | `backend/lint` | `cargo clippy` (JSON) and `cargo fmt --check` | findings |
 | Backend | `backend/dependencies` | `cargo deny check`, `cargo machete` | findings |
 | Backend | `backend/performance` | the load benchmark with its budgets (`just perf`), release build | slowest read p95 under load |
+| Backend | `backend/complexity` | the architecture test's cognitive complexity of every function (`COMPLEXITY_JSON`), file sizes against `MAX_LINES`, clippy's nesting, argument and length limits, the exemptions (`COMPLEX`, `#[expect]`) | functions, files and blocks over a limit |
 | Web | `web/tests` | `vitest run --coverage` | lines covered |
 | Web | `web/lint` | ESLint, `svelte-check`, Prettier | findings |
 | Web | `web/bundle` | `vite build`, then every file of `web/build` raw and gzipped | JavaScript gzipped |
 | Web | `web/lighthouse` | Lighthouse on key pages of the built dashboard, served by a debug daemon with demo data | performance score |
+| Web | `web/complexity` | ESLint's complexity rules (sonarjs cognitive complexity, function and file length at 0; depth, parameters, callbacks at their limits) | functions, files and blocks over a limit |
+
+Both Complexity pages share one builder (`lib/complexity.mjs`) and read their limits from the
+configs the gate uses (`rules.rs`, `clippy.toml`, `eslint.config.js`), so the page and the gate never
+disagree.
 
 The full run takes a while (coverage, a release build for the benchmark, Lighthouse); `just quality
 <report>` refreshes one in seconds to minutes and keeps the others.

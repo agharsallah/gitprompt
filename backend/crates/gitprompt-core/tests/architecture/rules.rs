@@ -89,3 +89,17 @@ pub const PURE: &[(&str, &[&str])] = &[
     ("gitprompt-insights", &[]),
     ("gitprompt-export", &[]),
 ];
+
+/// The most lines a file may hold: shipped code (`src/`), then tests (`tests/`, which carry fixtures
+/// and tables of cases). A longer file holds more than one idea: split it by concept into a module
+/// folder. These limits only go down.
+pub const MAX_LINES: (usize, usize) = (500, 800);
+
+/// The highest cognitive complexity a function may have (`complexity.rs`: nested branches cost
+/// more, macros are one call). Over it, split the function by step or concept. Only goes down.
+pub const MAX_COMPLEXITY: usize = 15;
+
+/// Functions allowed above `MAX_COMPLEXITY` because their logic is inherently that complex, as
+/// `("<file under backend/>::<function>", "why")`. Each entry is a decision the user approved. The
+/// list only shrinks: an entry whose function is back under the limit, or gone, fails until removed.
+pub const COMPLEX: &[(&str, &str)] = &[];
