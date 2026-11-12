@@ -31,6 +31,22 @@ protection() {
 	esac
 }
 
+# An #[allow]/#[expect] of a complexity lint in `$2` (the new text) that `$1` (the old text) lacks:
+# keeping a function complex is the user's call, and the quality dashboard lists every one.
+# (Cognitive complexity exemptions live in COMPLEX in rules.rs, which asks on its own.)
+complexity_exemption_added() {
+	local pattern='(allow|expect)\([^)]*clippy::(too_many_lines|excessive_nesting|too_many_arguments)'
+	local before after
+	before="$(exemption_count "$1" "$pattern")"
+	after="$(exemption_count "$2" "$pattern")"
+	[ "$after" -gt "$before" ]
+}
+
+# How many times `$2` occurs in `$1`, newlines folded: rustfmt splits a long attribute over lines.
+exemption_count() {
+	printf '%s' "$1" | tr '\n' ' ' | { grep -oE "$2" || true; } | wc -l | tr -d ' '
+}
+
 # Text of an edit that touches lint levels in a Cargo manifest (`[workspace.lints]`, `[lints]`).
 lint_section_edit() {
 	printf '%s' "$1" | grep -qE '^\s*\[(workspace\.)?lints|^\s*[a-z_]+\s*=\s*(\{[^}]*level\s*=\s*)?"(allow|warn|deny|forbid)"'

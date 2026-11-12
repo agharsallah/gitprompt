@@ -21,6 +21,13 @@ ask\|*) ask "${rule#ask|}" ;;
 esac
 
 case "$path" in
+backend/*.rs)
+	old="$(jq -r '[.tool_input.old_string, (.tool_input.edits // [] | map(.old_string))] | flatten | map(select(. != null)) | join("\n")' <<<"$input")"
+	new="$(jq -r '[.tool_input.new_string, .tool_input.content, (.tool_input.edits // [] | map(.new_string))] | flatten | map(select(. != null)) | join("\n")' <<<"$input")"
+	if complexity_exemption_added "$old" "$new"; then
+		ask 'This exempts a function from a complexity limit. Approve only when the logic is inherently that complex and the reason says why; otherwise split it by step or concept.'
+	fi
+	;;
 backend/Cargo.toml | backend/crates/*/Cargo.toml | backend/apps/*/Cargo.toml)
 	text="$(jq -r '[.tool_input.old_string, .tool_input.new_string, .tool_input.content, (.tool_input.edits // [] | map(.old_string, .new_string))] | flatten | map(select(. != null)) | join("\n")' <<<"$input")"
 	if lint_section_edit "$text"; then

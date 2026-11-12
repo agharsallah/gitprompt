@@ -4,7 +4,7 @@ The hooks that hold agent changes to the quality CI enforces: wired in `.claude/
 
 | When | Hook | What it does |
 |---|---|---|
-| Before an edit (Edit, Write, MultiEdit, NotebookEdit) | `guard.sh` | Refuses frozen or generated files; asks the user before a guardrail changes (`protected.sh`); asks before lint levels in a Cargo manifest change. |
+| Before an edit (Edit, Write, MultiEdit, NotebookEdit) | `guard.sh` | Refuses frozen or generated files; asks the user before a guardrail changes (`protected.sh`); asks before lint levels in a Cargo manifest change, and before an edit adds an `#[allow]`/`#[expect]` of a complexity lint (`too_many_lines`, `excessive_nesting`, `too_many_arguments`; cognitive complexity exemptions are `COMPLEX` in `rules.rs`, protected itself). |
 | Before a shell command | `guard-bash.sh` | The same protection for files written by a command (`sed -i`, redirections, `tee`, `mv`, `cp`, `rm`, scripts); asks before `--no-verify`. |
 | After an edit | `web-lint.sh`, `rust-format.sh` | Formats the file (Prettier, rustfmt); ESLint findings go straight back to Claude. |
 | Before Claude or a subagent finishes | `quality-gate.sh` | Runs the checks of every part the working tree changed (however it changed): blocks with the output until they pass. |
@@ -23,9 +23,9 @@ approves, never a way to make a check pass.
 
 | Check | Runs when these change | What |
 |---|---|---|
-| `10-rust` | `backend/**/*.rs`, manifests, `Cargo.lock`, `clippy.toml`, `rustfmt.toml` | `cargo fmt --check`, the architecture rules, clippy `-D warnings` and the tests of each changed crate (the workspace when shared config changed), `generated.ts` in sync when a wire type changed |
+| `10-rust` | `backend/**/*.rs`, manifests, `Cargo.lock`, `clippy.toml`, `rustfmt.toml` | `cargo fmt --check`, the architecture rules (file length and cognitive complexity included), clippy (complexity limits included) `-D warnings` and the tests of each changed crate (the workspace when shared config changed), `generated.ts` in sync when a wire type changed |
 | `20-deps` | manifests, `Cargo.lock`, `deny.toml` | `just deps`: cargo-deny (a new duplicate or a stale skip fails) and cargo-machete |
-| `30-web` | `web/**` | Prettier and ESLint on the changed files, svelte-check, `pnpm test:coverage` (thresholds included) |
+| `30-web` | `web/**` | Prettier and ESLint on the changed files (complexity limits included), svelte-check, `pnpm test:coverage` (thresholds included) |
 | `40-tooling` | `tools/**`, `.claude/hooks/**`, settings | the scripts parse, shellcheck, `test.sh` (the guards' own tests) |
 
 A check passed for exactly the current changes is not run again (`target/quality/.gate/`), so

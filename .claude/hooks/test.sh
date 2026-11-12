@@ -42,6 +42,16 @@ expect ask guard.sh "$(edit .github/workflows/ci.yml)" 'CI'
 expect ask guard.sh "$(edit backend/Cargo.toml 'unwrap_used = "allow"')" 'a workspace lint level'
 expect allow guard.sh "$(edit backend/Cargo.toml 'serde = "1"')" 'a dependency in the workspace manifest'
 expect allow guard.sh "$(edit backend/crates/gitprompt-core/src/json.rs)" 'ordinary Rust code'
+expect ask guard.sh "$(edit backend/crates/gitprompt-insights/src/difflib.rs '#[expect(clippy::excessive_nesting, reason = "x")]
+fn diff() {}')" 'a nesting exemption'
+expect ask guard.sh "$(edit backend/crates/gitprompt-store/src/db/mod.rs '#[allow(clippy::too_many_lines, reason = "x")]')" 'a function-length exemption'
+expect ask guard.sh "$(edit backend/crates/gitprompt-capture/src/pipeline.rs '#[expect(
+    clippy::too_many_arguments,
+    reason = "a long reason, so rustfmt splits the attribute"
+)]
+pub fn f() {}')" 'an exemption split over lines'
+expect allow guard.sh "$(jq -n --arg f "$repo/backend/crates/gitprompt-insights/src/difflib.rs" '{tool_input: {file_path: $f, old_string: "#[expect(clippy::too_many_lines, reason = \"x\")]\nfn a() {}", new_string: "fn a() {}"}}')" 'removing an exemption'
+expect allow guard.sh "$(edit backend/crates/gitprompt-core/src/json.rs '#[expect(clippy::unwrap_used, reason = "x")]')" 'another lint, already guarded by its reason'
 expect allow guard.sh "$(edit web/src/lib/shared/format.ts)" 'ordinary web code'
 
 # Shell commands

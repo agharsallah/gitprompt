@@ -87,14 +87,15 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:code.claude.com)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(just clean)",
+      "Bash(gh pr create *)",
       "WebFetch(domain:docs.anthropic.com)"
     ],
     "ask": [
-      "Bash(git push *)",
-      "Bash(git commit *)",
       "Bash(git rebase *)",
       "Bash(git merge *)",
-      "Bash(gh pr create *)",
       "Bash(gh pr merge *)",
       "Bash(gh pr comment *)",
       "Bash(gh issue create *)",
@@ -105,8 +106,7 @@
       "Bash(pnpm add *)",
       "Bash(pnpm remove *)",
       "Bash(pnpm update *)",
-      "Bash(just snapshots)",
-      "Bash(just clean)"
+      "Bash(just snapshots)"
     ],
     "deny": [
       "Read(./.env)",
