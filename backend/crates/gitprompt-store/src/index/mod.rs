@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use gitprompt_core::Result;
 use gitprompt_core::spec::ToolKind;
 
+use crate::db::Db;
 use crate::decode;
 use crate::error::{DbResult, failure};
 use crate::schema;
@@ -134,21 +135,27 @@ pub struct SessionCommand {
     pub source: Option<String>,
 }
 
-/// The index tables of a store.
-#[derive(Debug)]
+/// The index tables of a store ([`crate::Store::index`]). It holds the store's database, not the
+/// store, so the store module uses the index and never the other way round.
 pub struct PromptIndex<'a> {
-    pub(crate) store: &'a crate::Store,
+    pub(crate) db: &'a Db,
+}
+
+impl std::fmt::Debug for PromptIndex<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PromptIndex").finish_non_exhaustive()
+    }
 }
 
 impl PromptIndex<'_> {
     /// Create the tables (idempotent). Needs FTS5 with the trigram tokenizer.
     pub fn create(&self) -> Result<()> {
-        Ok(self.store.db().write(schema::create_index)?)
+        Ok(self.db.write(schema::create_index)?)
     }
 
     /// Forget everything (the index is a cache); `create` brings back empty tables.
     pub fn drop_all(&self) -> Result<()> {
-        Ok(self.store.db().atomic(|conn| {
+        Ok(self.db.atomic(|conn| {
             for table in schema::INDEX_TABLES {
                 conn.execute_batch(&format!("drop table if exists {table}"))?;
             }
@@ -158,7 +165,7 @@ impl PromptIndex<'_> {
 
     /// Mark the whole index stale: the next `ensure` rebuilds it.
     pub fn invalidate(&self) -> Result<()> {
-        Ok(self.store.db().write(|conn| {
+        Ok(self.db.write(|conn| {
             conn.prepare_cached("delete from index_meta where key = 'rules_version'")?.execute([])?;
             Ok(())
         })?)
@@ -166,11 +173,11 @@ impl PromptIndex<'_> {
 
     /// The rules version the rows were computed with.
     pub fn version(&self) -> Result<Option<String>> {
-        Ok(self.store.db().read(|conn| meta(conn, RULES_VERSION))?)
+        Ok(self.db.read(|conn| meta(conn, RULES_VERSION))?)
     }
 
     pub fn set_version(&self, value: &str) -> Result<()> {
-        Ok(self.store.db().write(|conn| set_meta(conn, RULES_VERSION, value))?)
+        Ok(self.db.write(|conn| set_meta(conn, RULES_VERSION, value))?)
     }
 
     /// Replace the rows of these prompts (index, model, tool, work, FTS), in one transaction.
@@ -178,7 +185,7 @@ impl PromptIndex<'_> {
     pub fn upsert(&self, entries: &[Entry]) -> Result<usize> {
         let ids: Vec<i64> = entries.iter().map(|e| e.row.id).collect();
         let rows = entries.iter().map(|e| Ok((e, tool_kinds(&e.tools)?))).collect::<DbResult<Vec<_>>>()?;
-        Ok(self.store.db().atomic(|conn| {
+        Ok(self.db.atomic(|conn| {
             delete(conn, &ids)?;
             let mut row = conn.prepare_cached(&format!(
                 "insert into prompt_index ({}) values ({})",
@@ -234,17 +241,17 @@ impl PromptIndex<'_> {
     }
 
     pub fn delete(&self, ids: &[i64]) -> Result<()> {
-        Ok(self.store.db().atomic(|conn| delete(conn, ids))?)
+        Ok(self.db.atomic(|conn| delete(conn, ids))?)
     }
 
     /// The last event id read for session telemetry (0 at first).
     pub fn telemetry_after(&self) -> Result<i64> {
-        let stored = self.store.db().read(|conn| meta(conn, TELEMETRY_EVENT_ID))?;
+        let stored = self.db.read(|conn| meta(conn, TELEMETRY_EVENT_ID))?;
         stored.map_or(Ok(0), |id| id.trim().parse().map_err(|_| failure(format!("stored {TELEMETRY_EVENT_ID} is not an id: {id}")).into()))
     }
 
     pub fn add_telemetry(&self, last_event: i64, metrics: &[SessionMetric], commands: &[SessionCommand]) -> Result<()> {
-        Ok(self.store.db().atomic(|conn| {
+        Ok(self.db.atomic(|conn| {
             let mut metric = conn.prepare_cached("insert or replace into session_metric values (?, ?, ?, ?, ?)")?;
             for m in metrics {
                 metric.execute((m.event_id, &m.session, &m.received_at, &m.name, m.value))?;
@@ -260,7 +267,7 @@ impl PromptIndex<'_> {
     /// Note that these turns changed (cheap: done on every ingest). Idempotent.
     pub fn mark(&self, prompt_ids: &[String]) -> Result<()> {
         let turns = json_list(prompt_ids)?;
-        Ok(self.store.db().write(|conn| {
+        Ok(self.db.write(|conn| {
             conn.prepare_cached("insert or ignore into index_dirty (prompt_id) select value from json_each(?)")?.execute([turns])?;
             Ok(())
         })?)
@@ -268,13 +275,13 @@ impl PromptIndex<'_> {
 
     /// The marked turns, unmarked.
     pub fn take_marked(&self) -> Result<Vec<String>> {
-        Ok(self.store.db().write(|conn| decode::all(conn, "delete from index_dirty returning prompt_id", [], |row| Ok(row.get(0)?)))?)
+        Ok(self.db.write(|conn| decode::all(conn, "delete from index_dirty returning prompt_id", [], |row| Ok(row.get(0)?)))?)
     }
 
     /// How many changed turns wait for the next `ensure` (what [`Self::take_marked`] would take),
     /// without unmarking them.
     pub fn marked_count(&self) -> Result<u64> {
-        Ok(self.store.db().read(|conn| {
+        Ok(self.db.read(|conn| {
             let count: i64 = conn.prepare_cached("select count(*) from index_dirty")?.query_row([], |row| row.get(0))?;
             Ok(u64::try_from(count).unwrap_or(0))
         })?)
@@ -283,7 +290,7 @@ impl PromptIndex<'_> {
     /// Prompts stored after the newest indexed one (an index lookup, not a scan). Ported as is: a
     /// gap below the newest indexed prompt is not reported (ingest indexes in order).
     pub fn unindexed(&self) -> Result<Vec<i64>> {
-        Ok(self.store.db().read(|conn| {
+        Ok(self.db.read(|conn| {
             let select = "select id from prompt where id > (select coalesce(max(id), 0) from prompt_index) order by id";
             decode::all(conn, select, [], |row| Ok(row.get(0)?))
         })?)
@@ -292,12 +299,12 @@ impl PromptIndex<'_> {
     /// The stored index row of a prompt (tests, the prompt API's facts), with `typed_text` read
     /// back from `prompt_fts`.
     pub fn row(&self, id: i64) -> Result<Option<IndexRow>> {
-        Ok(self.store.db().read(|conn| row_of(conn, id))?)
+        Ok(self.db.read(|conn| row_of(conn, id))?)
     }
 
     /// Everything stored for a prompt: its row plus its model, tool and work rows (in insert order).
     pub fn entry(&self, id: i64) -> Result<Option<Entry>> {
-        Ok(self.store.db().read(|conn| {
+        Ok(self.db.read(|conn| {
             let Some(row) = row_of(conn, id)? else {
                 return Ok(None);
             };

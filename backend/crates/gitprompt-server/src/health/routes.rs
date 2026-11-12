@@ -4,8 +4,8 @@ use std::collections::{HashMap, VecDeque};
 
 use serde::{Deserialize, Serialize};
 
+use super::is_slow;
 use super::stats::percentile;
-use crate::access_log::is_slow;
 
 /// Recent durations kept per route for the percentiles.
 const RECENT: usize = 256;

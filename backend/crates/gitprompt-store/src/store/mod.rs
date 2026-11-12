@@ -122,7 +122,7 @@ impl Store {
     }
 
     pub fn index(&self) -> PromptIndex<'_> {
-        PromptIndex { store: self }
+        PromptIndex { db: &self.db }
     }
 
     /// The prompt id given to a prompt whose tool sends none: `<source>#<id>`.

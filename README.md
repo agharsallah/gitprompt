@@ -224,8 +224,19 @@ just types      # regenerate the dashboard's API types from the Rust wire types 
 just snapshots  # rewrite the API JSON snapshots after an intended change, then review the diff
 just doctor     # debug an install: one line per problem, with its fix
 just bench      # ingest throughput and dashboard read latencies on synthetic data
-just cov        # Rust line coverage report
+just arch       # architecture checks: crate layers, owned infrastructure, pure crates, no module cycles
+
+just quality             # code-quality dashboard: opens at once, then builds every report while it fills in
+just quality web         # one area (backend, web), one report (backend/lint) or a name in both (lint)
+just quality --view      # open it as last built
 ```
+
+The dashboard (`target/quality/index.html`) groups its reports by **Backend** (tests and coverage,
+architecture, clippy and rustfmt, dependencies, the load benchmark) and **Web** (vitest and coverage,
+ESLint and types, bundle size, Lighthouse), with the build's progress live on the overview. Each
+report is one file in `tools/quality/reports/`, so adding a page is adding a file:
+[tools/quality/README.md](tools/quality/README.md). What the architecture page means:
+[docs/extending.md](docs/extending.md#architecture).
 
 The TypeScript types in [`web/src/lib/api/generated.ts`](web/src/lib/api/generated.ts) are generated from the Rust structs with [ts-rs](https://github.com/Aleph-Alpha/ts-rs): `cargo test` fails when they are stale, and every read endpoint's JSON is snapshot-tested over the conformance fixtures, so a field renamed in Rust fails the build instead of breaking the dashboard.
 

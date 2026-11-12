@@ -452,10 +452,10 @@ fn derive_in(prompt: &PromptView, events: &[EventRow], spec: Option<&Spec>, read
     }
 }
 
-/// Every derived value and what it means, for the Fields page: [`crate::origin::DOCS`],
-/// [`crate::surface::DOCS`], `stats.*`, `summary.*`, `session.*`, [`crate::facts::DOCS`], plus
-/// `commits / diffstat`, `context.git_*` and `context.tool_version`. Names sharing a meaning are
-/// grouped with ` / ` (e.g. `stats.chars / words / lines / approx_tokens`).
+/// The values derived here and what they mean: [`crate::origin::DOCS`], [`crate::surface::DOCS`],
+/// `stats.*`, `summary.*` and `session.*`. Names sharing a meaning are grouped with ` / ` (e.g.
+/// `stats.chars / words / lines / approx_tokens`). The Fields page shows these and more:
+/// [`crate::catalog::derived_docs`].
 pub fn docs() -> IndexMap<String, String> {
     let prefixed = |prefix: &'static str, docs: &'static [(&'static str, &'static str)]| {
         docs.iter().map(move |(name, meaning)| (format!("{prefix}.{name}"), (*meaning).to_owned()))
@@ -467,14 +467,5 @@ pub fn docs() -> IndexMap<String, String> {
         .chain(prefixed("stats", stats::DOCS))
         .chain(prefixed("summary", turn::DOCS))
         .chain(prefixed("session", session::DOCS))
-        .chain(plain(crate::facts::DOCS))
-        .chain(plain(EXTRA_DOCS))
         .collect()
 }
-
-/// Values the prompt API adds beside the derivations.
-const EXTRA_DOCS: &[(&str, &str)] = &[
-    ("commits / diffstat", "commits made after the prompt, until the next prompt of the session"),
-    ("context.git_*", "repository state when the prompt was sent"),
-    ("context.tool_version", "tool version when the prompt was sent"),
-];

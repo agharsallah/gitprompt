@@ -5,6 +5,10 @@
 # deprecated and only kept for comparisons (`just compare`).
 
 bin := "backend/target/release/gitprompt"
+# Opens a file in the default browser
+opener := if os() == "macos" { "open" } else if os() == "windows" { "start" } else { "xdg-open" }
+# What coverage leaves out: test code, examples and binary entry points
+cov_ignore := '(tests/|examples/|main\.rs)'
 
 default:
     @just --list --unsorted
@@ -104,6 +108,24 @@ lint: target-guard
     cd backend && cargo clippy --workspace --all-targets -- -D warnings
     pnpm --dir web lint
 
+# The map is backend/crates/gitprompt-core/tests/architecture/rules.rs; `cargo test` runs this too.
+# Architecture checks: crate layers, infrastructure in its layer, pure crates free of I/O, no module cycles
+arch: target-guard
+    cd backend && cargo test -q -p gitprompt-core --test architecture
+
+# Writes backend/target/architecture/index.html (and report.json), with the last `just cov` if any.
+# Architecture page alone: layers, module matrix, rules and modularity score (`--open` opens it)
+arch-report *flags: target-guard
+    cd backend && ARCH_REPORT=1 cargo test -q -p gitprompt-core --test architecture report -- --exact --nocapture
+    {{ if flags == "--open" { opener + " backend/target/architecture/index.html" } else { "" } }}
+
+# Opens target/quality/index.html at once, then builds while it fills in live. Select with an area,
+# a report or a name (`just quality web`, `just quality backend/lint`, `just quality lint`); `--view`
+# opens it without building, `--list` lists the reports, `--no-open` skips the browser.
+# Code-quality dashboard: backend and web reports (tests, coverage, architecture, lint, performance...)
+quality *args:
+    node tools/quality/quality.mjs {{ args }}
+
 # Regenerate the dashboard's API types (web/src/lib/api/generated.ts) from the Rust wire types.
 # Run after changing any type the API sends or accepts; `cargo test` (and CI) fails while it is stale.
 types: target-guard
@@ -121,9 +143,11 @@ fmt: target-guard
     cd backend && cargo fmt --all
     pnpm --dir web format
 
-# Rust line coverage report in backend/target/llvm-cov/html (needs: cargo install cargo-llvm-cov)
+# Writes backend/target/llvm-cov/html and the summary `just quality` reads (needs: cargo install cargo-llvm-cov)
+# Rust line coverage, line by line
 cov: target-guard
-    cd backend && cargo llvm-cov --workspace --ignore-filename-regex '(tests/|examples/|main\.rs)' --html
+    cd backend && cargo llvm-cov --workspace --ignore-filename-regex '{{ cov_ignore }}' --html
+    cd backend && cargo llvm-cov report --ignore-filename-regex '{{ cov_ignore }}' --json --summary-only --output-path target/llvm-cov/summary.json
 
 # Load benchmark: ingest throughput and dashboard read latencies on synthetic data (pass e.g. --prompts 5000)
 bench *args: target-guard

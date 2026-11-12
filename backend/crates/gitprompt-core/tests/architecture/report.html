@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitPrompt Architecture</title>
+<style>
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --border: #e2e2dc;
+  --accent: #3b5bdb; --accent-soft: #e7ecff; --good: #2f9e44; --warn: #e8590c; --bad: #c92a2a;
+  --edge: #b5b5ad; --cell: #3b5bdb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615; --surface: #1f1f1d; --text: #ececea; --muted: #9a9a94; --border: #34342f;
+    --accent: #7c93ff; --accent-soft: #262d4d; --good: #51cf66; --warn: #ff922b; --bad: #ff6b6b;
+    --edge: #55554f; --cell: #7c93ff;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615; --surface: #1f1f1d; --text: #ececea; --muted: #9a9a94; --border: #34342f;
+  --accent: #7c93ff; --accent-soft: #262d4d; --good: #51cf66; --warn: #ff922b; --bad: #ff6b6b;
+  --edge: #55554f; --cell: #7c93ff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 17px; margin: 0 0 4px; }
+p.lead, .note { color: var(--muted); margin: 4px 0 16px; }
+.note { font-size: 13px; }
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.92em; }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 20px; }
+.scroll { overflow-x: auto; }
+header { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; margin-top: 20px; }
+.score { width: 132px; height: 132px; border-radius: 50%; display: grid; place-items: center; text-align: center;
+  background: conic-gradient(var(--score-color) calc(var(--score) * 1%), var(--border) 0); }
+.score > div { width: 108px; height: 108px; border-radius: 50%; background: var(--bg); display: grid; place-content: center; }
+.score b { font-size: 36px; line-height: 1; }
+.score span { color: var(--muted); font-size: 12px; }
+.parts { display: grid; gap: 10px; }
+.part .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin: 4px 0 2px; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.part .detail { color: var(--muted); font-size: 12.5px; }
+ul.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+ul.checks li { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.cov-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
+.cov-head b { font-size: 32px; line-height: 1; }
+.cov-head a { color: var(--accent); }
+.cov-rows { display: grid; grid-template-columns: max-content 1fr max-content; gap: 6px 12px; align-items: center; font-size: 13.5px; }
+.cov-rows .bar { margin: 0; }
+.ok { color: var(--good); font-weight: 600; }
+.ko { color: var(--bad); font-weight: 600; }
+pre.problems { white-space: pre-wrap; margin: 8px 0 4px; font-size: 12.5px; color: var(--text); }
+svg.map, svg#ai { display: block; width: 100%; height: auto; margin: 0 auto; }
+svg text { fill: var(--text); font: 12px ui-monospace, "SF Mono", Menlo, monospace; }
+svg .muted { fill: var(--muted); font-size: 10.5px; }
+.node rect { fill: var(--surface); stroke: var(--border); stroke-width: 1.2; }
+.node { cursor: pointer; }
+.node.selected rect { stroke: var(--accent); stroke-width: 2.2; fill: var(--accent-soft); }
+.node:hover rect { stroke: var(--accent); }
+.edge { fill: none; stroke: var(--edge); stroke-width: 1.2; }
+.edge.lit { stroke: var(--accent); stroke-width: 2; }
+.map:not(.all) .edge.implied:not(.lit) { display: none; }
+label.toggle { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.map.dim .edge:not(.lit) { opacity: 0.25; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover, tbody tr.selected { background: var(--accent-soft); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+table.dsm { width: auto; border-collapse: separate; border-spacing: 2px; }
+table.dsm td { width: 22px; height: 22px; padding: 0; border: none; background: var(--bg); border-radius: 3px; text-align: center; }
+table.dsm td.diag { background: var(--border); }
+table.dsm td.on { background: var(--cell); }
+table.dsm td.back { background: var(--bad); }
+table.dsm th { padding: 0 8px 0 0; border: none; text-align: right; font-weight: 400; color: var(--text); }
+table.dsm th.col { padding: 0; text-align: center; color: var(--muted); font-size: 11px; }
+.theme { float: right; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+@media (max-width: 720px) {
+  header, .grid2 { grid-template-columns: 1fr; }
+  .score { margin: 0 auto; }
+}
+</style>
+</head>
+<body>
+<main>
+  <button class="theme" id="theme" type="button">Theme</button>
+  <h1>Architecture</h1>
+  <p class="lead">Drawn from the code by <code>just quality architecture</code>: the crate layers, the modules inside each crate, how modular they are and how much of them the tests run. The rules are in <code>gitprompt-core/tests/architecture/rules.rs</code>.</p>
+
+  <header>
+    <div class="score" id="score"><div><b id="total"></b><span>modularity<br>out of 100</span></div></div>
+    <div class="parts" id="parts"></div>
+  </header>
+
+  <section>
+    <h2>Rules</h2>
+    <p class="note">The same checks <code>just arch</code> and <code>cargo test</code> run. Any finding fails CI.</p>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <section>
+    <h2>Test coverage</h2>
+    <p class="note">Lines of shipped code that the Rust tests run (<code>cargo llvm-cov</code>; test files, examples and <code>main.rs</code> are left out). Not part of the modularity score: it measures how well tested the code is, not how it is cut.</p>
+    <div id="coverage"></div>
+  </section>
+
+  <section>
+    <h2>Crate layers</h2>
+    <p class="note">Each crate uses only crates below it. Lines show the shortest picture: an edge already implied through another crate is hidden until you hover a crate (all its direct dependencies light up). Select a crate to open its modules.</p>
+    <label class="toggle"><input type="checkbox" id="all-edges"> show every direct dependency</label>
+    <div class="scroll"><svg class="map" id="map" role="img" aria-label="Crate dependency layers"></svg></div>
+  </section>
+
+  <section>
+    <h2>Crates</h2>
+    <p class="note"><b>Propagation cost</b>: the share of module pairs where a change can reach the other through dependencies (lower is more modular). <b>I</b> instability, <b>A</b> abstractness, <b>D</b> distance from the main sequence (Martin): shown for context, not scored.</p>
+    <div class="scroll"><table id="crates"></table></div>
+  </section>
+
+  <section id="detail"></section>
+
+  <section>
+    <h2>Abstractness and instability</h2>
+    <p class="note">Robert C. Martin's chart. Stable crates (left) that others build on are safest when abstract (top); a concrete stable crate such as a shared kernel sits bottom left by design. Context only.</p>
+    <div class="scroll"><svg id="ai" role="img" aria-label="Abstractness against instability per crate"></svg></div>
+  </section>
+</main>
+
+<script id="data" type="application/json">__REPORT__</script>
+<script>
+"use strict";
+const report = JSON.parse(document.getElementById("data").textContent);
+const SVG = "http://www.w3.org/2000/svg";
+const short = (name) => name.replace(/^gitprompt-/, "");
+const pct = (x) => `${Math.round(x * 100)}%`;
+const fixed = (x) => x.toFixed(2);
+
+function el(tag, attrs = {}, ...children) {
+  const node = tag.startsWith("svg:") ? document.createElementNS(SVG, tag.slice(4)) : document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.setAttribute("class", value);
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  return node;
+}
+
+/** Line coverage as a share, or null when it was not measured. */
+const share = (lines) => (lines && lines.count ? lines.covered / lines.count : null);
+const coverageColor = (value) => (value >= 0.8 ? "var(--good)" : value >= 0.6 ? "var(--warn)" : "var(--bad)");
+function coverageCell(lines) {
+  const value = share(lines);
+  if (value === null) return el("td", { class: "num", title: "not measured" }, "–");
+  return el("td", { class: "num", title: `${lines.covered} of ${lines.count} lines`, style: `color: ${coverageColor(value)}` }, pct(value));
+}
+
+function ago(seconds) {
+  const minutes = Math.round((Date.now() / 1000 - seconds) / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 48 * 60) return `${Math.round(minutes / 60)} h ago`;
+  return `${Math.round(minutes / 1440)} days ago`;
+}
+
+function renderCoverage() {
+  const box = document.getElementById("coverage");
+  const coverage = report.coverage;
+  if (!coverage) {
+    box.append(el("p", {}, "Not measured yet: ", el("code", {}, "just quality"), " runs the tests with coverage, then draws this page."));
+    return;
+  }
+  const value = share(coverage.lines);
+  const head = el("div", { class: "cov-head" },
+    el("b", { style: `color: ${coverageColor(value)}` }, pct(value)),
+    el("span", { class: "note" }, `${coverage.lines.covered} of ${coverage.lines.count} lines · measured ${ago(coverage.measured_at)}`),
+    el("a", { href: coverage.html }, "Line-by-line report →"));
+  const rows = el("div", { class: "cov-rows" });
+  for (const c of report.crates) {
+    const v = share(c.coverage);
+    const bar = el("div", { class: "bar" }, el("i"));
+    bar.firstChild.style.width = v === null ? "0" : pct(v);
+    bar.firstChild.style.background = v === null ? "var(--border)" : coverageColor(v);
+    rows.append(el("span", { class: "mono" }, short(c.name)), bar, el("span", { class: "mono" }, v === null ? "–" : pct(v)));
+  }
+  box.append(head, rows);
+}
+
+function colorOf(value) {
+  return value >= 0.85 ? "var(--good)" : value >= 0.65 ? "var(--warn)" : "var(--bad)";
+}
+
+function renderScore() {
+  const total = report.score.total;
+  const box = document.getElementById("score");
+  box.style.setProperty("--score", total);
+  box.style.setProperty("--score-color", colorOf(total / 100));
+  document.getElementById("total").textContent = total;
+  const parts = document.getElementById("parts");
+  for (const part of report.score.parts) {
+    const bar = el("div", { class: "bar" }, el("i"));
+    bar.firstChild.style.width = pct(part.value);
+    bar.firstChild.style.background = colorOf(part.value);
+    parts.append(el("div", { class: "part" },
+      el("div", { class: "row" }, el("b", {}, part.name), el("span", { class: "mono" }, `${pct(part.value)} · weight ${pct(part.weight)}`)),
+      bar,
+      el("div", { class: "detail" }, part.detail)));
+  }
+}
+
+function renderChecks() {
+  const list = document.getElementById("checks");
+  for (const check of report.checks) {
+    const clean = check.problems.length === 0;
+    const item = el("li", {},
+      el("span", { class: clean ? "ok" : "ko" }, clean ? "✓ " : `✗ ${check.problems.length} · `), check.rule);
+    if (!clean) {
+      item.append(el("pre", { class: "problems mono" }, check.problems.join("\n")), el("div", { class: "note" }, check.advice));
+    }
+    list.append(item);
+  }
+}
+
+let selected = null;
+const listeners = [];
+function select(name) {
+  selected = name;
+  for (const listener of listeners) listener(name);
+}
+
+/** Whether `from` reaches `to` through another crate it uses, so the direct edge adds nothing to the picture. */
+function implied(from, to) {
+  const usesOf = Object.fromEntries(report.crates.map((c) => [c.name, c.uses]));
+  const reaches = (start, target, seen = new Set()) =>
+    (usesOf[start] || []).some((next) => next === target || (!seen.has(next) && (seen.add(next), reaches(next, target, seen))));
+  return usesOf[from].some((via) => via !== to && reaches(via, to));
+}
+
+function renderMap() {
+  const svg = document.getElementById("map");
+  const crates = report.crates;
+  const maxDepth = Math.max(...crates.map((c) => c.depth));
+  const rowGap = 78, nodeHeight = 40, pad = 20, gap = 18;
+  const widthOf = (c) => Math.max(short(c.name).length, `${c.lines} lines`.length) * 7.4 + 28;
+  const rows = [];
+  for (let d = maxDepth; d >= 0; d--) rows.push(crates.filter((c) => c.depth === d));
+  const rowWidth = (row) => row.reduce((sum, c) => sum + widthOf(c), 0) + gap * (row.length - 1);
+  const width = Math.max(640, ...rows.map(rowWidth)) + pad * 2;
+  const height = rows.length * rowGap - (rowGap - nodeHeight) + pad * 2;
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.style.maxWidth = `${width}px`;
+  const at = {};
+  rows.forEach((row, r) => {
+    let x = (width - rowWidth(row)) / 2;
+    for (const c of row) {
+      at[c.name] = { x, y: pad + r * rowGap, w: widthOf(c) };
+      x += widthOf(c) + gap;
+    }
+  });
+  const edges = el("svg:g");
+  const nodes = el("svg:g");
+  const edgeEls = [];
+  for (const c of crates) {
+    for (const used of c.uses) {
+      const a = at[c.name], b = at[used];
+      if (!a || !b) continue;
+      const x1 = a.x + a.w / 2, y1 = a.y + nodeHeight, x2 = b.x + b.w / 2, y2 = b.y, mid = (y1 + y2) / 2;
+      const path = el("svg:path", { class: "edge", d: `M${x1},${y1} C${x1},${mid} ${x2},${mid} ${x2},${y2}` });
+      path.dataset.from = c.name;
+      path.dataset.to = used;
+      path.classList.toggle("implied", implied(c.name, used));
+      edgeEls.push(path);
+      edges.append(path);
+    }
+  }
+  const light = (name) => {
+    svg.classList.toggle("dim", Boolean(name));
+    for (const edge of edgeEls) edge.classList.toggle("lit", edge.dataset.from === name || edge.dataset.to === name);
+  };
+  document.getElementById("all-edges").addEventListener("change", (e) => svg.classList.toggle("all", e.target.checked));
+  const nodeEls = {};
+  for (const c of crates) {
+    const p = at[c.name];
+    const node = el("svg:g", { class: "node", transform: `translate(${p.x},${p.y})`, tabindex: 0,
+      onmouseenter: () => light(c.name), onmouseleave: () => light(selected),
+      onclick: () => select(c.name), onkeydown: (e) => { if (e.key === "Enter") select(c.name); } },
+      el("svg:title", {}, `${c.name}: ${c.role}`),
+      el("svg:rect", { width: p.w, height: nodeHeight, rx: 7 }),
+      el("svg:text", { x: p.w / 2, y: 17, "text-anchor": "middle" }, short(c.name)),
+      el("svg:text", { x: p.w / 2, y: 31, "text-anchor": "middle", class: "muted" }, `${c.lines} lines`));
+    nodeEls[c.name] = node;
+    nodes.append(node);
+  }
+  svg.append(edges, nodes);
+  listeners.push((name) => {
+    for (const [key, node] of Object.entries(nodeEls)) node.classList.toggle("selected", key === name);
+    light(name);
+  });
+}
+
+function renderTable() {
+  const table = document.getElementById("crates");
+  const heads = ["crate", "lines", "files", "modules", "propagation cost", "coverage", "uses", "used by", "I", "A", "D"];
+  table.append(el("thead", {}, el("tr", {}, heads.map((h, i) => el("th", { class: i ? "num" : "" }, h)))));
+  const body = el("tbody");
+  const rowEls = {};
+  for (const c of report.crates) {
+    const row = el("tr", { onclick: () => select(c.name) },
+      el("td", { class: "mono", title: c.role }, short(c.name)),
+      el("td", { class: "num" }, c.lines), el("td", { class: "num" }, c.files), el("td", { class: "num" }, c.modules.length),
+      el("td", { class: "num" }, pct(c.propagation_cost)),
+      coverageCell(c.coverage),
+      el("td", { class: "num" }, c.uses.length), el("td", { class: "num" }, c.used_by.length),
+      el("td", { class: "num" }, fixed(c.instability)), el("td", { class: "num" }, fixed(c.abstractness)), el("td", { class: "num" }, fixed(c.distance)));
+    rowEls[c.name] = row;
+    body.append(row);
+  }
+  table.append(body);
+  listeners.push((name) => { for (const [key, row] of Object.entries(rowEls)) row.classList.toggle("selected", key === name); });
+}
+
+function dsm(c) {
+  const modules = [...c.modules].sort((a, b) => a.depth - b.depth || a.name.localeCompare(b.name));
+  if (modules.length === 0) return el("p", { class: "note" }, "No modules besides the crate root.");
+  const index = Object.fromEntries(modules.map((m, i) => [m.name, i]));
+  const table = el("table", { class: "dsm" });
+  table.append(el("tr", {}, el("th"), modules.map((_, j) => el("th", { class: "col" }, j + 1))));
+  modules.forEach((m, i) => {
+    const cells = modules.map((other, j) => {
+      if (i === j) return el("td", { class: "diag", title: m.name });
+      const site = m.uses[other.name];
+      if (!site) return el("td");
+      return el("td", { class: j < i ? "on" : "back", title: `${m.name} uses ${other.name} (${site})` });
+    });
+    table.append(el("tr", {}, el("th", { class: "mono" }, `${i + 1}. ${m.name}`), cells));
+  });
+  const back = modules.some((m, i) => Object.keys(m.uses).some((u) => index[u] > i));
+  return el("div", {},
+    el("div", { class: "scroll" }, table),
+    el("p", { class: "note" }, "Row uses column. Modules are sorted lowest layer first, so a layered crate has every mark below the diagonal",
+      back ? "; red marks above it are back edges." : ". This one does."));
+}
+
+function renderDetail(name) {
+  const section = document.getElementById("detail");
+  const c = report.crates.find((x) => x.name === name);
+  section.replaceChildren();
+  if (!c) return;
+  const modules = el("table", {},
+    el("thead", {}, el("tr", {}, ["module", "lines", "files", "uses", "used by", "coverage"].map((h, i) => el("th", { class: i ? "num" : "" }, h)))),
+    el("tbody", {}, [...c.modules].sort((a, b) => b.lines - a.lines).map((m) => el("tr", {},
+      el("td", { class: "mono" }, m.name), el("td", { class: "num" }, m.lines), el("td", { class: "num" }, m.files),
+      el("td", { class: "num" }, Object.keys(m.uses).length), el("td", { class: "num" }, m.used_by), coverageCell(m.coverage)))));
+  const files = el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {}, "largest files"), el("th", { class: "num" }, "code lines"), el("th", { class: "num" }, "coverage"))),
+    el("tbody", {}, c.largest_files.map((f) => el("tr", {},
+      el("td", { class: "mono" }, f.path.replace(`crates/${c.name}/`, "")),
+      el("td", { class: "num", style: f.lines > 400 ? "color: var(--warn); font-weight: 600" : "" }, f.lines), coverageCell(f.coverage)))));
+  section.append(
+    el("h2", { class: "mono" }, c.name),
+    el("p", { class: "note" }, c.role, c.uses.length ? ` · uses ${c.uses.map(short).join(", ")}` : "", c.used_by.length ? ` · used by ${c.used_by.map(short).join(", ")}` : ""),
+    el("div", { class: "grid2" },
+      el("div", {}, el("h2", {}, "Module dependencies"), dsm(c)),
+      el("div", {}, el("div", { class: "scroll" }, modules), el("div", { class: "scroll", style: "margin-top: 16px" }, files))));
+}
+
+function renderAi() {
+  const svg = document.getElementById("ai");
+  const size = 300, pad = 36;
+  svg.setAttribute("viewBox", `0 0 ${size + pad * 2} ${size + pad * 2}`);
+  svg.style.maxWidth = `${size + pad * 2}px`;
+  const x = (i) => pad + i * size, y = (a) => pad + (1 - a) * size;
+  svg.append(
+    el("svg:rect", { x: pad, y: pad, width: size, height: size, fill: "none", stroke: "var(--border)" }),
+    el("svg:line", { x1: x(0), y1: y(1), x2: x(1), y2: y(0), stroke: "var(--edge)", "stroke-dasharray": "4 4" }),
+    el("svg:text", { x: x(0.5), y: pad + size + 26, "text-anchor": "middle", class: "muted" }, "instability →"),
+    el("svg:text", { x: 12, y: y(0.5), class: "muted", transform: `rotate(-90 12 ${y(0.5)})`, "text-anchor": "middle" }, "abstractness →"));
+  // Crates at nearly the same point share one label, so names never print over each other.
+  const groups = [];
+  for (const c of report.crates) {
+    const near = groups.find((g) => Math.abs(g.i - c.instability) < 0.08 && Math.abs(g.a - c.abstractness) < 0.08);
+    if (near) near.names.push(short(c.name));
+    else groups.push({ i: c.instability, a: c.abstractness, names: [short(c.name)] });
+    svg.append(el("svg:g", {},
+      el("svg:title", {}, `${c.name}: I ${fixed(c.instability)}, A ${fixed(c.abstractness)}, D ${fixed(c.distance)}`),
+      el("svg:circle", { cx: x(c.instability), cy: y(c.abstractness), r: 5, fill: "var(--accent)" })));
+  }
+  // Each label goes up a line until it overlaps none placed before it.
+  const placed = [];
+  for (const g of groups) {
+    const text = g.names.join(", ");
+    const width = text.length * 6.6;
+    const right = g.i > 0.8;
+    const left = right ? x(g.i) - 8 - width : x(g.i) + 8;
+    let top = y(g.a) - 20;
+    while (placed.some((b) => left < b.left + b.width && b.left < left + width && top < b.top + 13 && b.top < top + 13)) top -= 13;
+    placed.push({ left, top, width });
+    svg.append(el("svg:text", { x: left, y: top + 10, class: "muted" }, text));
+  }
+}
+
+function setupTheme() {
+  const root = document.documentElement;
+  try { const saved = localStorage.getItem("arch-theme"); if (saved) root.dataset.theme = saved; } catch { /* storage unavailable */ }
+  document.getElementById("theme").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("arch-theme", root.dataset.theme); } catch { /* storage unavailable */ }
+  });
+}
+
+setupTheme();
+renderScore();
+renderChecks();
+renderMap();
+renderTable();
+renderAi();
+renderCoverage();
+listeners.push(renderDetail);
+// Open the crate with the most coupling: propagation cost weighted by its number of modules.
+const coupling = (c) => c.propagation_cost * c.modules.length;
+const worst = [...report.crates].sort((a, b) => coupling(b) - coupling(a))[0];
+select(worst ? worst.name : null);
+</script>
+</body>
+</html>

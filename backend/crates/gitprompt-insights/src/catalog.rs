@@ -50,8 +50,24 @@ pub struct Catalog {
     pub fields: Vec<Field>,
     /// Each spec's `not_captured`, then its `drop_events`, in spec order.
     pub not_captured: Vec<NotCaptured>,
-    /// [`crate::derivations::docs`].
+    /// Every derived value and what it means (`derived_docs`).
     pub derived: IndexMap<String, String>,
+}
+
+/// Values the prompt API adds beside the derivations.
+const EXTRA_DOCS: &[(&str, &str)] = &[
+    ("commits / diffstat", "commits made after the prompt, until the next prompt of the session"),
+    ("context.git_*", "repository state when the prompt was sent"),
+    ("context.tool_version", "tool version when the prompt was sent"),
+];
+
+/// Every derived value and what it means, for the Fields page: [`crate::derivations::docs`], then
+/// [`crate::facts::DOCS`], then `commits / diffstat`, `context.git_*` and `context.tool_version`.
+pub fn derived_docs() -> IndexMap<String, String> {
+    let mut docs = crate::derivations::docs();
+    let plain = crate::facts::DOCS.iter().chain(EXTRA_DOCS);
+    docs.extend(plain.map(|(name, meaning)| ((*name).to_owned(), (*meaning).to_owned())));
+    docs
 }
 
 /// Fields seen in `samples`, plus every documented field not seen yet (count 0, under its
@@ -71,7 +87,7 @@ pub fn build_catalog<'a>(samples: &[Sample], specs: impl IntoIterator<Item = &'a
             reasons.into_iter().map(|(event, reason)| NotCaptured { source: spec.id.clone(), event, reason })
         })
         .collect();
-    Catalog { fields: fields.into_values().collect(), not_captured, derived: crate::derivations::docs() }
+    Catalog { fields: fields.into_values().collect(), not_captured, derived: derived_docs() }
 }
 
 /// (source, event, path): the catalog's sort order.

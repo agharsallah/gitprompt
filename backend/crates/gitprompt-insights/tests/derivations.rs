@@ -892,7 +892,7 @@ fn derived_values_serialize_next_to_the_stored_row() {
 
 #[test]
 fn every_derived_value_is_documented_for_the_fields_page() {
-    let docs = derivations::docs();
+    let docs = gitprompt_insights::catalog::derived_docs();
     let expected = [
         "origin",
         "typed_text",

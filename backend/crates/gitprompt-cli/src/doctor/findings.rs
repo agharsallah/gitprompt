@@ -3,8 +3,8 @@
 
 use gitprompt_capture::connection::{ConnectorState, HookForm};
 use gitprompt_server::DashboardSource;
-use gitprompt_server::access_log::is_slow;
 use gitprompt_server::health::WarningKind;
+use gitprompt_server::health::is_slow;
 use gitprompt_server::status::BACKEND;
 
 use super::report::{Finding, Report};

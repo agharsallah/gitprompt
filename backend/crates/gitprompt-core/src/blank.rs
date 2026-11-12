@@ -1,11 +1,10 @@
 //! What "compacted" means on the wire: null, `""`, `[]`, `{}`, `false` and zero are left out, so
 //! summaries show what happened. One rule for JSON values ([`crate::json::compact`]) and for typed
 //! wire structs, whose fields say `#[serde(default, skip_serializing_if = "Blank::is_blank")]`
-//! (the `default` also makes the generated TypeScript field optional).
+//! (the `default` also makes the generated TypeScript field optional). JSON values implement it
+//! next to their type, in `json.rs`.
 
 use indexmap::IndexMap;
-
-use crate::json::{Json, JsonMap};
 
 /// A value that compaction leaves out.
 pub trait Blank {
@@ -57,25 +56,6 @@ impl<T> Blank for Vec<T> {
 impl<K, V> Blank for IndexMap<K, V> {
     fn is_blank(&self) -> bool {
         self.is_empty()
-    }
-}
-
-impl Blank for JsonMap {
-    fn is_blank(&self) -> bool {
-        self.is_empty()
-    }
-}
-
-impl Blank for Json {
-    fn is_blank(&self) -> bool {
-        match self {
-            Json::Null => true,
-            Json::Bool(b) => !b,
-            Json::Number(n) => n.as_f64() == Some(0.0),
-            Json::String(s) => s.is_empty(),
-            Json::Array(items) => items.is_empty(),
-            Json::Object(map) => map.is_empty(),
-        }
     }
 }
 

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitPrompt Quality</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span>GitPrompt <b>quality</b></span>
+      <button class="theme" id="theme" type="button" aria-label="Switch light or dark theme">◐</button>
+    </div>
+    <div id="build-pill" class="build-pill"></div>
+    <nav id="nav" aria-label="Reports"></nav>
+    <p class="sidebar-foot">Built by <code>just quality</code> · tools/quality</p>
+  </aside>
+  <main id="main" class="main">
+    <div class="page"><div class="empty"><span class="spinner large"></span><p>Loading…</p></div></div>
+  </main>
+</div>
+<!-- Scripts, not modules: a page opened from disk may load scripts but not modules or fetch. -->
+<script src="render.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

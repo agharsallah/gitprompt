@@ -32,6 +32,15 @@ pub use stats::{max_present, percentile};
 
 /// How often the daemon samples the process.
 pub const SAMPLE_EVERY: Duration = Duration::from_secs(30);
+/// Requests slower than this are slow: logged at `warn` by the access log, counted per route and
+/// warned about by the monitor.
+pub const SLOW_REQUEST: Duration = Duration::from_secs(1);
+
+/// Whether a request that took `ms` is slow: the one rule the log, the route statistics and
+/// `gitprompt doctor` share.
+pub fn is_slow(ms: f64) -> bool {
+    ms > SLOW_REQUEST.as_secs_f64() * 1000.0
+}
 /// Warnings kept for the status, newest first.
 const KEPT_WARNINGS: usize = 20;
 /// Routes listed in the status (slowest p95 first).

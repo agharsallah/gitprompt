@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 use gitprompt_store::{SLOW_HOLD, SLOW_WAIT, WriterStats};
 
+use super::SLOW_REQUEST;
 use super::process::ProcessSample;
-use crate::access_log::SLOW_REQUEST;
 
 /// When a sample is worth a warning.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

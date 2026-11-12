@@ -5,5 +5,7 @@ __pycache__/
 .DS_Store
 # rust workspace
 backend/target/
+# code-quality dashboard (just quality)
+/target/
 # coverage runs (just cov)
 *.profraw

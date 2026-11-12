@@ -4,6 +4,25 @@ Local-first capture of AI coding prompts. Rust daemon in `backend/` (Cargo works
 dashboard in `web/` (pnpm). The Python daemon in `legacy/python/` is frozen: never edit it.
 Where each kind of change goes: `docs/extending.md`.
 
+## Architecture: enforced, changed only on purpose
+
+- Crates are layers (core → store → capture / insights → export → server → cli / tauri → desktop),
+  and the map is `backend/crates/gitprompt-core/tests/architecture/rules.rs`: which crate may use
+  which, which crate owns each infrastructure crate (`rusqlite` → store, `axum`/`tokio` → server…),
+  which crates do no I/O. Modules inside a crate never use each other in a loop. **`just arch`**
+  checks it all in seconds; `cargo test` and a Stop hook run it too. `just quality` opens the
+  code-quality dashboard (backend and web: tests, coverage, architecture score, lint, dependencies,
+  performance, bundle, Lighthouse; `just quality architecture` refreshes one report). For a
+  structural refactor, compare before and after. A new report is one file in
+  `tools/quality/reports/<area>/` (`tools/quality/README.md`).
+- Before writing code, put it in the lowest crate and module that can hold it (`docs/extending.md`).
+- A finding means the code is in the wrong place. Move the shared piece down, or into a new small
+  module both sides use, or invert the dependency with a trait. Never widen the map, merge modules
+  or re-export across layers to make a check pass.
+- A new crate, a new edge between crates or a new owner for an infrastructure crate is a design
+  decision: ask the user first, then change `rules.rs` and `docs/extending.md` ("Architecture") in
+  the same commit. Editing `rules.rs` always asks for approval.
+
 ## API types: generated, never hand-copied
 
 - The dashboard's API types live in `web/src/lib/api/generated.ts`, **generated from the Rust wire

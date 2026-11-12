@@ -8,4 +8,4 @@ allow-panic-in-tests = true
 allow-indexing-slicing-in-tests = true
 
 # Proper nouns that doc_markdown should not ask to wrap in backticks. ".." keeps clippy's defaults.
-doc-valid-idents = ["GitPrompt", "SQLite", "SvelteKit", "FastAPI", "OpenAI", ".."]
+doc-valid-idents = ["GitPrompt", "SQLite", "SvelteKit", "FastAPI", "OpenAI", "MacCormack", ".."]

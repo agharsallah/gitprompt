@@ -3,7 +3,8 @@
 Where each kind of change goes in the Rust backend (`backend/`), and the test that proves it. The
 rules behind the design are in [PLAN.md](../PLAN.md) and the [ADRs](adr/README.md); this is the map.
 Crates depend on each other in one direction: core → store → capture / insights → export → server →
-cli / tauri. A change lives in the lowest crate that can hold it.
+cli / tauri → desktop (dashboard, the embedded web build, sits beside core). A change lives in the
+lowest crate that can hold it. That order is enforced: see [Architecture](#architecture).
 
 ## Before and after a change
 
@@ -18,6 +19,62 @@ Tests live next to what they test: `backend/crates/<crate>/tests/<module>.rs`, h
 `tests/common/mod.rs`. Tests never touch your home folder or the process environment: settings take
 an `Env`, and time, time zone, git, tool versions and commands are injected (traits in
 `gitprompt-capture::probe`, `gitprompt-server::options`).
+
+## Architecture
+
+The map is [`gitprompt-core/tests/architecture/rules.rs`](../backend/crates/gitprompt-core/tests/architecture/rules.rs);
+`just arch` checks the workspace against it in seconds, and `cargo test` (so CI) runs it too.
+
+| Rule | What it means | When it fails |
+|---|---|---|
+| `LAYERS` | Each crate's role and the workspace crates it uses, exactly, lowest first. A crate uses only crates above it, so crate cycles cannot exist. `capture` (writing side) and `insights` (reading side) are siblings and never use each other. | Move what both need down into the lower crate (or a new one below both), or invert the dependency: the lower crate defines a trait, the upper one implements it. |
+| `OWNED` | Infrastructure belongs to one layer: `rusqlite` to store; `axum`, `tower`, `sysinfo`, `tracing-subscriber` to server; `tokio` to server, cli and tauri; `clap` to cli; `tauri*` to the desktop crates. Tests may use any of them. | Call the owning crate's API, or move the code into it. |
+| `KERNEL` | core's only external crates. Everything depends on core, so whatever it pulls in, every crate does. | Keep the code (and its dependency) in the crate that needs it. |
+| `PURE` | core, insights and export do no I/O (files, processes, network, environment), except the core files listed, which read settings, specs and git facts. The list only shrinks: a listed file that stops doing I/O must leave it. | Take the data as an argument, or a trait the caller implements (`Env`, `gitprompt-capture::probe`), and do the I/O in the adapter that calls it. |
+| module cycles | Inside every crate, top-level modules (`src/x.rs` and `src/x/**`) form layers too: no two use each other, directly or around a loop. Only shipped code counts, not `#[cfg(test)]`. | Move the shared item to the module that owns the concept (usually the lower one) or into a new small module both use. Never merge the modules to hide the loop. |
+
+### The code-quality dashboard: the map drawn from the code, a modularity score, coverage
+
+| Command | What it does |
+|---|---|
+| `just quality` | The code-quality dashboard: every backend and web report, with this page under Backend → Architecture ([tools/quality/README.md](../tools/quality/README.md)). |
+| `just quality architecture` | This page alone, in seconds, with the coverage of the last `backend/tests` run. |
+| `just arch-report --open` | The same page outside the dashboard. |
+
+The architecture page is `backend/target/architecture/index.html` (self-contained, works offline),
+with `report.json` beside it for scripts; both come from the same model the checks use. It shows:
+
+- the score and the six rules, with any finding and what to do about it,
+- line coverage overall and per crate, and a link to the line-by-line report (left out: test
+  files, examples and `main.rs`). Coverage is not part of the score: it measures how well tested the
+  code is, not how it is cut,
+- the crate layers (an edge implied through another crate is hidden until you hover one),
+- per crate: lines, files, modules, propagation cost, coverage, and Martin's instability /
+  abstractness / distance (context only: a concrete shared kernel sits far from the main sequence
+  by design),
+- per crate, a dependency structure matrix of its modules, lowest layer first: every mark below
+  the diagonal means layered, then each module's size, coupling and coverage, and the largest files.
+
+The score (0 to 100) is 40% rules (each finding costs a tenth), 35% module coupling (1 − propagation
+cost, weighted by module count) and 25% file size (code lines outside files over 400 lines). Use it
+to compare before and after a refactor: a split that leaves propagation cost unchanged only moved
+code around.
+
+Changing the map is a design decision, not a fix: agree on it first, then edit `rules.rs` and this
+page in the same change, and say why in the commit. Claude Code asks before editing `rules.rs`, and
+re-runs `just arch` before finishing a turn that touched Rust code.
+
+### A new crate (a layer or a bounded context)
+
+1. Decide where it sits: the crates it needs are below it and nothing below it needs it. If two
+   existing crates both need it, it goes below both.
+2. Create `backend/crates/gitprompt-<name>` with `[lints] workspace = true`, and add it to
+   `[workspace.dependencies]` in `backend/Cargo.toml`.
+3. Add a `Layer` to `LAYERS` at that position, with its role and exact `uses`, then the crates that
+   use it list it in theirs. If it is pure (computes only), add it to `PURE`; if it owns an
+   infrastructure crate, add that to `OWNED`.
+4. Update the order at the top of this page and, if the crate opens a new kind of change, add a
+   section for it here.
 
 ## A connector (a new tool, or a fix to one)
 

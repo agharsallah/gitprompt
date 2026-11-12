@@ -1,5 +1,17 @@
 {
 	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Edit|Write|MultiEdit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/architecture-map.sh",
+						"timeout": 10
+					}
+				]
+			}
+		],
 		"PostToolUse": [
 			{
 				"matcher": "Edit|Write|MultiEdit",
@@ -9,6 +21,18 @@
 						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/web-lint.sh",
 						"timeout": 60,
 						"statusMessage": "Formatting and linting web file"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/architecture.sh",
+						"timeout": 600,
+						"statusMessage": "Checking the architecture map"
 					}
 				]
 			}

@@ -21,8 +21,7 @@ use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
 
 use common::specs;
-use gitprompt_insights::catalog::{Catalog, Field, SAMPLE_CHARS, build_catalog};
-use gitprompt_insights::derivations;
+use gitprompt_insights::catalog::{Catalog, Field, SAMPLE_CHARS, build_catalog, derived_docs};
 use gitprompt_store::store::Sample;
 
 fn sample(source: &str, event: &str, data: Value) -> Sample {
@@ -123,5 +122,5 @@ fn what_a_source_cannot_capture_or_drops_is_listed_with_the_reason() {
 
 #[test]
 fn the_fields_page_lists_every_derived_value() {
-    assert_eq!(catalog_of(&[]).derived, derivations::docs());
+    assert_eq!(catalog_of(&[]).derived, derived_docs());
 }

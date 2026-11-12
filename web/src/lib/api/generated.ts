@@ -39,7 +39,7 @@ fields: Array<Field>,
  */
 not_captured: Array<NotCaptured>, 
 /**
- * [`crate::derivations::docs`].
+ * Every derived value and what it means (`derived_docs`).
  */
 derived: { [key in string]: string }, };
 
