@@ -5,9 +5,13 @@ import {
 	exportUrl,
 	FORMATS,
 	loosened,
+	loosenedContent,
+	offeredOptions,
 	OPTIONS,
 	PRIVATE_DEFAULTS,
-	subject
+	subject,
+	type ExportKind,
+	type ExportOptions
 } from '#lib/export/export.ts';
 
 describe('export options', () => {
@@ -45,6 +49,23 @@ describe('export options', () => {
 			drop_identity: undefined,
 			drop_raw: ['prompts']
 		});
+	});
+
+	const offered: [ExportKind, (keyof ExportOptions)[]][] = [
+		['prompts', ['prompt_text', 'relative_paths', 'drop_identity', 'drop_raw']],
+		['session', ['prompt_text', 'relative_paths', 'drop_identity']],
+		['project', ['prompt_text', 'relative_paths', 'drop_identity']],
+		['overview', ['prompt_text', 'relative_paths', 'drop_identity']]
+	];
+	it.each(offered)('offered for %s: %j', (kind, keys) =>
+		expect(offeredOptions(kind).map((o) => o.key)).toEqual(keys)
+	);
+
+	it('say what each loosened option adds to the file', () => {
+		expect(loosenedContent([])).toBe('');
+		expect(loosenedContent(['prompt_text', 'relative_paths', 'drop_identity', 'drop_raw'])).toBe(
+			'the text of your prompts, absolute paths, account identity, raw payloads'
+		);
 	});
 
 	it('offer each document format once', () => {

@@ -7,7 +7,8 @@
 // each one small enough to read on its own:
 //
 //   1. unwrap  — cut what the platform added around the id.
-//   2. parse   — read the dash-separated tokens into a vendor, a version and words, dropping dates.
+//   2. parse   — split the dash-separated tokens into a vendor, the version (findVersion) and the
+//                name words around it (nameWords), dropping dates.
 //   3. scheme  — let the vendor's naming scheme (SCHEMES) put them together.
 //
 // Names come from the id, never from a list of known models, so tomorrow's models name themselves.
@@ -71,35 +72,44 @@ export function modelName(id: string): string {
 /** The parts of a model id, or null when a token is neither a version, a date nor a word. */
 export function parseModelId(id: string): ModelParts | null {
 	const [vendor = '', ...tokens] = unwrap(id).split('-').filter(Boolean);
-	const version: string[] = [];
-	const words: string[] = [];
-	// The version is the first run of version tokens; numbers after it are snapshot dates.
-	let run: 'before' | 'in' | 'after' = 'before';
-	let versionFirst = false;
+	const { start, end, version } = findVersion(tokens);
+	const before = nameWords(tokens.slice(0, start));
+	const after = nameWords(tokens.slice(end));
+	if (!before || !after) return null;
+	const versionFirst = version !== '' && before.length === 0;
+	return { vendor, version, versionFirst, words: [...before, ...after] };
+}
 
-	for (const token of tokens) {
-		if (run !== 'after' && isVersionPart(token, version.length === 0)) {
-			if (run === 'before') versionFirst = words.length === 0;
-			version.push(token);
-			// A lettered version ("4o") ends the run: gpt-4o-mini is 4o, then mini.
-			run = /[a-z]$/.test(token) ? 'after' : 'in';
-			continue;
-		}
-		if (run === 'in') run = 'after';
-		if (isSnapshot(token)) continue;
-		if (isRevision(token)) {
-			// Bedrock's -v1 is noise after a version, but the only version in claude-v2.
-			if (run === 'before') {
-				versionFirst = words.length === 0;
-				version.push(token.slice(1));
-				run = 'after';
-			}
-			continue;
-		}
-		if (!isWord(token)) return null;
-		words.push(token);
-	}
-	return { vendor, version: version.join('.'), versionFirst, words };
+/** Where the version sits among an id's tokens (`tokens.slice(start, end)`), and how it reads. */
+interface VersionSpan {
+	start: number;
+	end: number;
+	/** Dotted: "4.5", "4o", "2"; empty when the id has none (then start = end = tokens.length). */
+	version: string;
+}
+
+/**
+ * The version: the first run of version pieces ("4", "5" -> 4.5), which a lettered piece ends
+ * ("4o": gpt-4o-mini is 4o, then mini). Bedrock's revision is the version only when it comes before
+ * any piece (claude-v2 -> 2); later numbers are snapshot dates, which nameWords drops.
+ */
+function findVersion(tokens: readonly string[]): VersionSpan {
+	const start = tokens.findIndex((t) => isVersionHead(t) || isRevision(t));
+	if (start < 0) return { start: tokens.length, end: tokens.length, version: '' };
+	const head = tokens[start];
+	if (isRevision(head)) return { start, end: start + 1, version: head.slice(1) };
+	let end = start + 1;
+	if (!/[a-z]$/.test(head)) while (end < tokens.length && isVersionTail(tokens[end])) end++;
+	return { start, end, version: tokens.slice(start, end).join('.') };
+}
+
+/**
+ * The name words among the tokens around the version, without snapshot dates and Bedrock revisions
+ * (noise next to a version); null when a token is none of these, so the id is not ours to name.
+ */
+function nameWords(tokens: readonly string[]): string[] | null {
+	const kept = tokens.filter((t) => !isSnapshot(t) && !isRevision(t));
+	return kept.every(isWord) ? kept : null;
 }
 
 /**
@@ -123,12 +133,11 @@ function unwrap(id: string): string {
 
 const isLetters = (s: string) => /^[a-z]+$/.test(s);
 
-/**
- * A piece of a version: one or two digits, dotted or not ("4", "10", "4.5"). Only the first piece
- * may end in a letter ("4o"), so gpt-4-32k is version 4 with the word 32k.
- */
-const isVersionPart = (token: string, first: boolean) =>
-	(first ? /^\d{1,2}(?:\.\d{1,2})*[a-z]?$/ : /^\d{1,2}(?:\.\d{1,2})*$/).test(token);
+/** The first piece of a version: one or two digits, dotted or not ("4", "10", "4.5"), or "4o". */
+const isVersionHead = (token: string) => /^\d{1,2}(?:\.\d{1,2})*[a-z]?$/.test(token);
+
+/** A later piece: digits only, so gpt-4-32k is version 4 with the word 32k. */
+const isVersionTail = (token: string) => /^\d{1,2}(?:\.\d{1,2})*$/.test(token);
 
 /** A snapshot rather than a name: digits (20250929, 2024, 0613, 001) or "latest". */
 const isSnapshot = (token: string) => /^\d+$/.test(token) || token === 'latest';

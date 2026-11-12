@@ -1,6 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { modelName, parseModelId, SCHEMES } from '#lib/shared/model-name.ts';
 
+// Models and versions that don't exist yet: the name comes from the id, never from a list.
+// Each row: the id, its name, and whether the id carries a snapshot date.
+const FAMILIES = ['opus', 'sonnet', 'haiku', 'fable', 'nova'];
+const VERSIONS: [suffix: string, shown: string, dated: boolean][] = [
+	['6', '6', false],
+	['6-1', '6.1', false],
+	['7-12', '7.12', false],
+	['10', '10', false],
+	['10-3-20271231', '10.3', true]
+];
+const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+const FUTURE: [id: string, name: string, dated: boolean][] = FAMILIES.flatMap((family) =>
+	VERSIONS.map(([suffix, shown, dated]): [string, string, boolean] => [
+		`claude-${family}-${suffix}`,
+		`${capital(family)} ${shown}`,
+		dated
+	])
+);
+
 describe('modelName', () => {
 	describe('Claude', () => {
 		it.each([
@@ -51,23 +70,12 @@ describe('modelName', () => {
 			['openrouter/anthropic/claude-opus-5-5', 'Opus 5.5']
 		])('unwraps %s -> %s', (id, name) => expect(modelName(id)).toBe(name));
 
-		// Models and versions that don't exist yet: the name comes from the id, never from a list.
-		const families = ['opus', 'sonnet', 'haiku', 'fable', 'nova'];
-		const versions: [string, string][] = [
-			['6', '6'],
-			['6-1', '6.1'],
-			['7-12', '7.12'],
-			['10', '10'],
-			['10-3-20271231', '10.3']
-		];
-		it.each(families.flatMap((f) => versions.map(([v, shown]) => [`claude-${f}-${v}`, f, shown])))(
-			'%s names its own family and version',
-			(id, family, version) =>
-				expect(modelName(id)).toBe(`${family[0].toUpperCase()}${family.slice(1)} ${version}`)
+		it.each(FUTURE)('%s names its own family and version', (id, name) =>
+			expect(modelName(id)).toBe(name)
 		);
 
 		it('never names two different models the same', () => {
-			const ids = families.flatMap((f) => versions.slice(0, 4).map(([v]) => `claude-${f}-${v}`));
+			const ids = FUTURE.filter(([, , dated]) => !dated).map(([id]) => id);
 			expect(new Set(ids.map(modelName)).size).toBe(ids.length);
 		});
 	});
@@ -165,8 +173,33 @@ describe('parseModelId', () => {
 	it('takes the first run of numbers as the version and drops later ones', () =>
 		expect(parseModelId('claude-3-opus-4')).toMatchObject({ version: '3', words: ['opus'] }));
 
-	it('is null when a token is unreadable', () =>
-		expect(parseModelId('claude-opus-5.x')).toBeNull());
+	it('has no version, and so no version position, when the id has no version', () =>
+		expect(parseModelId('claude-haiku')).toEqual({
+			vendor: 'claude',
+			version: '',
+			versionFirst: false,
+			words: ['haiku']
+		}));
+
+	it('ends a version at a lettered piece and keeps words on both sides', () =>
+		expect(parseModelId('gpt-4o-mini-2024-07-18')).toEqual({
+			vendor: 'gpt',
+			version: '4o',
+			versionFirst: true,
+			words: ['mini']
+		}));
+
+	it('drops a date before the version without moving it off the front', () =>
+		expect(parseModelId('gemini-0613-2.5-pro')).toMatchObject({
+			version: '2.5',
+			versionFirst: true,
+			words: ['pro']
+		}));
+
+	it.each(['claude-opus-5.x', 'claude-3-opus-4.5', 'claude-opus_5-4'])(
+		'is null when a token is unreadable: %s',
+		(id) => expect(parseModelId(id)).toBeNull()
+	);
 });
 
 describe('SCHEMES', () => {

@@ -79,6 +79,24 @@ export function loosened(options: ExportOptions): (keyof ExportOptions)[] {
 	);
 }
 
+/** What a file holds once an option is loosened, as the warning names it. */
+const LOOSENED_CONTENT: Record<keyof ExportOptions, string> = {
+	prompt_text: 'the text of your prompts',
+	relative_paths: 'absolute paths',
+	drop_identity: 'account identity',
+	drop_raw: 'raw payloads'
+};
+
+/** What loosened options add to the file: "the text of your prompts, absolute paths". */
+export function loosenedContent(keys: readonly (keyof ExportOptions)[]): string {
+	return keys.map((k) => LOOSENED_CONTENT[k]).join(', ');
+}
+
+/** The options offered for a kind of export. */
+export function offeredOptions(kind: ExportKind): OptionText[] {
+	return OPTIONS.filter((o) => !o.kinds || o.kinds.includes(kind));
+}
+
 /** What is being exported, as a noun phrase ("this session"). */
 export function subject(kind: ExportKind): string {
 	return {
