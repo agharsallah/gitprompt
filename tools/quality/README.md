@@ -102,12 +102,14 @@ report is queued or rebuilding, its card shows its previous result dimmed, label
 | Backend | `backend/performance` | the load benchmark with its budgets (`just perf`), release build | slowest read p95 under load |
 | Backend | `backend/startup` | the release daemon started on an empty folder (fresh install), on the demo spool (a first start: it answers, then drains the spool) and again (relaunch): time until it answers and until the spool is drained, its first reads, shutdown, idle CPU and memory | relaunch until it answers |
 | Backend | `backend/desktop` | **opt-in.** The release desktop app in its performance profile, in its real window and system webview: launch milestones until the data shows (cold: private webview store; relaunch: warm cache), page switches, native window resizes, idle CPU and memory of the app and its webview processes | cold launch until the data shows |
+| Backend | `backend/timing` | `just timing` (tools/timing) over `backend/`: what blocks (sleeps, raw timeouts and timing assertions in tests, clock reads in code) against the ledger of accepted lines, and what is only reported (timers, stopwatches, polling) | time dependencies (a new blocking one fails) |
 | Backend | `backend/complexity` | the architecture test's cognitive complexity of every function (`COMPLEXITY_JSON`), file sizes against `MAX_LINES`, clippy's nesting, argument and length limits, the exemptions (`COMPLEX`, `#[expect]`) | functions, files and blocks over a limit |
 | Web | `web/tests` | `vitest run --coverage` | lines covered |
 | Web | `web/lint` | ESLint, `svelte-check`, Prettier | findings |
 | Web | `web/bundle` | `vite build`, then every file of `web/build` raw and gzipped | JavaScript gzipped |
 | Web | `web/lighthouse` | Lighthouse on key pages of the built dashboard, served by a debug daemon with demo data | performance score |
 | Web | `web/responsiveness` | headless Chrome over the DevTools protocol on the release daemon: first paint and data shown on a cold profile and a relaunch, page switches through the sidebar, resizing, idle main-thread CPU, requests and heap | cold load until the data shows |
+| Web | `web/timing` | the same over `web/` | time dependencies (a new blocking one fails) |
 | Web | `web/complexity` | ESLint's complexity rules (sonarjs cognitive complexity, function and file length at 0; depth, parameters, callbacks at their limits) | functions, files and blocks over a limit |
 
 Both Complexity pages share one builder (`lib/complexity.mjs`) and read their limits from the

@@ -6,7 +6,8 @@
 export type Theme = 'system' | 'light' | 'dark';
 export const THEME_KEY = 'gitprompt-theme';
 
-function stored(): Theme {
+/** The theme pinned in storage, or 'system' when none is (or storage is unavailable). */
+export function storedTheme(): Theme {
 	try {
 		const value = localStorage.getItem(THEME_KEY);
 		return value === 'light' || value === 'dark' ? value : 'system';
@@ -28,7 +29,7 @@ function apply(theme: Theme) {
 }
 
 class ThemeState {
-	#value = $state<Theme>(stored());
+	#value = $state<Theme>(storedTheme());
 
 	get value(): Theme {
 		return this.#value;

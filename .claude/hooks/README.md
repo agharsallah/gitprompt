@@ -24,6 +24,7 @@ approves, never a way to make a check pass.
 | Check | Runs when these change | What |
 |---|---|---|
 | `10-rust` | `backend/**/*.rs`, manifests, `Cargo.lock`, `clippy.toml`, `rustfmt.toml` | `cargo fmt --check`, the architecture rules (file length and cognitive complexity included), clippy (complexity limits included) `-D warnings` and the tests of each changed crate (the workspace when shared config changed), `generated.ts` in sync when a wire type changed |
+| `15-timing` | `backend/crates/**`, `backend/apps/**`, `web/src/**`, `tools/timing/**` | `just timing`: a new blocking time dependency (a sleep, raw timeout or timing assertion in a test; a clock read in code outside the clock seams) that `tools/timing/ledger.json` does not accept fails; timers and stopwatches are only reported |
 | `20-deps` | manifests, `Cargo.lock`, `deny.toml` | `just deps`: cargo-deny (a new duplicate or a stale skip fails) and cargo-machete |
 | `30-web` | `web/**` | Prettier and ESLint on the changed files (complexity limits included), svelte-check, `pnpm test:coverage` (thresholds included) |
 | `40-tooling` | `tools/**`, `.claude/hooks/**`, settings | the scripts parse, shellcheck, `test.sh` (the guards' own tests) |

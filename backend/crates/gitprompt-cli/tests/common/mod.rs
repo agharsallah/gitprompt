@@ -5,12 +5,13 @@
 
 pub mod binary;
 
-use std::net::TcpListener;
+use std::net::{SocketAddr, TcpListener};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use assert_cmd::Command;
 use serde_json::Value;
+use socket2::{Domain, Socket, Type};
 use tempfile::TempDir;
 
 use gitprompt_core::Settings;
@@ -79,9 +80,25 @@ impl Home {
     }
 }
 
-/// A loopback port nothing listens on (bound, then released).
+/// A loopback port free for a daemon to bind (bound, then released). Another process may take it
+/// meanwhile (a busy machine binds ports all the time): a test that needs the port to stay unused
+/// takes a [`closed_port`].
 pub fn free_port() -> u16 {
     TcpListener::bind("127.0.0.1:0").expect("bind").local_addr().expect("addr").port()
+}
+
+/// Sockets holding the [`closed_port`]s until the test binary exits.
+static CLOSED: Mutex<Vec<Socket>> = Mutex::new(Vec::new());
+
+/// A loopback port where nothing listens, for as long as the test binary runs: a socket of ours is
+/// bound to it without listening, so a connection is refused and no other program can take it (a
+/// port only released, like [`free_port`]'s, can be listening by the time the test probes it).
+pub fn closed_port() -> u16 {
+    let socket = Socket::new(Domain::IPV4, Type::STREAM, None).expect("socket");
+    socket.bind(&SocketAddr::from(([127, 0, 0, 1], 0)).into()).expect("bind");
+    let port = socket.local_addr().expect("addr").as_socket().expect("an IP address").port();
+    CLOSED.lock().expect("closed ports").push(socket);
+    port
 }
 
 pub fn stdout(output: &std::process::Output) -> String {

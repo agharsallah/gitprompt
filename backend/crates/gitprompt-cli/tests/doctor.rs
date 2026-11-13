@@ -19,7 +19,7 @@ mod common;
 use std::fs::File;
 use std::io::Write;
 
-use common::{free_port, home, stdout};
+use common::{closed_port, home, stdout};
 use gitprompt_capture::spool::Spool;
 use gitprompt_server::App;
 use predicates::str::contains;
@@ -40,7 +40,7 @@ fn problems(report: &Value) -> Vec<String> {
 #[test]
 fn an_empty_home_is_healthy_and_left_untouched() {
     let home = home();
-    let port = free_port();
+    let port = closed_port();
     home.cmd_on(port, &["doctor"])
         .assert()
         .code(0)
@@ -56,7 +56,7 @@ fn an_empty_home_is_healthy_and_left_untouched() {
 #[test]
 fn the_json_report_of_an_empty_home() {
     let home = home();
-    let port = free_port();
+    let port = closed_port();
     let (report, code) = report(&home, port);
     assert_eq!(code, 0);
     assert_eq!((report["healthy"].clone(), report["problems"].clone()), (json!(true), json!([])));
@@ -86,7 +86,7 @@ fn a_held_lock_whose_pid_is_dead_is_a_problem() {
     lock.try_lock().expect("take the lock");
     write!(lock, "{dead}").expect("write pid");
 
-    let port = free_port();
+    let port = closed_port();
     home.cmd_on(port, &["doctor"])
         .assert()
         .code(1)
@@ -109,13 +109,13 @@ fn a_spec_that_does_not_load_is_a_problem_with_its_fallback() {
     std::fs::create_dir_all(&sources).expect("mkdir");
     std::fs::write(sources.join("claude-code.yaml"), "id: [not valid").expect("write");
 
-    let (report, code) = report(&home, free_port());
+    let (report, code) = report(&home, closed_port());
     assert_eq!(code, 1);
     let found = problems(&report);
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(found[0].starts_with(&format!("Spec {}", sources.join("claude-code.yaml").display())), "{found:?}");
     assert!(report["problems"][0]["fix"].as_str().expect("fix").contains("bundled claude-code spec"), "{report}");
-    home.cmd_on(free_port(), &["doctor"]).assert().code(1).stdout(contains("Problems (1)"));
+    home.cmd_on(closed_port(), &["doctor"]).assert().code(1).stdout(contains("Problems (1)"));
 }
 
 #[test]
@@ -127,17 +127,17 @@ fn a_spool_backlog_is_a_problem_until_delivered() {
     }
     spool.append("codex", &json!({"prompt": "three"})).expect("spool");
 
-    let (report, code) = report(&home, free_port());
+    let (report, code) = report(&home, closed_port());
     assert_eq!(code, 1);
     assert_eq!(report["spool"], json!([{"source": "claude-code", "payloads": 2}, {"source": "codex", "payloads": 1}]));
     assert_eq!(problems(&report), ["3 spooled hook payloads wait for delivery (claude-code 2, codex 1)."]);
-    home.cmd_on(free_port(), &["doctor"]).assert().code(1).stdout(contains("backlog        claude-code 2, codex 1"));
+    home.cmd_on(closed_port(), &["doctor"]).assert().code(1).stdout(contains("backlog        claude-code 2, codex 1"));
 }
 
 #[test]
 fn preferences_that_are_set_are_listed_with_where_they_come_from() {
     let home = home();
-    let output = home.cmd_on(free_port(), &["doctor", "--json"]).env("GITPROMPT_WEEK_START", "sunday").output().expect("run");
+    let output = home.cmd_on(closed_port(), &["doctor", "--json"]).env("GITPROMPT_WEEK_START", "sunday").output().expect("run");
     let report: Value = serde_json::from_slice(&output.stdout).expect("json");
     assert_eq!(report["preferences"], json!([{"key": "week_start", "value": "sunday", "source": "env", "env": "GITPROMPT_WEEK_START"}]));
 }
@@ -168,7 +168,7 @@ async fn hooks_running_a_missing_forwarder_are_a_problem() {
     app.service().connect("claude-code", false).await.expect("connect");
     drop(app);
 
-    let (report, code) = report(&home, free_port());
+    let (report, code) = report(&home, closed_port());
     assert_eq!(code, 1);
     let claude = report["connectors"].as_array().expect("list").iter().find(|c| c["id"] == "claude-code").expect("claude-code").clone();
     assert_eq!(claude["connected"], true);

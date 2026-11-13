@@ -23,7 +23,8 @@ const FILE_MODE: u32 = 0o600;
 /// The lock file a drain holds, in the spool directory (no source has this name: it has a dot).
 pub const DRAIN_LOCK: &str = "drain.lock";
 
-/// Held while one drain runs; released when dropped (or when the process dies: an OS lock).
+/// Held while one drain runs ([`super::Spool::lock_drains`]); released when dropped, or when the
+/// process dies (an OS lock).
 #[derive(Debug)]
 pub(super) struct DrainLock {
     /// Only held: closing it releases the lock.

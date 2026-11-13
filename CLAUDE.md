@@ -51,6 +51,26 @@ Where each kind of change goes: `docs/extending.md`.
   redacting or sleeping, so time-derived values stay asserted. A flaky time value means a missing
   injection: fix that, never widen the snapshot normalization.
 
+## Time dependencies: block the flaky kinds, review the rest
+
+- Code whose result depends on when it runs or how long something takes. **`just timing`**
+  (`tools/timing`) lists every one (`just timing --list`; a Time dependencies page per area in
+  `just quality`). Only the kinds that make tests flaky or code untestable block (CI, `just verify`,
+  the quality gate): a sleep, a raw timeout or an elapsed-time assertion in a test, and a clock read
+  in code outside the files that supply the time (the server's `Clock`, the CLI entry points, the
+  page's shared `clock`). Timers, timeouts and stopwatches in code, and polling with `eventually`,
+  are design choices: reported for review, never blocking.
+- Instead of a blocking one: wait for the event (a signal the code gives, like
+  `Daemon::spool_drained`, a channel, a lock), take time from the injected clock, drive time in
+  tests (`ManualClock`, fake timers), and assert outcomes, never durations (speed belongs in
+  `just perf` and the quality measurements). In code, make an interval or timeout a parameter tests
+  set.
+- `tools/timing/ledger.json` accepts existing blocking lines by their code, so moving one is fine
+  and swapping one is not. `node tools/timing/cli.mjs --update` drops lines that are gone; adding
+  one, or changing the policy (`tools/timing/rules.mjs`), is the user's call (both ask first).
+- What no pattern sees (races, reused ports): **`just flaky`** runs the suites again and again under
+  load and names every test that failed once; it also runs nightly in CI (`flaky.yml`).
+
 ## Guardrails (hooks, `.claude/hooks/README.md`)
 
 - Frozen and generated files are refused (`legacy/python/`, `generated.ts`). Guardrails ask the user

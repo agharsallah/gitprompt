@@ -3,10 +3,11 @@
 //! so a stale file left by a crash never blocks a start).
 //!
 //! [`Daemon::start`] returns once it answers: lock taken, index ensured, first retention pass done,
-//! listener accepting. Then, in the background, the hook payloads spooled while it was down are
-//! drained (a backlog of thousands takes seconds; the dashboard shows what is already stored
-//! meanwhile and fills in live, [`Daemon::spool_drained`]), and retention repeats every
-//! [`DaemonOptions::retention_every`], health samples every [`DaemonOptions::health_every`].
+//! the spool's drain lock held, listener accepting. Then, in the background, the hook payloads
+//! spooled while it was down are drained (a backlog of thousands takes seconds; the dashboard
+//! shows what is already stored meanwhile; a `gitprompt spool drain` waits for it;
+//! [`Daemon::spool_drained`]), and retention repeats every [`DaemonOptions::retention_every`],
+//! health samples every [`DaemonOptions::health_every`].
 
 use std::fs::{File, OpenOptions, TryLockError};
 use std::io::Write;
@@ -18,6 +19,7 @@ use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
+use gitprompt_capture::spool::LockedSpool;
 use gitprompt_store::housekeeping::RETENTION_EVERY;
 
 use gitprompt_core::Settings;
@@ -87,13 +89,14 @@ impl Daemon {
         let app = blocking("start", move || App::new(settings, app).map_err(DaemonError::from)).await?;
         let service = app.service();
         prepare(&service).await?;
+        let spool = lock_spool(&service).await;
         let listener = TcpListener::bind(addr).await.map_err(|source| DaemonError::Bind { addr, source })?;
         let addr = listener.local_addr()?;
         let stop = CancellationToken::new();
         let server = tokio::spawn(app.serve(listener, stop.clone().cancelled_owned()));
         log_running(&service, addr).await;
         let drained = CancellationToken::new();
-        let background = tokio::spawn(background(service.clone(), options, stop.clone(), drained.clone()));
+        let background = tokio::spawn(background(service.clone(), options, stop.clone(), Drain { spool, drained: drained.clone() }));
         Ok(Daemon { addr, service, stop, server, background, drained, lock })
     }
 
@@ -144,23 +147,38 @@ async fn prepare(service: &Service) -> Result<(), DaemonError> {
     Ok(())
 }
 
+/// The spool's drain lock, taken before the daemon answers, so a `gitprompt spool drain` run once
+/// it answers waits for the start-up drain instead of racing it. `None` (logged) when it cannot be
+/// taken: the daemon still starts, and the spool waits for the next one.
+async fn lock_spool(service: &Service) -> Option<LockedSpool> {
+    service.lock_spool().await.inspect_err(|e| tracing::warn!(error = %e, "could not lock the hook spool; it is not drained")).ok()
+}
+
+/// The start-up drain: the spool's lock (if taken) and the token cancelled once it is over.
+struct Drain {
+    spool: Option<LockedSpool>,
+    drained: CancellationToken,
+}
+
 /// The work after the listener is up, until `stop`: deliver the hook spool (then cancel
 /// `drained`), then retention and health samples on their schedules. The health rules' clock
 /// starts after the drain, which is busy by nature.
-async fn background(service: Service, options: DaemonOptions, stop: CancellationToken, drained: CancellationToken) {
-    drain_spool(&service, &stop).await;
-    drained.cancel();
+async fn background(service: Service, options: DaemonOptions, stop: CancellationToken, drain: Drain) {
+    if let Some(spool) = drain.spool {
+        drain_spool(&service, spool, &stop).await;
+    }
+    drain.drained.cancel();
     tokio::join!(
         repeat_retention(service.clone(), options.retention_every, stop.clone()),
         repeat_health(service, options.health_every, options.health_limits, stop),
     );
 }
 
-/// Deliver the hook payloads spooled while the daemon was down; a shutdown stops it between two
-/// payloads (the rest stays queued for the next start).
-async fn drain_spool(service: &Service, stop: &CancellationToken) {
+/// Deliver the hook payloads spooled while the daemon was down, holding its lock until done; a
+/// shutdown stops it between two payloads (the rest stays queued for the next start).
+async fn drain_spool(service: &Service, spool: LockedSpool, stop: &CancellationToken) {
     let stopping = stop.clone();
-    match service.drain_spool(move || stopping.is_cancelled()).await {
+    match service.drain_spool(spool, move || stopping.is_cancelled()).await {
         Ok(delivered) => tracing::info!(delivered, "drained the hook spool"),
         Err(e) => tracing::warn!(error = %e, "could not drain the hook spool"),
     }

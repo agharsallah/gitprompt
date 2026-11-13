@@ -1,0 +1,136 @@
+{
+	"backend/crates/gitprompt-capture/src/connection/mod.rs": {
+		"wall-clock": [
+			"let now = self.now.unwrap_or_else(|| Zoned::now().datetime());"
+		]
+	},
+	"backend/crates/gitprompt-capture/tests/probe.rs": {
+		"sleep": [
+			"std::thread::sleep(Duration::from_millis(5));",
+			"std::thread::sleep(Duration::from_millis(5));"
+		]
+	},
+	"backend/crates/gitprompt-cli/tests/common/binary.rs": {
+		"deadline": [
+			"let status = self.wait_exit(COMMAND_DEADLINE);",
+			"pub fn wait_exit(&mut self, deadline: Duration) -> Option<ExitStatus> {"
+		],
+		"sleep": [
+			"std::thread::sleep(POLL);",
+			"std::thread::sleep(POLL);"
+		]
+	},
+	"backend/crates/gitprompt-cli/tests/common/mod.rs": {
+		"deadline": [
+			".timeout(std::time::Duration::from_secs(20));"
+		]
+	},
+	"backend/crates/gitprompt-cli/tests/e2e.rs": {
+		"deadline": [
+			"let status = served.wait_exit(Duration::from_secs(2));"
+		],
+		"elapsed-assert": [
+			"assert!(started.elapsed() < Duration::from_secs(5), \"the refusal took {:?}\", started.elapsed());"
+		]
+	},
+	"backend/crates/gitprompt-cli/tests/hook.rs": {
+		"elapsed-assert": [
+			"assert!(started.elapsed() < Duration::from_secs(10), \"took {:?}\", started.elapsed());"
+		]
+	},
+	"backend/crates/gitprompt-insights/src/zone.rs": {
+		"wall-clock": [
+			"let now = Timestamp::now();"
+		]
+	},
+	"backend/crates/gitprompt-server/tests/bus.rs": {
+		"deadline": [
+			"assert_eq!(tokio::time::timeout(within, a.next()).await.expect(\"a\"), Some(notice(1)));",
+			"assert_eq!(tokio::time::timeout(within, b.next()).await.expect(\"b\"), Some(notice(1)));"
+		]
+	},
+	"backend/crates/gitprompt-server/tests/contention.rs": {
+		"deadline": [
+			"let _ = self.release.lock().unwrap().recv_timeout(Duration::from_secs(10));",
+			"let response = tokio::time::timeout(Duration::from_secs(3), stuck.get(path).send())",
+			"tokio::task::spawn_blocking(move || entered.recv_timeout(Duration::from_secs(5)).expect(\"the capture asks git\")).await.unwrap();"
+		]
+	},
+	"backend/crates/gitprompt-server/tests/daemon.rs": {
+		"sleep": [
+			"tokio::time::sleep(Duration::from_millis(10)).await; // polling a condition, bounded by the deadline"
+		]
+	},
+	"backend/crates/gitprompt-server/tests/ingest.rs": {
+		"deadline": [
+			"tokio::time::timeout(Duration::from_secs(5), self.read_notice()).await.expect(\"a notice within 5 s\")"
+		]
+	},
+	"backend/crates/gitprompt-server/tests/sources.rs": {
+		"deadline": [
+			"state = self.arrived.wait_timeout(state, left).unwrap().0;"
+		]
+	},
+	"backend/crates/gitprompt-store/src/db/gate.rs": {
+		"sleep": [
+			"thread::sleep(Duration::from_millis(50));",
+			"thread::sleep(SLOW_HOLD + Duration::from_millis(20));",
+			"thread::sleep(SLOW_WAIT + Duration::from_millis(50));"
+		]
+	},
+	"backend/crates/gitprompt-tauri/tests/plugin.rs": {
+		"deadline": [
+			"let payload: Value = serde_json::from_str(&rx.recv_timeout(Duration::from_secs(5)).unwrap()).unwrap();"
+		]
+	},
+	"web/src/lib/api/live.svelte.ts": {
+		"wall-clock": [
+			"this.lastNotice = Date.now();"
+		]
+	},
+	"web/src/lib/async/resource.svelte.test.ts": {
+		"sleep": [
+			"const settle = () => new Promise<void>((resolve) => setTimeout(resolve));"
+		]
+	},
+	"web/src/lib/insights/filters.ts": {
+		"wall-clock": [
+			"const { since: _, ...query } = toQuery(filters, Date.now());"
+		]
+	},
+	"web/src/lib/insights/overview.ts": {
+		"wall-clock": [
+			"const now = Date.now();"
+		]
+	},
+	"web/src/lib/layout/LiveStatus.svelte": {
+		"wall-clock": [
+			"return live.subscribe(() => (lastCapture = new Date().toISOString()));"
+		]
+	},
+	"web/src/lib/layout/updates.svelte.ts": {
+		"wall-clock": [
+			".then((sources) => (this.list = pendingUpdates(sources, Date.now())))"
+		]
+	},
+	"web/src/lib/layout/updates.test.ts": {
+		"sleep": [
+			"const settle = () => new Promise((resolve) => setTimeout(resolve, 0));"
+		]
+	},
+	"web/src/routes/projects/+page.ts": {
+		"wall-clock": [
+			"const now = Date.now();"
+		]
+	},
+	"web/src/routes/search/+page.ts": {
+		"wall-clock": [
+			"const base = { ...toQuery(filters, Date.now()), tag };"
+		]
+	},
+	"web/src/routes/sessions/+page.ts": {
+		"wall-clock": [
+			"const base = { ...toQuery(filters, Date.now()), repo: project };"
+		]
+	}
+}

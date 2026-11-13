@@ -14,6 +14,10 @@ protection() {
 		echo "deny|Generated from the Rust wire types: change the Rust type and run \`just types\` (CLAUDE.md)." ;;
 	backend/crates/gitprompt-core/tests/architecture/rules.rs)
 		echo 'ask|The architecture map (layers, owned infrastructure crates, pure crates). Approve only a design change you agreed to, not a way around a failing check.' ;;
+	tools/timing/ledger.json)
+		echo "ask|The ledger of accepted blocking time dependencies (sleeps, raw timeouts and timing assertions in tests, clock reads in code). Approve a new line only for one you agreed to keep; \`node tools/timing/cli.mjs --update\` drops gone lines by itself." ;;
+	tools/timing/rules.mjs)
+		echo 'ask|The time-dependency policy: what blocks, what is only reported, and which files supply the time (clock seams). Approve only a policy change you agreed to, not a way around a failing check.' ;;
 	backend/deny.toml)
 		echo 'ask|The dependency policy (advisories, licenses, duplicate skips). A new skip or allowance is a decision: approve only with a reason naming the upstream crate.' ;;
 	backend/clippy.toml | backend/rustfmt.toml | web/eslint.config.js | web/prettier.config.js | web/.prettierignore | web/tsconfig.json)

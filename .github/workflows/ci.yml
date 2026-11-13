@@ -222,9 +222,22 @@ jobs:
 
   # The single required check. Fails when any job failed or was cancelled; skipped jobs (nothing
   # relevant changed) pass. legacy-python is left out on purpose: it never blocks a merge.
+  # Time dependencies (sleeps, deadlines, clock reads, timers) in the backend and the dashboard: a
+  # new one the ledger (tools/timing/ledger.json) does not accept fails. Node only, no install;
+  # always runs, it takes seconds. Same as `just timing`.
+  timing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - run: node tools/timing/cli.mjs
+
   ci:
     if: always()
-    needs: [changes, lint, test, perf, dependencies, web]
+    needs: [changes, lint, test, perf, dependencies, web, timing]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

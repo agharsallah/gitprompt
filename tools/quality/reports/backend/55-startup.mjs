@@ -6,7 +6,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { idleUsage, spoolDrained, startDaemon, usage } from '../../lib/process.mjs';
+import { idleUsage, startDaemon, usage } from '../../lib/process.mjs';
 import { demoHome, performanceEnv, releaseDaemonBinary, tempFolder, webBuild } from '../../lib/shared.mjs';
 import { bars, count, kpis, mb, metric, ms, note, table, toneBelow } from '../../lib/spec.mjs';
 import { repeat, summary } from '../../lib/stats.mjs';
@@ -81,7 +81,7 @@ async function startAndStop(start, home, { idle = false, drain = false } = {}) {
 	let stopMs = null;
 	try {
 		const reads = await firstReads(daemon.url);
-		const drainedMs = drain ? await spoolDrained(daemon.url).then(() => performance.now() - spawned) : null;
+		const drainedMs = drain ? await daemon.drained().then(() => performance.now() - spawned) : null;
 		const rss = (await usage(daemon.pid))?.rssBytes ?? null;
 		const quiet = idle ? await idleAfterSettling(daemon.pid) : null;
 		const stopping = performance.now();

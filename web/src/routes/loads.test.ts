@@ -37,11 +37,13 @@ const rangeOf = (data: { range?: { id: string }; filters?: { range?: { id: strin
 	data.range?.id ?? data.filters?.range?.id;
 
 let storage: ReturnType<typeof memoryStorage>;
-// Importing a page compiles its whole module graph: once, before the tests time anything.
+// Importing a page compiles its whole module graph: once, here, so no test's own timeout pays for
+// it. No deadline (0): compiling takes what the machine takes (minutes with a cold cache under
+// load), and any limit here only fails on a slow machine; a hang is the CI job's timeout.
 beforeAll(async () => {
 	vi.stubGlobal('localStorage', memoryStorage());
 	await Promise.all(PAGES.map(([, module]) => module()));
-}, 120_000);
+}, 0);
 beforeEach(() => {
 	storage = memoryStorage();
 	vi.stubGlobal('localStorage', storage);

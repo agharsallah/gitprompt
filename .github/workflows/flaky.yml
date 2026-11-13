@@ -1,0 +1,60 @@
+name: Flaky tests
+
+# Nightly, and by hand: the Rust and dashboard test suites run again and again, several at once so
+# they load the runner, and every test that failed even once is named (tools/timing/flaky.mjs, the
+# same as `just flaky`). The static check (`just timing`, in CI) catches the obvious time
+# dependencies; this catches what no pattern sees: races, reused ports, ordering. It never blocks a
+# merge: a failure here is a flaky test to fix, with the logs attached.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs of each suite
+        default: '6'
+      jobs:
+        description: Runs at once
+        default: '3'
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_PROFILE_TEST_DEBUG: line-tables-only
+
+jobs:
+  flaky:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 11
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm --dir web install --frozen-lockfile
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+      - uses: ./.github/actions/tauri-linux-deps
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: backend -> target
+          save-if: false
+      - name: Run the suites repeatedly under load
+        run: node tools/timing/flaky.mjs --web --runs "${{ inputs.runs || '6' }}" --jobs "${{ inputs.jobs || '3' }}" -- --workspace --locked
+      - name: Keep the logs of failed runs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flaky-logs
+          path: target/flaky/

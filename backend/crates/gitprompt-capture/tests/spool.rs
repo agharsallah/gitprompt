@@ -304,7 +304,9 @@ fn a_drain_stopped_midway_has_marked_the_turns_of_what_it_stored_for_the_index()
     spool.append("claude-code", &prompt(2)).unwrap();
     let stored = || all_prompts(&store).len() + all_events(&store).len();
 
-    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| stored() == 2).unwrap();
+    let (drained, _) =
+        drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &Preferences::default(), &blank(), &|| stored() == 2)
+            .unwrap();
 
     assert_eq!(drained.get("claude-code"), Some(&Drained { ingested: 2, corrupted: 0, remaining: 1 }));
     assert_eq!(store.index().take_marked().unwrap(), vec!["p1".to_string()], "marked with the event, not after the whole drain");
@@ -319,7 +321,8 @@ fn start_up_drains_every_queue_into_the_store_in_order() {
     spool.append("claude-code", &json!({"hook_event_name": "Stop", "session_id": "s1", "prompt_id": "p1"})).unwrap();
     spool.append("claude-code", &prompt(2)).unwrap();
 
-    let (drained, captured) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
+    let (drained, captured) =
+        drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(drained.get("claude-code"), Some(&Drained { ingested: 3, corrupted: 0, remaining: 0 }));
     assert_eq!((captured.prompts, captured.events), (2, 1));
@@ -339,7 +342,7 @@ fn drained_payloads_are_stored_as_received_when_they_were_spooled() {
         .append_at("claude-code", &json!({"hook_event_name": "Stop", "session_id": "s1", "prompt_id": "p1"}), at("2026-11-07T10:05:00Z"))
         .unwrap();
 
-    drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
+    drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(all_prompts(&store)[0].received_at, "2026-11-07T10:00:00.000000+00:00");
     assert_eq!(all_events(&store)[0].received_at, "2026-11-07T10:05:00.000000+00:00");
@@ -352,7 +355,8 @@ fn a_bare_payload_line_of_an_older_forwarder_is_stored_as_received_at_drain_time
     let store = store().with_clock(Arc::new(|| "2026-11-08T09:00:00Z".parse().unwrap()));
     write_text(&spool.queue_file("claude-code").unwrap(), &format!("{}\n", prompt(1)));
 
-    let (drained, captured) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
+    let (drained, captured) =
+        drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!((drained["claude-code"].ingested, captured.prompts), (1, 1));
     assert_eq!(all_prompts(&store)[0].received_at, "2026-11-08T09:00:00.000000+00:00");
@@ -366,7 +370,7 @@ fn a_prompt_both_delivered_and_spooled_is_stored_once() {
     ingest(&env.spec("claude-code"), &store, &prompt(1));
     spool.append("claude-code", &prompt(1)).unwrap();
 
-    drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
+    drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(all_prompts(&store).len(), 1);
 }
@@ -379,7 +383,7 @@ fn a_queue_of_a_turned_off_source_is_drained_and_discarded() {
     spool.append("claude-code", &prompt(1)).unwrap();
     let prefs = Preferences { disabled_sources: vec!["claude-code".into()], ..Preferences::default() };
 
-    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store, &prefs, &blank(), &|| false).unwrap();
+    let (drained, _) = drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &prefs, &blank(), &|| false).unwrap();
 
     assert_eq!(drained["claude-code"].ingested, 1);
     assert_eq!(all_prompts(&store).len(), 0);
@@ -392,7 +396,8 @@ fn a_queue_of_a_source_without_a_spec_is_left_alone() {
     let spool = spool(&env);
     spool.append("retired-tool", &prompt(1)).unwrap();
 
-    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store(), &Preferences::default(), &blank(), &|| false).unwrap();
+    let (drained, _) =
+        drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store(), &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(drained.get("retired-tool"), None);
     assert_eq!(spool.pending("retired-tool").unwrap().len(), 1);
@@ -412,7 +417,7 @@ fn spooled_payloads_get_the_same_privacy_treatment_as_live_ones() {
         .unwrap();
     let prefs = Preferences { hide_secrets_on_ingest: true, ..Preferences::default() };
 
-    drain_into_pipeline(&spool, &env.specs(), &store, &prefs, &blank(), &|| false).unwrap();
+    drain_into_pipeline(&spool.lock_drains().unwrap(), &env.specs(), &store, &prefs, &blank(), &|| false).unwrap();
 
     let [row] = all_prompts(&store).try_into().unwrap();
     assert_eq!(row.prompt.as_deref(), Some("use [hidden AWS access key]"));

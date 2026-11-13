@@ -33,6 +33,8 @@ expect deny guard.sh "$(edit legacy/python/gitprompt/cli.py)" 'legacy Python is 
 expect deny guard.sh "$(edit web/src/lib/api/generated.ts)" 'generated types'
 expect ask guard.sh "$(edit backend/crates/gitprompt-core/tests/architecture/rules.rs)" 'architecture map'
 expect ask guard.sh "$(edit backend/deny.toml)" 'dependency policy'
+expect ask guard.sh "$(edit tools/timing/ledger.json)" 'time dependency ledger'
+expect ask guard.sh "$(edit tools/timing/rules.mjs)" 'time dependency policy'
 expect ask guard.sh "$(edit web/eslint.config.js)" 'eslint config'
 expect ask guard.sh "$(edit web/vite.config.ts)" 'coverage thresholds'
 expect ask guard.sh "$(edit backend/crates/gitprompt-server/tests/snapshots/api__prompts.snap)" 'API snapshots'

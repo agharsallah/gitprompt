@@ -64,6 +64,8 @@ proptest = "1"
 assert_cmd = "2"
 insta = { version = "1", features = ["json", "redactions"] }
 predicates = "3"
+# a loopback port held closed for a test (bound, never listening); already in the lock file (tokio)
+socket2 = "0.6"
 # the architecture test reads the sources as syntax trees (complexity); already in the lock file
 syn = { version = "2", default-features = false, features = ["full", "parsing", "visit", "printing"] }
 proc-macro2 = { version = "1", features = ["span-locations"] }

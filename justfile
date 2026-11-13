@@ -90,9 +90,17 @@ install: target-guard
 
 # --- checks ---
 
-# Everything CI runs: format, lint, dependency checks, Rust tests (unit, integration, end-to-end), web checks, tests and build
-verify: lint deps test tools-test
+# Everything CI runs: format, lint, dependency checks, time dependencies, Rust tests (unit, integration, end-to-end), web checks, tests and build
+verify: lint deps timing test tools-test
     pnpm --dir web build
+
+# Time dependencies: fails on a new sleep, raw timeout or timing assertion in a test, or clock read in code, that tools/timing/ledger.json does not accept; timers and stopwatches are only reported. `--list` lists them all
+timing *flags:
+    node tools/timing/cli.mjs {{ flags }}
+
+# Flaky tests: the Rust suites run 8 times, 4 at once (load), and every test that failed even once is named. `--runs N --jobs N --web`, `-- <cargo test args>`
+flaky *args:
+    node tools/timing/flaky.mjs {{ args }}
 
 # The quality dashboard's own tests (tools/quality/test): scheduling, live output parsing
 tools-test:

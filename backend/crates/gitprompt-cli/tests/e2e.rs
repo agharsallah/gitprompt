@@ -75,7 +75,8 @@ fn serve_answers_healthz_and_a_second_serve_on_the_same_home_fails_fast_naming_t
     let home = home();
     let served = home.serve();
     assert_eq!(served.json("/healthz"), json!({"ok": true}));
-    served.stdout_with(&format!("127.0.0.1:{}", served.port)); // serve says where it runs
+    let (stdout, _) = served.output(); // complete: `serve()` returns once it printed
+    assert!(stdout.contains(&format!("127.0.0.1:{}", served.port)), "serve should say where it runs: {stdout:?}");
 
     let started = Instant::now();
     let second = home.run(free_port(), &["serve"], b"");
@@ -470,10 +471,9 @@ fn a_hook_sent_while_the_daemon_is_stopped_is_spooled_silently_and_stored_at_its
     assert_eq!(queued.last().map(String::as_str), Some("While stopped"), "the stopped daemon's payload is spooled: {spooled}");
     assert!(queued.iter().all(|p| p == "While stopped" || p == "Before the stop"), "only this test's payloads: {spooled}");
 
-    let second = home.serve(); // answers at once and drains the spool behind
-    common::binary::eventually(COMMAND_DEADLINE, "the next serve drains the spool", || {
-        (second.json("/api/status")["spool"] == json!([])).then_some(())
-    });
+    let second = home.serve(); // answers at once and drains the spool behind, holding its lock
+    // `spool drain` waits on that lock until the start-up drain is over, and finds nothing left.
+    home.cmd_on(second.port, &["spool", "drain"]).assert().success().stdout("Delivered 0 spooled payloads, 0 left.\n");
     let prompts = second.json("/api/prompts?session=offline");
     let texts: Vec<&str> = prompts.as_array().expect("list").iter().filter_map(|p| p["prompt"].as_str()).collect();
     assert_eq!(texts, ["While stopped", "Before the stop"]);

@@ -35,19 +35,17 @@ export async function ready(url, { timeoutMs = 60_000, intervalMs = 300 } = {}) 
 
 /**
  * `binary serve` on a free loopback port with `home` as its data folder and `dashboard` as the
- * page it serves. Resolves { url, pid, startMs, stop() } once /api/status answers; startMs is the
- * time from spawn to that answer (polled every 10 ms). stop() sends Ctrl-C and resolves on exit.
- * timeoutMs: how long a start may take (a busy machine and a debug build make it long). A spool is
- * drained after it answers: wait for spoolDrained when the data must be complete.
+ * page it serves. Resolves { url, pid, startMs, stop(), drained() } once /api/status answers;
+ * startMs is the time from spawn to that answer (polled every 10 ms). stop() sends Ctrl-C and
+ * resolves on exit. timeoutMs: how long a start may take (a busy machine and a debug build make it
+ * long). A spool is drained after it answers: await drained() when the data must be complete.
  */
 export async function startDaemon(binary, { home, dashboard, env = {}, timeoutMs = 60_000 }) {
 	const port = await freePort();
 	const url = `http://127.0.0.1:${port}`;
 	const started = performance.now();
-	const child = spawn(binary, ['serve'], {
-		env: { ...process.env, ...env, GITPROMPT_HOME: home, GITPROMPT_PORT: String(port), GITPROMPT_DASHBOARD: dashboard },
-		stdio: 'ignore'
-	});
+	const daemonEnv = { ...process.env, ...env, GITPROMPT_HOME: home, GITPROMPT_PORT: String(port), GITPROMPT_DASHBOARD: dashboard };
+	const child = spawn(binary, ['serve'], { env: daemonEnv, stdio: 'ignore' });
 	const exited = new Promise((resolve) => child.once('exit', resolve));
 	const stop = () => {
 		if (child.exitCode === null && child.signalCode === null) child.kill('SIGINT');
@@ -59,21 +57,24 @@ export async function startDaemon(binary, { home, dashboard, env = {}, timeoutMs
 		await stop();
 		throw error;
 	}
-	return { url, pid: child.pid, startMs: performance.now() - started, stop };
+	return { url, pid: child.pid, startMs: performance.now() - started, stop, drained: () => spoolDrained(binary, daemonEnv) };
 }
 
 /**
- * Resolves once the daemon at `url` has no spooled hook payload left (`spool` of /api/status is
- * empty): it answers first and drains the spool behind. Rejects after timeoutMs.
+ * Resolves once the start-up spool drain of the daemon `env` points at is over: `binary spool
+ * drain` waits on the spool's drain lock, which the daemon takes before it answers and keeps until
+ * its drain is done, then finds nothing left. An event, not a poll.
  */
-export async function spoolDrained(url, { timeoutMs = 300_000, intervalMs = 50 } = {}) {
-	const until = Date.now() + timeoutMs;
-	while (Date.now() < until) {
-		const status = await fetch(`${url}/api/status`).then((response) => response.json());
-		if (status.spool.length === 0) return;
-		await new Promise((resolve) => setTimeout(resolve, intervalMs));
-	}
-	throw new Error(`the daemon at ${url} still had spooled payloads after ${timeoutMs / 1000} s`);
+function spoolDrained(binary, env) {
+	return new Promise((resolve, reject) => {
+		const run = spawn(binary, ['spool', 'drain'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+		let output = '';
+		const keep = (chunk) => (output += chunk);
+		run.stdout.on('data', keep);
+		run.stderr.on('data', keep);
+		run.once('error', reject);
+		run.once('exit', (code) => (code === 0 ? resolve() : reject(new Error(`\`gitprompt spool drain\` failed (${code}): ${output.trim()}`))));
+	});
 }
 
 /**

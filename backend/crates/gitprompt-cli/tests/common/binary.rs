@@ -22,6 +22,8 @@ use super::{Home, free_port};
 pub const START_DEADLINE: Duration = Duration::from_secs(20);
 /// How long one command (a hook, a refused `serve`) may run.
 pub const COMMAND_DEADLINE: Duration = Duration::from_secs(10);
+/// What `gitprompt serve` prints once it is up (commands.rs).
+const RUNNING: &str = "GitPrompt is running on";
 /// The pause between two polls of a condition.
 const POLL: Duration = Duration::from_millis(20);
 /// Socket timeout of one HTTP exchange.
@@ -168,12 +170,6 @@ impl Served {
         (read(&self.out), read(&self.err))
     }
 
-    /// Its stdout once it contains `text`. `/healthz` answers as soon as the listener runs, which
-    /// can be before `serve` prints anything: wait for the line itself, never for a while.
-    pub fn stdout_with(&self, text: &str) -> String {
-        eventually(COMMAND_DEADLINE, &format!("serve to print {text:?}"), || Some(self.output().0).filter(|out| out.contains(text)))
-    }
-
     /// Polls `/healthz` until it answers 200; fails at once (with what it printed) if the daemon
     /// exits first.
     pub fn wait_healthy(&mut self) {
@@ -182,17 +178,19 @@ impl Served {
         }
     }
 
-    /// Polls `/healthz` until it answers 200 (`Ok`) or the daemon exits (`Err`, with its output);
-    /// fails the test after [`START_DEADLINE`].
+    /// Polls until `/healthz` answers 200 and `serve` printed that it runs (`Ok`), or the daemon
+    /// exits (`Err`, with its output); fails the test after [`START_DEADLINE`]. Both, because the
+    /// daemon answers before `serve` gets to print: started means `serve` is past its start-up.
     fn healthy(&mut self) -> Result<(), Exited> {
-        eventually(START_DEADLINE, "/healthz to answer 200", || {
+        eventually(START_DEADLINE, "/healthz to answer 200 and serve to say it runs", || {
             let child = self.child.as_mut().expect("running");
             if let Some(status) = child.try_wait().expect("try_wait") {
                 self.child = None;
                 let (stdout, stderr) = self.output();
                 return Some(Err(Exited { status, stdout, stderr }));
             }
-            request(self.port, "GET", "/healthz", &[], b"").ok().filter(|r| r.status == 200).map(|_| Ok(()))
+            let printed = self.output().0.contains(RUNNING);
+            (printed && request(self.port, "GET", "/healthz", &[], b"").is_ok_and(|r| r.status == 200)).then_some(Ok(()))
         })
     }
 

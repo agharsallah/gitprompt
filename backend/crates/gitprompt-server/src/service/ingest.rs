@@ -5,7 +5,7 @@ use std::path::Path;
 
 use gitprompt_capture::pipeline::{Arrival, CaptureOptions, Captured, GitProbe, Observer, capture_then, mark_turns};
 use gitprompt_capture::probe::VersionProbe;
-use gitprompt_capture::spool::{Spool, drain_into_pipeline};
+use gitprompt_capture::spool::{LockedSpool, Spool, drain_into_pipeline};
 use gitprompt_core::spec::{Format, Spec};
 use gitprompt_core::{Error, Json, JsonMap};
 
@@ -86,14 +86,20 @@ impl Service {
         .await
     }
 
+    /// The spool's drain lock ([`Spool::lock_drains`]): waits for a drain another process runs,
+    /// then keeps every other one waiting until it is dropped.
+    pub async fn lock_spool(&self) -> ApiResult<LockedSpool> {
+        self.run(|inner| Ok(Spool::of(&inner.settings).lock_drains()?)).await
+    }
+
     /// Ingest every payload the hook forwarder spooled while the daemon was down, oldest first,
     /// removing each one delivered and marking its turns for the index as it is stored, until
-    /// `stop` says so (checked between payloads; the rest stays queued). Announces what was stored
-    /// once at the end. Returns how many were delivered.
-    pub async fn drain_spool(&self, stop: impl Fn() -> bool + Send + 'static) -> ApiResult<u64> {
+    /// `stop` says so (checked between payloads; the rest stays queued). Holds the spool's lock
+    /// ([`Self::lock_spool`]) until it is done. Announces what was stored once at the end. Returns
+    /// how many were delivered.
+    pub async fn drain_spool(&self, spool: LockedSpool, stop: impl Fn() -> bool + Send + 'static) -> ApiResult<u64> {
         self.run(move |inner| {
             let set = inner.spec_set();
-            let spool = Spool::of(&inner.settings);
             let preferences = inner.preferences.effective();
             let (report, captured) =
                 inner.observed(|observer| drain_into_pipeline(&spool, &set.specs, &inner.store, &preferences, observer, &stop))?;

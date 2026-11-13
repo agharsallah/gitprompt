@@ -247,12 +247,23 @@ impl Spool {
         ingest: &mut dyn FnMut(Spooled) -> Result<()>,
         stop: &dyn Fn() -> bool,
     ) -> Result<Drained> {
+        if !self.dir.exists() {
+            return Ok(Drained::default());
+        }
+        self.lock_drains()?.drain(source, ingest, stop)
+    }
+
+    /// Wait for any other drain of this spool (in any process) to finish, then hold off every
+    /// other one until the returned spool is dropped. The daemon takes it before it answers, so a
+    /// `gitprompt spool drain` run once it answers waits for its start-up drain.
+    pub fn lock_drains(&self) -> Result<LockedSpool> {
+        Ok(LockedSpool { _lock: DrainLock::take(&self.dir)?, spool: self.clone() })
+    }
+
+    /// [`Self::drain_spooled_until`], the drain lock held ([`LockedSpool::drain`]).
+    fn drain_held(&self, source: &str, ingest: &mut dyn FnMut(Spooled) -> Result<()>, stop: &dyn Fn() -> bool) -> Result<Drained> {
         let (queue, draining) = (self.queue_file(source)?, self.draining_file(source)?);
         let mut drained = Drained::default();
-        if !self.dir.exists() {
-            return Ok(drained);
-        }
-        let _drain = DrainLock::take(&self.dir)?;
         // At most two passes (what an interrupted drain left, or the queue, then the queue as it is
         // after that), so hooks spooling while the daemon starts can't keep the drain going forever;
         // anything appended later waits for the next start.
@@ -317,6 +328,24 @@ impl Spool {
     }
 }
 
+/// A spool whose drain lock this process holds ([`Spool::lock_drains`]), until it is dropped.
+#[derive(Debug)]
+pub struct LockedSpool {
+    spool: Spool,
+    _lock: DrainLock,
+}
+
+impl LockedSpool {
+    pub fn spool(&self) -> &Spool {
+        &self.spool
+    }
+
+    /// [`Spool::drain_spooled_until`] under the lock this holds.
+    pub fn drain(&self, source: &str, ingest: &mut dyn FnMut(Spooled) -> Result<()>, stop: &dyn Fn() -> bool) -> Result<Drained> {
+        self.spool.drain_held(source, ingest, stop)
+    }
+}
+
 /// Drain every queue into the capture pipeline at start-up (until `stop` says so), with the options each source has under
 /// `preferences` (a turned-off source is drained and discarded, as it would have been live). Each
 /// payload is stored as received at the time it was spooled. Sources without a spec are skipped and
@@ -326,7 +355,7 @@ impl Spool {
 /// it stops or crashes midway) is indexed. Returns per source what was drained, and what the
 /// pipeline stored overall.
 pub fn drain_into_pipeline(
-    spool: &Spool,
+    locked: &LockedSpool,
     specs: &BTreeMap<String, Arc<Spec>>,
     store: &Store,
     preferences: &Preferences,
@@ -335,7 +364,7 @@ pub fn drain_into_pipeline(
 ) -> Result<(BTreeMap<String, Drained>, Captured)> {
     let mut report = BTreeMap::new();
     let mut total = Captured::default();
-    for (source, spec) in drainable(spool, specs)? {
+    for (source, spec) in drainable(locked.spool(), specs)? {
         if stop() {
             break;
         }
@@ -345,7 +374,7 @@ pub fn drain_into_pipeline(
             total.absorb(capture_then(spec, store, arrival, options, observer, mark_turns)?);
             Ok(())
         };
-        match spool.drain_spooled_until(&source, &mut ingest, stop) {
+        match locked.drain(&source, &mut ingest, stop) {
             Ok(drained) => {
                 report.insert(source, drained);
             }
