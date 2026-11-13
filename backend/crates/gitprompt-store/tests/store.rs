@@ -212,8 +212,20 @@ fn the_latest_turn_is_the_prompt_id_of_the_newest_prompt_of_that_source_and_sess
     prompt("other-session").source("cursor").session("s2").insert_unindexed(&store);
     prompt("other-source").source("codex").session("s1").insert_unindexed(&store);
 
-    assert_eq!(store.latest_turn("cursor", "s1").unwrap().as_deref(), Some("new"));
-    assert_eq!(store.latest_turn("cursor", "nope").unwrap(), None);
+    assert_eq!(store.latest_turn("cursor", "s1", None).unwrap().as_deref(), Some("new"));
+    assert_eq!(store.latest_turn("cursor", "nope", None).unwrap(), None);
+}
+
+#[test]
+fn the_latest_turn_goes_by_when_prompts_were_received_and_can_stop_at_a_time() {
+    let store = store();
+    // Stored live first, then an older one drained from the spool: received order, not row order.
+    prompt("live").source("cursor").session("s1").at("2026-11-07T10:05:00.000000+00:00").insert_unindexed(&store);
+    prompt("spooled").source("cursor").session("s1").at("2026-11-07T10:00:00.000000+00:00").insert_unindexed(&store);
+
+    assert_eq!(store.latest_turn("cursor", "s1", None).unwrap().as_deref(), Some("live"));
+    assert_eq!(store.latest_turn("cursor", "s1", Some("2026-11-07T10:01:00.000000+00:00")).unwrap().as_deref(), Some("spooled"));
+    assert_eq!(store.latest_turn("cursor", "s1", Some("2026-11-07T09:00:00.000000+00:00")).unwrap(), None);
 }
 
 #[test]

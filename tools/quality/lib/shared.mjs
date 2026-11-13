@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { profileVars } from '../../env.mjs';
 import { installed } from './context.mjs';
 import { cargoActivity } from './output.mjs';
-import { startDaemon } from './process.mjs';
+import { spoolDrained, startDaemon } from './process.mjs';
 
 /**
  * web/.svelte-kit (the types and tsconfig every web tool reads), written once before any of them
@@ -83,8 +83,12 @@ export function drainedDemo(ctx) {
 	return ctx.once('the drained demo data', async () => {
 		const [binary, home] = await Promise.all([releaseDaemonBinary(ctx), demoHome(ctx)]);
 		ctx.step('draining the demo spool into a database (release daemon)');
-		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build'), env: performanceEnv(), timeoutMs: 300_000 });
-		await daemon.stop();
+		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build'), env: performanceEnv() });
+		try {
+			await spoolDrained(daemon.url);
+		} finally {
+			await daemon.stop();
+		}
 		return home;
 	});
 }
@@ -116,11 +120,12 @@ export function demoDaemon(ctx) {
 		await webBuild(ctx);
 		const binary = await daemonBinary(ctx);
 		const home = await demoHome(ctx);
-		ctx.step('starting a demo daemon (it first drains the demo spool: a minute or more on a busy machine)');
-		// Setup, not a measurement: a debug build draining thousands of payloads while other reports
-		// build can take well over the default minute, as drainedDemo allows for.
-		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build'), timeoutMs: 300_000 });
+		ctx.step('starting a demo daemon and waiting for it to drain the demo spool');
+		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build') });
 		ctx.cleanup(daemon.stop);
+		// Pages measured on half the data would measure a moving target. Setup, not a measurement: a
+		// debug build draining thousands of payloads while other reports build takes a while.
+		await spoolDrained(daemon.url);
 		return { url: daemon.url };
 	});
 }

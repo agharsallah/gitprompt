@@ -4,7 +4,7 @@
 import { join } from 'node:path';
 
 import { cargoActivity } from '../../lib/output.mjs';
-import { checks, coverageCell, embed, kpis, pct, table, tone, toneBelow } from '../../lib/spec.mjs';
+import { checks, coverageCell, embed, kpis, metric, pct, table, tone, toneBelow } from '../../lib/spec.mjs';
 
 export default {
 	title: 'Architecture',
@@ -20,6 +20,7 @@ export default {
 		const scoreTone = findings ? 'bad' : tone(report.score.total, 85, 70);
 		return {
 			headline: { value: report.score.total, label: 'modularity / 100', tone: scoreTone },
+			trend: [metric('score', 'Modularity score', report.score.total, 'score', 'higher'), metric('findings', 'Rule findings', findings, 'count', 'lower'), metric('propagation', 'Propagation cost', 1 - part('Module coupling'), 'share', 'lower'), metric('big_files', 'Code in files over 400 lines', 1 - part('File size'), 'share', 'lower')],
 			summary: `${findings} rule findings · propagation cost ${pct(1 - part('Module coupling'))} over ${modules} modules in ${report.crates.length} crates`,
 			sections: [
 				kpis([

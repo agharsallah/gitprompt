@@ -4,7 +4,7 @@
 import { join } from 'node:path';
 
 import { demoDaemon } from '../../lib/shared.mjs';
-import { embed, kpis, links, ms, note, table, tone, toneBelow } from '../../lib/spec.mjs';
+import { embed, kpis, links, metric, ms, note, table, tone, toneBelow } from '../../lib/spec.mjs';
 
 const LIGHTHOUSE = 'lighthouse@12.8.2';
 const PAGES = [
@@ -58,13 +58,14 @@ async function audit(ctx, url) {
 }
 
 const score = (report, key) => Math.round((report.categories[key]?.score ?? 0) * 100);
-const metric = (report, id) => report.audits[id]?.numericValue ?? null;
+const auditValue = (report, id) => report.audits[id]?.numericValue ?? null;
 
 function render(ctx, results) {
 	const average = (key) => Math.round(results.reduce((t, r) => t + score(r.report, key), 0) / results.length);
 	const perf = average('performance');
 	return {
 		headline: { value: perf, label: `performance (average of ${results.length} pages)`, tone: scoreTone(perf) },
+		trend: CATEGORIES.map((c) => metric(c.key, c.label, average(c.key), 'score', 'higher')),
 		summary: CATEGORIES.map((c) => `${c.label} ${average(c.key)}`).join(' · '),
 		sections: [
 			kpis(CATEGORIES.map((c) => ({ label: c.label, value: average(c.key), tone: scoreTone(average(c.key)), hint: 'average over the pages' }))),
@@ -79,9 +80,9 @@ function render(ctx, results) {
 					{ key: 'cls', label: 'CLS', align: 'right' }
 				],
 				results.map(({ page, html, report }) => {
-					const lcp = metric(report, 'largest-contentful-paint');
-					const tbt = metric(report, 'total-blocking-time');
-					const cls = metric(report, 'cumulative-layout-shift');
+					const lcp = auditValue(report, 'largest-contentful-paint');
+					const tbt = auditValue(report, 'total-blocking-time');
+					const cls = auditValue(report, 'cumulative-layout-shift');
 					return {
 						page: { text: `${page.name} (${page.path})`, href: ctx.fromHub(html) },
 						...Object.fromEntries(CATEGORIES.map((c) => [c.key, { text: score(report, c.key), tone: scoreTone(score(report, c.key)), sort: score(report, c.key) }])),

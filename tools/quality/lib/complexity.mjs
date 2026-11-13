@@ -7,7 +7,7 @@
 //   findings:   [{ place, rule, message }]                    other limits the gate fails on (nesting, parameters…)
 //   exemptions: [{ place, rule, reason }]                     functions kept complex on purpose
 //   measure:    one line on what "complexity" counts here
-import { bars, count, groupBy, kpis, note, plural, table, toneBelow, toneZero } from './spec.mjs';
+import { bars, count, groupBy, kpis, metric, note, plural, table, toneBelow, toneZero } from './spec.mjs';
 
 const LISTED = 25;
 /** Thirds of the limit, then over it: 15 → ≤5, 6–10, 11–15, 16+. */
@@ -61,6 +61,7 @@ export function complexityPage({ functions, files, limits, findings = [], exempt
 	sections.push(exemptionTable(exemptions));
 	return {
 		headline: { value: failing, label: 'over a limit', tone: toneZero(failing) },
+		trend: [metric('over_limit', 'Over a limit', failing, 'count', 'lower'), metric('p90', '90th percentile complexity', p90, 'score', 'lower'), metric('max', 'Most complex function', Math.max(0, ...scores), 'score', 'lower'), metric('exemptions', 'Kept on purpose', exemptions.length, 'count', 'lower')],
 		summary: `${plural(functions.length, 'function')}, 90th percentile complexity ${p90}, ${plural(failing, 'finding')}, ${plural(exemptions.length, 'exemption')}`,
 		sections
 	};

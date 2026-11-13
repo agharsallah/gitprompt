@@ -168,6 +168,12 @@ impl Served {
         (read(&self.out), read(&self.err))
     }
 
+    /// Its stdout once it contains `text`. `/healthz` answers as soon as the listener runs, which
+    /// can be before `serve` prints anything: wait for the line itself, never for a while.
+    pub fn stdout_with(&self, text: &str) -> String {
+        eventually(COMMAND_DEADLINE, &format!("serve to print {text:?}"), || Some(self.output().0).filter(|out| out.contains(text)))
+    }
+
     /// Polls `/healthz` until it answers 200; fails at once (with what it printed) if the daemon
     /// exits first.
     pub fn wait_healthy(&mut self) {

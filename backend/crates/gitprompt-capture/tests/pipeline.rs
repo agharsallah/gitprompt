@@ -362,7 +362,7 @@ fn join_session_leaves_a_prompt_id_source_alone() {
     let spec = env.spec("claude-code");
     ingest(&spec, &store, &hook_prompt());
     let fields = obj(json!({"event": "Stop", "session_id": "abc123"}));
-    assert_eq!(join_session(&spec, &store, fields.clone()).unwrap(), fields);
+    assert_eq!(join_session(&spec, &store, fields.clone(), None).unwrap(), fields);
 }
 
 #[test]
@@ -372,7 +372,7 @@ fn join_session_keeps_an_id_the_event_already_has() {
     let spec = env.spec("copilot-cli");
     ingest(&spec, &store, &copilot("UserPromptSubmit", "s1", json!({"prompt": "one"})));
     let fields = obj(json!({"event": "Stop", "session_id": "s1", "prompt_id": "given"}));
-    assert_eq!(join_session(&spec, &store, fields.clone()).unwrap(), fields);
+    assert_eq!(join_session(&spec, &store, fields.clone(), None).unwrap(), fields);
 }
 
 // --- OTLP through the pipeline ---------------------------------------------------------------

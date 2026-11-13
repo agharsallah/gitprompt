@@ -65,9 +65,13 @@ impl Home {
     }
 
     /// A daemon for this home on a loopback port of its own.
+    /// A daemon on this home, returned once its start-up spool drain is over: what was spooled
+    /// before is stored, and nothing spooled after is drained behind the test's back.
     pub async fn daemon(&self) -> Daemon {
         let options = DaemonOptions { addr: Some("127.0.0.1:0".parse().expect("addr")), ..DaemonOptions::default() };
-        Daemon::start(self.settings.clone(), self.options(), options).await.expect("daemon starts")
+        let daemon = Daemon::start(self.settings.clone(), self.options(), options).await.expect("daemon starts");
+        daemon.spool_drained().await;
+        daemon
     }
 
     pub fn db_path(&self) -> PathBuf {

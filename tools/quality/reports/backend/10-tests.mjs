@@ -4,7 +4,7 @@ import { cp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { cargoActivity } from '../../lib/output.mjs';
-import { bars, coverageCell, embed, kpis, note, pct, plural, table, tone } from '../../lib/spec.mjs';
+import { bars, coverageCell, embed, kpis, metric, note, pct, plural, table, tone } from '../../lib/spec.mjs';
 
 export default {
 	title: 'Tests & coverage',
@@ -176,6 +176,8 @@ function page(ctx, runs, coverage) {
 	}
 	return {
 		headline: failed ? { value: failed, label: failed === 1 ? 'test failing' : 'tests failing', tone: 'bad' } : { value: pct(lineShare), label: 'lines covered', tone: tone(lineShare, 0.8, 0.6) },
+		// cargo stops at the first failing test binary: a count from such a run is partial, so none.
+		trend: [metric('lines', 'Line coverage', lineShare, 'share', 'higher'), metric('tests', 'Tests', failed ? null : passed, 'count', 'higher'), metric('failing', 'Failing tests', failed, 'count', 'lower')],
 		summary: `${plural(passed, 'test')} passed${failed ? `, ${failed} failed` : ''} in ${plural(runs.length, 'binary', 'binaries')}${totals ? ` · ${totals.lines.covered} of ${totals.lines.count} lines covered` : ''}`,
 		sections
 	};

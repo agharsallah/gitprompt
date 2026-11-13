@@ -3,7 +3,7 @@
 import { join, relative } from 'node:path';
 
 import { webSync } from '../../lib/shared.mjs';
-import { bars, checks, coverageCell, embed, groupBy, kpis, ms, note, pct, plural, table, tone } from '../../lib/spec.mjs';
+import { bars, checks, coverageCell, embed, groupBy, kpis, metric, ms, note, pct, plural, table, tone } from '../../lib/spec.mjs';
 
 export default {
 	title: 'Tests & coverage',
@@ -119,6 +119,7 @@ function page(ctx, tests, coverage, { exitCode, thresholds }, html) {
 	const bad = failed > 0 || thresholdMissed;
 	return {
 		headline: failed ? { value: failed, label: failed === 1 ? 'test failing' : 'tests failing', tone: 'bad' } : { value: pct(share('lines')), label: 'lines covered', tone: bad ? 'bad' : tone(share('lines'), 0.8, 0.6) },
+		trend: [metric('lines', 'Line coverage', share('lines'), 'share', 'higher'), metric('tests', 'Tests', tests.numTotalTests, 'count', 'higher'), metric('failing', 'Failing tests', failed, 'count', 'lower')],
 		summary: `${plural(tests.numPassedTests, 'test')} passed${failed ? `, ${failed} failed` : ''} in ${plural(tests.testResults.length, 'file')}${total ? ` · ${total.lines.covered} of ${total.lines.total} lines covered` : ''}${thresholdMissed ? ' · coverage threshold missed' : ''}`,
 		sections
 	};

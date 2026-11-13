@@ -10,24 +10,31 @@
 //!   next to it and the drain goes on;
 //! - when ingesting a line fails (e.g. the store), the drain stops there and that line and every later
 //!   one stay queued, in order, for the next start;
-//! - a fully drained file is deleted; a file whose source has no spec is left alone.
+//! - a fully drained file is deleted; a file whose source has no spec is left alone;
+//! - a drain asked to stop (the daemon shuts down) stops between two lines, the rest stays queued.
 //!
-//! Appends and drains may run at the same time (a hook fires while the daemon starts). A drain first
+//! Appends and drains may run at the same time (a hook fires while the daemon drains). A drain first
 //! renames the queue to `<source>.draining.jsonl`, so new payloads start a fresh queue, and records
 //! its progress in `<source>.draining.offset` (bytes consumed). Each append holds an exclusive lock
 //! on the file while it writes and checks that the file it locked is still the queue, so no payload
-//! is ever written into a file the drain has already read.
+//! is ever written into a file the drain has already read. Two drains never run at once (the
+//! daemon's, after it starts, and `gitprompt spool drain`): the second waits for the first. Every
+//! coordination is a lock ([`disk`]), never a delay.
+//!
+//! The progress is rewritten in place after every line and not flushed to disk: a flush costs
+//! milliseconds, most of a drain's time, and only an OS crash or a power loss can undo an unflushed
+//! write, which then re-ingests the last lines (the database can lose its last commits the same way)
+//! rather than skipping any.
 
 use std::collections::BTreeMap;
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use gitprompt_core::files::atomic_write;
 use gitprompt_core::preferences::Preferences;
 use gitprompt_core::spec::Spec;
 use gitprompt_core::{Error, Json, Result, Settings};
@@ -35,7 +42,12 @@ use gitprompt_store::Store;
 use gitprompt_store::store::Clock;
 
 use crate::installer::create_private_dir;
-use crate::pipeline::{CaptureOptions, Captured, Observer, capture_at, iso};
+use crate::pipeline::{Arrival, CaptureOptions, Captured, Observer, capture_then, iso, mark_turns};
+
+mod disk;
+
+pub use disk::DRAIN_LOCK;
+use disk::{DrainLock, Progress, is_same_file, open_append, read_lines, read_offset, remove_if_exists, take_queue};
 
 /// Suffix of a queue file.
 pub const QUEUE_SUFFIX: &str = ".jsonl";
@@ -45,9 +57,6 @@ pub const CORRUPT_SUFFIX: &str = ".corrupt.jsonl";
 pub const DRAINING_SUFFIX: &str = ".draining.jsonl";
 /// Suffix of the progress of a drain: bytes of the draining file already handled.
 pub const OFFSET_SUFFIX: &str = ".draining.offset";
-
-/// Mode of every spool file: payloads hold prompts.
-const FILE_MODE: u32 = 0o600;
 
 /// What one drain did.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -206,11 +215,16 @@ impl Spool {
         Ok(sources)
     }
 
-    /// Queued lines of a source (not yet ingested), oldest first, as stored.
+    /// Queued lines of a source (not yet ingested), oldest first, as stored. Read while a drain
+    /// runs, it never misses a queued line: the queue is read before the draining file, so a queue
+    /// renamed in between is found as the draining file (read the other way round, it could be
+    /// found in neither, and a backlog would read as empty). A line may then be counted twice, never
+    /// zero times.
     pub fn pending(&self, source: &str) -> Result<Vec<String>> {
+        let queued = read_lines(&self.queue_file(source)?, 0)?;
         let offset = read_offset(&self.offset_file(source)?)?;
         let mut lines = read_lines(&self.draining_file(source)?, offset)?;
-        lines.extend(read_lines(&self.queue_file(source)?, 0)?);
+        lines.extend(queued);
         Ok(lines.into_iter().map(|(line, _)| line).collect())
     }
 
@@ -221,13 +235,29 @@ impl Spool {
 
     /// [`Self::drain`], handing over each payload with the time it was spooled.
     pub fn drain_spooled(&self, source: &str, ingest: &mut dyn FnMut(Spooled) -> Result<()>) -> Result<Drained> {
+        self.drain_spooled_until(source, ingest, &|| false)
+    }
+
+    /// [`Self::drain_spooled`], stopping before the next line once `stop` says so (the lines left
+    /// stay queued, counted in [`Drained::remaining`]). Waits for another drain of this spool to
+    /// finish first (`gitprompt spool drain` while the daemon drains at start).
+    pub fn drain_spooled_until(
+        &self,
+        source: &str,
+        ingest: &mut dyn FnMut(Spooled) -> Result<()>,
+        stop: &dyn Fn() -> bool,
+    ) -> Result<Drained> {
         let (queue, draining) = (self.queue_file(source)?, self.draining_file(source)?);
         let mut drained = Drained::default();
+        if !self.dir.exists() {
+            return Ok(drained);
+        }
+        let _drain = DrainLock::take(&self.dir)?;
         // At most two passes (what an interrupted drain left, or the queue, then the queue as it is
         // after that), so hooks spooling while the daemon starts can't keep the drain going forever;
         // anything appended later waits for the next start.
         for _ in 0..2 {
-            if !take_queue(&queue, &draining)? || !self.drain_file(source, ingest, &mut drained)? {
+            if !take_queue(&queue, &draining)? || !self.drain_file(source, ingest, stop, &mut drained)? {
                 break;
             }
         }
@@ -236,17 +266,27 @@ impl Spool {
     }
 
     /// Drain `<source>.draining.jsonl` from its recorded offset. `true` when it was drained whole
-    /// (and deleted); `false` when an ingest failed (the file and offset stay, at the failed line).
-    fn drain_file(&self, source: &str, ingest: &mut dyn FnMut(Spooled) -> Result<()>, drained: &mut Drained) -> Result<bool> {
+    /// (and deleted); `false` when an ingest failed or `stop` said so (the file and offset stay, at
+    /// the line not ingested).
+    fn drain_file(
+        &self,
+        source: &str,
+        ingest: &mut dyn FnMut(Spooled) -> Result<()>,
+        stop: &dyn Fn() -> bool,
+        drained: &mut Drained,
+    ) -> Result<bool> {
         let (draining, offset_file) = (self.draining_file(source)?, self.offset_file(source)?);
         // Wait for an append that locked the file before it was renamed.
         File::open(&draining)?.lock()?;
-        for (line, end) in read_lines(&draining, read_offset(&offset_file)?)? {
-            if !self.drain_line(source, &line, ingest, drained)? {
+        let start = read_offset(&offset_file)?;
+        let mut progress = Progress::open(&offset_file, start)?;
+        for (line, end) in read_lines(&draining, start)? {
+            if stop() || !self.drain_line(source, &line, ingest, drained)? {
                 return Ok(false);
             }
-            atomic_write(&offset_file, &end.to_string(), FILE_MODE)?;
+            progress.record(end)?;
         }
+        drop(progress);
         std::fs::remove_file(&draining)?;
         remove_if_exists(&offset_file)?;
         Ok(true)
@@ -277,28 +317,35 @@ impl Spool {
     }
 }
 
-/// Drain every queue into the capture pipeline at start-up, with the options each source has under
+/// Drain every queue into the capture pipeline at start-up (until `stop` says so), with the options each source has under
 /// `preferences` (a turned-off source is drained and discarded, as it would have been live). Each
 /// payload is stored as received at the time it was spooled. Sources without a spec are skipped and
 /// keep their queue; a source whose queue can't be read is reported in the log and keeps its queue
-/// too, so one broken file never holds up the others. Returns per source what was drained, and what
-/// the pipeline stored overall (so the caller marks turns for the index).
+/// too, so one broken file never holds up the others. Each payload's turns are marked for the index
+/// in the transaction that stores it, as a live capture does, so whatever the drain stored (even if
+/// it stops or crashes midway) is indexed. Returns per source what was drained, and what the
+/// pipeline stored overall.
 pub fn drain_into_pipeline(
     spool: &Spool,
     specs: &BTreeMap<String, Arc<Spec>>,
     store: &Store,
     preferences: &Preferences,
     observer: &Observer<'_>,
+    stop: &dyn Fn() -> bool,
 ) -> Result<(BTreeMap<String, Drained>, Captured)> {
     let mut report = BTreeMap::new();
     let mut total = Captured::default();
     for (source, spec) in drainable(spool, specs)? {
+        if stop() {
+            break;
+        }
         let options = CaptureOptions::for_source(preferences, &source);
         let mut ingest = |spooled: Spooled| {
-            total.absorb(capture_at(spec, store, &spooled.payload, options, observer, spooled.spooled_at)?);
+            let arrival = Arrival { body: &spooled.payload, received_at: spooled.spooled_at };
+            total.absorb(capture_then(spec, store, arrival, options, observer, mark_turns)?);
             Ok(())
         };
-        match spool.drain_spooled(&source, &mut ingest) {
+        match spool.drain_spooled_until(&source, &mut ingest, stop) {
             Ok(drained) => {
                 report.insert(source, drained);
             }
@@ -321,92 +368,11 @@ fn drainable<'s>(spool: &Spool, specs: &'s BTreeMap<String, Arc<Spec>>) -> Resul
     Ok(out)
 }
 
-/// Make sure there is a draining file: what an interrupted drain left, else the queue moved aside
-/// (hooks then append to a new queue). `false` when there is neither.
-fn take_queue(queue: &Path, draining: &Path) -> io::Result<bool> {
-    if draining.exists() {
-        return Ok(true);
-    }
-    match std::fs::rename(queue, draining) {
-        Ok(()) => Ok(true),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(e),
-    }
-}
-
 /// `^[a-z0-9][a-z0-9-]*$`: safe as a file name and in a shell command.
 pub(crate) fn is_plain_name(name: &str) -> bool {
     let mut bytes = name.bytes();
     bytes.next().is_some_and(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
         && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-}
-
-/// Open for appending, creating it with mode 0600.
-fn open_append(path: &Path) -> io::Result<File> {
-    let mut options = OpenOptions::new();
-    options.append(true).create(true);
-    #[cfg(unix)]
-    std::os::unix::fs::OpenOptionsExt::mode(&mut options, FILE_MODE);
-    options.open(path)
-}
-
-/// Whether the open `file` is the one at `path` now.
-#[cfg(unix)]
-fn is_same_file(file: &File, path: &Path) -> io::Result<bool> {
-    use std::os::unix::fs::MetadataExt;
-    let open = file.metadata()?;
-    match std::fs::metadata(path) {
-        Ok(now) => Ok(open.dev() == now.dev() && open.ino() == now.ino()),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(e),
-    }
-}
-
-#[cfg(not(unix))]
-fn is_same_file(_file: &File, path: &Path) -> io::Result<bool> {
-    Ok(path.exists())
-}
-
-/// The non-blank lines of a file from byte `offset`, each with the offset just after it. A missing
-/// file has none.
-fn read_lines(path: &Path, offset: u64) -> Result<Vec<(String, u64)>> {
-    let bytes = match std::fs::read(path) {
-        Ok(bytes) => bytes,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(e.into()),
-    };
-    let start = usize::try_from(offset).unwrap_or(usize::MAX).min(bytes.len());
-    let mut lines = Vec::new();
-    let mut at = start;
-    for chunk in bytes.get(start..).unwrap_or_default().split_inclusive(|b| *b == b'\n') {
-        at += chunk.len();
-        let line = String::from_utf8_lossy(chunk);
-        let line = line.trim_end_matches(['\n', '\r']);
-        if !line.trim().is_empty() {
-            lines.push((line.to_owned(), at as u64));
-        }
-    }
-    Ok(lines)
-}
-
-/// The recorded progress of a drain; 0 when there is none (or it is unreadable: re-reading from the
-/// start re-ingests, which the prompt-id dedup absorbs, rather than skipping payloads).
-fn read_offset(path: &Path) -> Result<u64> {
-    match std::fs::read_to_string(path) {
-        Ok(text) => Ok(text.trim().parse().unwrap_or_else(|_| {
-            tracing::warn!(path = %path.display(), "unreadable drain offset; draining from the start");
-            0
-        })),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(0),
-        Err(e) => Err(e.into()),
-    }
-}
-
-fn remove_if_exists(path: &Path) -> io::Result<()> {
-    match std::fs::remove_file(path) {
-        Err(e) if e.kind() != io::ErrorKind::NotFound => Err(e),
-        _ => Ok(()),
-    }
 }
 
 #[cfg(test)]
@@ -428,14 +394,5 @@ mod tests {
         assert_eq!(Spooled::parse(r#"{"a": 1}"#), Some(Spooled { payload: json!({"a": 1}), spooled_at: None }));
         assert_eq!(Spooled::parse("[1]"), None);
         assert_eq!(Spooled::parse("{\"half\": "), None);
-    }
-
-    #[test]
-    fn lines_carry_the_offset_after_them_and_blank_lines_are_skipped() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("q.jsonl");
-        std::fs::write(&path, "a\n\nbc\nd").unwrap();
-        assert_eq!(read_lines(&path, 0).unwrap(), vec![("a".into(), 2), ("bc".into(), 6), ("d".into(), 7)]);
-        assert_eq!(read_lines(&path, 3).unwrap(), vec![("bc".into(), 6), ("d".into(), 7)]);
     }
 }

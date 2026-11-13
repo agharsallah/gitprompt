@@ -78,11 +78,16 @@ impl Store {
         Ok(turn)
     }
 
-    /// The prompt id of the latest prompt of this source and session.
-    pub fn latest_turn(&self, source: &str, session_id: &str) -> Result<Option<String>> {
-        let sql =
-            format!("select json_extract(fields, '$.prompt_id') from prompt where source = ? and {SESSION} = ? order by id desc limit 1");
-        let turn = self.db().read(|conn| decode::first(conn, &sql, (source, session_id), |row| Ok(decode::text(row.get_ref(0)?))))?;
+    /// The prompt id of the latest prompt of this source and session, by when it was received (then
+    /// by id), received at or before `at` when given (UTC ISO-8601 as stored). Rows are not stored
+    /// in the order they were received: a spool drained while hooks arrive live stores older prompts
+    /// after newer ones, so an event joins the prompt it followed, not the one stored last.
+    pub fn latest_turn(&self, source: &str, session_id: &str, at: Option<&str>) -> Result<Option<String>> {
+        let sql = format!(
+            "select json_extract(fields, '$.prompt_id') from prompt where source = ? and {SESSION} = ? \
+             and (?3 is null or received_at <= ?3) order by received_at desc, id desc limit 1"
+        );
+        let turn = self.db().read(|conn| decode::first(conn, &sql, (source, session_id, at), |row| Ok(decode::text(row.get_ref(0)?))))?;
         Ok(turn.flatten())
     }
 

@@ -37,7 +37,8 @@ export async function ready(url, { timeoutMs = 60_000, intervalMs = 300 } = {}) 
  * `binary serve` on a free loopback port with `home` as its data folder and `dashboard` as the
  * page it serves. Resolves { url, pid, startMs, stop() } once /api/status answers; startMs is the
  * time from spawn to that answer (polled every 10 ms). stop() sends Ctrl-C and resolves on exit.
- * timeoutMs: how long a start may take (a spool to drain makes it long).
+ * timeoutMs: how long a start may take (a busy machine and a debug build make it long). A spool is
+ * drained after it answers: wait for spoolDrained when the data must be complete.
  */
 export async function startDaemon(binary, { home, dashboard, env = {}, timeoutMs = 60_000 }) {
 	const port = await freePort();
@@ -59,6 +60,20 @@ export async function startDaemon(binary, { home, dashboard, env = {}, timeoutMs
 		throw error;
 	}
 	return { url, pid: child.pid, startMs: performance.now() - started, stop };
+}
+
+/**
+ * Resolves once the daemon at `url` has no spooled hook payload left (`spool` of /api/status is
+ * empty): it answers first and drains the spool behind. Rejects after timeoutMs.
+ */
+export async function spoolDrained(url, { timeoutMs = 300_000, intervalMs = 50 } = {}) {
+	const until = Date.now() + timeoutMs;
+	while (Date.now() < until) {
+		const status = await fetch(`${url}/api/status`).then((response) => response.json());
+		if (status.spool.length === 0) return;
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+	throw new Error(`the daemon at ${url} still had spooled payloads after ${timeoutMs / 1000} s`);
 }
 
 /**

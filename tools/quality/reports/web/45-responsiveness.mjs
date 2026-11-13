@@ -7,7 +7,7 @@ import { findChrome } from '../../lib/chrome.mjs';
 import { HEIGHT, IDLE_S, ROUNDS, ROUTES, WIDTHS, loads, session } from '../../lib/dashboard-timings.mjs';
 import { startDaemon } from '../../lib/process.mjs';
 import { copyOf, drainedDemo, performanceEnv, releaseDaemonBinary, tempFolder, webBuild } from '../../lib/shared.mjs';
-import { bars, kb, kpis, mb, ms, note, table, toneBelow } from '../../lib/spec.mjs';
+import { bars, kb, kpis, mb, metric, ms, note, table, toneBelow } from '../../lib/spec.mjs';
 import { repeat, summary } from '../../lib/stats.mjs';
 
 const LOADS = 3;
@@ -104,6 +104,7 @@ function page({ runs, session: s }) {
 	const heapGrowth = s.heapAfterSwitching - s.heapAtLoad;
 	return {
 		headline: { value: ms(cold('ready')), label: 'cold load until the data shows (median)', tone: TONES.ready(cold('ready')) },
+		trend: [metric('cold', 'Cold load until the data shows', cold('ready'), 'ms', 'lower'), metric('relaunch', 'Relaunch until the data shows', relaunchReady, 'ms', 'lower'), metric('first_paint', 'First paint, cold', cold('fcp'), 'ms', 'lower'), metric('switch', 'Page switch, revisit', revisits, 'ms', 'lower')],
 		summary: `first paint cold ${ms(cold('fcp'))} · relaunch ${ms(relaunchReady)} · page switch ${ms(revisits)} · worst resize ${ms(worstResize.ms)} · idle ${s.idle.cpuPercent.toFixed(2)}% CPU`,
 		sections: [
 			kpis([

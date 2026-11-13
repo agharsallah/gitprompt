@@ -77,3 +77,16 @@ export async function fingerprints(repo, reports, inputsOf) {
 	const entries = await Promise.all(reports.map(async (report) => [report.id, await hashOf(inputsOf(report))]));
 	return Object.fromEntries(entries);
 }
+
+/**
+ * The commit the working tree is on, `+` when it has changes on top (what a run's numbers were
+ * measured on, for the Trends page); null outside a repository.
+ */
+export async function headCommit(repo) {
+	try {
+		const [head, changes] = await Promise.all([git(repo, ['rev-parse', '--short', 'HEAD']), git(repo, ['status', '--porcelain', '-z'])]);
+		return `${head.trim()}${changes ? '+' : ''}`;
+	} catch {
+		return null;
+	}
+}

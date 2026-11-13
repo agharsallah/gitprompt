@@ -80,6 +80,6 @@
 	<ErrorView {error} {what} onretry={retry} />
 {:else}
 	<div bind:this={placeholder}>
-		<Loading {label}>{@render pending()}</Loading>
+		<Loading {label} waiting={!wanted}>{@render pending()}</Loading>
 	</div>
 {/if}

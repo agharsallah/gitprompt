@@ -2,9 +2,11 @@
 //! directory, enforced by an OS lock on `settings.lock_file()` (released when the process dies,
 //! so a stale file left by a crash never blocks a start).
 //!
-//! [`Daemon::start`] returns once it is ready: lock taken, index ensured, spooled hook payloads
-//! drained, first retention pass done, listener accepting. Retention then repeats every
-//! [`DaemonOptions::retention_every`].
+//! [`Daemon::start`] returns once it answers: lock taken, index ensured, first retention pass done,
+//! listener accepting. Then, in the background, the hook payloads spooled while it was down are
+//! drained (a backlog of thousands takes seconds; the dashboard shows what is already stored
+//! meanwhile and fills in live, [`Daemon::spool_drained`]), and retention repeats every
+//! [`DaemonOptions::retention_every`], health samples every [`DaemonOptions::health_every`].
 
 use std::fs::{File, OpenOptions, TryLockError};
 use std::io::Write;
@@ -66,8 +68,10 @@ pub struct Daemon {
     /// Cancelling it stops the server (gracefully) and the background tasks.
     stop: CancellationToken,
     server: JoinHandle<ApiResult<()>>,
-    retention: JoinHandle<()>,
-    monitor: JoinHandle<()>,
+    /// The spool drain, then retention and health samples (see [`background`]).
+    background: JoinHandle<()>,
+    /// Cancelled once the start-up spool drain is over (done, failed or stopped).
+    drained: CancellationToken,
     /// Held (OS lock) while the daemon runs.
     lock: File,
 }
@@ -87,15 +91,21 @@ impl Daemon {
         let addr = listener.local_addr()?;
         let stop = CancellationToken::new();
         let server = tokio::spawn(app.serve(listener, stop.clone().cancelled_owned()));
-        let retention = tokio::spawn(repeat_retention(service.clone(), options.retention_every, stop.clone()));
-        let monitor = tokio::spawn(repeat_health(service.clone(), options.health_every, options.health_limits, stop.clone()));
         log_running(&service, addr).await;
-        Ok(Daemon { addr, service, stop, server, retention, monitor, lock })
+        let drained = CancellationToken::new();
+        let background = tokio::spawn(background(service.clone(), options, stop.clone(), drained.clone()));
+        Ok(Daemon { addr, service, stop, server, background, drained, lock })
     }
 
     /// The bound address (the real port when started on port 0).
     pub fn local_addr(&self) -> SocketAddr {
         self.addr
+    }
+
+    /// Resolves once the hook payloads spooled before the start are drained (or the drain failed
+    /// or was stopped): what the daemon serves from then on includes them.
+    pub async fn spool_drained(&self) {
+        self.drained.cancelled().await;
     }
 
     /// The same facade the HTTP routes use (Tauri commands call it).
@@ -109,8 +119,7 @@ impl Daemon {
         tracing::info!(addr = %self.addr, "GitPrompt is shutting down");
         self.stop.cancel();
         let joined = |e: tokio::task::JoinError| ApiError::Internal(format!("background task failed: {e}"));
-        self.retention.await.map_err(joined)?;
-        self.monitor.await.map_err(joined)?;
+        self.background.await.map_err(joined)?;
         let served = self.server.await.map_err(joined)?;
         drop(self.service); // the store closes with its last handle
         self.lock.unlock()?;
@@ -124,20 +133,34 @@ async fn blocking<T: Send + 'static>(what: &str, f: impl FnOnce() -> Result<T, D
     tokio::task::spawn_blocking(f).await.map_err(|e| ApiError::Internal(format!("{what} task failed: {e}")))?
 }
 
-/// The work before listening: tool versions, the index, the hook spool, a first retention pass.
+/// The work before listening: tool versions (in the background), the index, a first retention
+/// pass. Quick on every start; the spool, which may not be, is drained after ([`background`]).
 async fn prepare(service: &Service) -> Result<(), DaemonError> {
     let settings = service.settings();
     tracing::info!(home = %settings.home.display(), profile = %settings.profile, "GitPrompt is starting");
     service.warm_tool_versions();
     service.ensure_index().await?;
-    drain_spool(service).await;
     retention(service).await;
     Ok(())
 }
 
-/// Deliver the hook payloads spooled while the daemon was down.
-async fn drain_spool(service: &Service) {
-    match service.drain_spool().await {
+/// The work after the listener is up, until `stop`: deliver the hook spool (then cancel
+/// `drained`), then retention and health samples on their schedules. The health rules' clock
+/// starts after the drain, which is busy by nature.
+async fn background(service: Service, options: DaemonOptions, stop: CancellationToken, drained: CancellationToken) {
+    drain_spool(&service, &stop).await;
+    drained.cancel();
+    tokio::join!(
+        repeat_retention(service.clone(), options.retention_every, stop.clone()),
+        repeat_health(service, options.health_every, options.health_limits, stop),
+    );
+}
+
+/// Deliver the hook payloads spooled while the daemon was down; a shutdown stops it between two
+/// payloads (the rest stays queued for the next start).
+async fn drain_spool(service: &Service, stop: &CancellationToken) {
+    let stopping = stop.clone();
+    match service.drain_spool(move || stopping.is_cancelled()).await {
         Ok(delivered) => tracing::info!(delivered, "drained the hook spool"),
         Err(e) => tracing::warn!(error = %e, "could not drain the hook spool"),
     }

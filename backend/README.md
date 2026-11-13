@@ -34,7 +34,7 @@ Dependency order: core → store → capture / insights → export → (dashboar
 - **Native for Tauri:** `gitprompt_server::Service` exposes every route as a typed async method; the HTTP
   routes are thin adapters over it. Bundled specs are compiled into the binary.
 - **No lost prompts:** `gitprompt hook <source>` forwards a hook payload and spools it to
-  `~/.gitprompt/spool/` when the daemon is down; the daemon drains the spool at start.
+  `~/.gitprompt/spool/` when the daemon is down; the daemon drains the spool at start, once it answers.
 - **Single instance:** the daemon holds `~/.gitprompt/daemon.lock`; the desktop app and the CLI can't
   both write.
 - **Performance:** a writer connection plus a reader pool in WAL mode (reads never wait for ingest), batched

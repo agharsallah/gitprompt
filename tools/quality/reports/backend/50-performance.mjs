@@ -1,7 +1,7 @@
 // The load benchmark with its budgets, as CI checks it (`just perf`): ingest throughput, every
 // dashboard read alone and under concurrent ingest with a slow git, the database writer, peak memory.
 import { cargoActivity } from '../../lib/output.mjs';
-import { bars, checks, kpis, mb, ms, plural, table, toneBelow } from '../../lib/spec.mjs';
+import { bars, checks, kpis, mb, metric, ms, plural, table, toneBelow } from '../../lib/spec.mjs';
 
 /** The default budget of the benchmark (--max-read-p95-ms). */
 const READ_BUDGET_MS = 300;
@@ -90,6 +90,7 @@ function page(r) {
 	sections.push(table(`Reads alone (${r.runs} timed runs each after one cold run)`, readColumns, r.reads.map(readRow), `${r.prompts} prompts × ${r.events_per_prompt} events each, through the axum router in-process.`));
 	return {
 		headline: { value: ms(slowest.p95_ms), label: `slowest read p95${load ? ' under load' : ''}`, tone: headlineTone },
+		trend: [metric('read_p95', `Slowest read p95${load ? ' under load' : ''}`, slowest.p95_ms, 'ms', 'lower'), metric('ingest', 'Ingest', r.ingest.events_per_s, 'rate', 'higher'), metric('peak_memory', 'Peak memory', load?.peaks.rss_bytes, 'bytes', 'lower'), metric('writer_hold', 'Writer held at most', load?.writer.max_hold_ms, 'ms', 'lower')],
 		summary: `${over.length ? `${plural(over.length, 'budget')} exceeded` : 'every budget met'} · ${Math.round(r.ingest.events_per_s)} events/s ingested${load?.peaks.rss_bytes ? ` · peak ${mb(load.peaks.rss_bytes)}` : ''}`,
 		sections
 	};

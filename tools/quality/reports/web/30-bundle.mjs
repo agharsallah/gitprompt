@@ -5,7 +5,7 @@ import { extname, join, relative } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import { webBuild } from '../../lib/shared.mjs';
-import { bars, kb, kpis, plural, table, toneBelow } from '../../lib/spec.mjs';
+import { bars, kb, kpis, metric, plural, table, toneBelow } from '../../lib/spec.mjs';
 
 /** Gzipped JavaScript, all chunks together: good up to the first, acceptable up to the second. */
 const JS_BUDGET = [250 * 1024, 500 * 1024];
@@ -48,6 +48,7 @@ function page(files) {
 	const jsTone = toneBelow(jsGzip, ...JS_BUDGET);
 	return {
 		headline: { value: kb(jsGzip), label: 'JavaScript, gzipped', tone: jsTone },
+		trend: [metric('js_gzip', 'JavaScript, gzipped', jsGzip, 'bytes', 'lower'), metric('total_gzip', 'Everything, gzipped', totalGzip, 'bytes', 'lower'), metric('largest_chunk', 'Largest chunk, gzipped', largest?.gzip, 'bytes', 'lower')],
 		summary: `${plural(files.length, 'file')} · ${kb(totalGzip)} gzipped in all (${kb(sum(files, 'raw'))} raw) · largest chunk ${largest ? kb(largest.gzip) : '–'}`,
 		sections: [
 			kpis([

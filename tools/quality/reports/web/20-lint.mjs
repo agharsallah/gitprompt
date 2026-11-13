@@ -3,7 +3,7 @@
 import { join, relative } from 'node:path';
 
 import { webSync } from '../../lib/shared.mjs';
-import { groupBy, kpis, note, plural, table, toneZero } from '../../lib/spec.mjs';
+import { groupBy, kpis, metric, note, plural, table, toneZero } from '../../lib/spec.mjs';
 
 /** Findings listed one by one (the rest are counted). */
 const LISTED = 300;
@@ -95,6 +95,7 @@ function page(eslint, files, types, unformatted) {
 	if (unformatted.length) sections.push(table('Files Prettier would change (run `just fmt`)', [{ key: 'file', label: 'File', mono: true }], unformatted.map((file) => ({ file }))));
 	return {
 		headline: { value: failing, label: failing === 1 ? 'finding' : 'findings', tone: failing ? 'bad' : typeWarnings ? 'warn' : 'good' },
+		trend: [metric('findings', 'Findings', failing, 'count', 'lower')],
 		summary: `${plural(errors + warnings, 'ESLint finding')}, ${plural(typeErrors, 'type error')}, ${plural(unformatted.length, 'file')} to format · ${files} files linted`,
 		sections
 	};

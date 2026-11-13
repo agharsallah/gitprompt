@@ -164,15 +164,16 @@ pub fn observe(spec: &Spec, cwd: Option<&str>, observer: &Observer<'_>) -> JsonM
     context
 }
 
-/// `join: session`: an event without a prompt id takes the id of the latest prompt of its session.
-/// Unchanged for a `prompt_id` source, an event that has a prompt id or no session id, or a session
-/// without a prompt yet.
-pub fn join_session(spec: &Spec, store: &Store, mut fields: JsonMap) -> Result<JsonMap> {
+/// `join: session`: an event without a prompt id takes the id of the latest prompt of its session
+/// received at or before it (`received_at`, `None` = now: any prompt stored so far). Unchanged for
+/// a `prompt_id` source, an event that has a prompt id or no session id, or a session without a
+/// prompt yet.
+pub fn join_session(spec: &Spec, store: &Store, mut fields: JsonMap, received_at: Option<&str>) -> Result<JsonMap> {
     if spec.join != Join::Session || has_value(&fields, "prompt_id") {
         return Ok(fields);
     }
     let Some(session) = text(&fields, "session_id") else { return Ok(fields) };
-    if let Some(turn) = store.latest_turn(&spec.id, &session)? {
+    if let Some(turn) = store.latest_turn(&spec.id, &session, received_at)? {
         fields.insert("prompt_id".into(), Json::String(turn));
     }
     Ok(fields)
@@ -280,7 +281,7 @@ fn store_row(spec: &Spec, store: &Store, row: NewRow, received_at: Option<&str>,
             captured.rows.push(StoredRow::Prompt(prompt.id));
         }
         NewRow::Event { fields, raw } => {
-            let fields = join_session(spec, store, fields)?;
+            let fields = join_session(spec, store, fields, received_at)?;
             let event = match received_at {
                 Some(at) => store.add_event_at(&spec.id, &fields, &raw, at)?,
                 None => store.add_event(&spec.id, &fields, &raw)?,
@@ -293,6 +294,15 @@ fn store_row(spec: &Spec, store: &Store, row: NewRow, received_at: Option<&str>,
         }
     }
     Ok(())
+}
+
+/// Mark the turns that received events, so the prompt index recomputes them on its next read. Run
+/// it as `then` of [`capture_then`]: in the transaction that stores the events.
+pub fn mark_turns(store: &Store, captured: &Captured) -> Result<()> {
+    if captured.turns.is_empty() {
+        return Ok(());
+    }
+    store.index().mark(&captured.turns.iter().cloned().collect::<Vec<_>>())
 }
 
 /// A mapped field holds a value (not null, `""` or `[]`).

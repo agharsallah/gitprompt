@@ -22,7 +22,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::sync::Arc;
 
 use common::*;
-use gitprompt_capture::spool::{Drained, Spool, Spooled, drain_into_pipeline};
+use gitprompt_capture::spool::{DRAIN_LOCK, Drained, Spool, Spooled, drain_into_pipeline};
 use gitprompt_core::preferences::Preferences;
 use gitprompt_core::{Error, Json};
 use jiff::Timestamp;
@@ -183,8 +183,34 @@ fn after_a_failed_drain_the_next_one_resumes_at_the_failed_payload_before_newer_
     assert_eq!(drained, Drained { ingested: 2, corrupted: 0, remaining: 0 });
     assert_eq!(seen.into_inner(), vec![prompt(2), prompt(3)]);
     assert_eq!(spool.sources().unwrap(), Vec::<String>::new());
-    let left: Vec<String> = fs::read_dir(&spool.dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    let left: Vec<String> = fs::read_dir(&spool.dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|name| name != DRAIN_LOCK) // the lock file stays: removing one races with the next drain taking it
+        .collect();
     assert_eq!(left, Vec::<String>::new(), "no queue, draining or offset file is left behind");
+}
+
+#[test]
+fn a_drain_asked_to_stop_stops_between_payloads_and_the_next_one_resumes_there() {
+    let env = TestEnv::new();
+    let spool = spool(&env);
+    for n in 1..=3 {
+        spool.append("claude-code", &prompt(n)).unwrap();
+    }
+    let seen = RefCell::new(vec![]);
+    let mut ingest = |p: Spooled| {
+        seen.borrow_mut().push(p.payload);
+        Ok(())
+    };
+
+    let drained = spool.drain_spooled_until("claude-code", &mut ingest, &|| seen.borrow().len() == 1).unwrap();
+
+    assert_eq!(drained, Drained { ingested: 1, corrupted: 0, remaining: 2 });
+    assert_eq!(queued(&spool, "claude-code"), vec![prompt(2), prompt(3)]);
+    let rest = spool.drain_spooled_until("claude-code", &mut ingest, &|| false).unwrap();
+    assert_eq!(rest, Drained { ingested: 2, corrupted: 0, remaining: 0 });
+    assert_eq!(seen.into_inner(), vec![prompt(1), prompt(2), prompt(3)], "each once, in order");
 }
 
 #[test]
@@ -210,6 +236,56 @@ fn a_payload_spooled_while_the_queue_drains_is_not_lost() {
 }
 
 #[test]
+fn while_a_drain_runs_its_backlog_still_lists_the_line_in_flight_and_every_later_one() {
+    let env = TestEnv::new();
+    let spool = spool(&env);
+    for n in 1..=3 {
+        spool.append("claude-code", &prompt(n)).unwrap();
+    }
+    let backlogs = RefCell::new(vec![]);
+
+    spool
+        .drain("claude-code", &mut |_| {
+            backlogs.borrow_mut().push(queued(&spool, "claude-code").len());
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(backlogs.into_inner(), vec![3, 2, 1], "a payload leaves the backlog once it is stored, never before");
+    assert_eq!(spool.pending("claude-code").unwrap(), Vec::<String>::new());
+}
+
+#[test]
+fn a_second_drain_waits_for_the_first_so_no_payload_is_handed_over_twice() {
+    let env = TestEnv::new();
+    let spool = spool(&env);
+    for n in 1..=3 {
+        spool.append("claude-code", &prompt(n)).unwrap();
+    }
+    let seen = std::sync::Mutex::new(vec![]);
+    let record = |p: Json| {
+        seen.lock().unwrap().push(p);
+        Ok(())
+    };
+
+    std::thread::scope(|scope| {
+        let mut second = None;
+        spool
+            .drain("claude-code", &mut |p| {
+                // The daemon is draining; `gitprompt spool drain` starts meanwhile. It holds no
+                // payload until the first drain is over, and then finds none left.
+                second.get_or_insert_with(|| scope.spawn(|| spool.drain("claude-code", &mut |p| record(p)).unwrap()));
+                record(p)
+            })
+            .unwrap();
+        let second = second.expect("started").join().unwrap();
+        assert_eq!(second, Drained::default());
+    });
+
+    assert_eq!(seen.into_inner().unwrap(), vec![prompt(1), prompt(2), prompt(3)], "each once, in order");
+}
+
+#[test]
 fn draining_an_empty_or_missing_queue_does_nothing() {
     let env = TestEnv::new();
     let drained = spool(&env).drain("claude-code", &mut |_| panic!("nothing to ingest")).unwrap();
@@ -217,6 +293,22 @@ fn draining_an_empty_or_missing_queue_does_nothing() {
 }
 
 // --- into the pipeline -----------------------------------------------------------------------
+
+#[test]
+fn a_drain_stopped_midway_has_marked_the_turns_of_what_it_stored_for_the_index() {
+    let env = TestEnv::new();
+    let spool = spool(&env);
+    let store = store();
+    spool.append("claude-code", &prompt(1)).unwrap();
+    spool.append("claude-code", &json!({"hook_event_name": "Stop", "session_id": "s1", "prompt_id": "p1"})).unwrap();
+    spool.append("claude-code", &prompt(2)).unwrap();
+    let stored = || all_prompts(&store).len() + all_events(&store).len();
+
+    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| stored() == 2).unwrap();
+
+    assert_eq!(drained.get("claude-code"), Some(&Drained { ingested: 2, corrupted: 0, remaining: 1 }));
+    assert_eq!(store.index().take_marked().unwrap(), vec!["p1".to_string()], "marked with the event, not after the whole drain");
+}
 
 #[test]
 fn start_up_drains_every_queue_into_the_store_in_order() {
@@ -227,7 +319,7 @@ fn start_up_drains_every_queue_into_the_store_in_order() {
     spool.append("claude-code", &json!({"hook_event_name": "Stop", "session_id": "s1", "prompt_id": "p1"})).unwrap();
     spool.append("claude-code", &prompt(2)).unwrap();
 
-    let (drained, captured) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank()).unwrap();
+    let (drained, captured) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(drained.get("claude-code"), Some(&Drained { ingested: 3, corrupted: 0, remaining: 0 }));
     assert_eq!((captured.prompts, captured.events), (2, 1));
@@ -247,7 +339,7 @@ fn drained_payloads_are_stored_as_received_when_they_were_spooled() {
         .append_at("claude-code", &json!({"hook_event_name": "Stop", "session_id": "s1", "prompt_id": "p1"}), at("2026-11-07T10:05:00Z"))
         .unwrap();
 
-    drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank()).unwrap();
+    drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(all_prompts(&store)[0].received_at, "2026-11-07T10:00:00.000000+00:00");
     assert_eq!(all_events(&store)[0].received_at, "2026-11-07T10:05:00.000000+00:00");
@@ -260,7 +352,7 @@ fn a_bare_payload_line_of_an_older_forwarder_is_stored_as_received_at_drain_time
     let store = store().with_clock(Arc::new(|| "2026-11-08T09:00:00Z".parse().unwrap()));
     write_text(&spool.queue_file("claude-code").unwrap(), &format!("{}\n", prompt(1)));
 
-    let (drained, captured) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank()).unwrap();
+    let (drained, captured) = drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!((drained["claude-code"].ingested, captured.prompts), (1, 1));
     assert_eq!(all_prompts(&store)[0].received_at, "2026-11-08T09:00:00.000000+00:00");
@@ -274,7 +366,7 @@ fn a_prompt_both_delivered_and_spooled_is_stored_once() {
     ingest(&env.spec("claude-code"), &store, &prompt(1));
     spool.append("claude-code", &prompt(1)).unwrap();
 
-    drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank()).unwrap();
+    drain_into_pipeline(&spool, &env.specs(), &store, &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(all_prompts(&store).len(), 1);
 }
@@ -287,7 +379,7 @@ fn a_queue_of_a_turned_off_source_is_drained_and_discarded() {
     spool.append("claude-code", &prompt(1)).unwrap();
     let prefs = Preferences { disabled_sources: vec!["claude-code".into()], ..Preferences::default() };
 
-    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store, &prefs, &blank()).unwrap();
+    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store, &prefs, &blank(), &|| false).unwrap();
 
     assert_eq!(drained["claude-code"].ingested, 1);
     assert_eq!(all_prompts(&store).len(), 0);
@@ -300,7 +392,7 @@ fn a_queue_of_a_source_without_a_spec_is_left_alone() {
     let spool = spool(&env);
     spool.append("retired-tool", &prompt(1)).unwrap();
 
-    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store(), &Preferences::default(), &blank()).unwrap();
+    let (drained, _) = drain_into_pipeline(&spool, &env.specs(), &store(), &Preferences::default(), &blank(), &|| false).unwrap();
 
     assert_eq!(drained.get("retired-tool"), None);
     assert_eq!(spool.pending("retired-tool").unwrap().len(), 1);
@@ -320,7 +412,7 @@ fn spooled_payloads_get_the_same_privacy_treatment_as_live_ones() {
         .unwrap();
     let prefs = Preferences { hide_secrets_on_ingest: true, ..Preferences::default() };
 
-    drain_into_pipeline(&spool, &env.specs(), &store, &prefs, &blank()).unwrap();
+    drain_into_pipeline(&spool, &env.specs(), &store, &prefs, &blank(), &|| false).unwrap();
 
     let [row] = all_prompts(&store).try_into().unwrap();
     assert_eq!(row.prompt.as_deref(), Some("use [hidden AWS access key]"));

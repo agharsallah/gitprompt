@@ -13,6 +13,8 @@ export const PATHS = {
 	status: join(OUT, 'status.js'),
 	state: join(OUT, 'state.json'),
 	lock: join(OUT, 'build.lock'),
+	history: join(OUT, 'history.json'),
+	historyScript: join(OUT, 'history.js'),
 	data: join(OUT, 'data'),
 	logs: join(OUT, 'logs'),
 	artifacts: join(OUT, 'artifacts')

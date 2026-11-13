@@ -1,5 +1,5 @@
 // The dashboard shell: sidebar (areas and their reports), overview (live build progress and every
-// report's card), and one page per report drawn from its data. Reads status.js again every second
+// report's card), the Trends page (window.QT, trends.js), and one page per report drawn from its data. Reads status.js again every second
 // while a build runs, so pages fill in as reports finish. Classic script; uses window.Q (render.js)
 // and window.QB (build.js: the build in progress).
 'use strict';
@@ -7,7 +7,7 @@
 (function () {
 	const { h, rich, ago, duration, block } = window.Q;
 	const { ICONS } = window.QB;
-	const view = { status: null, data: {}, requested: {}, drawn: { route: null, version: null } };
+	const view = { status: null, history: null, historyVersion: null, data: {}, requested: {}, drawn: { route: null, version: null } };
 
 	window.qualityStatus = (status) => {
 		view.status = { ...status, build: window.QB.settle(status.build) };
@@ -17,6 +17,12 @@
 				load(`${report.data}?v=${report.version}`);
 			}
 		}
+		loadHistory(status.reports);
+		draw();
+	};
+	window.qualityHistory = (history) => {
+		view.history = history;
+		view.historyStamp = (view.historyStamp || 0) + 1;
 		draw();
 	};
 	window.registerReport = (page) => {
@@ -29,6 +35,14 @@
 		script.src = src;
 		script.onload = script.onerror = () => script.remove();
 		document.head.append(script);
+	}
+
+	/** history.js again whenever a report finished since it was last read (it then has a new run). */
+	function loadHistory(reports) {
+		const latest = Math.max(0, ...reports.map((r) => r.version || 0));
+		if (view.historyVersion === latest) return;
+		view.historyVersion = latest;
+		load(`history.js?v=${latest}`);
 	}
 
 	function poll() {
@@ -61,7 +75,13 @@
 		drawSidebar();
 		const id = route();
 		const main = document.getElementById('main');
-		if (id === 'overview' || !reportById(id)) {
+		if (id === 'trends') {
+			// Only when a new run landed: a redraw every poll would drop the chart under the pointer.
+			if (view.drawn.route === 'trends' && view.drawn.version === view.historyStamp) return;
+			view.drawn = { route: 'trends', version: view.historyStamp };
+			main.replaceChildren(window.QT.page(view.status, view.history));
+			document.title = 'Trends · GitPrompt Quality';
+		} else if (id === 'overview' || !reportById(id)) {
 			view.drawn = { route: 'overview', version: null };
 			main.replaceChildren(overview());
 			document.title = 'GitPrompt Quality';
@@ -76,6 +96,7 @@
 		const nav = document.getElementById('nav');
 		nav.replaceChildren(
 			h('a', { class: 'nav-item', href: '#overview', 'aria-current': current === 'overview' ? 'page' : undefined }, h('span', { class: 'nav-icon', 'aria-hidden': 'true' }, '◫'), h('span', { class: 'nav-title' }, 'Overview')),
+			h('a', { class: 'nav-item', href: '#trends', 'aria-current': current === 'trends' ? 'page' : undefined }, h('span', { class: 'nav-icon', 'aria-hidden': 'true' }, '↗'), h('span', { class: 'nav-title' }, 'Trends')),
 			...areas.map((area) =>
 				h(
 					'div',
@@ -151,6 +172,7 @@
 			{ class: `card cs-${state}${headline ? ` ct-${headline.tone}` : ''}`, href: `#${report.id}` },
 			h('div', { class: 'card-top' }, marker(report), h('h3', {}, report.title)),
 			cardHeadline(report, state),
+			window.QT.sparkline(view.history?.reports[report.id]),
 			h('p', { class: 'card-summary' }, report.summary || report.description),
 			h('div', { class: 'card-foot' }, footer)
 		);

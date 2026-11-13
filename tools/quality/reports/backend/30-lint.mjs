@@ -1,7 +1,7 @@
 // Clippy (the workspace's pedantic set; CI turns every warning into an error) and rustfmt: every
 // finding, by lint, by crate and by place.
 import { clippy as runClippy } from '../../lib/shared.mjs';
-import { groupBy, kpis, note, plural, table, toneZero } from '../../lib/spec.mjs';
+import { groupBy, kpis, metric, note, plural, table, toneZero } from '../../lib/spec.mjs';
 
 /** Findings listed one by one (the rest are counted). */
 const LISTED = 300;
@@ -104,6 +104,7 @@ function page(findings, unformatted) {
 	}
 	return {
 		headline: { value: total, label: total === 1 ? 'finding' : 'findings', tone: toneZero(total) },
+		trend: [metric('findings', 'Findings', total, 'count', 'lower')],
 		summary: `${plural(warnings, 'clippy warning')}, ${plural(errors, 'error')}, ${plural(unformatted.length, 'file')} to format`,
 		sections
 	};

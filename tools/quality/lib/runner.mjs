@@ -7,7 +7,8 @@ import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { createContext, missing, stopChildren } from './context.mjs';
-import { fingerprints, upToDate } from './fingerprint.mjs';
+import { fingerprints, headCommit, upToDate } from './fingerprint.mjs';
+import { addRun, loadHistory, writeHistory } from './history.mjs';
 import { PATHS, OUT, REPO, fromRepo } from './paths.mjs';
 import { createProgress, duration } from './progress.mjs';
 import { QUICK_JOBS, gate, schedule } from './scheduler.mjs';
@@ -43,7 +44,9 @@ export async function run(all, selected, { jobs, force = false, onStarted } = {}
 	const expected = (report) => state.reports[report.id]?.work_ms ?? state.reports[report.id]?.duration_ms;
 	// Every report's inputs, not only the selected ones': the dashboard says which results left out
 	// of this build (measurements, say) are older than the code.
-	const hashes = await fingerprints(REPO, all, (report) => report.inputs);
+	const [hashes, commit] = await Promise.all([fingerprints(REPO, all, (report) => report.inputs), headCommit(REPO)]);
+	const history = loadHistory(PATHS.history);
+	writeHistory(history, { json: PATHS.history, script: PATHS.historyScript });
 	const kept = force ? new Set() : await upToDate(selected, state.reports, hashes, hasPage);
 	const changed = all.filter((report) => !selected.includes(report) && state.reports[report.id]?.inputs && state.reports[report.id].inputs !== hashes[report.id]);
 	const build = {
@@ -107,6 +110,9 @@ export async function run(all, selected, { jobs, force = false, onStarted } = {}
 				// The inputs hashed when the build started: a file edited meanwhile makes the next build run it again.
 				const inputs = result.state === 'done' ? { inputs: hashes[report.id] } : {};
 				state.reports[report.id] = { ...state.reports[report.id], ...result.record, ...inputs };
+				if (result.state === 'done' && addRun(history, report.id, { at: result.record.generated_at, commit, trend: result.trend })) {
+					writeHistory(history, { json: PATHS.history, script: PATHS.historyScript });
+				}
 				save.now();
 				progress.finished(step, result);
 			} finally {
@@ -191,7 +197,7 @@ function throttled(fn, ms) {
 	return call;
 }
 
-/** One report: { state, line (terminal summary), message?, log, record (kept in state.json) }. */
+/** One report: { state, line (terminal summary), message?, log, record (kept in state.json), trend? (history.json) }. */
 async function runOne(report, options) {
 	const started = Date.now();
 	const absent = missing(report.needs);
@@ -207,7 +213,7 @@ async function runOne(report, options) {
 		const work_ms = duration_ms - ctx.waitedMs;
 		await writeData(report, { ...page, id: report.id, version: generated_at, generated_at, duration_ms });
 		const record = { state: 'done', version: generated_at, generated_at, duration_ms, work_ms, headline: page.headline, summary: page.summary, message: null };
-		return { state: 'done', line: `${page.headline.value} ${page.headline.label}`, log: ctx.logPath, record };
+		return { state: 'done', line: `${page.headline.value} ${page.headline.label}`, log: ctx.logPath, record, trend: page.trend };
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		ctx.log(`\n# failed: ${message}`);

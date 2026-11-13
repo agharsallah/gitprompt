@@ -25,6 +25,17 @@ result as it lands. The terminal shows the same in a live block, one line per ru
 failed report does not stop the others (exit status 1 at the end); its page keeps the previous
 result under the error, with a link to its log (`target/quality/logs/`).
 
+## Trends
+
+Every run of a report keeps its main numbers (its `trend`: coverage, test count, findings, scores,
+timings, sizes) in `target/quality/history.json`, with the time and the commit it ran on (`+` when
+the working tree had changes). The **Trends** page charts them, one small chart per number with its
+latest value and the change since the previous and the first run (green when it helps, red when it
+hurts), and each overview card draws its first number's sparkline. Hover a chart (or focus it and use
+the arrow keys) for a run's value, time and commit; every report's runs are also a table. A report
+kept as up to date adds no point, and the last 300 runs per report are kept. The history lives
+with the dashboard in `target/` (git-ignored): deleting `target/quality` starts it over.
+
 ## Only what changed
 
 A report whose inputs did not change since its last successful run keeps its result: the build
@@ -89,7 +100,7 @@ report is queued or rebuilding, its card shows its previous result dimmed, label
 | Backend | `backend/lint` | `cargo clippy` (JSON) and `cargo fmt --check` | findings |
 | Backend | `backend/dependencies` | `cargo deny check`, `cargo machete` | findings |
 | Backend | `backend/performance` | the load benchmark with its budgets (`just perf`), release build | slowest read p95 under load |
-| Backend | `backend/startup` | the release daemon started on an empty folder (fresh install), on the demo spool (first start draining it) and again (relaunch): time until it answers, its first reads, shutdown, idle CPU and memory | relaunch until it answers |
+| Backend | `backend/startup` | the release daemon started on an empty folder (fresh install), on the demo spool (a first start: it answers, then drains the spool) and again (relaunch): time until it answers and until the spool is drained, its first reads, shutdown, idle CPU and memory | relaunch until it answers |
 | Backend | `backend/desktop` | **opt-in.** The release desktop app in its performance profile, in its real window and system webview: launch milestones until the data shows (cold: private webview store; relaunch: warm cache), page switches, native window resizes, idle CPU and memory of the app and its webview processes | cold launch until the data shows |
 | Backend | `backend/complexity` | the architecture test's cognitive complexity of every function (`COMPLEXITY_JSON`), file sizes against `MAX_LINES`, clippy's nesting, argument and length limits, the exemptions (`COMPLEX`, `#[expect]`) | functions, files and blocks over a limit |
 | Web | `web/tests` | `vitest run --coverage` | lines covered |
@@ -132,6 +143,7 @@ tools/quality/
   lib/
     registry.mjs         finds reports/<area>/NN-<name>.mjs; id <area>/<name>; its inputs
     fingerprint.mjs      hashes a report's inputs: is its last result still up to date?
+    history.mjs          each run's main numbers, for the Trends page
     lock.mjs             one build at a time
     scheduler.mjs        which report runs when: places, `after`, longest first, measurements alone
     runner.mjs           runs them through the scheduler, writes progress and results as it goes
@@ -148,7 +160,7 @@ tools/quality/
     desktop-launch.mjs   one performance launch of the desktop app
     status.mjs           status.js, state.json, data/<area>/<name>.js
     progress.mjs         the terminal progress
-  hub/                   the page (index.html, app.js, build.js, render.js, style.css), copied to target/quality
+  hub/                   the page (index.html, app.js, build.js, trends.js, render.js, style.css), copied to target/quality
   reports/<area>/NN-<name>.mjs
   test/                  node --test 'tools/quality/test/*.test.mjs'
 ```
@@ -163,7 +175,7 @@ One file: `reports/<area>/NN-<name>.mjs` (NN orders the sidebar). Nothing else c
 
 ```js
 import { join } from 'node:path';
-import { kpis, table, note, embed, tone, toneZero } from '../../lib/spec.mjs';
+import { kpis, metric, table, note, embed, tone, toneZero } from '../../lib/spec.mjs';
 
 export default {
 	title: 'Audit',
@@ -174,6 +186,7 @@ export default {
 		const advisories = Object.values(JSON.parse(result.stdout).advisories || {});
 		return {
 			headline: { value: advisories.length, label: 'advisories', tone: toneZero(advisories.length) },
+			trend: [metric('advisories', 'Advisories', advisories.length, 'count', 'lower')],
 			summary: `${advisories.length} known vulnerabilities`,
 			sections: [
 				kpis([{ label: 'Advisories', value: advisories.length, tone: toneZero(advisories.length) }]),
@@ -203,6 +216,9 @@ export default {
 - `ctx.once(key, fn)` runs a step once per build, whichever report asks first; the others wait for
   it and say so. Put shared steps in `lib/shared.mjs` (`webSync`, `webBuild`, `clippy`,
   `daemonBinary`, `releaseDaemonBinary`, `desktopBinary`, `demoHome`, `drainedDemo`, `demoDaemon`). `ctx.cleanup(fn)` runs after the build.
+- `trend` (next to `headline`): the report's main numbers, `metric(key, label, value, unit, better)`,
+  the most important first (the card's sparkline). Units: `share` (0 to 1), `ms`, `bytes`, `count`,
+  `score`, `rate`; `better`: `higher` or `lower`. Keep a key once it has history; a label may change.
 - Blocks (`lib/spec.mjs`): `kpis`, `bars`, `table` (sortable, filterable when long), `checks`,
   `embed`, `links`, `note`. Tones: `good`, `warn`, `bad`, `neutral`; `tone`, `toneBelow`, `toneZero`
   pick one from a number.
@@ -218,4 +234,3 @@ A new area is one line in `areas.mjs` and a folder in `reports/`.
 - `backend/build-time`: `cargo build --timings` (its own HTML report embeds as is).
 - `backend/api`: endpoints and their snapshot tests (`tests/snapshots/`), and generated types in sync.
 - `web/a11y`: axe-core over every page, beyond Lighthouse's sample.
-- `history`: keep each build's headlines in `state.json` and draw the trend on every card.

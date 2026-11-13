@@ -26,6 +26,15 @@ export const links = (title, items) => ({ type: 'links', title, items });
 /** A highlighted line of text. */
 export const note = (text, tone = 'neutral') => ({ type: 'note', text, tone });
 
+/**
+ * One of a report's main numbers, kept per run in history.json and charted on the Trends page.
+ * A report returns them as `trend: [metric(...), ...]`, its headline's first. key: stable across
+ * runs (rename the label freely, never the key). unit: share (0 to 1, shown as %), ms, bytes,
+ * count, score, rate (per second). better: higher or lower, so the page says whether a change helps.
+ * A value that is not a finite number (no coverage this run) is left out of that run.
+ */
+export const metric = (key, label, value, unit, better) => ({ key, label, value, unit, better });
+
 /** good when value ≥ good, warn when ≥ warn, else bad (higher is better). */
 export function tone(value, good, warn) {
 	if (value === null || value === undefined || Number.isNaN(value)) return 'neutral';

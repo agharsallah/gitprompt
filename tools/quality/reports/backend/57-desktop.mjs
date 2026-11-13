@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { launchApp } from '../../lib/desktop-launch.mjs';
 import { freePort } from '../../lib/process.mjs';
 import { copyOf, desktopBinary, drainedDemo, performanceEnv, webBuild } from '../../lib/shared.mjs';
-import { bars, kpis, mb, ms, note, table, toneBelow } from '../../lib/spec.mjs';
+import { bars, kpis, mb, metric, ms, note, table, toneBelow } from '../../lib/spec.mjs';
 import { repeat, summary } from '../../lib/stats.mjs';
 
 const TONES = {
@@ -104,6 +104,7 @@ function page(runs, idleSeconds) {
 	const switches = switchRows(visits);
 	return {
 		headline: { value: ms(cold[DATA_SHOWN]), label: 'cold launch until the data shows (median)', tone: TONES.launch(cold[DATA_SHOWN]) },
+		trend: [metric('cold', 'Cold launch until the data shows', cold[DATA_SHOWN], 'ms', 'lower'), metric('relaunch', 'Relaunch until the data shows', warm[DATA_SHOWN], 'ms', 'lower'), metric('switch', 'Page switch', revisit, 'ms', 'lower')],
 		summary: `cold ${ms(cold[DATA_SHOWN])} · relaunch ${ms(warm[DATA_SHOWN])} · page switch ${ms(revisit)} · worst resize ${ms(worstResize.ms)}${idle ? ` · idle ${idle.cpuPercent.toFixed(1)}% CPU, ${mb(idle.rssBytes)}` : ''}`,
 		sections: [
 			kpis([

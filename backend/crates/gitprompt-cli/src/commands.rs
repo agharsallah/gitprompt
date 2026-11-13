@@ -66,14 +66,35 @@ pub(crate) fn serve(mut settings: Settings, port: Option<u16>, io: &mut Io<'_>) 
     }
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     runtime.block_on(async {
+        // Ctrl-C is caught from before the daemon answers: one that comes while it starts (it
+        // answers before this function prints) stops it gracefully once it is up, instead of
+        // killing it, which is what an uncaught SIGINT does.
+        let interrupted = interrupt()?;
         let receiver = settings.receiver();
         let options = AppOptions { dashboard: Some(Dashboard::from_env(&settings.env)), ..AppOptions::default() };
         let daemon = Daemon::start(settings, options, DaemonOptions::default()).await?;
         writeln!(io.stdout, "GitPrompt is running on {receiver}")?;
         io.stdout.flush()?;
-        tokio::signal::ctrl_c().await?;
+        interrupted.await;
         daemon.shutdown().await?;
         Ok(0)
+    })
+}
+
+/// Ctrl-C (SIGINT), caught from now on; the future resolves at the first one. Inside the runtime.
+#[cfg(unix)]
+fn interrupt() -> std::io::Result<impl Future<Output = ()>> {
+    let mut sigint = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+    Ok(async move {
+        sigint.recv().await;
+    })
+}
+
+/// Ctrl-C; on Windows the handler is set when the future is first polled.
+#[cfg(not(unix))]
+fn interrupt() -> std::io::Result<impl Future<Output = ()>> {
+    Ok(async {
+        let _ = tokio::signal::ctrl_c().await;
     })
 }
 

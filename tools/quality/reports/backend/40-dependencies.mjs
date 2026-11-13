@@ -4,7 +4,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { kpis, note, plural, table, toneZero } from '../../lib/spec.mjs';
+import { kpis, metric, note, plural, table, toneZero } from '../../lib/spec.mjs';
 
 const CHECKS = ['advisories', 'bans', 'licenses', 'sources'];
 
@@ -104,6 +104,7 @@ function page(diagnostics, summary, unused, lockedCrates) {
 	}
 	return {
 		headline: { value: findings, label: findings === 1 ? 'finding' : 'findings', tone: errors || unused.length ? 'bad' : warnings ? 'warn' : 'good' },
+		trend: [metric('findings', 'Findings', findings, 'count', 'lower')],
 		summary: `${plural(errors, 'error')}, ${plural(warnings, 'warning')} from cargo deny · ${plural(unused.length, 'unused dependency', 'unused dependencies')} · ${lockedCrates} crates locked`,
 		sections
 	};

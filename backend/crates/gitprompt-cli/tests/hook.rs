@@ -47,7 +47,7 @@ async fn with_the_daemon_up_the_payload_is_delivered_silently() {
 async fn with_the_daemon_down_it_exits_0_silently_and_the_payload_arrives_at_the_next_start() {
     let home = home();
     home.cmd_on(free_port(), &["hook", "claude-code"]).write_stdin(prompt("while down")).assert().code(0).stdout("").stderr("");
-    let daemon = home.daemon().await; // drains the spool before it returns
+    let daemon = home.daemon().await;
     assert_eq!(prompt_texts(&daemon).await, ["while down"]);
     daemon.shutdown().await.expect("shutdown");
 }
