@@ -116,8 +116,10 @@ export function demoDaemon(ctx) {
 		await webBuild(ctx);
 		const binary = await daemonBinary(ctx);
 		const home = await demoHome(ctx);
-		ctx.step('starting a demo daemon');
-		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build') });
+		ctx.step('starting a demo daemon (it first drains the demo spool: a minute or more on a busy machine)');
+		// Setup, not a measurement: a debug build draining thousands of payloads while other reports
+		// build can take well over the default minute, as drainedDemo allows for.
+		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build'), timeoutMs: 300_000 });
 		ctx.cleanup(daemon.stop);
 		return { url: daemon.url };
 	});

@@ -239,3 +239,9 @@ tbody tr:hover { background: var(--sunken); }
 	.bar-row { grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) auto; }
 	.embed-bar { margin: 0 0 8px; }
 }
+
+/* A result shown while its report is queued or rebuilding: the previous one, dimmed. */
+.is-old { opacity: 0.45; }
+.card-headline.is-old { opacity: 1; }
+.card-headline.is-old b, .card-headline.is-old > span:not(.card-old) { opacity: 0.45; }
+.card-old { flex-basis: 100%; font-size: 11.5px; color: var(--muted); }

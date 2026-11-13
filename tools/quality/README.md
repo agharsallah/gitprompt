@@ -3,12 +3,14 @@
 One page for every quality report on the backend and the web dashboard.
 
 ```bash
-just quality                  # opens the dashboard at once, then builds every report whose inputs changed
-just quality web              # one area            just quality backend/lint   one report
+just quality                  # opens the dashboard at once, then runs every check whose inputs changed
+just quality measure          # the measurements: load benchmark, startup, Lighthouse, responsiveness
+just quality all              # checks and measurements
+just quality web              # one area's checks   just quality backend/lint   one report
 just quality lint             # a report name, in every area (backend/lint and web/lint)
 just quality desktop          # an opt-in report: runs only when named (it opens the desktop app's window)
 just quality --view           # open the dashboard as last built, build nothing
-just quality --list           # areas and reports
+just quality --list           # areas, reports and groups
 just quality --no-open ...    # build without opening a browser (CI, scripts)
 just quality --jobs=1 ...     # reports at once (default: half the cores, at most 4)
 just quality --force ...      # rebuild reports whose inputs did not change too
@@ -40,8 +42,17 @@ outside the repository (a new Rust toolchain, an updated global tool) do not cou
 
 ## Side by side
 
-Reports run in parallel (`--jobs`, default half the cores and at most 4: a Rust build alone uses
-every core), the longest one (by its last run) first. Three rules keep that safe:
+Reports run in parallel, in two lanes (`lib/scheduler.mjs`):
+
+- **Quick reports** (under 30 s last time: dependencies, clippy's report, bundle size, web tests…)
+  run in a lane of their own, two at a time, shortest first: their results land within seconds
+  instead of queueing behind builds. A quick report borrows a free long place only when no long
+  report needs it.
+- **Long reports** take up to `--jobs` places (default half the cores, at most 4: a Rust build
+  alone uses every core). A report others wait for (`backend/tests`, for the architecture) starts
+  first, then the longest one, so the build ends as early as it can.
+
+Three rules keep that safe:
 
 - A report waits for the ones in its `after` (when they are in the same build): the architecture
   page draws the coverage `backend/tests` writes.
@@ -49,12 +60,25 @@ every core), the longest one (by its last run) first. Three rules keep that safe
   clippy, the daemon and desktop builds, the demo data, the demo daemon. Anything several reports
   write belongs there.
 - A measurement runs last and alone (`ctx.alone`): the load benchmark, Lighthouse and the timing
-  reports (startup, responsiveness, desktop) build what they need side by side with the rest, then measure one after the other once every other report
-  is done, so their timings never measure a busy machine and they never hold up the others.
+  reports (startup, responsiveness, desktop) build what they need side by side with the rest, then
+  measure one after the other once every other report is done, so their timings never measure a
+  busy machine and they never hold up the others.
+
+Measurements (`measure: true`) take minutes each and cannot share the machine, so they run only when
+asked: `just quality measure`, `just quality all`, or by name; `just quality` and an area run the
+checks. A result left out of a build stays on its card, which says when the code changed since.
 
 Cargo commands on the same `backend/target` profile still take turns on cargo's own lock (the
 dashboard shows the wait); coverage builds into its own folder and the benchmark in release, so
-those really run side by side. `just quality --jobs=1` runs one report at a time, as before.
+those really run side by side. `just quality --jobs=1` runs one long report at a time.
+
+A running build rewrites `status.js` every few seconds. When it stops without finishing (killed, its
+terminal closed), the dashboard says so within 15 s instead of showing its reports as running, and
+an interrupted build (Ctrl-C, `kill`, a closed terminal) stops the commands it started. One build
+runs at a time (`target/quality/build.lock`): two would share the coverage folder, `backend/target`
+and the dashboard and break each other, so a second `just quality` refuses and names the one
+running; the lock of a build that was killed is taken over. While a
+report is queued or rebuilding, its card shows its previous result dimmed, labelled with its age.
 
 ## Reports
 
@@ -94,8 +118,9 @@ only when named, never with its area or with every report. Its window must stay 
 (a hidden window stops painting), and it is built for macOS first: the webview's helper processes are
 found by appearing with the launch.
 
-The full run takes a few minutes (coverage, a release build for the benchmark, Lighthouse); `just
-quality <report>` refreshes one in seconds to minutes and keeps the others. Unchanged reports are
+The checks take about 3.5 minutes when everything changed (the coverage build sets the pace), and
+seconds when little did; the measurements add minutes, one after the other. `just quality <report>`
+refreshes one and keeps the others. Unchanged reports are
 kept as they are (above).
 
 ## How it is built
@@ -107,6 +132,7 @@ tools/quality/
   lib/
     registry.mjs         finds reports/<area>/NN-<name>.mjs; id <area>/<name>; its inputs
     fingerprint.mjs      hashes a report's inputs: is its last result still up to date?
+    lock.mjs             one build at a time
     scheduler.mjs        which report runs when: places, `after`, longest first, measurements alone
     runner.mjs           runs them through the scheduler, writes progress and results as it goes
     context.mjs          what a report gets: exec (logged, live), step, once, alone, cleanup, readJson

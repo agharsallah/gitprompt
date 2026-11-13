@@ -26,6 +26,8 @@ const TONES = {
 export default {
 	title: 'Responsiveness',
 	description: 'The dashboard in headless Chrome on the release daemon: cold and relaunch first paint, page switches, resizing, idle CPU and memory.',
+	/** A measurement: runs alone, with `just quality measure` or when named, not with every build. */
+	measure: true,
 	// The page probes it runs, shared with the desktop app's own performance run.
 	inputs: ['backend/apps/desktop/src/perf/probes.js', '.env', '.env.performance'],
 	needs: [

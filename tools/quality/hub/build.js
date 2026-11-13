@@ -6,6 +6,21 @@
 (function () {
 	const { h, ago, duration } = window.Q;
 	const ICONS = { queued: '○', running: '', done: '✓', failed: '✕', skipped: '–', fresh: '=' };
+	/** A running build rewrites status.js every few seconds (runner.mjs: HEARTBEAT_MS); silent this long, it is gone. */
+	const STALE_MS = 15_000;
+
+	/**
+	 * The build as it really is: one still marked running whose process stopped writing (killed, its
+	 * terminal closed) is stopped, and its unfinished reports did not finish. Every view reads this.
+	 */
+	function settle(build) {
+		if (!build?.running) return build;
+		const last = build.heartbeat_at ?? build.started_at;
+		if (Date.now() - last < STALE_MS) return build;
+		const unfinished = (step) => step.state === 'running' || step.state === 'queued';
+		const steps = build.steps.map((step) => (unfinished(step) ? { ...step, state: 'skipped', message: 'not finished: the build stopped' } : step));
+		return { ...build, running: false, stopped: true, finished_at: last, steps };
+	}
 	/**
 	 * Folds the reader opened or closed, by key: the page redraws every second and they stay as the
 	 * reader left them. (A fold created open fires `toggle` too: only a change from how it was drawn counts.)
@@ -73,6 +88,9 @@
 		);
 	}
 
+	/** `up to 4 long and 2 quick reports at once` */
+	const places = (build) => `up to ${build.jobs || 1} long${build.quick_jobs ? ` and ${build.quick_jobs} quick` : ''} reports at once`;
+
 	/** Wall time, and the reports' time added up: what running side by side saved. */
 	function work(build) {
 		return build.steps.reduce((sum, s) => sum + (s.finished_at && s.started_at ? s.finished_at - s.started_at : 0), 0);
@@ -85,8 +103,9 @@
 		const failed = build.steps.filter((s) => s.state === 'failed').length;
 		if (build.running) {
 			const queued = build.steps.filter((s) => s.state === 'queued').length;
-			return [h('b', {}, `Building ${finishedCount(build) - fresh} of ${total}`), h('span', { class: 'muted' }, `${runningCount(build)} running · ${queued} queued${kept} · up to ${build.jobs || 1} at a time · `, clock(build.started_at))];
+			return [h('b', {}, `Building ${finishedCount(build) - fresh} of ${total}`), h('span', { class: 'muted' }, `${runningCount(build)} running · ${queued} queued${kept} · ${places(build)} · `, clock(build.started_at))];
 		}
+		if (build.stopped) return [h('b', {}, 'Last build stopped before finishing'), h('span', { class: 'muted' }, `${ago(build.finished_at)} · its process ended (killed, or its terminal closed): run just quality again`)];
 		if (total === 0) return [h('b', {}, 'Last build: every report up to date'), h('span', { class: 'muted' }, `${ago(build.finished_at)} · no input changed since their last build`)];
 		const saved = build.jobs > 1 && total > 1 ? ` · ${duration(work(build))} of work, ${build.jobs} at a time` : '';
 		const built = failed ? `Last build: ${failed} of ${total} failed` : `Last build: ${total} ${total === 1 ? 'report' : 'reports'} built`;
@@ -102,8 +121,8 @@
 		const steps = build.running ? [...build.steps].sort((a, b) => (order[a.state] ?? 2) - (order[b.state] ?? 2)) : build.steps;
 		return fold(
 			`build:${build.started_at}`,
-			build.running || failed > 0,
-			{ class: `build ${build.running ? 'is-running' : failed ? 'is-failed' : 'is-done'}` },
+			build.running || build.stopped || failed > 0,
+			{ class: `build ${build.running ? 'is-running' : failed || build.stopped ? 'is-failed' : 'is-done'}` },
 			h('summary', {}, h('span', { class: 'build-head' }, head(build))),
 			h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': finished }, h('i', { style: `width:${(finished / total) * 100}%` })),
 			h('ol', { class: 'steps' }, steps.map((step) => stepRow(step, lookup)))
@@ -114,7 +133,8 @@
 		if (!build) return h('span', { class: 'pill' }, 'never built');
 		if (build.running) return h('span', { class: 'pill p-running' }, h('span', { class: 'spinner small' }), `building ${finishedCount(build)}/${build.steps.length} · ${runningCount(build)} running`);
 		const failed = build.steps.filter((s) => s.state === 'failed').length;
-		return h('span', { class: `pill ${failed ? 'p-failed' : 'p-done'}` }, failed ? `${failed} failed` : 'up to date', ' · ', ago(build.finished_at));
+		const text = build.stopped ? 'stopped' : failed ? `${failed} failed` : 'up to date';
+		return h('span', { class: `pill ${failed || build.stopped ? 'p-failed' : 'p-done'}` }, text, ' · ', ago(build.finished_at));
 	}
 
 	/** The callout on a report's page while it runs or waits in the build. */
@@ -136,5 +156,5 @@
 		}
 	}
 
-	window.QB = { ICONS, panel, pill, reportCallout, tick };
+	window.QB = { ICONS, settle, panel, pill, reportCallout, tick };
 })();

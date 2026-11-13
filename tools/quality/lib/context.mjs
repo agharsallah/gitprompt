@@ -10,6 +10,22 @@ import { lineSplitter } from './output.mjs';
 import { PATHS, REPO, fromHub } from './paths.mjs';
 
 const WINDOWS = process.platform === 'win32';
+/**
+ * The commands running now, each in a process group of its own (on Unix): stopChildren() ends them
+ * and whatever they started (pnpm → eslint, just → cargo → rustc) when the build is interrupted.
+ */
+const children = new Set();
+
+export function stopChildren() {
+	for (const child of children) {
+		try {
+			if (WINDOWS) child.kill();
+			else process.kill(-child.pid, 'SIGTERM');
+		} catch {
+			/* already gone */
+		}
+	}
+}
 /** Lines of output kept for the error message of a failed command. */
 const TAIL = 25;
 
@@ -52,7 +68,8 @@ export async function createContext(report, { build, slots, live }) {
 
 	const spawnLogged = (command, args, { cwd, env, label, allowFailure, activity, dataOnStdout }) =>
 		new Promise((resolve, reject) => {
-			const child = spawn(command, args, { cwd, env: { ...process.env, ...env }, shell: WINDOWS });
+			const child = spawn(command, args, { cwd, env: { ...process.env, ...env }, shell: WINDOWS, detached: !WINDOWS });
+			children.add(child);
 			const out = [];
 			const err = [];
 			const both = [];
@@ -65,8 +82,12 @@ export async function createContext(report, { build, slots, live }) {
 			};
 			child.stdout.on('data', collect(out, 'stdout'));
 			child.stderr.on('data', collect(err, 'stderr'));
-			child.on('error', (error) => reject(new CommandError(`${command}: ${error.message}`)));
+			child.on('error', (error) => {
+				children.delete(child);
+				reject(new CommandError(`${command}: ${error.message}`));
+			});
 			child.on('close', (code) => {
+				children.delete(child);
 				lines.stdout.end();
 				lines.stderr.end();
 				const result = { code: code ?? 1, stdout: Buffer.concat(out).toString(), stderr: Buffer.concat(err).toString(), output: Buffer.concat(both).toString() };

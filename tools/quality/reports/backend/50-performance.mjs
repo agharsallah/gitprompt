@@ -9,6 +9,8 @@ const READ_BUDGET_MS = 300;
 export default {
 	title: 'Performance',
 	description: 'Load benchmark in release mode: ingest throughput, read latencies alone and under load, writer contention, memory.',
+	/** A measurement: runs alone, with `just quality measure` or when named, not with every build. */
+	measure: true,
 	async run(ctx) {
 		const example = ['--release', '-p', 'gitprompt-server', '--example', 'load'];
 		await ctx.exec('cargo', ['build', ...example], { cwd: ctx.backend, label: 'building the benchmark (release)', activity: cargoActivity() });

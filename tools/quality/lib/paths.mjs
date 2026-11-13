@@ -12,6 +12,7 @@ export const PATHS = {
 	index: join(OUT, 'index.html'),
 	status: join(OUT, 'status.js'),
 	state: join(OUT, 'state.json'),
+	lock: join(OUT, 'build.lock'),
 	data: join(OUT, 'data'),
 	logs: join(OUT, 'logs'),
 	artifacts: join(OUT, 'artifacts')

@@ -35,6 +35,8 @@ export function writeStatus(reports, state, build) {
 			title: report.title,
 			description: report.description,
 			command: `just quality ${report.id}`,
+			measure: Boolean(report.measure),
+			changed: build?.changed?.includes(report.id) || undefined,
 			log: fromHub(join(PATHS.logs, `${report.area}-${report.name}.log`)),
 			data: fromHub(dataPath(report)),
 			...state.reports[report.id]

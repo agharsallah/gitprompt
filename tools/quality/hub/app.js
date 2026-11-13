@@ -10,7 +10,7 @@
 	const view = { status: null, data: {}, requested: {}, drawn: { route: null, version: null } };
 
 	window.qualityStatus = (status) => {
-		view.status = status;
+		view.status = { ...status, build: window.QB.settle(status.build) };
 		for (const report of status.reports) {
 			if (report.version && view.requested[report.id] !== report.version) {
 				view.requested[report.id] = report.version;
@@ -33,7 +33,8 @@
 
 	function poll() {
 		load(`status.js?t=${Date.now()}`);
-		setTimeout(poll, view.status && !view.status.build?.running ? 8000 : 1000);
+		// Between builds too, often enough that a build started from the terminal shows up at once.
+		setTimeout(poll, view.status && !view.status.build?.running ? 2000 : 1000);
 	}
 
 	const route = () => decodeURIComponent(location.hash.slice(1)) || 'overview';
@@ -88,7 +89,7 @@
 								{ class: 'nav-item', href: `#${r.id}`, 'aria-current': current === r.id ? 'page' : undefined },
 								marker(r),
 								h('span', { class: 'nav-title' }, r.title),
-								r.state === 'done' && r.headline ? h('span', { class: `nav-value t-${r.headline.tone}` }, String(r.headline.value)) : null
+								r.state === 'done' && r.headline ? h('span', { class: `nav-value t-${r.headline.tone}${pending(r) ? ' is-old' : ''}` }, String(r.headline.value)) : null
 							)
 						)
 				)
@@ -102,7 +103,7 @@
 		return h(
 			'div',
 			{ class: 'page' },
-			h('header', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Code quality'), h('p', { class: 'lead' }, rich('Every report on the backend and the web dashboard. `just quality` rebuilds them all and this page fills in as they finish; `just quality <area or report>` rebuilds some.')))),
+			h('header', { class: 'page-head' }, h('div', {}, h('h1', {}, 'Code quality'), h('p', { class: 'lead' }, rich('Every report on the backend and the web dashboard. `just quality` runs the checks whose code changed and this page fills in as they finish; `just quality measure` runs the measurements (timings, minutes each, alone on the machine); `just quality <area or report>` runs some.')))),
 			build ? window.QB.panel(build, { reportById, areaOf }) : h('p', { class: 'callout c-neutral' }, rich('Nothing built yet: run `just quality`.')),
 			areas.map((area) =>
 				h(
@@ -119,31 +120,48 @@
 		);
 	}
 
+	/** Queued or running in the build now: what it shows is the previous result. */
+	const pending = (report) => ['queued', 'running'].includes(stateOf(report));
+
+	/** The headline of a card: the last result, dimmed and labelled while a new one is on its way. */
+	function cardHeadline(report, state) {
+		const headline = report.headline;
+		if (!headline) return h('div', { class: 'card-pending' }, state === 'running' ? 'Building the first result…' : 'No result yet');
+		const old = pending(report) ? h('span', { class: 'card-old' }, `last result, ${ago(report.generated_at)}`) : null;
+		return h('div', { class: `card-headline${old ? ' is-old' : ''}` }, h('b', { class: `t-${headline.tone}` }, String(headline.value)), h('span', {}, headline.label), old);
+	}
+
 	function card(report) {
 		const state = stateOf(report);
-		const headline = report.headline;
+		const headline = pending(report) ? null : report.headline;
 		const footer =
 			state === 'running'
 				? runningFoot(stepOf(report.id))
 				: state === 'queued'
-					? h('span', { class: 'muted' }, 'queued', stepOf(report.id)?.waiting ? ` · ${stepOf(report.id).waiting}` : '')
+					? h('span', { class: 'muted' }, 'queued, not started yet', stepOf(report.id)?.waiting ? ` · ${stepOf(report.id).waiting}` : '')
 					: state === 'failed'
-						? h('span', { class: 't-bad' }, 'last run failed', report.generated_at ? ' · showing the previous result' : '')
+						? h('span', { class: 't-bad' }, `last run failed${report.failed_at ? ` ${ago(report.failed_at)}` : ''}`, report.generated_at ? ` · showing the result from ${ago(report.generated_at)}` : '')
 						: state === 'skipped'
 							? h('span', { class: 'muted' }, 'skipped: ', report.message)
 							: state === 'missing'
 								? h('span', { class: 'muted' }, rich(`not built yet · \`${report.command}\``))
-								: h('span', { class: 'muted' }, `${ago(report.generated_at)} · took ${duration(report.duration_ms)}`);
+								: doneFoot(report);
 		return h(
 			'a',
 			{ class: `card cs-${state}${headline ? ` ct-${headline.tone}` : ''}`, href: `#${report.id}` },
 			h('div', { class: 'card-top' }, marker(report), h('h3', {}, report.title)),
-			headline
-				? h('div', { class: 'card-headline' }, h('b', { class: `t-${headline.tone}` }, String(headline.value)), h('span', {}, headline.label))
-				: h('div', { class: 'card-pending' }, state === 'running' ? 'Building the first result…' : 'No result yet'),
+			cardHeadline(report, state),
 			h('p', { class: 'card-summary' }, report.summary || report.description),
 			h('div', { class: 'card-foot' }, footer)
 		);
+	}
+
+	/** A finished report's card: when, how long, and whether the code changed since (it was not in the last build). */
+	function doneFoot(report) {
+		const when = h('span', { class: 'muted' }, `${ago(report.generated_at)} · took ${duration(report.duration_ms)}`);
+		if (!report.changed) return when;
+		const command = report.measure ? 'just quality measure' : report.command;
+		return h('span', { class: 'card-live' }, when, h('span', { class: 't-warn' }, rich(`code changed since · \`${command}\``)));
 	}
 
 	/** A running report's card: what it waits for, or its step and latest activity. */
@@ -180,7 +198,7 @@
 				'header',
 				{ class: 'report-head' },
 				h('div', {}, h('h1', {}, report.title), h('p', { class: 'lead' }, report.description)),
-				report.headline ? h('div', { class: `headline-tile ht-${report.headline.tone}` }, h('b', {}, String(report.headline.value)), h('span', {}, report.headline.label)) : null
+				report.headline ? h('div', { class: `headline-tile ht-${report.headline.tone}${pending(report) ? ' is-old' : ''}`, title: pending(report) ? 'the last result: a new one is on its way' : undefined }, h('b', {}, String(report.headline.value)), h('span', {}, report.headline.label)) : null
 			),
 			h(
 				'div',
@@ -192,9 +210,24 @@
 		];
 		if (page?.summary) head.push(h('p', { class: 'summary-line' }, page.summary));
 		if ((state === 'running' || state === 'queued') && step) head.push(window.QB.reportCallout(step));
-		if (state === 'failed') head.push(h('div', { class: 'callout c-bad' }, h('b', {}, 'The last run failed'), page ? ' (below: the previous result).' : '.', h('pre', {}, report.message || ''), h('a', { href: report.log, target: '_blank', rel: 'noopener' }, 'Full log ↗')));
+		if (state === 'failed') head.push(failedCallout(report, page));
 		if (state === 'skipped') head.push(h('p', { class: 'callout c-warn' }, 'Skipped: ', report.message));
 		return head;
+	}
+
+	/** Why the last run failed, when, and what the page shows instead; with the command that reruns it. */
+	function failedCallout(report, page) {
+		const when = report.failed_at ? ` ${ago(report.failed_at)}` : '';
+		const below = page ? ` Below: the previous result, from ${ago(page.generated_at)}.` : '';
+		return h(
+			'div',
+			{ class: 'callout c-bad' },
+			h('b', {}, `The last run failed${when}.`),
+			below,
+			h('pre', {}, report.message || ''),
+			h('span', {}, rich(`Run it again: \`${report.command}\` · `)),
+			h('a', { href: report.log, target: '_blank', rel: 'noopener' }, 'Full log ↗')
+		);
 	}
 
 	function copy(target, text) {

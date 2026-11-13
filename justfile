@@ -140,10 +140,11 @@ arch-report *flags: target-guard
     cd backend && ARCH_REPORT=1 cargo test -q -p gitprompt-core --test architecture report -- --exact --nocapture
     {{ if flags == "--open" { opener + " backend/target/architecture/index.html" } else { "" } }}
 
-# Opens target/quality/index.html at once, then builds while it fills in live. Select with an area,
-# a report or a name (`just quality web`, `just quality backend/lint`, `just quality lint`); `--view`
-# opens it without building, `--list` lists the reports, `--no-open` skips the browser, `--jobs=N`
-# sets how many reports run side by side (default: half the cores, at most 4).
+# Opens target/quality/index.html at once, then runs the checks whose code changed while it fills in
+# live. `just quality measure` runs the measurements (benchmark, startup, Lighthouse...), `all` both.
+# Select with an area, a report or a name (`just quality web`, `just quality backend/lint`, `just
+# quality lint`); `--view` opens it without building, `--list` lists the reports, `--no-open` skips
+# the browser, `--jobs=N` sets how many reports run side by side, `--force` reruns unchanged ones.
 # Code-quality dashboard: backend and web reports (tests, coverage, architecture, lint, performance...)
 quality *args: target-guard
     GITPROMPT_TARGET_GUARDED=1 node tools/quality/quality.mjs {{ args }}

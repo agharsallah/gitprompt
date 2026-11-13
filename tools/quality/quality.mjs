@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 // The code-quality dashboard (`just quality`): opens it, then builds the reports while it watches.
 //
-//   just quality                    every report; the dashboard opens at once and fills in live
-//   just quality web                one area          just quality backend/lint   one report
+//   just quality                    the checks; the dashboard opens at once and fills in live
+//   just quality measure            the measurements (timings that run alone, minutes each)
+//   just quality all                checks and measurements
+//   just quality web                one area's checks just quality backend/lint   one report
 //   just quality lint               a report name in every area
 //   just quality --view             open the dashboard as last built, build nothing
 //   just quality --list             the areas and reports
@@ -12,11 +14,13 @@
 //
 // Adding a report: tools/quality/README.md.
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 
 import { AREAS } from './areas.mjs';
-import { PATHS, fromRepo } from './lib/paths.mjs';
-import { discover, select } from './lib/registry.mjs';
+import { takeLock } from './lib/lock.mjs';
+import { OUT, PATHS, fromRepo } from './lib/paths.mjs';
+import { duration } from './lib/progress.mjs';
+import { GROUPS, discover, select } from './lib/registry.mjs';
 import { installHub, run } from './lib/runner.mjs';
 import { DEFAULT_JOBS } from './lib/scheduler.mjs';
 
@@ -35,9 +39,12 @@ if (flags.has('--list')) {
 	for (const area of AREAS) {
 		console.log(`${area.title}  ${area.description}`);
 		for (const report of reports.filter((r) => r.area === area.id)) {
-			console.log(`  ${report.id.padEnd(22)} ${report.title}: ${report.description}${report.optIn ? ' (opt-in: only when named)' : ''}`);
+			const kind = report.optIn ? ' (opt-in: only when named)' : report.measure ? ' (measurement: `measure`, `all` or by name)' : '';
+			console.log(`  ${report.id.padEnd(22)} ${report.title}: ${report.description}${kind}`);
 		}
 	}
+	console.log('Groups');
+	for (const [name, what] of Object.entries(GROUPS)) console.log(`  ${name.padEnd(22)} ${what}`);
 	process.exit(0);
 }
 
@@ -54,6 +61,15 @@ try {
 } catch (error) {
 	fail(error.message);
 }
+
+mkdirSync(OUT, { recursive: true });
+const lock = takeLock(PATHS.lock, args);
+if (lock.held) {
+	const { pid, started_at: since, args: theirs = [] } = lock.held;
+	const what = pid ? `pid ${pid}, \`just quality ${theirs.join(' ')}\`, started ${duration(Date.now() - since)} ago` : 'starting now';
+	fail(`another build is running (${what}): two at once would break each other. Wait for it (the dashboard shows it), or stop it, then run again.`);
+}
+process.on('exit', () => lock.release());
 
 const atOnce = Math.min(jobs, selected.length);
 console.log(`\n  GitPrompt quality · ${selected.length} of ${reports.length} reports, ${atOnce} at a time · ${fromRepo(PATHS.index)}\n`);

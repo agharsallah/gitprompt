@@ -32,6 +32,8 @@ const TONES = {
 export default {
 	title: 'Startup',
 	description: 'The release daemon: fresh install, first start draining a spool, relaunch, first reads, shutdown, idle CPU and memory.',
+	/** A measurement: runs alone, with `just quality measure` or when named, not with every build. */
+	measure: true,
 	inputs: ['.env', '.env.performance'],
 	async run(ctx) {
 		const [binary] = await Promise.all([releaseDaemonBinary(ctx), webBuild(ctx)]);

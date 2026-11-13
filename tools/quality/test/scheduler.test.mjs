@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { gate, schedule } from '../lib/scheduler.mjs';
+import { gate, schedule, startOrder } from '../lib/scheduler.mjs';
 
 const tick = (ms = 5) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -33,11 +33,30 @@ test('never runs more reports at once than jobs', async () => {
 	assert.equal(started.length, 7);
 });
 
-test('starts the longest report first, and one never built before all of them', async () => {
-	const last = { short: 1_000, long: 90_000, middle: 30_000 };
+test('long reports start longest first, one never built before all of them', async () => {
+	const last = { short: 40_000, long: 300_000, middle: 90_000 };
 	const reports = ['short', 'new', 'long', 'middle'].map((id) => ({ id }));
 	const { started } = await runAll(reports, { jobs: 1, expected: (report) => last[report.id] });
 	assert.deepEqual(started, ['new', 'long', 'middle', 'short']);
+});
+
+test('quick reports start at once in their own lane, shortest first, without waiting for long ones', async () => {
+	const last = { lint: 1_000, deps: 2_000, bundle: 500, tests: 200_000, perf: 150_000 };
+	const reports = Object.keys(last).map((id) => ({ id, ms: id === 'tests' || id === 'perf' ? 40 : 5 }));
+	const { started, most } = await runAll(reports, { jobs: 1, expected: (report) => last[report.id] });
+	// One long place, two quick ones: the longest long report and the two shortest quick ones at once.
+	assert.deepEqual(started.slice(0, 3), ['bundle', 'lint', 'tests']);
+	assert.equal(started.indexOf('deps') < started.indexOf('perf'), true);
+	assert.equal(most, 3);
+});
+
+test('a report others wait for starts before longer ones', async () => {
+	const last = { tests: 100_000, perf: 300_000, architecture: 2_000 };
+	const reports = [{ id: 'perf' }, { id: 'architecture', after: ['tests'] }, { id: 'tests' }];
+	assert.deepEqual(
+		startOrder(reports, (report) => last[report.id]).map((report) => report.id),
+		['tests', 'architecture', 'perf']
+	);
 });
 
 test('a report waits for the reports of its `after` in the same build, and only those', async () => {

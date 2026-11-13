@@ -6,17 +6,24 @@
 import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { createContext, missing } from './context.mjs';
+import { createContext, missing, stopChildren } from './context.mjs';
 import { fingerprints, upToDate } from './fingerprint.mjs';
 import { PATHS, OUT, REPO, fromRepo } from './paths.mjs';
 import { createProgress, duration } from './progress.mjs';
-import { gate, schedule } from './scheduler.mjs';
+import { QUICK_JOBS, gate, schedule } from './scheduler.mjs';
 import { dataPath, loadState, writeData, writeStatus } from './status.mjs';
 
 /** Output lines kept per running report for the dashboard. */
 const TAIL_LINES = 14;
 /** status.js is rewritten at most this often while output streams in. */
 const SAVE_EVERY_MS = 300;
+/**
+ * status.js is rewritten at least this often while a build runs (build.heartbeat_at), so the page
+ * tells a build that is quiet from one that was killed (hub/build.js: STALE_MS).
+ */
+const HEARTBEAT_MS = 3_000;
+/** What stops a build from the outside: Ctrl-C, `kill`, a closed terminal. */
+const SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'];
 
 /**
  * Copies the dashboard shell (hub/) next to the data. Its own scripts and stylesheet get a new URL
@@ -34,12 +41,17 @@ export async function run(all, selected, { jobs, force = false, onStarted } = {}
 	await installHub();
 	const state = await loadState();
 	const expected = (report) => state.reports[report.id]?.work_ms ?? state.reports[report.id]?.duration_ms;
-	const hashes = await fingerprints(REPO, selected, (report) => report.inputs);
+	// Every report's inputs, not only the selected ones': the dashboard says which results left out
+	// of this build (measurements, say) are older than the code.
+	const hashes = await fingerprints(REPO, all, (report) => report.inputs);
 	const kept = force ? new Set() : await upToDate(selected, state.reports, hashes, hasPage);
+	const changed = all.filter((report) => !selected.includes(report) && state.reports[report.id]?.inputs && state.reports[report.id].inputs !== hashes[report.id]);
 	const build = {
 		started_at: Date.now(),
 		running: true,
 		jobs,
+		quick_jobs: QUICK_JOBS,
+		changed: changed.map((report) => report.id),
 		steps: selected.map((report) => (kept.has(report.id) ? { id: report.id, state: 'fresh', built_at: state.reports[report.id].generated_at } : { id: report.id, state: 'queued', expected_ms: expected(report) }))
 	};
 	const stepOf = (report) => build.steps.find((step) => step.id === report.id);
@@ -52,12 +64,18 @@ export async function run(all, selected, { jobs, force = false, onStarted } = {}
 		return !build.steps.some((s) => (s.state === 'queued' && !afterMeasurement(s)) || (s.state === 'running' && !s.measuring));
 	};
 	const shared = { shared: new Map(), owners: new Map(), cleanups: [], gate: gate(idle) };
-	const save = throttled(() => writeStatus(all, state, build), SAVE_EVERY_MS);
+	const save = throttled(() => {
+		build.heartbeat_at = Date.now();
+		writeStatus(all, state, build);
+	}, SAVE_EVERY_MS);
 	save.now();
+	const heartbeat = setInterval(save, HEARTBEAT_MS);
 	onStarted?.();
 	const progress = createProgress(build, Math.max(...selected.map((report) => report.id.length)));
 
 	const interrupted = () => {
+		clearInterval(heartbeat);
+		stopChildren();
 		progress.stop();
 		for (const step of build.steps.filter((s) => s.state === 'running' || s.state === 'queued')) {
 			step.state = step.state === 'running' ? 'failed' : 'skipped';
@@ -68,7 +86,7 @@ export async function run(all, selected, { jobs, force = false, onStarted } = {}
 		for (const cleanup of shared.cleanups) Promise.resolve().then(cleanup).catch(() => {});
 		process.exit(130);
 	};
-	process.once('SIGINT', interrupted);
+	for (const signal of SIGNALS) process.once(signal, interrupted);
 	for (const step of build.steps.filter((s) => s.state === 'fresh')) progress.kept(step, state.reports[step.id]);
 
 	await schedule(selected.filter((report) => !kept.has(report.id)), {
@@ -99,7 +117,8 @@ export async function run(all, selected, { jobs, force = false, onStarted } = {}
 	});
 
 	for (const cleanup of shared.cleanups.reverse()) await Promise.resolve().then(cleanup).catch(() => {});
-	process.removeListener('SIGINT', interrupted);
+	for (const signal of SIGNALS) process.removeListener(signal, interrupted);
+	clearInterval(heartbeat);
 	progress.stop();
 	finish(build);
 	save.now();

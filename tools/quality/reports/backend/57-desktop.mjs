@@ -34,6 +34,8 @@ const DATA_SHOWN = MILESTONES.length - 1;
 export default {
 	title: 'Desktop app',
 	description: 'The real desktop app and its webview: launch to data shown, cold and relaunched, page switches, window resizes, idle CPU and memory. Opens a window: only when named (`just quality desktop`).',
+	/** A measurement: runs alone, with `just quality measure` or when named, not with every build. */
+	measure: true,
 	optIn: true,
 	inputs: ['web/src', '.env', '.env.performance'],
 	async run(ctx) {

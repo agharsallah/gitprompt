@@ -25,6 +25,8 @@ const scoreTone = (score) => tone(score, 90, 50);
 export default {
 	title: 'Lighthouse',
 	description: 'Performance, accessibility, best practices and SEO of key pages, on the built dashboard with demo data.',
+	/** A measurement: runs alone, with `just quality measure` or when named, not with every build. */
+	measure: true,
 	needs: [
 		{ command: 'pnpm', install: 'https://pnpm.io/installation' },
 		{ command: 'cargo', install: 'https://rustup.rs' }
