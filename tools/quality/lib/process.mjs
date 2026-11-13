@@ -37,8 +37,9 @@ export async function ready(url, { timeoutMs = 60_000, intervalMs = 300 } = {}) 
  * `binary serve` on a free loopback port with `home` as its data folder and `dashboard` as the
  * page it serves. Resolves { url, pid, startMs, stop() } once /api/status answers; startMs is the
  * time from spawn to that answer (polled every 10 ms). stop() sends Ctrl-C and resolves on exit.
+ * timeoutMs: how long a start may take (a spool to drain makes it long).
  */
-export async function startDaemon(binary, { home, dashboard, env = {} }) {
+export async function startDaemon(binary, { home, dashboard, env = {}, timeoutMs = 60_000 }) {
 	const port = await freePort();
 	const url = `http://127.0.0.1:${port}`;
 	const started = performance.now();
@@ -52,7 +53,7 @@ export async function startDaemon(binary, { home, dashboard, env = {} }) {
 		return exited;
 	};
 	try {
-		await Promise.race([ready(`${url}/api/status`, { intervalMs: 10 }), exited.then((code) => Promise.reject(new Error(`the daemon exited (${code}) before it answered`)))]);
+		await Promise.race([ready(`${url}/api/status`, { timeoutMs, intervalMs: 10 }), exited.then((code) => Promise.reject(new Error(`the daemon exited (${code}) before it answered`)))]);
 	} catch (error) {
 		await stop();
 		throw error;

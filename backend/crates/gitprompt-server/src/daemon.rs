@@ -126,7 +126,8 @@ async fn blocking<T: Send + 'static>(what: &str, f: impl FnOnce() -> Result<T, D
 
 /// The work before listening: tool versions, the index, the hook spool, a first retention pass.
 async fn prepare(service: &Service) -> Result<(), DaemonError> {
-    tracing::info!(home = %service.settings().home.display(), "GitPrompt is starting");
+    let settings = service.settings();
+    tracing::info!(home = %settings.home.display(), profile = %settings.profile, "GitPrompt is starting");
     service.warm_tool_versions();
     service.ensure_index().await?;
     drain_spool(service).await;

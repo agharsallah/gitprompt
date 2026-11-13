@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { findChrome } from '../../lib/chrome.mjs';
 import { HEIGHT, IDLE_S, ROUNDS, ROUTES, WIDTHS, loads, session } from '../../lib/dashboard-timings.mjs';
 import { startDaemon } from '../../lib/process.mjs';
-import { demoHome, releaseDaemonBinary, tempFolder, webBuild } from '../../lib/shared.mjs';
+import { copyOf, drainedDemo, performanceEnv, releaseDaemonBinary, tempFolder, webBuild } from '../../lib/shared.mjs';
 import { bars, kb, kpis, mb, ms, note, table, toneBelow } from '../../lib/spec.mjs';
 import { repeat, summary } from '../../lib/stats.mjs';
 
@@ -26,6 +26,8 @@ const TONES = {
 export default {
 	title: 'Responsiveness',
 	description: 'The dashboard in headless Chrome on the release daemon: cold and relaunch first paint, page switches, resizing, idle CPU and memory.',
+	// The page probes it runs, shared with the desktop app's own performance run.
+	inputs: ['backend/apps/desktop/src/perf/probes.js', '.env', '.env.performance'],
 	needs: [
 		{ command: 'pnpm', install: 'https://pnpm.io/installation' },
 		{ command: 'cargo', install: 'https://rustup.rs' }
@@ -34,23 +36,21 @@ export default {
 		const chrome = findChrome();
 		if (!chrome) throw new Error('no Chrome found: install Google Chrome, or set CHROME_PATH to a Chrome or Chromium binary');
 		const [binary] = await Promise.all([releaseDaemonBinary(ctx), webBuild(ctx)]);
-		const home = await demoHome(ctx);
+		const home = await copyOf(ctx, await drainedDemo(ctx));
 		const profiles = await repeat(LOADS + 2, () => tempFolder(ctx));
+		ctx.step('starting the release daemon on the demo data');
+		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build'), env: performanceEnv() });
+		ctx.cleanup(daemon.stop);
 		// Timings on a machine busy with other reports would measure them, not the dashboard.
 		const result = await ctx.alone('page timings', async () => {
-			const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build') });
-			try {
-				ctx.step('warming the daemon up (one untimed load)');
-				await loads(chrome, daemon.url, profiles[LOADS + 1]);
-				const runs = await repeat(LOADS, (i) => {
-					ctx.step(`cold load and relaunch ${i + 1}/${LOADS}`);
-					return loads(chrome, daemon.url, profiles[i]);
-				});
-				ctx.step(`page switches, resizing, ${IDLE_S} s idle`);
-				return { runs, session: await session(chrome, daemon.url, profiles[LOADS]) };
-			} finally {
-				await daemon.stop();
-			}
+			ctx.step('warming the daemon up (one untimed load)');
+			await loads(chrome, daemon.url, profiles[LOADS + 1]);
+			const runs = await repeat(LOADS, (i) => {
+				ctx.step(`cold load and relaunch ${i + 1}/${LOADS}`);
+				return loads(chrome, daemon.url, profiles[i]);
+			});
+			ctx.step(`page switches, resizing, ${IDLE_S} s idle`);
+			return { runs, session: await session(chrome, daemon.url, profiles[LOADS]) };
 		});
 		return page(result);
 	}

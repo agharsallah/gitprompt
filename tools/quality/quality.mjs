@@ -34,7 +34,9 @@ const reports = await discover();
 if (flags.has('--list')) {
 	for (const area of AREAS) {
 		console.log(`${area.title}  ${area.description}`);
-		for (const report of reports.filter((r) => r.area === area.id)) console.log(`  ${report.id.padEnd(22)} ${report.title}: ${report.description}`);
+		for (const report of reports.filter((r) => r.area === area.id)) {
+			console.log(`  ${report.id.padEnd(22)} ${report.title}: ${report.description}${report.optIn ? ' (opt-in: only when named)' : ''}`);
+		}
 	}
 	process.exit(0);
 }

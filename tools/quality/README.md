@@ -6,6 +6,7 @@ One page for every quality report on the backend and the web dashboard.
 just quality                  # opens the dashboard at once, then builds every report whose inputs changed
 just quality web              # one area            just quality backend/lint   one report
 just quality lint             # a report name, in every area (backend/lint and web/lint)
+just quality desktop          # an opt-in report: runs only when named (it opens the desktop app's window)
 just quality --view           # open the dashboard as last built, build nothing
 just quality --list           # areas and reports
 just quality --no-open ...    # build without opening a browser (CI, scripts)
@@ -45,9 +46,10 @@ every core), the longest one (by its last run) first. Three rules keep that safe
 - A report waits for the ones in its `after` (when they are in the same build): the architecture
   page draws the coverage `backend/tests` writes.
 - A step several reports need runs once (`lib/shared.mjs`): the SvelteKit sync, the web build,
-  clippy, the daemon build, the demo daemon. Anything several reports write belongs there.
-- A measurement runs last and alone (`ctx.alone`): the load benchmark and Lighthouse build what
-  they need side by side with the rest, then measure one after the other once every other report
+  clippy, the daemon and desktop builds, the demo data, the demo daemon. Anything several reports
+  write belongs there.
+- A measurement runs last and alone (`ctx.alone`): the load benchmark, Lighthouse and the timing
+  reports (startup, responsiveness, desktop) build what they need side by side with the rest, then measure one after the other once every other report
   is done, so their timings never measure a busy machine and they never hold up the others.
 
 Cargo commands on the same `backend/target` profile still take turns on cargo's own lock (the
@@ -63,16 +65,34 @@ those really run side by side. `just quality --jobs=1` runs one report at a time
 | Backend | `backend/lint` | `cargo clippy` (JSON) and `cargo fmt --check` | findings |
 | Backend | `backend/dependencies` | `cargo deny check`, `cargo machete` | findings |
 | Backend | `backend/performance` | the load benchmark with its budgets (`just perf`), release build | slowest read p95 under load |
+| Backend | `backend/startup` | the release daemon started on an empty folder (fresh install), on the demo spool (first start draining it) and again (relaunch): time until it answers, its first reads, shutdown, idle CPU and memory | relaunch until it answers |
+| Backend | `backend/desktop` | **opt-in.** The release desktop app in its performance profile, in its real window and system webview: launch milestones until the data shows (cold: private webview store; relaunch: warm cache), page switches, native window resizes, idle CPU and memory of the app and its webview processes | cold launch until the data shows |
 | Backend | `backend/complexity` | the architecture test's cognitive complexity of every function (`COMPLEXITY_JSON`), file sizes against `MAX_LINES`, clippy's nesting, argument and length limits, the exemptions (`COMPLEX`, `#[expect]`) | functions, files and blocks over a limit |
 | Web | `web/tests` | `vitest run --coverage` | lines covered |
 | Web | `web/lint` | ESLint, `svelte-check`, Prettier | findings |
 | Web | `web/bundle` | `vite build`, then every file of `web/build` raw and gzipped | JavaScript gzipped |
 | Web | `web/lighthouse` | Lighthouse on key pages of the built dashboard, served by a debug daemon with demo data | performance score |
+| Web | `web/responsiveness` | headless Chrome over the DevTools protocol on the release daemon: first paint and data shown on a cold profile and a relaunch, page switches through the sidebar, resizing, idle main-thread CPU, requests and heap | cold load until the data shows |
 | Web | `web/complexity` | ESLint's complexity rules (sonarjs cognitive complexity, function and file length at 0; depth, parameters, callbacks at their limits) | functions, files and blocks over a limit |
 
 Both Complexity pages share one builder (`lib/complexity.mjs`) and read their limits from the
 configs the gate uses (`rules.rs`, `clippy.toml`, `eslint.config.js`), so the page and the gate never
 disagree.
+
+## Timing reports
+
+Startup, responsiveness and desktop measure, so they follow the same rules: release builds, the
+performance profile (`.env.performance`, loaded by `performanceEnv()`; see the root `.env`), demo
+data drained once per build (`drainedDemo`) and copied for each start, and the timed part inside
+`ctx.alone`. The page probes (`settled`, `firstLoad`, `switchTo`, `resized`) are one script,
+`backend/apps/desktop/src/perf/probes.js`: Chrome preloads it (`lib/page-probes.mjs`), the desktop app
+injects it in its performance profile. "Settled" means the page shows its data: `<main>` has content,
+no navigation in flight, and nothing loading on screen (panels below the fold load when scrolled to).
+
+`backend/desktop` is opt-in (`optIn: true`): a report that takes over the screen or the machine runs
+only when named, never with its area or with every report. Its window must stay visible while it runs
+(a hidden window stops painting), and it is built for macOS first: the webview's helper processes are
+found by appearing with the launch.
 
 The full run takes a few minutes (coverage, a release build for the benchmark, Lighthouse); `just
 quality <report>` refreshes one in seconds to minutes and keeps the others. Unchanged reports are
@@ -93,6 +113,13 @@ tools/quality/
     output.mjs           live output: whole lines, and what a cargo command is doing
     shared.mjs           steps several reports share, once per build: sync, web build, clippy, daemon
     spec.mjs             the page blocks and tone helpers
+    process.mjs          free ports, starting a daemon and timing it, CPU and memory of a process
+    app-processes.mjs    an app's processes (children and webview helpers), their idle cost
+    stats.mjs            medians and percentiles of repeated timings
+    chrome.mjs           headless Chrome over the DevTools protocol, no dependency
+    page-probes.mjs      the page probes (backend/apps/desktop/src/perf/probes.js) for Chrome
+    dashboard-timings.mjs  loads, page switches, resizes and idle in Chrome
+    desktop-launch.mjs   one performance launch of the desktop app
     status.mjs           status.js, state.json, data/<area>/<name>.js
     progress.mjs         the terminal progress
   hub/                   the page (index.html, app.js, build.js, render.js, style.css), copied to target/quality
@@ -140,6 +167,7 @@ export default {
   `dataOnStdout` keeps JSON a report parses out of the live view. Commands of one report may run
   together (`Promise.all`) when they do not depend on each other.
 - `after: ['backend/tests']` (next to `title`) waits for those reports when they are in the build.
+- `optIn: true` runs the report only when it is named (`just quality desktop`).
 - `inputs: ['tools/seed-demo.py']` (next to `title`): files or folders outside its area its result
   depends on; the area's own come with it.
 - `ctx.alone(reason, fn)` runs `fn` once every other report is done, with nothing else running:
@@ -148,7 +176,7 @@ export default {
   `ctx.fromHub(path)` turns a file into a link the page can open or embed.
 - `ctx.once(key, fn)` runs a step once per build, whichever report asks first; the others wait for
   it and say so. Put shared steps in `lib/shared.mjs` (`webSync`, `webBuild`, `clippy`,
-  `daemonBinary`, `demoDaemon`). `ctx.cleanup(fn)` runs after the build.
+  `daemonBinary`, `releaseDaemonBinary`, `desktopBinary`, `demoHome`, `drainedDemo`, `demoDaemon`). `ctx.cleanup(fn)` runs after the build.
 - Blocks (`lib/spec.mjs`): `kpis`, `bars`, `table` (sortable, filterable when long), `checks`,
   `embed`, `links`, `note`. Tones: `good`, `warn`, `bad`, `neutral`; `tone`, `toneBelow`, `toneZero`
   pick one from a number.

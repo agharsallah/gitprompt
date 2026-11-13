@@ -1801,6 +1801,7 @@ dependencies = [
  "gitprompt-core",
  "gitprompt-server",
  "gitprompt-tauri",
+ "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",

@@ -5,6 +5,12 @@
 # deprecated and only kept for comparisons (`just compare`).
 
 bin := "backend/target/release/gitprompt"
+# Run a command in an environment profile: GITPROMPT_ENV and its variables from the .env files
+# (tools/env.mjs; .env says how they layer). Usable from any folder.
+env_tool := "node '" + justfile_directory() + "/tools/env.mjs'"
+dev_env := env_tool + " development --"
+prod_env := env_tool + " production --"
+perf_env := env_tool + " performance --"
 # Opens a file in the default browser
 opener := if os() == "macos" { "open" } else if os() == "windows" { "start" } else { "xdg-open" }
 # What coverage leaves out: test code, examples and binary entry points
@@ -59,12 +65,13 @@ build: target-guard
 
 # Run the daemon (receiver + dashboard) on http://127.0.0.1:7878
 serve: build
-    {{ bin }} serve
+    {{ prod_env }} {{ bin }} serve
 
 # Develop: the Rust daemon (debug; restarts on change with cargo-watch if installed) + Vite with hot reload on http://127.0.0.1:5173
 dev: target-guard
     #!/usr/bin/env bash
     set -euo pipefail
+    eval "$(node tools/env.mjs development --export)"
     cd backend
     if command -v cargo-watch >/dev/null; then
         cargo watch -q -w crates -x 'run -q -p gitprompt-cli -- serve' &
@@ -166,12 +173,12 @@ cov: target-guard
 
 # Load benchmark: ingest throughput and dashboard read latencies on synthetic data (pass e.g. --prompts 5000)
 bench *args: target-guard
-    cd backend && cargo run --release -q -p gitprompt-server --example load -- {{ args }}
+    cd backend && {{ perf_env }} cargo run --release -q -p gitprompt-server --example load -- {{ args }}
 
 # Performance budgets, as CI checks them: read p95 alone and under concurrent ingest with a slow git,
 # the database writer never kept over 500 ms, peak memory (exits 1 when over; see `bench --help`)
 perf *args: target-guard
-    cd backend && cargo run --release -q -p gitprompt-server --example load -- --check {{ args }}
+    cd backend && {{ perf_env }} cargo run --release -q -p gitprompt-server --example load -- --check {{ args }}
 
 # Compare the legacy Python daemon and the Rust daemon endpoint by endpoint on a copy of a database
 compare db="": build
@@ -181,22 +188,22 @@ compare db="": build
 
 # Everything needed to debug an install: paths, daemon, database, index, connectors, spool
 doctor:
-    -{{ bin }} doctor
+    -{{ prod_env }} {{ bin }} doctor
 
 # Per connector and app: the newest captured prompt and how it was attributed
 check:
-    {{ bin }} check
+    {{ prod_env }} {{ bin }} check
 
 # Run any gitprompt command with the release binary, e.g. `just gp compact --apply`
 gp *args:
-    {{ bin }} {{ args }}
+    {{ prod_env }} {{ bin }} {{ args }}
 
 # --- desktop app (backend/apps/desktop, Tauri v2) ---
 
 # Desktop app in debug, with the `gitprompt` hook forwarder built next to it
 desktop-dev: target-guard
     pnpm --dir web build
-    cd backend && cargo build -p gitprompt-cli && cargo run -p gitprompt-desktop
+    cd backend && cargo build -p gitprompt-cli && {{ dev_env }} cargo run -p gitprompt-desktop
 
 # Desktop installers in backend/target/release/bundle; tauri builds the dashboard first (needs: cargo install tauri-cli --version "^2")
 desktop-build: target-guard

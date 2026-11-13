@@ -5,6 +5,8 @@ use tauri::{AppHandle, Manager, Runtime, Url, WebviewUrl, WebviewWindowBuilder, 
 
 use gitprompt_tauri::{DaemonStatus, GitPromptExt};
 
+use crate::perf;
+
 pub(crate) const MAIN: &str = "main";
 
 /// Show the main window, creating it once the daemon's start settled.
@@ -17,6 +19,7 @@ pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let status = gitprompt.ready().await;
+        perf::mark(&app, "daemonReady");
         if let Some(window) = app.get_webview_window(MAIN) {
             reveal(&window); // created meanwhile by another call
             return;
@@ -26,11 +29,12 @@ pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
             tracing::error!(status = ?status, "no page to show");
             return;
         };
-        let built = WebviewWindowBuilder::new(&app, MAIN, WebviewUrl::External(url))
+        let builder = WebviewWindowBuilder::new(&app, MAIN, WebviewUrl::External(url))
             .title("GitPrompt")
             .inner_size(1280.0, 840.0)
-            .min_inner_size(720.0, 480.0)
-            .build();
+            .min_inner_size(720.0, 480.0);
+        let built = perf::configure(&app, builder).build();
+        perf::mark(&app, "window");
         if let Err(e) = built {
             tracing::error!(error = %e, "could not open the GitPrompt window");
         }

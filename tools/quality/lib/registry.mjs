@@ -31,17 +31,19 @@ export async function discover() {
 
 /**
  * The reports matching the selectors: an area (`web`), an id (`backend/lint`) or a name in any area
- * (`lint`). No selector: every report. Throws on a selector that matches nothing.
+ * (`lint`). No selector: every report. An opt-in report (`optIn: true`, one that takes over the
+ * screen or the machine) runs only when named by its id or name, never with its area or with all.
+ * Throws on a selector that matches nothing.
  */
 export function select(reports, selectors) {
-	if (selectors.length === 0) return reports;
-	const unknown = selectors.filter((s) => !reports.some((r) => matches(r, s)));
+	if (selectors.length === 0) return reports.filter((r) => !r.optIn);
+	const unknown = selectors.filter((s) => !reports.some((r) => named(r, s) || r.area === s));
 	if (unknown.length > 0) {
 		throw new Error(`no report matches ${unknown.join(', ')}; there are: ${reports.map((r) => r.id).join(', ')}`);
 	}
-	return reports.filter((r) => selectors.some((s) => matches(r, s)));
+	return reports.filter((r) => selectors.some((s) => named(r, s) || (r.area === s && !r.optIn)));
 }
 
-function matches(report, selector) {
-	return selector === report.id || selector === report.area || selector === report.name;
+function named(report, selector) {
+	return selector === report.id || selector === report.name;
 }

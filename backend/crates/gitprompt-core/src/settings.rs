@@ -5,6 +5,7 @@
 //! | `GITPROMPT_HOME`      | data directory (db, token, backups, user specs) | `~/.gitprompt` |
 //! | `GITPROMPT_PORT`      | port the receiver and dashboard listen on       | `7878`         |
 //! | `GITPROMPT_LOG_LEVEL` | log level or filter (`gitprompt_server::logging`) | `info` for GitPrompt |
+//! | `GITPROMPT_ENV`       | the [`Profile`]: development, production or performance | `production` |
 //!
 //! The host is fixed to loopback on purpose: the prompt API has no auth beyond the Host check, so
 //! binding elsewhere would expose every stored prompt to the network.
@@ -12,7 +13,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::files::{atomic_write, create_exclusive};
-use crate::{Env, Error, Result, random};
+use crate::{Env, Error, Profile, Result, random};
 
 pub const HOST: &str = "127.0.0.1";
 pub const DEFAULT_PORT: u16 = 7878;
@@ -25,6 +26,8 @@ pub struct Settings {
     pub user_home: PathBuf,
     pub port: u16,
     pub log_level: String,
+    /// What the process runs for (`GITPROMPT_ENV`).
+    pub profile: Profile,
     /// The environment specs and preferences read (`${CLAUDE_CONFIG_DIR:-...}`, `GITPROMPT_*`).
     pub env: Env,
 }
@@ -32,7 +35,7 @@ pub struct Settings {
 impl Settings {
     /// Settings from an environment: `GITPROMPT_HOME` (with `~` expanded against `HOME`),
     /// `GITPROMPT_PORT` (an `Error::Invalid` naming the variable when it isn't a port number),
-    /// `GITPROMPT_LOG_LEVEL`. `HOME` (or `USERPROFILE`) must be set: it is the base for `~`.
+    /// `GITPROMPT_LOG_LEVEL`, `GITPROMPT_ENV` (an `Error::Invalid` when unknown). `HOME` (or `USERPROFILE`) must be set: it is the base for `~`.
     pub fn from_env(env: Env) -> Result<Self> {
         let user_home =
             PathBuf::from(env.get("HOME").or_else(|| env.get("USERPROFILE")).ok_or_else(|| Error::Invalid("HOME is not set".into()))?);
@@ -45,12 +48,21 @@ impl Settings {
             None => DEFAULT_PORT,
         };
         let log_level = env.get("GITPROMPT_LOG_LEVEL").unwrap_or("warning").to_owned();
-        Ok(Settings { home, user_home, port, log_level, env })
+        let profile = Profile::from_env(&env)?;
+        Ok(Settings { home, user_home, port, log_level, profile, env })
     }
 
-    /// Settings rooted in explicit directories, default port and log level, empty environment (tests).
+    /// Settings rooted in explicit directories, default port, log level and profile, empty
+    /// environment (tests).
     pub fn new(home: impl Into<PathBuf>, user_home: impl Into<PathBuf>) -> Self {
-        Settings { home: home.into(), user_home: user_home.into(), port: DEFAULT_PORT, log_level: "warning".into(), env: Env::default() }
+        Settings {
+            home: home.into(),
+            user_home: user_home.into(),
+            port: DEFAULT_PORT,
+            log_level: "warning".into(),
+            profile: Profile::Production,
+            env: Env::default(),
+        }
     }
 
     pub fn host(&self) -> &'static str {

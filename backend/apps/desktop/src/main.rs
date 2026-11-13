@@ -5,12 +5,13 @@
 // No console window next to the app on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod perf;
 mod tray;
 mod window;
 
 use tauri_plugin_autostart::MacosLauncher;
 
-use gitprompt_core::Env;
+use gitprompt_core::{Env, Settings};
 use gitprompt_server::logging::{LogConfig, desktop_log_file};
 use gitprompt_tauri::{PluginConfig, sidecar_next_to_exe};
 
@@ -18,17 +19,30 @@ use gitprompt_tauri::{PluginConfig, sidecar_next_to_exe};
 const HIDDEN_ARG: &str = "--hidden";
 
 fn main() {
+    let main_at = perf::epoch_ms();
     // The dashboard is the copy compiled into the app (read from `web/build` in debug builds);
     // `GITPROMPT_DASHBOARD` serves another folder.
     let config = PluginConfig { forwarder: sidecar_next_to_exe(), ..PluginConfig::default() };
-    init_logging(&config);
-    let hidden = std::env::args().any(|arg| arg == HIDDEN_ARG);
-    let app = tauri::Builder::default()
-        // First, so a second launch only brings the running app forward.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| window::show(app)))
+    let settings = config.settings().ok();
+    init_logging(settings.as_ref());
+    let perf = perf::from_settings(settings.as_ref(), main_at).unwrap_or_else(|e| {
+        tracing::error!(error = %e, "GitPrompt cannot run its performance checks");
+        std::process::exit(2);
+    });
+    let hidden = std::env::args().any(|arg| arg == HIDDEN_ARG) && perf.is_none();
+    let mut builder = tauri::Builder::default();
+    if let Some(perf) = perf {
+        builder = builder.manage(perf);
+    } else {
+        // First, so a second launch only brings the running app forward. Not in a performance run,
+        // which must start even while an installed GitPrompt runs.
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| window::show(app)));
+    }
+    let app = builder
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![HIDDEN_ARG])))
         .plugin(gitprompt_tauri::init(config))
         .setup(move |app| {
+            perf::mark(app.handle(), "setup");
             tray::build(app.handle())?;
             if !hidden {
                 window::show(app.handle());
@@ -57,14 +71,15 @@ fn main() {
 /// Logs on stderr and in `<data dir>/logs/desktop.log` (`GITPROMPT_LOG_LEVEL`,
 /// `GITPROMPT_LOG_FORMAT`, as the CLI reads them). Without usable settings (no `HOME`), stderr only;
 /// the plugin reports that settings error at setup.
-fn init_logging(config: &PluginConfig) {
-    let log = match config.settings() {
-        Ok(settings) => LogConfig::from_env(&settings.env).with_file(desktop_log_file(&settings.home)),
-        Err(_) => LogConfig::from_env(&Env::process()),
+fn init_logging(settings: Option<&Settings>) {
+    let log = match settings {
+        Some(settings) => LogConfig::from_env(&settings.env).with_file(desktop_log_file(&settings.home)),
+        None => LogConfig::from_env(&Env::process()),
     };
     if let Err(e) = gitprompt_server::logging::init(&log) {
         // Already logged on stderr by `init`; keep the reason for whoever reads the terminal.
         eprintln!("GitPrompt: logging to stderr only: {e}");
     }
-    tracing::info!(version = env!("CARGO_PKG_VERSION"), file = ?log.file, "GitPrompt desktop starting");
+    let profile = settings.map(|s| s.profile).unwrap_or_default();
+    tracing::info!(version = env!("CARGO_PKG_VERSION"), %profile, file = ?log.file, "GitPrompt desktop starting");
 }

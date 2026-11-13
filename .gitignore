@@ -9,3 +9,7 @@ backend/target/
 /target/
 # coverage runs (just cov)
 *.profraw
+
+# personal environment overrides (tools/env.mjs)
+.env.local
+.env.*.local

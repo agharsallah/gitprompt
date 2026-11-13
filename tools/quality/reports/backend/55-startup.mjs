@@ -6,7 +6,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { idleUsage, startDaemon, usage } from '../../lib/process.mjs';
-import { demoHome, releaseDaemonBinary, tempFolder, webBuild } from '../../lib/shared.mjs';
+import { demoHome, performanceEnv, releaseDaemonBinary, tempFolder, webBuild } from '../../lib/shared.mjs';
 import { bars, count, kpis, mb, ms, note, table, toneBelow } from '../../lib/spec.mjs';
 import { repeat, summary } from '../../lib/stats.mjs';
 
@@ -32,13 +32,15 @@ const TONES = {
 export default {
 	title: 'Startup',
 	description: 'The release daemon: fresh install, first start draining a spool, relaunch, first reads, shutdown, idle CPU and memory.',
+	inputs: ['.env', '.env.performance'],
 	async run(ctx) {
 		const [binary] = await Promise.all([releaseDaemonBinary(ctx), webBuild(ctx)]);
 		const dashboard = join(ctx.web, 'build');
 		const empties = await repeat(RUNS, () => tempFolder(ctx));
 		const demo = await demoHome(ctx);
 		const spooled = await spoolPayloads(demo);
-		const start = (home) => startDaemon(binary, { home, dashboard });
+		const env = performanceEnv();
+		const start = (home) => startDaemon(binary, { home, dashboard, env, timeoutMs: 300_000 });
 		// Start-up times on a machine busy with other reports would measure them, not the daemon.
 		const result = await ctx.alone('start-ups', async () => {
 			const fresh = await repeat(RUNS, (i) => {
@@ -155,7 +157,7 @@ function page({ fresh, drain, relaunches, spooled }) {
 					rss: { text: r.rssBytes === null ? '–' : mb(r.rssBytes), sort: r.rssBytes }
 				}))
 			),
-			note('Release build of `gitprompt serve`, alone on the machine; the desktop app starts the same daemon in-process. Starts are polled every 10 ms, so they read up to 10 ms late. The spool is the demo data of tools/seed-demo.py.')
+			note('Release build of `gitprompt serve` in the performance profile (`.env.performance`), alone on the machine; the desktop app starts the same daemon in-process. Starts are polled every 10 ms, so they read up to 10 ms late. The spool is the demo data of tools/seed-demo.py.')
 		]
 	};
 }

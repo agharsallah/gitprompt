@@ -184,7 +184,7 @@ Preferences live in `~/.gitprompt/preferences.json` (written atomically, mode 06
 | `event_retention_days` (1–3650 or `null`) | `GITPROMPT_EVENT_RETENTION_DAYS` | `null` (keep) | Raw events older than this are deleted at start-up and every 6 hours |
 | `hide_secrets_on_ingest` | `GITPROMPT_HIDE_SECRETS_ON_INGEST` | `false` | Replace detected secrets before a payload is stored |
 
-Environment-only: `GITPROMPT_HOME` (data folder, default `~/.gitprompt`), `GITPROMPT_PORT` (default `7878`), `GITPROMPT_LOG_LEVEL`, `GITPROMPT_LOG_FORMAT` and `GITPROMPT_DASHBOARD` ([ADR-0013](docs/adr/0013-preferences.md)). The theme stays in the browser.
+Environment-only: `GITPROMPT_HOME` (data folder, default `~/.gitprompt`), `GITPROMPT_PORT` (default `7878`), `GITPROMPT_LOG_LEVEL`, `GITPROMPT_LOG_FORMAT`, `GITPROMPT_DASHBOARD` ([ADR-0013](docs/adr/0013-preferences.md)) and `GITPROMPT_ENV`, the profile (`production` unless set; see [Development](#development)). The theme stays in the browser.
 
 ## Command line
 
@@ -228,12 +228,22 @@ just arch       # architecture checks: crate layers, owned infrastructure, pure 
 
 just quality             # code-quality dashboard: opens at once, then builds every report while it fills in
 just quality web         # one area (backend, web), one report (backend/lint) or a name in both (lint)
+just quality desktop     # the real desktop app timed in its own window (opt-in: it takes the screen)
 just quality --view      # open it as last built
 ```
 
+Each recipe runs in an environment profile, `GITPROMPT_ENV` and its variables, read from `.env` files
+at the root (`tools/env.mjs`; later wins, your shell over all): `.env`, `.env.local`,
+`.env.<profile>`, `.env.<profile>.local`. **development** for `just dev` and `just desktop-dev`
+(`.env.development`: debug logs), **production** for `just serve`, `just doctor`, `just gp` and an
+installed app (`.env.production`), **performance** for `just perf`, `just bench` and the timing
+reports (`.env.performance`: quiet logs, and in the desktop app a self-timed run). The `.local` files
+are yours and git-ignored; the binaries never read `.env` files themselves.
+
 The dashboard (`target/quality/index.html`) groups its reports by **Backend** (tests and coverage,
-architecture, clippy and rustfmt, dependencies, the load benchmark) and **Web** (vitest and coverage,
-ESLint and types, bundle size, Lighthouse), with the build's progress live on the overview. Each
+architecture, clippy and rustfmt, dependencies, the load benchmark, daemon start-up, and on demand the
+desktop app) and **Web** (vitest and coverage, ESLint and types, bundle size, Lighthouse,
+responsiveness in Chrome), with the build's progress live on the overview. Each
 report is one file in `tools/quality/reports/`, so adding a page is adding a file:
 [tools/quality/README.md](tools/quality/README.md). What the architecture page means:
 [docs/extending.md](docs/extending.md#architecture).

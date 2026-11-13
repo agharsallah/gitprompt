@@ -1,11 +1,12 @@
 // Build steps several reports need, each done once per build (ctx.once): SvelteKit's generated
-// types, the web build, clippy, the daemon binary (debug and release), the demo data and a daemon
-// with it to measure the dashboard against. Reports run side by side, so whatever writes into web/
+// types, the web build, clippy, the daemon (debug and release) and desktop app builds, the demo data
+// (as spooled, and drained) and a daemon with it to measure the dashboard against. Reports run side by side, so whatever writes into web/
 // or backend/target for several of them belongs here.
 import { cp, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { profileVars } from '../../env.mjs';
 import { installed } from './context.mjs';
 import { cargoActivity } from './output.mjs';
 import { startDaemon } from './process.mjs';
@@ -71,10 +72,39 @@ function demoSeed(ctx) {
 
 /** A fresh copy of the demo data folder (never ~/.gitprompt), removed after the build. */
 export async function demoHome(ctx) {
-	const seed = await demoSeed(ctx);
-	const home = await tempFolder(ctx);
-	await cp(seed, home, { recursive: true });
-	return home;
+	return copyOf(ctx, await demoSeed(ctx));
+}
+
+/**
+ * The demo data with its spool already drained into the database, once per build (a start on it
+ * then measures the start, not the drain): copy it with copyOf before starting on it.
+ */
+export function drainedDemo(ctx) {
+	return ctx.once('the drained demo data', async () => {
+		const [binary, home] = await Promise.all([releaseDaemonBinary(ctx), demoHome(ctx)]);
+		ctx.step('draining the demo spool into a database (release daemon)');
+		const daemon = await startDaemon(binary, { home, dashboard: join(ctx.web, 'build'), env: performanceEnv(), timeoutMs: 300_000 });
+		await daemon.stop();
+		return home;
+	});
+}
+
+/** A temporary copy of a folder, removed after the build. */
+export async function copyOf(ctx, folder) {
+	const copy = await tempFolder(ctx);
+	await cp(folder, copy, { recursive: true });
+	return copy;
+}
+
+/** The variables of the performance profile (.env.performance): what every timed process runs with. */
+export const performanceEnv = () => profileVars('performance');
+
+/** backend/target/release/gitprompt-desktop, built once per build (no installer, no bundling). */
+export function desktopBinary(ctx) {
+	return ctx.once('the release desktop build', async () => {
+		await ctx.exec('cargo', ['build', '--release', '-p', 'gitprompt-desktop'], { cwd: ctx.backend, label: 'building the desktop app (cargo build --release)', activity: cargoActivity() });
+		return join(ctx.backend, 'target', 'release', process.platform === 'win32' ? 'gitprompt-desktop.exe' : 'gitprompt-desktop');
+	});
 }
 
 /**
