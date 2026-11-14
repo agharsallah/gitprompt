@@ -1,0 +1,1459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitPrompt Story Redesign</title>
+<meta name="description" content="Restructuring Overview, Projects, Sessions and Prompts around one story told at four zoom levels, keeping every existing feature, ready for teams later.">
+<style>
+/* Fonts: the dashboard's own bundled files (web/node_modules after `just setup`), never a CDN. System fonts otherwise. */
+@font-face { font-family: "GP Sans"; src: url("../../web/node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wdth-normal.woff2") format("woff2"); font-weight: 400 700; font-stretch: 75% 100%; font-display: swap; }
+@font-face { font-family: "GP Mono"; src: url("../../web/node_modules/@fontsource/commit-mono/files/commit-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GP Mono"; src: url("../../web/node_modules/@fontsource/commit-mono/files/commit-mono-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+
+/* Layout: a working document. Sticky contents on wide screens, a 46rem reading column, sketches break out to 64rem.
+   Colours: the dashboard's tokens (web/src/lib/design/tokens.css), so sketches look like the product. */
+:root {
+  --bg: #f2f5f4; --surface: #fcfdfd; --raised: #ffffff; --sunk: #e9eeed;
+  --fg: #151c1b; --muted: #5f6c69; --line: #dae1df; --line-strong: #c9d2d0;
+  --accent: #0a7468; --accent-text: #095e55; --accent-soft: #e7f6f3; --accent-mid: #98dbcf;
+  --iris: #735add; --iris-soft: #f1effd;
+  --amber: #e5a311; --amber-soft: #fdf5e1; --amber-text: #7d5500;
+  --red: #cc3a35; --red-soft: #fdeeed; --red-text: #ad2c28;
+  --blue: #2f6fd6; --blue-soft: #eaf2fd;
+  --orange: #e0662a; --pink: #d0459a;
+  --callout: #151c1b; --callout-fg: #ffffff;
+  --sans: "GP Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "GP Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1413; --surface: #151c1b; --raised: #1b2322; --sunk: #111716;
+    --fg: #e6ecea; --muted: #8e9b98; --line: #2a3432; --line-strong: #3b4745;
+    --accent: #2ea898; --accent-text: #5fc3b3; --accent-soft: #0f2b28; --accent-mid: #0a4a44;
+    --iris: #8c76e6; --iris-soft: #221c3f;
+    --amber: #f0bb40; --amber-soft: #33260a; --amber-text: #f0bb40;
+    --red: #ec7d77; --red-soft: #3a1716; --red-text: #ec7d77;
+    --blue: #7aa8ef; --blue-soft: #142441;
+    --orange: #f08a52; --pink: #e57ab8;
+    --callout: #e6ecea; --callout-fg: #0e1413;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--sans); padding: 0 max(16px, 2vw) 80px; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent-text); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--mono); font-size: 0.85em; background: var(--sunk); padding: 0.1em 0.35em; border-radius: 4px; }
+
+.page { max-width: 80rem; margin: 0 auto; display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: 3rem; }
+.toc { position: sticky; top: 24px; align-self: start; padding-top: 40px; font-size: 0.85rem; max-height: calc(100vh - 48px); overflow-y: auto; }
+.toc p { margin: 0 0 0.5rem; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.toc a { display: flex; gap: 0.6rem; padding: 4px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; }
+.toc a span { font-family: var(--mono); font-size: 0.72rem; padding-top: 2px; color: var(--line-strong); min-width: 1.2rem; }
+.toc a:hover { background: var(--sunk); color: var(--fg); }
+.toc .sub a { padding-left: 2.4rem; font-size: 0.8rem; }
+
+main { min-width: 0; padding-top: 40px; }
+.prose { max-width: 46rem; }
+header.doc { border-bottom: 1px solid var(--line); padding-bottom: 2rem; }
+.eyebrow { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-text); font-weight: 600; margin: 0 0 0.75rem; }
+h1 { font-stretch: 85%; font-weight: 700; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.02; margin: 0 0 1rem; letter-spacing: -0.02em; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--accent-text); }
+.lede { font-size: 1.2rem; line-height: 1.5; max-width: 42rem; margin: 0 0 1.25rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-size: 0.85rem; color: var(--muted); }
+section { padding-top: 3.5rem; scroll-margin-top: 16px; }
+h2 { font-stretch: 85%; font-size: 1.9rem; line-height: 1.15; margin: 0 0 0.5rem; letter-spacing: -0.01em; text-wrap: balance; display: flex; gap: 0.75rem; align-items: baseline; }
+h2 .n { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+h3 { font-size: 1.15rem; margin: 2rem 0 0.5rem; line-height: 1.3; text-wrap: balance; }
+h4 { font-size: 0.95rem; margin: 0 0 0.3rem; }
+p { margin: 0 0 1rem; }
+.sub { color: var(--muted); font-size: 1.02rem; margin-bottom: 1.5rem; max-width: 46rem; }
+ul.tight, ol.tight { padding-left: 1.2rem; margin: 0 0 1rem; display: grid; gap: 0.35rem; }
+.note { font-size: 0.85rem; color: var(--muted); border-left: 2px solid var(--line-strong); padding-left: 0.75rem; margin: 1rem 0; max-width: 46rem; }
+
+.numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 1.5rem 0; }
+.numbers div { background: var(--raised); padding: 0.9rem 1rem; }
+.numbers b { display: block; font-size: 1.6rem; font-stretch: 85%; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.numbers span { font-size: 0.8rem; color: var(--muted); line-height: 1.35; display: block; margin-top: 0.25rem; }
+
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; max-width: 64rem; }
+.card { background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; min-width: 0; }
+.card p { font-size: 0.92rem; margin: 0; color: var(--muted); }
+.card p b { color: var(--fg); font-weight: 600; }
+.tag { display: inline-block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; padding: 2px 7px; border-radius: 999px; white-space: nowrap; vertical-align: 2px; }
+.tag.keep { background: var(--accent-soft); color: var(--accent-text); }
+.tag.fix { background: var(--amber-soft); color: var(--amber-text); }
+.tag.new { background: var(--iris-soft); color: var(--iris); }
+.tag.later { background: var(--sunk); color: var(--muted); }
+
+.tablewrap { overflow-x: auto; margin: 1rem 0 1.5rem; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); max-width: 64rem; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; background: var(--surface); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+td .dim { color: var(--muted); font-weight: 400; }
+tr.grp td { background: var(--surface); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+
+/* Anatomy grid */
+.anatomy { display: grid; grid-template-columns: 8rem repeat(4, minmax(0, 1fr)); gap: 6px; max-width: 64rem; margin: 1.5rem 0; font-size: 0.84rem; overflow-x: auto; }
+.anatomy > div { padding: 0.6rem 0.7rem; border-radius: 8px; min-width: 0; line-height: 1.4; }
+.anatomy .h { background: transparent; font-weight: 650; font-size: 0.95rem; padding-bottom: 0.2rem; }
+.anatomy .h small { display: block; font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.anatomy .r { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; display: flex; align-items: center; }
+.anatomy .l1 { background: var(--raised); border: 1px solid var(--line); font-size: 0.88rem; }
+.anatomy .l2 { background: var(--accent-soft); color: var(--accent-text); }
+.anatomy .l3 { background: var(--raised); border: 1px dashed var(--line-strong); }
+.anatomy .l4 { background: var(--sunk); color: var(--muted); }
+
+/* Sketches */
+.sketch { margin: 2rem 0 2.75rem; }
+.sketch-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; max-width: 64rem; }
+.sketch-head h4 { margin: 0; font-size: 1.15rem; font-stretch: 88%; }
+.sketch-head .route { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.canvas { overflow-x: auto; margin: 0.6rem 0 1rem; max-width: 64rem; border-radius: 14px; background-color: var(--surface); background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 16px 16px; border: 1px solid var(--line); padding: 18px; }
+.canvas svg { display: block; width: 100%; min-width: 780px; height: auto; }
+.why { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem 1.75rem; max-width: 64rem; margin: 0; padding: 0; list-style: none; }
+.why li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: 0.5rem; font-size: 0.92rem; line-height: 1.5; }
+.why li::before { content: attr(data-n); display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--callout); color: var(--callout-fg); font-size: 0.72rem; font-weight: 700; margin-top: 0.1rem; }
+.why b { font-weight: 600; }
+.keeps { max-width: 64rem; font-size: 0.86rem; color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 0.75rem 1rem; margin: 0.75rem 0 0; }
+.keeps b { color: var(--fg); }
+
+.page-block { border-top: 1px solid var(--line); margin-top: 3rem; padding-top: 0.5rem; }
+.story-q { font-size: 1.25rem; font-stretch: 90%; line-height: 1.35; margin: 0.5rem 0 1rem; max-width: 46rem; }
+.story-q::before { content: "The story it tells: "; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; font-weight: 600; font-stretch: 100%; }
+
+/* SVG vocabulary */
+.w-win { fill: var(--raised); stroke: var(--line-strong); }
+.w-panel { fill: var(--surface); stroke: var(--line); }
+.w-card { fill: var(--raised); stroke: var(--line); }
+.w-sunk { fill: var(--sunk); }
+.w-bar { fill: var(--line-strong); }
+.w-bar2 { fill: var(--line); }
+.w-acc { fill: var(--accent); }
+.w-accmid { fill: var(--accent-mid); }
+.w-accsoft { fill: var(--accent-soft); }
+.w-iris { fill: var(--iris); }
+.w-irissoft { fill: var(--iris-soft); }
+.w-amber { fill: var(--amber); }
+.w-ambersoft { fill: var(--amber-soft); }
+.w-red { fill: var(--red); }
+.w-redsoft { fill: var(--red-soft); }
+.w-blue { fill: var(--blue); }
+.w-bluesoft { fill: var(--blue-soft); }
+.w-orange { fill: var(--orange); }
+.w-pink { fill: var(--pink); }
+.w-fg { fill: var(--fg); }
+.w-none { fill: none; }
+.s-line { stroke: var(--line-strong); fill: none; }
+.s-dash { stroke: var(--line-strong); fill: none; stroke-dasharray: 3 4; }
+.s-acc { stroke: var(--accent); fill: none; stroke-width: 2; }
+.s-iris { stroke: var(--iris); fill: none; stroke-width: 2; }
+.s-amber { stroke: var(--amber); fill: none; stroke-width: 1.6; stroke-dasharray: 4 3; }
+.s-red { stroke: var(--red); fill: none; stroke-width: 2; }
+.s-fg { stroke: var(--fg); fill: none; stroke-width: 1.2; }
+.s-arrow { stroke: var(--muted); fill: none; stroke-width: 1.4; marker-end: url(#arrow); }
+.t { fill: var(--fg); font-family: var(--sans); font-size: 13px; font-weight: 500; }
+.t.s { font-size: 11px; } .t.xs { font-size: 9.5px; } .t.l { font-size: 17px; font-weight: 650; } .t.xl { font-size: 22px; font-weight: 650; }
+.t.m { fill: var(--muted); } .t.b { font-weight: 650; } .t.mono { font-family: var(--mono); }
+.t.acc { fill: var(--accent-text); } .t.red { fill: var(--red-text); } .t.amb { fill: var(--amber-text); } .t.iris { fill: var(--iris); } .t.blue { fill: var(--blue); } .t.inv { fill: var(--raised); }
+.t.mid { text-anchor: middle; } .t.end { text-anchor: end; }
+.t.cap { font-size: 9.5px; letter-spacing: 0.08em; font-weight: 650; fill: var(--muted); }
+.co circle { fill: var(--callout); }
+.co text { fill: var(--callout-fg); font: 700 11px var(--sans); text-anchor: middle; }
+
+/* Roadmap */
+.road { display: grid; gap: 0.75rem; margin: 1.5rem 0; max-width: 56rem; }
+.step { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 1rem; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; }
+.step .when { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+.step .when b { display: block; color: var(--fg); font-size: 0.95rem; font-family: var(--sans); }
+.step h4 { font-size: 1.02rem; }
+.step p { font-size: 0.9rem; margin: 0 0 0.4rem; color: var(--muted); }
+.step p b { color: var(--fg); font-weight: 600; }
+.size { font-family: var(--mono); font-size: 0.72rem; padding: 1px 6px; border-radius: 4px; background: var(--sunk); color: var(--muted); margin-left: 0.4rem; }
+.decisions { display: grid; gap: 0.75rem; max-width: 46rem; margin: 1rem 0; padding: 0; list-style: none; counter-reset: d; }
+.decisions li { counter-increment: d; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1rem 0.9rem 3rem; position: relative; font-size: 0.93rem; }
+.decisions li::before { content: "D" counter(d); position: absolute; left: 1rem; top: 0.95rem; font-family: var(--mono); font-size: 0.75rem; color: var(--accent-text); font-weight: 600; }
+.decisions b { display: block; margin-bottom: 0.2rem; }
+.decisions .rec { color: var(--muted); display: block; margin-top: 0.3rem; }
+
+@media (max-width: 62rem) {
+  .page { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .toc { position: static; max-height: none; padding-top: 24px; }
+  .toc ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 42rem) {
+  .cards, .why, .numbers, .toc ol { grid-template-columns: minmax(0, 1fr); }
+  .step { grid-template-columns: minmax(0, 1fr); gap: 0.4rem; }
+  .anatomy { grid-template-columns: 6rem repeat(4, 10rem); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pulse { animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+}
+</style>
+</head>
+<body>
+
+<!-- Shared SVG defs: the arrow head used by flow diagrams. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+</svg>
+
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p>Contents</p>
+  <ol>
+    <li><a href="#today"><span>01</span>Where we are</a></li>
+    <li><a href="#idea"><span>02</span>One story, four zooms</a></li>
+    <li><a href="#vocabulary"><span>03</span>Visual vocabulary</a></li>
+    <li><a href="#navigation"><span>04</span>Navigation</a></li>
+    <li><a href="#pages"><span>05</span>Page by page</a></li>
+    <li class="sub"><a href="#overview">Overview</a></li>
+    <li class="sub"><a href="#projects">Projects</a></li>
+    <li class="sub"><a href="#project">Project story</a></li>
+    <li class="sub"><a href="#sessions">Sessions</a></li>
+    <li class="sub"><a href="#session">Session story</a></li>
+    <li class="sub"><a href="#prompts">Prompts</a></li>
+    <li class="sub"><a href="#prompt">Prompt reader</a></li>
+    <li><a href="#flows"><span>06</span>How pages connect</a></li>
+    <li><a href="#quality"><span>07</span>Quality and leaks</a></li>
+    <li><a href="#keep"><span>08</span>Nothing is lost</a></li>
+    <li><a href="#teams"><span>09</span>Ready for teams</a></li>
+    <li><a href="#desktop"><span>10</span>Desktop</a></li>
+    <li><a href="#build"><span>11</span>How to build it</a></li>
+    <li><a href="#decide"><span>12</span>Decisions</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="doc prose">
+  <p class="eyebrow">Design proposal · dashboard restructure</p>
+  <h1>One story, told at <em>four zoom levels</em></h1>
+  <p class="lede">Overview, Projects, Sessions and Prompts already hold everything needed to tell how your work with coding agents went. This proposal keeps every feature they have and reorganises them so each page reads as a story: a headline, one signature picture, chapters, then the evidence.</p>
+  <div class="meta">
+    <span>14 Nov 2026</span>
+    <span>Status: proposal, nothing built yet</span>
+    <span>Based on the running app with real data and the code in <code>web/src</code> and <code>backend/crates</code></span>
+  </div>
+</header>
+
+<!-- 01 -->
+<section id="today">
+  <div class="prose">
+    <h2><span class="n">01</span>Where we are</h2>
+    <p class="sub">I ran the daemon against the real local database and went through every page: Overview, Prompts with a selected turn, Sessions, a session story, Projects and a project story.</p>
+  </div>
+  <div class="numbers">
+    <div><b>503</b><span>prompts kept; 81 sessions in the last 7 days</span></div>
+    <div><b>57%</b><span>of the week's prompts typed by you; the rest came from the harness or agents</span></div>
+    <div><b>$453</b><span>spent in 7 days; subagents took 43%</span></div>
+    <div><b>16 + 18</b><span>Overview panels, and "Phase 1…18" in one project</span></div>
+  </div>
+  <div class="prose">
+    <p>The data is rich and accurate. The pages show it as inventories: long vertical lists where everything has the same weight. You can find any fact, but you have to build the story yourself.</p>
+  </div>
+  <div class="cards">
+    <div class="card"><h4><span class="tag fix">Overview</span> 16 panels, no headline</h4><p>Each panel asks a good question, but the page doesn't say what happened this week, what changed since last week, or what deserves a look. It is <b>3,600px tall</b>.</p></div>
+    <div class="card"><h4><span class="tag fix">Projects</span> Rows of numbers</h4><p>Each project shows counts and a sparkline, but not <b>where the work stands</b>: which chapter it is in, whether it's active, or what was achieved.</p></div>
+    <div class="card"><h4><span class="tag fix">Project story</span> Phases without names</h4><p>"Phase 1 … Phase 18", a table, then a <b>4,000px list</b> with commit dumps (15 rows under one prompt). The shape of the project is lost.</p></div>
+    <div class="card"><h4><span class="tag fix">Sessions</span> Tall cards</h4><p>About 150px each, so 5 per screen. The title is the first prompt, truncated. The turn sparkline, the most telling part, is the smallest. <b>Parallel sessions are invisible.</b></p></div>
+    <div class="card"><h4><span class="tag fix">Session story</span> Turns with no arc</h4><p>Turns are listed with facts, but there is no picture of how the conversation went: where it slowed down, where you reworded, where the money went. System items break up the reading.</p></div>
+    <div class="card"><h4><span class="tag fix">Prompts</span> Filters before content</h4><p><b>Six rows of filters</b> come before the first prompt. The reader is empty until you select something, then shows one long column with 7 tabs that mixes reading, annotating and debugging.</p></div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section id="idea">
+  <div class="prose">
+    <h2><span class="n">02</span>The idea: one story, four zoom levels</h2>
+    <p class="sub">Overview, Project, Session and Prompt are the same story seen from different distances. The navigation becomes a zoom: each page says where you are, lets you go one level in or out, and uses the same pictures for the same things.</p>
+  </div>
+
+  <div class="sketch">
+    <div class="sketch-head"><h4>The zoom levels</h4><span class="route">your practice → a journey → a conversation → a turn</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="Four panels from left to right: Overview with a week of activity, a Project as a river of chapters, a Session as an arc of turns, and a Prompt as a replay of one turn. A zoom bar above links them.">
+        <rect class="w-card" x="20" y="14" width="960" height="34" rx="8"/>
+        <text class="t s m" x="36" y="36">Overview</text><text class="t s m" x="96" y="36">›</text>
+        <text class="t s m" x="110" y="36">gitprompt</text><text class="t s m" x="170" y="36">›</text>
+        <text class="t s m" x="184" y="36">Ch. 18 Time dependencies</text><text class="t s m" x="336" y="36">›</text>
+        <text class="t s m" x="350" y="36">Session “Block flaky timing”</text><text class="t s m" x="520" y="36">›</text>
+        <text class="t s b" x="534" y="36">Turn 13</text>
+        <text class="t xs m end" x="964" y="36">the zoom bar, on every page</text>
+
+        <g>
+          <rect class="w-card" x="20" y="66" width="228" height="200" rx="12"/>
+          <text class="t cap" x="36" y="88">1 · OVERVIEW</text>
+          <text class="t b" x="36" y="108">Your practice</text>
+          <g class="w-acc"><rect x="40" y="186" width="18" height="40" rx="2"/><rect x="66" y="206" width="18" height="20" rx="2"/><rect x="92" y="160" width="18" height="66" rx="2"/><rect x="118" y="150" width="18" height="76" rx="2"/><rect x="144" y="170" width="18" height="56" rx="2"/><rect x="170" y="196" width="18" height="30" rx="2"/><rect x="196" y="216" width="18" height="10" rx="2"/></g>
+          <g class="w-iris"><rect x="40" y="176" width="18" height="6" rx="2"/><rect x="92" y="152" width="18" height="4" rx="2"/><rect x="118" y="140" width="18" height="6" rx="2"/></g>
+          <line class="s-line" x1="36" y1="228" x2="232" y2="228"/>
+          <text class="t xs m" x="36" y="252">How much, when, at what cost?</text>
+        </g>
+        <path class="s-arrow" d="M252 166 L278 166"/>
+        <g>
+          <rect class="w-card" x="282" y="66" width="228" height="200" rx="12"/>
+          <text class="t cap" x="298" y="88">2 · PROJECT</text>
+          <text class="t b" x="298" y="108">A journey</text>
+          <path class="w-accmid" d="M298 186 C320 176 340 168 362 176 S400 190 420 180 S470 160 494 174 L494 206 C470 214 440 222 410 212 S360 204 340 210 S310 214 298 210Z"/>
+          <line class="s-line" x1="352" y1="150" x2="352" y2="226"/><line class="s-line" x1="430" y1="150" x2="430" y2="226"/>
+          <path class="w-fg" d="M392 150 l0 22 M392 150 l10 4 l-10 4z"/>
+          <text class="t xs b" x="304" y="146">Ch.1</text><text class="t xs b" x="360" y="146">Ch.2</text><text class="t xs b" x="440" y="146">Ch.3</text>
+          <line class="s-line" x1="298" y1="228" x2="494" y2="228"/>
+          <text class="t xs m" x="298" y="252">Where does the work stand?</text>
+        </g>
+        <path class="s-arrow" d="M514 166 L540 166"/>
+        <g>
+          <rect class="w-card" x="544" y="66" width="208" height="200" rx="12"/>
+          <text class="t cap" x="560" y="88">3 · SESSION</text>
+          <text class="t b" x="560" y="108">A conversation</text>
+          <g><rect class="w-acc" x="564" y="196" width="14" height="30" rx="2"/><rect class="w-amber" x="584" y="186" width="14" height="40" rx="2"/><rect class="w-acc" x="604" y="166" width="14" height="60" rx="2"/><rect class="w-red" x="624" y="190" width="14" height="36" rx="2"/><rect class="w-acc" x="644" y="176" width="14" height="50" rx="2"/><rect class="w-acc" x="664" y="206" width="14" height="20" rx="2"/><rect class="w-acc" x="684" y="196" width="14" height="30" rx="2"/><rect class="w-acc" x="704" y="186" width="14" height="40" rx="2"/></g>
+          <path class="s-amber" d="M591 182 C591 150 611 150 611 162"/>
+          <path class="s-iris" d="M564 150 L584 146 L604 136 L624 140 L644 132 L664 134 L684 130 L718 126"/>
+          <line class="s-line" x1="560" y1="228" x2="736" y2="228"/>
+          <text class="t xs m" x="560" y="252">How did it go, turn by turn?</text>
+        </g>
+        <path class="s-arrow" d="M756 166 L782 166"/>
+        <g>
+          <rect class="w-card" x="786" y="66" width="194" height="200" rx="12"/>
+          <text class="t cap" x="802" y="88">4 · PROMPT</text>
+          <text class="t b" x="802" y="108">A turn</text>
+          <text class="t xs m" x="802" y="140">model</text><text class="t xs m" x="802" y="166">tools</text><text class="t xs m" x="802" y="192">agents</text>
+          <rect class="w-iris" x="840" y="132" width="16" height="10" rx="2"/><rect class="w-iris" x="890" y="132" width="20" height="10" rx="2"/><rect class="w-iris" x="944" y="132" width="16" height="10" rx="2"/>
+          <rect class="w-acc" x="858" y="158" width="30" height="10" rx="2"/><rect class="w-acc" x="912" y="158" width="30" height="10" rx="2"/><rect class="w-red" x="900" y="155" width="3" height="16"/>
+          <rect class="w-amber" x="870" y="184" width="54" height="10" rx="2"/>
+          <line class="s-line" x1="802" y1="228" x2="964" y2="228"/>
+          <text class="t xs m" x="802" y="252">What happened, and why?</text>
+        </g>
+        <text class="t s m" x="20" y="300">Zoom in: every mark opens the next level.   Zoom out: the zoom bar.   Across: the same turn looks the same on every page.</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="prose">
+    <h3>Every page has the same anatomy</h3>
+    <p>Readers learn one structure and find it at every level. The top two rows are new; the bottom two are what pages show today, rearranged.</p>
+  </div>
+  <div class="anatomy">
+    <div></div>
+    <div class="h">Overview<small>your practice</small></div>
+    <div class="h">Project<small>a journey</small></div>
+    <div class="h">Session<small>a conversation</small></div>
+    <div class="h">Prompt<small>a turn</small></div>
+
+    <div class="r">Headline</div>
+    <div class="l1">“278 prompts this week, 12% more. Most went into gitprompt.”</div>
+    <div class="l1">“12 days, 6 chapters, 181 commits. The Rust switch cost the most.”</div>
+    <div class="l1">“11 turns over 2 days; 2 were redone; 166 files changed.”</div>
+    <div class="l1">“Failed after 30 min: 2 test runs broke, no commit.”</div>
+
+    <div class="r">Signature picture</div>
+    <div class="l2">Week strip: prompts per day by project, spend, milestones</div>
+    <div class="l2">River: effort over time, cut into named chapters</div>
+    <div class="l2">Arc: one bar per turn, with rewording and cost</div>
+    <div class="l2">Replay: model, tools and agents on a time axis</div>
+
+    <div class="r">Chapters</div>
+    <div class="l3">Activity · Prompt types · Models and cost · Agentic work</div>
+    <div class="l3">Chapters (today's phases) with goal, result, outcome mix</div>
+    <div class="l3">Turns, with system items as margin notes</div>
+    <div class="l3">Ask · Work · Answer · Result · Where it sits</div>
+
+    <div class="r">Evidence</div>
+    <div class="l4">The 16 existing panels</div>
+    <div class="l4">Prompt entries, commits, phase table</div>
+    <div class="l4">Facts, files written, commits</div>
+    <div class="l4">The 7 existing tabs, under Details</div>
+  </div>
+</section>
+
+<!-- 03 -->
+<section id="vocabulary">
+  <div class="prose">
+    <h2><span class="n">03</span>A visual vocabulary</h2>
+    <p class="sub">Storytelling needs recurring characters. These glyphs mean the same thing on every page, so a turn seen in a project chapter is recognisable in its session and in the Prompts list. Each becomes a component in <code>lib/ui/story/</code>, shown on the Design system page.</p>
+  </div>
+  <div class="sketch">
+    <div class="canvas">
+      <svg viewBox="0 0 1000 360" role="img" aria-label="Glyph sheet: outcome colours, the turn glyph, the session fingerprint, system markers, rewording link, commit, milestone, chapter divider and cost.">
+        <text class="t cap" x="20" y="24">OUTCOME, ALWAYS THE SAME COLOUR + SHAPE</text>
+        <g>
+          <circle class="w-acc" cx="30" cy="50" r="7"/><text class="t s" x="44" y="54">Finished</text>
+          <circle class="w-red" cx="130" cy="50" r="7"/><path d="M126 46 l8 8 M134 46 l-8 8" stroke="var(--raised)" stroke-width="1.6"/><text class="t s" x="144" y="54">Failed</text>
+          <circle class="w-blue" cx="220" cy="50" r="7"/><rect x="216" y="46" width="8" height="8" fill="var(--raised)"/><text class="t s" x="234" y="54">Interrupted</text>
+          <circle class="w-amber" cx="330" cy="50" r="7"/><path d="M326 50 h8 M331 46 l3 4 l-3 4" stroke="var(--raised)" stroke-width="1.6" fill="none"/><text class="t s" x="344" y="54">Superseded</text>
+          <circle cx="440" cy="50" r="6" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="2 2"/><text class="t s" x="454" y="54">No end recorded</text>
+        </g>
+        <text class="t xs m" x="580" y="54">Colour is never alone: each outcome has its own icon, as today.</text>
+
+        <line class="s-line" x1="20" y1="78" x2="980" y2="78"/>
+        <text class="t cap" x="20" y="102">TURN GLYPH</text>
+        <rect class="w-acc" x="20" y="130" width="22" height="40" rx="3"/>
+        <rect class="w-acc" x="50" y="150" width="10" height="20" rx="3"/>
+        <rect class="w-red" x="68" y="118" width="34" height="52" rx="3"/>
+        <text class="t xs m" x="20" y="190">height = tool calls</text>
+        <text class="t xs m" x="20" y="204">width = how long it took</text>
+        <text class="t xs m" x="20" y="218">colour = outcome</text>
+
+        <text class="t cap" x="200" y="102">SESSION FINGERPRINT</text>
+        <g><rect class="w-acc" x="200" y="150" width="8" height="20" rx="2"/><rect class="w-acc" x="210" y="136" width="14" height="34" rx="2"/><rect class="w-amber" x="226" y="144" width="6" height="26" rx="2"/><rect class="w-acc" x="234" y="120" width="20" height="50" rx="2"/><rect class="w-red" x="256" y="140" width="10" height="30" rx="2"/><rect class="w-acc" x="268" y="154" width="8" height="16" rx="2"/><rect class="w-acc" x="278" y="146" width="12" height="24" rx="2"/></g>
+        <text class="t xs m" x="200" y="190">the session's turn glyphs side by side;</text>
+        <text class="t xs m" x="200" y="204">its shape tells the story at a glance</text>
+
+        <text class="t cap" x="420" y="102">SYSTEM MARKERS (MARGIN NOTES)</text>
+        <path d="M426 128 l6 6 l-6 6 l-6 -6z" fill="none" stroke="var(--fg)" stroke-width="1.4"/><text class="t s" x="440" y="138">Task notification</text>
+        <circle cx="426" cy="156" r="5" fill="none" stroke="var(--fg)" stroke-width="1.4"/><text class="t s" x="440" y="160">Agent message</text>
+        <rect x="421" y="173" width="10" height="10" rx="2" fill="none" stroke="var(--fg)" stroke-width="1.4"/><text class="t s" x="440" y="182">Subagent started</text>
+        <path d="M421 200 h10 M421 204 h10 M421 208 h10" stroke="var(--fg)" stroke-width="1.4"/><text class="t s" x="440" y="208">Context compacted</text>
+
+        <text class="t cap" x="640" y="102">LINKS AND MOMENTS</text>
+        <rect class="w-acc" x="640" y="140" width="12" height="30" rx="2"/><rect class="w-acc" x="680" y="146" width="12" height="24" rx="2"/>
+        <path class="s-amber" d="M646 136 C646 112 686 112 686 140"/>
+        <text class="t xs amb" x="700" y="130">reworded (lineage)</text>
+        <line class="s-fg" x1="640" y1="196" x2="740" y2="196"/><circle class="w-fg" cx="664" cy="196" r="4"/><circle class="w-fg" cx="676" cy="196" r="4"/><circle class="w-fg" cx="716" cy="196" r="4"/>
+        <text class="t xs m" x="748" y="200">commits after a prompt</text>
+        <path class="w-fg" d="M860 118 l0 40 M860 118 l14 6 l-14 6z"/><text class="t xs m" x="880" y="130">milestone</text><text class="t xs m" x="880" y="144">(tag, merge, ADR)</text>
+
+        <line class="s-line" x1="20" y1="236" x2="980" y2="236"/>
+        <text class="t cap" x="20" y="260">CHAPTER</text>
+        <path class="w-accmid" d="M20 300 C60 290 90 286 120 294 S170 300 200 290 L200 322 C170 326 140 330 110 324 S50 318 20 322Z"/>
+        <line class="s-dash" x1="110" y1="272" x2="110" y2="338"/>
+        <text class="t xs b" x="26" y="284">Setup</text><text class="t xs b" x="116" y="284">Design system</text>
+        <text class="t xs m" x="220" y="300">a stretch of work between pauses</text>
+        <text class="t xs m" x="220" y="314">or branch moves (today's phases),</text>
+        <text class="t xs m" x="220" y="328">with a name you can edit</text>
+
+        <text class="t cap" x="440" y="260">COST, ALWAYS VIOLET</text>
+        <g class="w-iris"><rect x="440" y="300" width="10" height="20" rx="2"/><rect x="454" y="290" width="10" height="30" rx="2"/><rect x="468" y="310" width="10" height="10" rx="2"/></g>
+        <path class="s-iris" d="M500 318 L520 306 L540 310 L560 294 L580 300"/>
+        <text class="t xs m" x="600" y="304">bars or a line, as the Overview</text>
+        <text class="t xs m" x="600" y="318">already draws spend</text>
+
+        <text class="t cap" x="800" y="260">ANNOTATION</text>
+        <rect class="w-acc" x="800" y="300" width="14" height="22" rx="2"/><rect class="w-acc" x="818" y="282" width="14" height="40" rx="2"/><rect class="w-acc" x="836" y="292" width="14" height="30" rx="2"/>
+        <line class="s-fg" x1="825" y1="278" x2="860" y2="268"/><text class="t xs" x="864" y="270">busiest day</text>
+        <text class="t xs m" x="864" y="284">charts say what</text><text class="t xs m" x="864" y="298">is remarkable</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="navigation">
+  <div class="prose">
+    <h2><span class="n">04</span>Navigation</h2>
+    <p class="sub">The same pages, ordered from far to near. Search moves into a palette available everywhere. Nothing is removed.</p>
+  </div>
+  <div class="sketch">
+    <div class="canvas">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="Sidebar today and proposed side by side, with arrows showing that Search becomes a palette and Fields and Design system move under Settings.">
+        <text class="t cap" x="30" y="24">TODAY</text>
+        <rect class="w-card" x="20" y="34" width="220" height="250" rx="10"/>
+        <text class="t cap" x="36" y="58">REVIEW</text>
+        <text class="t" x="36" y="80">Overview</text><text class="t" x="36" y="102">Prompts</text><text class="t" x="36" y="124">Sessions</text><text class="t" x="36" y="146">Projects</text><text class="t" x="36" y="168">Search</text>
+        <text class="t cap" x="36" y="198">SETUP</text>
+        <text class="t" x="36" y="220">Connectors</text><text class="t" x="36" y="242">Fields</text><text class="t" x="36" y="264">Settings</text><text class="t" x="130" y="264">Design system</text>
+
+        <path class="s-arrow" d="M250 160 L320 160"/>
+
+        <text class="t cap" x="340" y="24">PROPOSED</text>
+        <rect class="w-card" x="330" y="34" width="250" height="250" rx="10"/>
+        <rect class="w-sunk" x="342" y="46" width="226" height="26" rx="6"/><text class="t s m" x="354" y="63">Find anything…</text><text class="t s mono m end" x="558" y="63">⌘K</text>
+        <text class="t cap" x="346" y="96">YOUR STORY, FAR TO NEAR</text>
+        <rect class="w-accsoft" x="340" y="104" width="230" height="22" rx="6"/>
+        <text class="t b acc" x="352" y="120">Overview</text><text class="t xs m end" x="560" y="120">your practice</text>
+        <text class="t" x="352" y="144">Projects</text><text class="t xs m end" x="560" y="144">journeys</text>
+        <text class="t" x="352" y="168">Sessions</text><text class="t xs m end" x="560" y="168">conversations</text>
+        <text class="t" x="352" y="192">Prompts</text><text class="t xs m end" x="560" y="192">turns + search</text>
+        <text class="t cap" x="346" y="222">SETUP</text>
+        <text class="t" x="352" y="244">Connectors</text>
+        <circle class="w-acc" cx="440" cy="240" r="4"/><circle class="w-acc" cx="452" cy="240" r="4"/><circle class="w-acc" cx="464" cy="240" r="4"/><circle class="w-amber" cx="476" cy="240" r="4"/>
+        <text class="t" x="352" y="268">Settings</text><text class="t xs m" x="412" y="268">(+ Developer: Fields, Design system)</text>
+
+        <g>
+          <text class="t b" x="620" y="60">What changes</text>
+          <text class="t s" x="620" y="90">• Order follows the zoom: Overview, Projects, Sessions, Prompts.</text>
+          <text class="t s" x="620" y="114">• Search becomes ⌘K and the text box of Prompts. The /search</text>
+          <text class="t s" x="632" y="130">route redirects there with its words, project, range and tag.</text>
+          <text class="t s" x="620" y="154">• Connector health shows as dots in the sidebar (today it is</text>
+          <text class="t s" x="632" y="170">one “Listening” line at the bottom).</text>
+          <text class="t s" x="620" y="194">• Fields and Design system move into Settings › Developer:</text>
+          <text class="t s" x="632" y="210">same pages, out of the everyday path.</text>
+          <text class="t s" x="620" y="234">• Each page keeps the view you left it in (views.ts), as today.</text>
+          <text class="t s" x="620" y="258">• A zoom bar under the page title shows where you are.</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 05 PAGES -->
+<section id="pages">
+  <div class="prose">
+    <h2><span class="n">05</span>Page by page</h2>
+    <p class="sub">For each page: the story it tells, a sketch, why each change helps, and what is kept. Labels come from your real data so the sketches feel concrete. Figures in the sketches illustrate the layout and are not measurements.</p>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="page-block" id="overview">
+    <h3>Overview</h3>
+    <p class="story-q">How did my week with the agents go, how does it compare, and what is worth a look?</p>
+
+    <div class="sketch">
+      <div class="sketch-head"><h4>A1 · The first screen</h4><span class="route">/?range=7d</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 680" role="img" aria-label="Overview wireframe: a headline sentence with deltas, filters folded into one row, five key figures with comparisons, a week strip of prompts per day coloured by project with spend and annotations, a list of things worth a look, and chapter tabs for the panels below.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="679" rx="12"/>
+          <rect class="w-panel" x="1" y="1" width="170" height="678" rx="12"/>
+          <rect class="w-sunk" x="12" y="16" width="148" height="24" rx="6"/><text class="t xs m" x="22" y="32">Find anything…</text><text class="t xs mono m end" x="150" y="32">⌘K</text>
+          <rect class="w-accsoft" x="10" y="60" width="152" height="24" rx="6"/><text class="t s b acc" x="22" y="76">Overview</text>
+          <text class="t s" x="22" y="104">Projects</text><text class="t s" x="22" y="128">Sessions</text><text class="t s" x="22" y="152">Prompts</text>
+          <text class="t cap" x="22" y="186">SETUP</text><text class="t s" x="22" y="208">Connectors</text><text class="t s" x="22" y="232">Settings</text>
+
+          <text class="t cap" x="196" y="34">OVERVIEW · LAST 7 DAYS</text>
+          <text class="t xl" x="196" y="64">You typed 278 prompts in 81 sessions, 12% more</text>
+          <text class="t xl" x="196" y="92">than last week. Most went into gitprompt.</text>
+          <text class="t s m" x="196" y="116">$453 spent (▼ 8%) · 98% of turns finished · 79 commits followed your prompts</text>
+          <rect class="w-sunk" x="780" y="24" width="136" height="26" rx="6"/><rect class="w-card" x="820" y="27" width="40" height="20" rx="4"/>
+          <text class="t xs m mid" x="800" y="41">24h</text><text class="t xs b mid" x="840" y="41">7d</text><text class="t xs m mid" x="878" y="41">30d</text><text class="t xs m mid" x="902" y="41">All</text>
+          <rect class="w-card" x="924" y="24" width="60" height="26" rx="6"/><text class="t xs mid" x="954" y="41">Export</text>
+          <rect class="w-card" x="196" y="128" width="96" height="24" rx="12"/><text class="t xs mid" x="244" y="144">Filters · 2 ▾</text>
+          <rect class="w-accsoft" x="300" y="128" width="78" height="24" rx="12"/><text class="t xs acc mid" x="339" y="144">Typed 273</text>
+          <rect class="w-accsoft" x="384" y="128" width="104" height="24" rx="12"/><text class="t xs acc mid" x="436" y="144">Slash command 5</text>
+          <text class="t xs m" x="498" y="144">+ system: task notification 137 · agent message 73</text>
+          <g class="co"><circle cx="186" cy="56" r="10"/><text x="186" y="60">1</text></g>
+
+          <g>
+            <rect class="w-card" x="196" y="166" width="150" height="70" rx="10"/><text class="t xs m" x="208" y="184">Prompts</text><text class="t l" x="208" y="206">278</text><text class="t xs acc" x="208" y="224">▲ 12% vs last week</text>
+            <rect class="w-card" x="354" y="166" width="150" height="70" rx="10"/><text class="t xs m" x="366" y="184">Spend</text><text class="t l" x="366" y="206">$453</text><text class="t xs m" x="366" y="224">▼ 8% · $1.63 a prompt</text>
+            <rect class="w-card" x="512" y="166" width="150" height="70" rx="10"/><text class="t xs m" x="524" y="184">Typical turn</text><text class="t l" x="524" y="206">1m 53s</text><text class="t xs m" x="524" y="224">1 in 10 over 18m</text>
+            <rect class="w-card" x="670" y="166" width="150" height="70" rx="10"/><text class="t xs m" x="682" y="184">Finished</text><text class="t l" x="682" y="206">98%</text><text class="t xs red" x="682" y="224">4 failed · see them</text>
+            <rect class="w-card" x="828" y="166" width="156" height="70" rx="10"/><text class="t xs m" x="840" y="184">Agent commits</text><text class="t l" x="840" y="206">79</text><text class="t xs m" x="840" y="224">after 30 prompts</text>
+          </g>
+          <g class="co"><circle cx="984" cy="166" r="10"/><text x="984" y="170">2</text></g>
+
+          <rect class="w-card" x="196" y="250" width="540" height="290" rx="10"/>
+          <text class="t b" x="212" y="274">Your week</text><text class="t xs m" x="290" y="274">prompts per day by project · spend · what happened</text>
+          <line class="s-line" x1="232" y1="480" x2="720" y2="480"/>
+          <g>
+            <!-- Sat --><rect class="w-acc" x="246" y="430" width="48" height="50"/><rect class="w-blue" x="246" y="410" width="48" height="20"/>
+            <!-- Sun, Mon empty -->
+            <!-- Tue --><rect class="w-acc" x="456" y="420" width="48" height="60"/><rect class="w-orange" x="456" y="400" width="48" height="20"/><rect class="w-pink" x="456" y="388" width="48" height="12"/>
+            <!-- Wed --><rect class="w-acc" x="526" y="390" width="48" height="90"/><rect class="w-orange" x="526" y="350" width="48" height="40"/><rect class="w-blue" x="526" y="330" width="48" height="20"/>
+            <!-- Thu --><rect class="w-acc" x="596" y="400" width="48" height="80"/><rect class="w-orange" x="596" y="370" width="48" height="30"/><rect class="w-pink" x="596" y="340" width="48" height="30"/>
+            <!-- Fri --><rect class="w-acc" x="666" y="440" width="48" height="40"/><rect class="w-orange" x="666" y="420" width="48" height="20"/>
+          </g>
+          <g class="w-iris"><circle cx="270" cy="312" r="5"/><circle cx="480" cy="352" r="4"/><circle cx="550" cy="356" r="4"/><circle cx="620" cy="364" r="3"/><circle cx="690" cy="356" r="4"/></g>
+          <path class="s-iris" d="M270 312 L480 352 L550 356 L620 364 L690 356" stroke-dasharray="2 3" stroke-width="1.4"/>
+          <text class="t xs iris" x="282" y="308">$190 on Saturday</text>
+          <line class="s-fg" x1="540" y1="326" x2="514" y2="300"/><text class="t xs end" x="510" y="300">busiest: 70 prompts</text>
+          <path class="w-fg" d="M640 286 l0 50 M640 286 l12 5 l-12 5z"/><text class="t xs" x="656" y="292">tag v0.3</text>
+          <text class="t xs m mid" x="270" y="496">Sat</text><text class="t xs m mid" x="340" y="496">Sun</text><text class="t xs m mid" x="410" y="496">Mon</text><text class="t xs m mid" x="480" y="496">Tue</text><text class="t xs m mid" x="550" y="496">Wed</text><text class="t xs m mid" x="620" y="496">Thu</text><text class="t xs m mid" x="690" y="496">Fri</text>
+          <text class="t xs m mid" x="375" y="466">no prompts</text>
+          <rect class="w-acc" x="212" y="514" width="10" height="10" rx="2"/><text class="t xs" x="226" y="523">gitprompt</text>
+          <rect class="w-orange" x="290" y="514" width="10" height="10" rx="2"/><text class="t xs" x="304" y="523">system-design-lab</text>
+          <rect class="w-blue" x="400" y="514" width="10" height="10" rx="2"/><text class="t xs" x="414" y="523">bridge</text>
+          <rect class="w-pink" x="456" y="514" width="10" height="10" rx="2"/><text class="t xs" x="470" y="523">docs-to-md</text>
+          <text class="t xs m" x="540" y="523">click a day: its sessions on a timeline</text>
+          <g class="co"><circle cx="736" cy="250" r="10"/><text x="736" y="254">3</text></g>
+
+          <rect class="w-card" x="748" y="250" width="236" height="290" rx="10"/>
+          <text class="t b" x="764" y="274">Worth a look</text>
+          <rect class="w-red" x="760" y="290" width="3" height="44" rx="1.5"/>
+          <text class="t s b" x="772" y="304">4 turns failed</text><text class="t xs m" x="772" y="320">3 of them in strict-lints work</text>
+          <rect class="w-amber" x="760" y="346" width="3" height="44" rx="1.5"/>
+          <text class="t s b" x="772" y="360">One session cost $76</text><text class="t xs m" x="772" y="376">3× your usual; 47% subagents</text>
+          <rect class="w-amber" x="760" y="402" width="3" height="44" rx="1.5"/>
+          <text class="t s b" x="772" y="416">“commit” sent 9 times</text><text class="t xs m" x="772" y="432">a slash command would save typing</text>
+          <rect class="w-bar" x="760" y="458" width="3" height="44" rx="1.5"/>
+          <text class="t s b" x="772" y="472">Possible secret in 1 prompt</text><text class="t xs m" x="772" y="488">open it to hide the value</text>
+          <text class="t xs acc" x="764" y="526">Each item opens the matching prompts</text>
+          <g class="co"><circle cx="984" cy="250" r="10"/><text x="984" y="254">4</text></g>
+
+          <rect class="w-sunk" x="196" y="556" width="788" height="36" rx="8"/>
+          <rect class="w-card" x="200" y="560" width="120" height="28" rx="6"/><text class="t s b mid" x="260" y="579">Activity</text>
+          <text class="t s m mid" x="390" y="579">Prompt types</text><text class="t s m mid" x="530" y="579">Models and cost</text><text class="t s m mid" x="680" y="579">Agentic work</text><text class="t s m mid" x="830" y="579">Starred</text>
+          <g class="co"><circle cx="186" cy="574" r="10"/><text x="186" y="578">5</text></g>
+          <text class="t b" x="196" y="620">Activity</text>
+          <text class="t s m" x="196" y="640">You prompt most on Wednesday and Thursday afternoons. Sessions run long: 4h+ is the most common length.</text>
+          <rect class="w-card" x="196" y="652" width="388" height="40" rx="8"/><text class="t xs m" x="208" y="672">How much do I prompt each day?  (existing panel)</text>
+          <rect class="w-card" x="596" y="652" width="388" height="40" rx="8"/><text class="t xs m" x="608" y="672">When in the week do I prompt?  (existing panel)</text>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>A headline sentence in place of "Overview".</b> It is built from the same totals the page already loads, plus the previous period for comparison. The filters fold into one "Filters · 2" button; the origin chips stay visible because they change every number.</span></li>
+        <li data-n="2"><span><b>The five key figures stay</b>, each with a comparison and a link ("4 failed · see them" opens Prompts filtered on failed). A number without a baseline doesn't tell a story.</span></li>
+        <li data-n="3"><span><b>The week strip is the signature picture.</b> It merges "prompts each day" and "spend per day" and splits each day by project, so you see where the effort went. It adds annotations (busiest day, a tag, an expensive day). Clicking a day opens that day's sessions on a timeline.</span></li>
+        <li data-n="4"><span><b>Worth a look</b> ranks up to four items from data the panels already compute: failed turns, cost outliers, repeated prompts, possible secrets. Each opens the matching prompts. With nothing remarkable it says so in one line.</span></li>
+        <li data-n="5"><span><b>The four existing sections become tabs</b> (plus Starred). Each tab opens with one takeaway sentence, then the existing panels, unchanged. The page goes from 3,600px to two screens, and every panel is still one click away.</span></li>
+      </ul>
+      <p class="keeps"><b>Kept:</b> range, origin chips, tool / app / project / model filters (in the Filters menu), Export, the setup steps when nothing is connected, the empty state, all 16 panels with their charts, toggles and "not available for …" notes, every bar and cell linking to prompts, live refresh when capture goes quiet.</p>
+    </div>
+
+    <div class="tablewrap"><table>
+      <thead><tr><th>Tab</th><th>Takeaway sentence (example)</th><th>Existing panels, unchanged</th></tr></thead>
+      <tbody>
+        <tr><td>Activity</td><td>“You prompt most on Wed–Thu afternoons; 4h+ sessions are the most common.”</td><td>ActivityPanel, RhythmPanel, SessionsPanel</td></tr>
+        <tr><td>Prompt types</td><td>“57% of prompts came from you; 19 were texts you had sent before.”</td><td>OriginPanel, CommandsPanel, WritingPanel, ReusePanel</td></tr>
+        <tr><td>Models and cost</td><td>“Opus 5.5 took 89% of the money; subagents spent $194.”</td><td>ModelsPanel, SpendPanel</td></tr>
+        <tr><td>Agentic work</td><td>“The agent made 9,234 tool calls, 47% through subagents; 213 failed.”</td><td>PerformancePanel, AgentPanel, DelegationPanel, OutcomesPanel</td></tr>
+        <tr><td>Starred</td><td>“3 prompts starred this week.”</td><td>StarredPanel</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- PROJECTS -->
+  <div class="page-block" id="projects">
+    <h3>Projects</h3>
+    <p class="story-q">Where is each piece of work, which ones are moving, and where did the effort and money go?</p>
+    <div class="sketch">
+      <div class="sketch-head"><h4>B1 · Projects as a portfolio of journeys</h4><span class="route">/projects?range=7d</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 520" role="img" aria-label="Projects wireframe: a headline, then one row per project with its current chapter, a river of the period cut into chapters, the latest session fingerprint, figures and outcome mix; quieter projects are folded at the bottom.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="519" rx="12"/>
+          <text class="t cap" x="30" y="34">PROJECTS · LAST 7 DAYS</text>
+          <text class="t xl" x="30" y="64">16 projects. gitprompt took 37% of your prompts and</text>
+          <text class="t xl" x="30" y="92">34% of the spend; 3 projects moved to a new chapter.</text>
+          <rect class="w-sunk" x="846" y="24" width="138" height="26" rx="6"/><rect class="w-card" x="886" y="27" width="40" height="20" rx="4"/>
+          <text class="t xs m mid" x="866" y="41">24h</text><text class="t xs b mid" x="906" y="41">7d</text><text class="t xs m mid" x="944" y="41">30d</text><text class="t xs m mid" x="970" y="41">All</text>
+          <g class="co"><circle cx="13" cy="56" r="10"/><text x="13" y="60">1</text></g>
+
+          <text class="t cap" x="30" y="126">ACTIVE</text>
+          <text class="t cap" x="300" y="126">THE PERIOD, BY CHAPTER</text><text class="t cap" x="620" y="126">LAST SESSION</text><text class="t cap" x="740" y="126">PROMPTS · SESSIONS · FILES · COST</text>
+          <g>
+            <rect class="w-card" x="20" y="134" width="960" height="84" rx="10"/>
+            <text class="t b" x="36" y="160">gitprompt</text><circle class="w-acc pulse" cx="112" cy="156" r="4"/><text class="t xs acc" x="120" y="160">active now</text>
+            <text class="t xs mono m" x="36" y="178">~/Desktop/git/gitprompt</text>
+            <text class="t s" x="36" y="202">Ch. 18 · Time dependencies</text>
+            <path class="w-accmid" d="M300 178 C330 168 360 166 380 172 S430 186 460 176 S540 160 600 170 L600 196 C560 204 520 206 480 200 S410 192 380 196 S320 202 300 198Z"/>
+            <line class="s-dash" x1="380" y1="152" x2="380" y2="210"/><line class="s-dash" x1="500" y1="152" x2="500" y2="210"/>
+            <text class="t xs" x="304" y="160">Rust switch</text><text class="t xs" x="386" y="160">Quality</text><text class="t xs" x="506" y="160">Timing</text>
+            <g><rect class="w-acc" x="620" y="186" width="6" height="14" rx="1"/><rect class="w-acc" x="628" y="176" width="10" height="24" rx="1"/><rect class="w-red" x="640" y="170" width="8" height="30" rx="1"/><rect class="w-acc" x="650" y="182" width="6" height="18" rx="1"/><rect class="w-amber" x="658" y="188" width="6" height="12" rx="1"/><rect class="w-acc" x="666" y="178" width="12" height="22" rx="1"/><rect class="w-acc" x="680" y="190" width="6" height="10" rx="1"/></g>
+            <text class="t s mono" x="740" y="170">104 · 32 · 439 · $154</text>
+            <rect class="w-acc" x="740" y="184" width="170" height="8" rx="4"/><rect class="w-amber" x="912" y="184" width="14" height="8" rx="4"/><rect class="w-red" x="928" y="184" width="10" height="8" rx="4"/>
+            <text class="t xs red" x="740" y="208">3 failed turns</text><text class="t xs m" x="820" y="208">main · master · +2 branches</text>
+          </g>
+          <g>
+            <rect class="w-card" x="20" y="226" width="960" height="84" rx="10"/>
+            <text class="t b" x="36" y="252">system-design-lab</text><circle class="w-acc" cx="160" cy="248" r="4"/><text class="t xs m" x="168" y="252">25 min ago</text>
+            <text class="t xs mono m" x="36" y="270">~/Desktop/git/system-design-lab</text>
+            <text class="t s" x="36" y="294">Ch. 5 · Learn pages</text>
+            <path class="w-accmid" d="M300 278 C340 276 380 262 420 266 S500 284 540 270 S590 262 600 266 L600 284 C570 290 530 296 490 290 S400 286 360 290 S320 290 300 288Z"/>
+            <line class="s-dash" x1="440" y1="244" x2="440" y2="302"/>
+            <text class="t xs" x="304" y="252">Studio</text><text class="t xs" x="446" y="252">Learn pages</text>
+            <g><rect class="w-acc" x="620" y="262" width="40" height="30" rx="1"/></g>
+            <text class="t s mono" x="740" y="262">31 · 12 · 442 · $135</text>
+            <rect class="w-acc" x="740" y="276" width="198" height="8" rx="4"/>
+            <text class="t xs m" x="740" y="300">master · feat/learn-part1</text>
+          </g>
+          <g>
+            <rect class="w-card" x="20" y="318" width="960" height="84" rx="10"/>
+            <text class="t b" x="36" y="344">bridge</text><text class="t xs m" x="88" y="344">19 hours ago</text>
+            <text class="t xs mono m" x="36" y="362">~/Desktop/git/lerobot-rep/bridge</text>
+            <text class="t s" x="36" y="386">Ch. 7 · Camera calibration</text>
+            <path class="w-accmid" d="M300 370 C330 370 350 360 380 362 S440 352 470 360 S540 380 560 382 L600 384 L600 386 C560 388 520 390 480 388 S400 384 360 386 S320 384 300 384Z"/>
+            <g><rect class="w-acc" x="620" y="378" width="4" height="14" rx="1"/><rect class="w-acc" x="626" y="370" width="4" height="22" rx="1"/><rect class="w-acc" x="632" y="374" width="4" height="18" rx="1"/><rect class="w-amber" x="638" y="380" width="4" height="12" rx="1"/><rect class="w-acc" x="644" y="368" width="4" height="24" rx="1"/><rect class="w-acc" x="650" y="376" width="4" height="16" rx="1"/><rect class="w-acc" x="656" y="372" width="4" height="20" rx="1"/><rect class="w-acc" x="662" y="378" width="4" height="14" rx="1"/><rect class="w-acc" x="668" y="370" width="4" height="22" rx="1"/><rect class="w-acc" x="674" y="374" width="4" height="18" rx="1"/><rect class="w-acc" x="680" y="380" width="4" height="12" rx="1"/></g>
+            <text class="t s mono" x="740" y="354">59 · 7 · 42 · $54</text>
+            <rect class="w-acc" x="740" y="368" width="190" height="8" rx="4"/><rect class="w-amber" x="932" y="368" width="8" height="8" rx="4"/>
+            <text class="t xs m" x="740" y="392">main · feat/init-page</text>
+          </g>
+          <g class="co"><circle cx="300" cy="134" r="10"/><text x="300" y="138">2</text></g>
+          <g class="co"><circle cx="620" cy="134" r="10"/><text x="620" y="138">3</text></g>
+
+          <rect class="w-sunk" x="20" y="414" width="960" height="40" rx="10"/>
+          <text class="t s" x="36" y="439">10 quieter projects</text>
+          <text class="t xs m" x="160" y="439">listxfollowed · hieroglyphia · bookshelf · esp-labs-web · docs-to-md · …</text>
+          <text class="t s acc end" x="964" y="439">Show ▾</text>
+          <g class="co"><circle cx="980" cy="414" r="10"/><text x="980" y="418">4</text></g>
+          <text class="t xs m" x="20" y="486">Sort: most active ▾ · Lens: List | Compare</text>
+          <text class="t xs m" x="20" y="502">Compare puts 2–4 projects side by side: cost per finished turn, rework, first-try rate.</text>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>The headline says where effort went</b> and what moved (projects that entered a new chapter during the range).</span></li>
+        <li data-n="2"><span><b>A river with chapter names replaces the sparkline.</b> Same data (prompts per day), but cut at the phase boundaries the backend already computes, so each row shows where the work stands and its current chapter.</span></li>
+        <li data-n="3"><span><b>The fingerprint of the last session</b> shows how things are going right now: smooth (all teal), or struggling (red and amber).</span></li>
+        <li data-n="4"><span><b>Quiet projects fold away.</b> Today a worktree folder and a scratchpad get the same space as your main project. They stay one click away, and they are counted.</span></li>
+      </ul>
+      <p class="keeps"><b>Kept:</b> range, one row per repository or folder, name and path, prompts with their share, sessions (linking to Sessions filtered), files written, cost, last prompt, prompts per day (now the river), the tool-kind bar (on hover and in the project story), branches, failed-turn badge, the link to the project story.</p>
+    </div>
+  </div>
+
+  <!-- PROJECT STORY -->
+  <div class="page-block" id="project">
+    <h3>Project story</h3>
+    <p class="story-q">How did this project get from its first prompt to where it is now, chapter by chapter?</p>
+    <div class="sketch">
+      <div class="sketch-head"><h4>B2 · The journey</h4><span class="route">/projects/[id]</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 640" role="img" aria-label="Project story wireframe: zoom bar, headline, figures, a river of daily effort split into named chapters with milestones from git, branch lanes and spend per day, then a row of chapter cards.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="639" rx="12"/>
+          <text class="t s m" x="30" y="30">Overview › Projects › </text><text class="t s b" x="160" y="30">gitprompt</text>
+          <text class="t xl" x="30" y="64">gitprompt</text><text class="t s mono m" x="150" y="64">~/Desktop/git/gitprompt</text>
+          <text class="t" x="30" y="92">12 days and 6 chapters, from “review the code and the metadata” to time-dependency</text>
+          <text class="t" x="30" y="110">checks. 181 commits followed your prompts. The Rust switch was the most expensive chapter.</text>
+          <rect class="w-card" x="904" y="44" width="76" height="28" rx="6"/><text class="t s mid" x="942" y="62">Export</text>
+          <g class="co"><circle cx="13" cy="92" r="10"/><text x="13" y="96">1</text></g>
+          <g>
+            <text class="t xs m" x="30" y="140">Prompts you typed</text><text class="t l" x="30" y="160">120</text>
+            <text class="t xs m" x="160" y="140">Sessions</text><text class="t l" x="160" y="160">39</text>
+            <text class="t xs m" x="250" y="140">Chapters</text><text class="t l" x="250" y="160">6</text><text class="t xs m" x="270" y="160">(18 phases)</text>
+            <text class="t xs m" x="370" y="140">Commits after your prompts</text><text class="t l" x="370" y="160">181</text><text class="t xs m" x="410" y="160">+150,502 −20,711</text>
+            <text class="t xs m" x="580" y="140">Cost</text><text class="t l" x="580" y="160">$180</text>
+            <text class="t xs m" x="660" y="160">+ 59 prompts from the tool or agents · show</text>
+          </g>
+
+          <g>
+            <line class="s-fg" x1="230" y1="196" x2="230" y2="230"/><rect class="w-fg" x="230" y="184" width="134" height="18" rx="3"/><text class="t xs inv" x="236" y="197">ADR-0023 Rust backend</text>
+            <line class="s-fg" x1="560" y1="196" x2="560" y2="230"/><rect class="w-fg" x="560" y="184" width="104" height="18" rx="3"/><text class="t xs inv" x="566" y="197">tag v0.3 · desktop</text>
+            <line class="s-fg" x1="800" y1="196" x2="800" y2="230"/><rect class="w-fg" x="800" y="184" width="110" height="18" rx="3"/><text class="t xs inv" x="806" y="197">merge strict-lints</text>
+          </g>
+          <g class="co"><circle cx="924" cy="193" r="10"/><text x="924" y="197">2</text></g>
+          <path class="w-accsoft" d="M60 262 C90 258 110 252 140 246 S200 232 230 238 S300 230 340 252 S420 238 470 234 S540 222 580 238 S660 258 700 248 S780 212 820 226 S900 248 960 258 L960 296 C900 304 840 322 800 318 S700 296 660 300 S560 312 520 306 S420 294 380 298 S300 312 250 304 S160 292 120 290 S80 286 60 286Z"/>
+          <path class="s-acc" d="M60 262 C90 258 110 252 140 246 S200 232 230 238 S300 230 340 252 S420 238 470 234 S540 222 580 238 S660 258 700 248 S780 212 820 226 S900 248 960 258"/>
+          <path class="s-acc" d="M60 286 C80 286 120 290 120 290 S160 292 250 304 S300 312 380 298 S420 294 520 306 S560 312 660 300 S700 296 800 318 S840 322 960 296"/>
+          <g class="s-dash"><line x1="150" y1="234" x2="150" y2="326"/><line x1="300" y1="234" x2="300" y2="326"/><line x1="470" y1="226" x2="470" y2="326"/><line x1="640" y1="226" x2="640" y2="326"/><line x1="860" y1="226" x2="860" y2="326"/></g>
+          <text class="t xs b" x="70" y="278">Setup</text><text class="t xs b" x="160" y="278">Design system</text><text class="t xs b" x="310" y="278">Rust switch</text><text class="t xs b" x="480" y="278">Connectors</text><text class="t xs b" x="650" y="282">Quality dashboard</text><text class="t xs b" x="870" y="282">Timing</text>
+          <g class="co"><circle cx="13" cy="274" r="10"/><text x="13" y="278">3</text></g>
+          <g><text class="t xs m" x="60" y="342">2 Nov</text><text class="t xs m mid" x="210" y="342">4</text><text class="t xs m mid" x="360" y="342">6</text><text class="t xs m mid" x="510" y="342">8</text><text class="t xs m mid" x="660" y="342">10</text><text class="t xs m mid" x="810" y="342">12</text><text class="t xs m end" x="960" y="342">14 Nov</text></g>
+          <text class="t xs m" x="14" y="368">main</text><line class="s-acc" x1="60" y1="364" x2="960" y2="364"/>
+          <path class="s-iris" d="M700 364 C712 364 712 386 724 386 L780 386 C792 386 792 364 804 364"/>
+          <circle class="w-red" cx="740" cy="386" r="3"/><circle class="w-red" cx="752" cy="386" r="3"/><circle class="w-red" cx="764" cy="386" r="3"/>
+          <text class="t xs iris" x="812" y="390">chore/strict-lints · 3 failed turns</text>
+          <text class="t xs m" x="14" y="420">cost</text>
+          <g class="w-iris"><rect x="64" y="416" width="12" height="4"/><rect x="210" y="392" width="12" height="28"/><rect x="250" y="404" width="12" height="16"/><rect x="380" y="406" width="12" height="14"/><rect x="420" y="398" width="12" height="22"/><rect x="560" y="410" width="12" height="10"/><rect x="760" y="406" width="12" height="14"/><rect x="800" y="410" width="12" height="10"/><rect x="900" y="416" width="12" height="4"/></g>
+          <g class="co"><circle cx="980" cy="386" r="10"/><text x="980" y="390">4</text></g>
+
+          <g>
+            <rect class="w-card" x="30" y="440" width="148" height="180" rx="10"/>
+            <text class="t xs m" x="42" y="460">CH. 1 · 2–3 NOV</text><text class="t b" x="42" y="478">Setup</text>
+            <text class="t xs m" x="42" y="500">10 prompts · 1 commit</text><rect class="w-acc" x="42" y="512" width="50" height="6" rx="3"/><rect class="w-amber" x="94" y="512" width="50" height="6" rx="3"/><rect class="w-bar" x="146" y="512" width="20" height="6" rx="3"/>
+            <text class="t xs" x="42" y="540">Reworded 4 times</text><text class="t xs m" x="42" y="556">500 errors, metadata</text>
+            <text class="t xs mono m" x="42" y="604">$1.20</text>
+            <rect class="w-card" x="186" y="440" width="148" height="180" rx="10"/>
+            <text class="t xs m" x="198" y="460">CH. 2 · 7 NOV</text><text class="t b" x="198" y="478">Design system</text>
+            <text class="t xs m" x="198" y="500">9 prompts · 104 commits</text><rect class="w-acc" x="198" y="512" width="124" height="6" rx="3"/>
+            <text class="t xs" x="198" y="540">Tokens, components,</text><text class="t xs" x="198" y="556">dashboard routes</text>
+            <text class="t xs mono m" x="198" y="604">$69.76</text>
+            <rect class="w-accsoft" x="342" y="440" width="148" height="180" rx="10" stroke="var(--accent)"/>
+            <text class="t xs acc" x="354" y="460">CH. 3 · 8–9 NOV</text><text class="t b" x="354" y="478">Rust switch</text>
+            <text class="t xs m" x="354" y="500">31 prompts · 42 commits</text><rect class="w-acc" x="354" y="512" width="100" height="6" rx="3"/><rect class="w-blue" x="456" y="512" width="22" height="6" rx="3"/>
+            <text class="t xs" x="354" y="540">9 crates; Python</text><text class="t xs" x="354" y="556">daemon frozen</text>
+            <text class="t xs mono m" x="354" y="604">$74.10 · most</text>
+            <rect class="w-card" x="498" y="440" width="148" height="180" rx="10"/>
+            <text class="t xs m" x="510" y="460">CH. 4 · 10 NOV</text><text class="t b" x="510" y="478">Connectors</text>
+            <text class="t xs m" x="510" y="500">22 prompts · 18 commits</text><rect class="w-acc" x="510" y="512" width="124" height="6" rx="3"/>
+            <text class="t xs" x="510" y="540">Codex, Cursor,</text><text class="t xs" x="510" y="556">Copilot specs</text>
+            <text class="t xs mono m" x="510" y="604">$14.30</text>
+            <rect class="w-card" x="654" y="440" width="148" height="180" rx="10"/>
+            <text class="t xs m" x="666" y="460">CH. 5 · 11–12 NOV</text><text class="t b" x="666" y="478">Quality dashboard</text>
+            <text class="t xs m" x="666" y="500">35 prompts · 14 commits</text><rect class="w-acc" x="666" y="512" width="90" height="6" rx="3"/><rect class="w-amber" x="758" y="512" width="16" height="6" rx="3"/><rect class="w-red" x="776" y="512" width="14" height="6" rx="3"/>
+            <text class="t xs amb" x="666" y="540">Reworded 2× · 3 failed</text><text class="t xs" x="666" y="556">strict lints branch</text>
+            <text class="t xs mono m" x="666" y="604">$12.40</text>
+            <rect class="w-card" x="810" y="440" width="160" height="180" rx="10"/>
+            <circle class="w-acc pulse" cx="826" cy="456" r="4"/><text class="t xs acc" x="834" y="460">CH. 6 · NOW</text><text class="t b" x="822" y="478">Timing</text>
+            <text class="t xs m" x="822" y="500">13 prompts so far</text><rect class="w-acc" x="822" y="512" width="90" height="6" rx="3"/><rect class="w-bar2" x="914" y="512" width="44" height="6" rx="3"/>
+            <text class="t xs" x="822" y="540">Ledger, CI check,</text><text class="t xs" x="822" y="556">quality page</text>
+            <text class="t xs mono m" x="822" y="604">$8.20</text>
+          </g>
+          <g class="co"><circle cx="13" cy="440" r="10"/><text x="13" y="444">5</text></g>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>A narrative headline</b>: from the first prompt to the latest, the commit count, the most expensive chapter. Every number in it is a link.</span></li>
+        <li data-n="2"><span><b>Milestones from git</b> (tags, merges into the default branch, files under <code>docs/adr/</code>) anchor the timeline to moments people remember.</span></li>
+        <li data-n="3"><span><b>The river replaces the two "per phase" bar charts.</b> Its width is prompts per day, and chapter dividers sit where phases start. 18 phases become 6 chapters: phases next to each other with similar words and the same branch merge, and the phase table stays inside each chapter.</span></li>
+        <li data-n="4"><span><b>Branch lanes and spend per day</b> on the same time axis. Failed turns show as red dots on their branch, so "the strict-lints branch was rough" is visible without reading.</span></li>
+        <li data-n="5"><span><b>Chapter cards answer: what, how it went, what came of it.</b> Each card has the outcome mix, rework, commits and cost. A chapter's name comes from its most frequent words and commit subjects, and you can rename it. Clicking a card opens the chapter (B3).</span></li>
+      </ul>
+    </div>
+
+    <div class="sketch">
+      <div class="sketch-head"><h4>B3 · Inside a chapter</h4><span class="route">/projects/[id]#chapter-3</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 470" role="img" aria-label="Chapter detail wireframe: goal, how it went in sentences, outcome mix and phase table on the left; sessions as fingerprints with compact prompt entries in the middle; results with commits grouped and top files on the right.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="469" rx="12"/>
+          <text class="t cap" x="30" y="32">CHAPTER 3 OF 6 · 8 NOV 09:00 – 9 NOV 18:40 · AFTER A 14H PAUSE · MAIN</text>
+          <text class="t xl" x="30" y="62">Rust switch</text><text class="t xs acc" x="160" y="62">rename</text>
+          <text class="t xs m end" x="970" y="32">‹ Ch. 2   Ch. 4 ›</text>
+
+          <rect class="w-card" x="30" y="80" width="270" height="370" rx="10"/>
+          <text class="t cap" x="46" y="104">GOAL · YOUR FIRST PROMPT</text>
+          <text class="t s" x="46" y="124">“Move the backend to Rust and keep the</text><text class="t s" x="46" y="140">API and the dashboard working.”</text>
+          <text class="t cap" x="46" y="174">HOW IT WENT</text>
+          <text class="t s" x="46" y="194">31 prompts in 4 sessions over 2 days.</text>
+          <text class="t s" x="46" y="212">27 finished first time, 1 was reworded,</text>
+          <text class="t s" x="46" y="230">3 were interrupted.</text>
+          <rect class="w-acc" x="46" y="246" width="200" height="10" rx="3"/><rect class="w-amber" x="248" y="246" width="10" height="10" rx="3"/><rect class="w-blue" x="260" y="246" width="24" height="10" rx="3"/>
+          <text class="t cap" x="46" y="284">PHASES IN THIS CHAPTER</text>
+          <text class="t xs m" x="46" y="304">Phase</text><text class="t xs m" x="110" y="304">Prompts</text><text class="t xs m" x="170" y="304">Length</text><text class="t xs m" x="230" y="304">Finished</text>
+          <text class="t xs" x="46" y="324">8</text><text class="t xs mono" x="110" y="324">4</text><text class="t xs mono" x="170" y="324">346</text><text class="t xs mono" x="230" y="324">100%</text>
+          <text class="t xs" x="46" y="342">9</text><text class="t xs mono" x="110" y="342">8</text><text class="t xs mono" x="170" y="342">98</text><text class="t xs mono" x="230" y="342">88%</text>
+          <text class="t xs" x="46" y="360">10</text><text class="t xs mono" x="110" y="360">3</text><text class="t xs mono" x="170" y="360">24</text><text class="t xs mono" x="230" y="360">100%</text>
+          <text class="t xs" x="46" y="378">…</text>
+          <text class="t xs m" x="46" y="430">the existing phase table, for this chapter</text>
+          <g class="co"><circle cx="30" cy="80" r="10"/><text x="30" y="84">1</text></g>
+
+          <rect class="w-card" x="312" y="80" width="420" height="370" rx="10"/>
+          <text class="t cap" x="328" y="104">SESSIONS IN THIS CHAPTER</text>
+          <g>
+            <text class="t s b" x="328" y="130">Port the store to rusqlite</text><text class="t xs m" x="490" y="130">8 Nov · 9 turns · $31</text>
+            <g><rect class="w-acc" x="640" y="118" width="6" height="14" rx="1"/><rect class="w-acc" x="648" y="112" width="8" height="20" rx="1"/><rect class="w-acc" x="658" y="120" width="6" height="12" rx="1"/><rect class="w-blue" x="666" y="116" width="8" height="16" rx="1"/><rect class="w-acc" x="676" y="110" width="10" height="22" rx="1"/><rect class="w-acc" x="688" y="122" width="6" height="10" rx="1"/><rect class="w-acc" x="696" y="118" width="8" height="14" rx="1"/></g>
+            <line class="s-line" x1="328" y1="142" x2="716" y2="142"/>
+            <circle class="w-acc" cx="336" cy="162" r="5"/><text class="t xs mono m" x="348" y="166">09:12</text><text class="t s" x="388" y="166">Port the store to rusqlite and keep the schema</text>
+            <text class="t xs m" x="388" y="182">14m · 96 tools · 13 files · $4.25</text>
+            <rect class="w-sunk" x="560" y="172" width="156" height="16" rx="8"/><text class="t xs mid" x="638" y="184">30 commits +7,729 −851 ▸</text>
+            <circle class="w-blue" cx="336" cy="208" r="5"/><text class="t xs mono m" x="348" y="212">10:40</text><text class="t s" x="388" y="212">Wire the receiver into axum</text>
+            <text class="t xs m" x="388" y="228">6m · interrupted · in its session ›</text>
+            <circle class="w-acc" cx="336" cy="254" r="5"/><text class="t xs mono m" x="348" y="258">11:02</text><text class="t s" x="388" y="258">Wire the receiver into axum, one route at a time</text>
+            <path class="s-amber" d="M330 214 C318 226 318 244 330 252"/><text class="t xs amb" x="388" y="274">reworded from 10:40 · finished</text>
+            <text class="t s b" x="328" y="312">Snapshot every read endpoint</text><text class="t xs m" x="510" y="312">9 Nov · 6 turns · $18</text>
+            <g><rect class="w-acc" x="640" y="300" width="8" height="14" rx="1"/><rect class="w-acc" x="650" y="296" width="10" height="18" rx="1"/><rect class="w-acc" x="662" y="302" width="6" height="12" rx="1"/><rect class="w-acc" x="670" y="294" width="12" height="20" rx="1"/><rect class="w-blue" x="684" y="300" width="8" height="14" rx="1"/><rect class="w-acc" x="694" y="304" width="6" height="10" rx="1"/></g>
+            <line class="s-line" x1="328" y1="324" x2="716" y2="324"/>
+            <text class="t xs m" x="328" y="350">+ 2 more sessions (each folds to one line until opened)</text>
+          </g>
+          <g class="co"><circle cx="732" cy="80" r="10"/><text x="732" y="84">2</text></g>
+
+          <rect class="w-card" x="744" y="80" width="226" height="370" rx="10"/>
+          <text class="t cap" x="760" y="104">WHAT CAME OF IT</text>
+          <text class="t l" x="760" y="132">42 commits</text><text class="t xs m" x="760" y="150">+24,108 −2,330 in 214 files</text>
+          <text class="t cap" x="760" y="184">MOST CHANGED</text>
+          <text class="t xs mono" x="760" y="204">crates/gitprompt-store/</text><rect class="w-acc" x="900" y="196" width="54" height="8" rx="4"/>
+          <text class="t xs mono" x="760" y="224">crates/gitprompt-server/</text><rect class="w-acc" x="900" y="216" width="40" height="8" rx="4"/>
+          <text class="t xs mono" x="760" y="244">crates/gitprompt-core/</text><rect class="w-acc" x="900" y="236" width="30" height="8" rx="4"/>
+          <text class="t xs mono" x="760" y="264">docs/adr/</text><rect class="w-acc" x="900" y="256" width="10" height="8" rx="4"/>
+          <text class="t cap" x="760" y="298">SPENT</text>
+          <text class="t l" x="760" y="324">$74.10</text><text class="t xs m" x="760" y="342">$2.39 a prompt · Opus 5.5 mostly</text>
+          <text class="t cap" x="760" y="378">COMMITS BY SUBJECT</text>
+          <text class="t xs" x="760" y="398">Add core config, git helpers…</text>
+          <text class="t xs" x="760" y="414">Add capture pipeline and OTLP…</text>
+          <text class="t xs acc" x="760" y="434">All 42 commits ▸</text>
+          <g class="co"><circle cx="970" cy="80" r="10"/><text x="970" y="84">3</text></g>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>Goal, then how it went in plain sentences</b>, then the existing phase table scoped to the chapter. The sentences are built from counts (finished, reworded, interrupted), never invented.</span></li>
+        <li data-n="2"><span><b>Prompts grouped by session</b>, each session with its fingerprint. Rewording shows as an arc between the two prompts (lineage already finds them). Commit lists fold into one line ("30 commits +7,729 −851 ▸"), so 15-row dumps no longer interrupt the reading.</span></li>
+        <li data-n="3"><span><b>What came of it</b>: commits, lines, the directories that changed most, the cost. This is the "advancement" the project page lacks today.</span></li>
+      </ul>
+      <p class="keeps"><b>Kept:</b> back link, name, path, date range, Export, the figures (prompts typed, sessions, phases, commits with lines and files, cost), "not shown: N prompts sent by the tool", prompts and cost per phase (now the river and the cards), the phase table, each phase's pause, date, branch, figures and outcome mix, every prompt entry with outcome, facts and "in its session", every commit with hash, subject, time and lines, anchors from Search results.</p>
+    </div>
+  </div>
+
+  <!-- SESSIONS -->
+  <div class="page-block" id="sessions">
+    <h3>Sessions</h3>
+    <p class="story-q">Which conversations did I have, when, in parallel or one after another, and which went badly?</p>
+    <div class="sketch">
+      <div class="sketch-head"><h4>C1 · A day of sessions, then the list</h4><span class="route">/sessions?range=7d&amp;day=2026-11-13</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 620" role="img" aria-label="Sessions wireframe: a headline, a day timeline with one lane per session showing turn ticks over the hours and parallel sessions, then a compact list grouped by day with fingerprints and figures.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="619" rx="12"/>
+          <text class="t cap" x="30" y="32">SESSIONS · LAST 7 DAYS</text>
+          <text class="t xl" x="30" y="62">81 sessions. On Thursday you ran up to 3 at once;</text>
+          <text class="t xl" x="30" y="90">the longest lasted 2 days and changed 166 files.</text>
+          <rect class="w-card" x="30" y="106" width="300" height="28" rx="8"/><text class="t s m" x="44" y="125">Search what was asked</text>
+          <rect class="w-sunk" x="340" y="106" width="210" height="28" rx="8"/><rect class="w-card" x="344" y="110" width="66" height="20" rx="5"/>
+          <text class="t xs b mid" x="377" y="124">Recent</text><text class="t xs m mid" x="440" y="124">Most turns</text><text class="t xs m mid" x="510" y="124">Costliest</text>
+          <rect class="w-accsoft" x="560" y="108" width="92" height="24" rx="12"/><text class="t xs acc mid" x="606" y="124">project: any ▾</text>
+          <rect class="w-sunk" x="836" y="106" width="144" height="28" rx="8"/><rect class="w-card" x="840" y="110" width="66" height="20" rx="5"/>
+          <text class="t xs b mid" x="873" y="124">Day</text><text class="t xs m mid" x="940" y="124">List only</text>
+          <g class="co"><circle cx="13" cy="76" r="10"/><text x="13" y="80">1</text></g>
+
+          <rect class="w-card" x="30" y="148" width="950" height="200" rx="10"/>
+          <text class="t b" x="46" y="172">Thursday 13 Nov</text><text class="t xs m" x="160" y="172">11 sessions · 47 turns · $42</text>
+          <text class="t xs m end" x="964" y="172">‹ Wed   Fri ›</text>
+          <g><text class="t xs m" x="200" y="194">08:00</text><text class="t xs m" x="340" y="194">11:00</text><text class="t xs m" x="480" y="194">14:00</text><text class="t xs m" x="620" y="194">17:00</text><text class="t xs m" x="760" y="194">20:00</text><text class="t xs m" x="900" y="194">23:00</text></g>
+          <g class="s-dash"><line x1="200" y1="200" x2="200" y2="336"/><line x1="340" y1="200" x2="340" y2="336"/><line x1="480" y1="200" x2="480" y2="336"/><line x1="620" y1="200" x2="620" y2="336"/><line x1="760" y1="200" x2="760" y2="336"/><line x1="900" y1="200" x2="900" y2="336"/></g>
+          <text class="t xs" x="46" y="220">Time dependencies</text>
+          <rect class="w-accsoft" x="560" y="208" width="380" height="16" rx="8"/>
+          <g class="w-acc"><rect x="568" y="210" width="3" height="12"/><rect x="600" y="210" width="3" height="12"/><rect x="640" y="210" width="3" height="12"/><rect x="720" y="210" width="3" height="12"/><rect x="800" y="210" width="3" height="12"/><rect x="860" y="210" width="3" height="12"/></g><rect class="w-red" x="760" y="208" width="4" height="16"/>
+          <text class="t xs" x="46" y="248">Learn pages</text>
+          <rect x="300" y="236" width="520" height="16" rx="8" fill="var(--orange)" opacity="0.25"/>
+          <g class="w-orange"><rect x="310" y="238" width="3" height="12"/><rect x="380" y="238" width="3" height="12"/><rect x="520" y="238" width="3" height="12"/><rect x="700" y="238" width="3" height="12"/><rect x="810" y="238" width="3" height="12"/></g>
+          <text class="t xs" x="46" y="276">Camera calibration</text>
+          <rect x="210" y="264" width="390" height="16" rx="8" fill="var(--blue)" opacity="0.25"/>
+          <g class="w-blue"><rect x="220" y="266" width="3" height="12"/><rect x="250" y="266" width="3" height="12"/><rect x="290" y="266" width="3" height="12"/><rect x="330" y="266" width="3" height="12"/><rect x="420" y="266" width="3" height="12"/><rect x="470" y="266" width="3" height="12"/><rect x="540" y="266" width="3" height="12"/><rect x="590" y="266" width="3" height="12"/></g>
+          <text class="t xs" x="46" y="304">PDF to Markdown</text>
+          <rect x="640" y="292" width="300" height="16" rx="8" fill="var(--pink)" opacity="0.25"/>
+          <g class="w-pink"><rect x="650" y="294" width="3" height="12"/><rect x="760" y="294" width="3" height="12"/><rect x="900" y="294" width="3" height="12"/></g>
+          <rect x="560" y="200" width="40" height="112" fill="var(--amber)" opacity="0.12"/>
+          <text class="t xs amb" x="562" y="328">3 at once</text>
+          <text class="t xs m" x="46" y="330">+ 7 short ones</text>
+          <g class="co"><circle cx="980" cy="148" r="10"/><text x="980" y="152">2</text></g>
+
+          <text class="t cap" x="30" y="378">THURSDAY 13 NOV</text>
+          <g>
+            <rect class="w-card" x="30" y="388" width="950" height="48" rx="8"/>
+            <text class="t s b" x="46" y="408">Block flaky timing in tests</text><text class="t xs m" x="46" y="426">gitprompt · main · 16:26–23:19 · auto</text>
+            <g><rect class="w-acc" x="420" y="404" width="6" height="18" rx="1"/><rect class="w-acc" x="428" y="398" width="8" height="24" rx="1"/><rect class="w-red" x="438" y="396" width="8" height="26" rx="1"/><rect class="w-acc" x="448" y="406" width="6" height="16" rx="1"/><rect class="w-amber" x="456" y="402" width="6" height="20" rx="1"/><rect class="w-acc" x="464" y="400" width="10" height="22" rx="1"/><rect class="w-acc" x="476" y="410" width="6" height="12" rx="1"/><rect class="w-red" x="484" y="398" width="8" height="24" rx="1"/><rect class="w-acc" x="494" y="404" width="6" height="18" rx="1"/><rect class="w-acc" x="502" y="408" width="6" height="14" rx="1"/></g>
+            <text class="t xs mono" x="560" y="416">10 turns · 6h 53m · 323 tools · 41 files · $4.36</text>
+            <rect class="w-redsoft" x="856" y="403" width="60" height="18" rx="9"/><text class="t xs red mid" x="886" y="416">2 failed</text>
+            <text class="t xs acc end" x="966" y="416">Story ›</text>
+          </g>
+          <g>
+            <rect class="w-card" x="30" y="442" width="950" height="48" rx="8"/>
+            <text class="t s b" x="46" y="462">Learn pages for chapters 1–3</text><text class="t xs m" x="46" y="480">system-design-lab · feat/learn-part1 · 10:35–09:11 (+1 day)</text>
+            <g><rect class="w-acc" x="420" y="448" width="30" height="34" rx="1"/><rect class="w-acc" x="452" y="470" width="10" height="12" rx="1"/></g>
+            <text class="t xs mono" x="560" y="470">2 turns · 10h 36m · 808 tools · 167 files</text>
+            <text class="t xs acc end" x="966" y="470">Story ›</text>
+          </g>
+          <g>
+            <rect class="w-card" x="30" y="496" width="950" height="48" rx="8"/>
+            <text class="t s b" x="46" y="516">Camera calibration with two ports</text><text class="t xs m" x="46" y="534">bridge · main · 11:51–15:34 · auto</text>
+            <g><rect class="w-acc" x="420" y="514" width="4" height="16" rx="1"/><rect class="w-acc" x="426" y="508" width="4" height="22" rx="1"/><rect class="w-acc" x="432" y="512" width="4" height="18" rx="1"/><rect class="w-amber" x="438" y="518" width="4" height="12" rx="1"/><rect class="w-acc" x="444" y="506" width="4" height="24" rx="1"/><rect class="w-acc" x="450" y="514" width="4" height="16" rx="1"/><rect class="w-acc" x="456" y="510" width="4" height="20" rx="1"/><rect class="w-acc" x="462" y="516" width="4" height="14" rx="1"/><rect class="w-acc" x="468" y="508" width="4" height="22" rx="1"/><rect class="w-acc" x="474" y="512" width="4" height="18" rx="1"/><rect class="w-acc" x="480" y="518" width="4" height="12" rx="1"/><rect class="w-acc" x="486" y="510" width="4" height="20" rx="1"/></g>
+            <text class="t xs mono" x="560" y="524">15 turns · 3h 43m · 224 tools · 12 files · $16.30</text>
+            <text class="t xs acc end" x="966" y="524">Story ›</text>
+          </g>
+          <g class="co"><circle cx="410" cy="388" r="10"/><text x="410" y="392">3</text></g>
+          <text class="t xs m" x="30" y="572">Hover a row: models, “Every turn” preview, Open in prompts. 20 rows per screen instead of 5.</text>
+          <g class="co"><circle cx="20" cy="440" r="10"/><text x="20" y="444">4</text></g>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>The headline names the pattern</b>: how many sessions, how much in parallel, the longest one. Search, sort and the project filter stay; the project chips become one filter token.</span></li>
+        <li data-n="2"><span><b>The day timeline is the signature picture.</b> One lane per session over the hours, coloured by project, with a tick per turn and red for failures. Parallel work, which you do a lot (3 sessions at once on Thursday), is invisible today. Clicking a day on the Overview opens here.</span></li>
+        <li data-n="3"><span><b>Compact rows with a fingerprint</b> replace the tall cards. All the card's figures stay on one line; the fingerprint is bigger, not smaller. The title is a short label from the first prompt, which you can rename.</span></li>
+        <li data-n="4"><span><b>Grouped by day</b>, like Prompts already is, so the list reads like a diary. Sorting by "Most turns" or "Costliest" switches to a flat list.</span></li>
+      </ul>
+      <p class="keeps"><b>Kept:</b> range, search what was asked, sort (recent, most turns, costliest), filter by project, "showing N of M" and loading more, title, project, branch, time span, permission mode, failed-turns badge, turns, span, tool calls, files changed, cost, the turn bars (now the fingerprint), models, "Every turn" (on hover or expand), Read the story, Open in prompts.</p>
+    </div>
+  </div>
+
+  <!-- SESSION STORY -->
+  <div class="page-block" id="session">
+    <h3>Session story</h3>
+    <p class="story-q">How did this conversation unfold, where did it get stuck, and what did it produce?</p>
+    <div class="sketch">
+      <div class="sketch-head"><h4>C2 · The conversation as an arc, then the turns</h4><span class="route">/sessions/[id]</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 700" role="img" aria-label="Session story wireframe: zoom bar, title, headline, an arc chart with one bar per turn, cost line, rewording arcs and system markers, then the turns in a main column with system items as margin notes.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="699" rx="12"/>
+          <text class="t s m" x="30" y="30">Overview › gitprompt › Ch. 6 Timing › </text><text class="t s b" x="248" y="30">Block flaky timing in tests</text>
+          <text class="t xl" x="30" y="62">Block flaky timing in tests</text><text class="t xs acc" x="300" y="62">rename</text>
+          <rect class="w-sunk" x="30" y="74" width="134" height="20" rx="10"/><text class="t xs mid" x="97" y="88">Claude Code · CLI</text>
+          <rect class="w-irissoft" x="170" y="74" width="66" height="20" rx="10"/><text class="t xs iris mid" x="203" y="88">Opus 5.5</text>
+          <text class="t xs m" x="244" y="88">gitprompt · main · 13 Nov 16:26 – 23:19 · auto</text>
+          <rect class="w-card" x="904" y="44" width="76" height="28" rx="6"/><text class="t s mid" x="942" y="62">Export</text>
+          <text class="t" x="30" y="122">10 turns over 7 hours. It started by making timing checks block, hit 2 failing</text>
+          <text class="t" x="30" y="140">test runs on turn 4, and ended with a ledger of accepted timing lines. 41 files changed.</text>
+          <g class="co"><circle cx="13" cy="122" r="10"/><text x="13" y="126">1</text></g>
+
+          <rect class="w-card" x="30" y="158" width="950" height="190" rx="10"/>
+          <text class="t b" x="46" y="182">How it went</text>
+          <text class="t xs m" x="140" y="182">bar height = time the agent worked · colour = outcome · violet = cost · ▲ ◆ ○ system items</text>
+          <rect class="w-accsoft" x="326" y="196" width="48" height="140" rx="6" opacity="0.6"/>
+          <line class="s-line" x1="70" y1="300" x2="960" y2="300"/>
+          <g>
+            <rect class="w-acc" x="90" y="264" width="40" height="36" rx="3"/><text class="t xs m mid" x="110" y="316">1</text>
+            <rect class="w-acc" x="170" y="254" width="40" height="46" rx="3"/><text class="t xs m mid" x="190" y="316">2</text>
+            <rect class="w-amber" x="250" y="274" width="40" height="26" rx="3"/><text class="t xs m mid" x="270" y="316">3</text>
+            <rect class="w-red" x="330" y="214" width="40" height="86" rx="3"/><text class="t xs m mid" x="350" y="316">4</text>
+            <rect class="w-acc" x="410" y="234" width="40" height="66" rx="3"/><text class="t xs m mid" x="430" y="316">5</text>
+            <rect class="w-acc" x="490" y="270" width="40" height="30" rx="3"/><text class="t xs m mid" x="510" y="316">6</text>
+            <rect class="w-acc" x="570" y="280" width="40" height="20" rx="3"/><text class="t xs m mid" x="590" y="316">7</text>
+            <rect class="w-red" x="650" y="244" width="40" height="56" rx="3"/><text class="t xs m mid" x="670" y="316">8</text>
+            <rect class="w-acc" x="730" y="240" width="40" height="60" rx="3"/><text class="t xs m mid" x="750" y="316">9</text>
+            <rect class="w-acc" x="810" y="286" width="40" height="14" rx="3"/><text class="t xs m mid" x="830" y="316">10</text>
+          </g>
+          <path class="s-amber" d="M270 270 C270 236 350 236 350 210"/><text class="t xs amb" x="276" y="236">reworded</text>
+          <path class="s-iris" d="M110 250 L190 240 L270 244 L350 204 L430 214 L510 220 L590 222 L670 206 L750 200 L830 202" stroke-width="1.6"/>
+          <text class="t xs iris" x="836" y="198">$4.36</text>
+          <g><path d="M390 324 l5 5 l-5 5 l-5 -5z" fill="none" stroke="var(--fg)" stroke-width="1.2"/><rect x="460" y="325" width="8" height="8" rx="1.5" fill="none" stroke="var(--fg)" stroke-width="1.2"/><rect x="472" y="325" width="8" height="8" rx="1.5" fill="none" stroke="var(--fg)" stroke-width="1.2"/><circle cx="710" cy="329" r="4" fill="none" stroke="var(--fg)" stroke-width="1.2"/></g>
+          <g class="w-fg"><circle cx="440" cy="300" r="3.5"/><circle cx="760" cy="300" r="3.5"/><circle cx="836" cy="300" r="3.5"/></g>
+          <text class="t xs m" x="870" y="304">● commits</text>
+                    <g class="co"><circle cx="980" cy="158" r="10"/><text x="980" y="162">2</text></g>
+
+          <text class="t cap" x="30" y="378">TURN 4 OF 10 · 18:02 · FAILED</text>
+          <rect class="w-card" x="30" y="388" width="660" height="296" rx="10"/>
+          <text class="t" x="46" y="414">Make sure the changes don't make the runs flaky; run them a</text>
+          <text class="t" x="46" y="432">few times and block only the kinds that cause flakiness.</text>
+          <text class="t xs m" x="46" y="454">Reworded from turn 3 · 41 words</text>
+          <text class="t cap" x="46" y="484">WHAT THE AGENT DID · 30M 41S</text>
+          <rect class="w-iris" x="46" y="494" width="30" height="10" rx="2"/><rect class="w-acc" x="78" y="494" width="140" height="10" rx="2"/><rect class="w-red" x="160" y="490" width="3" height="18"/><rect class="w-amber" x="220" y="494" width="160" height="10" rx="2"/><rect class="w-acc" x="382" y="494" width="160" height="10" rx="2"/><rect class="w-red" x="480" y="490" width="3" height="18"/><rect class="w-iris" x="544" y="494" width="30" height="10" rx="2"/>
+          <text class="t xs m" x="46" y="526">30 tool calls (Bash 18, Read 8, Edit 4) · 2 subagents · 2 test runs failed · 9 files</text>
+          <text class="t cap" x="46" y="558">CLAUDE ANSWERED</text>
+          <rect class="w-bar2" x="46" y="568" width="560" height="8" rx="4"/><rect class="w-bar2" x="46" y="584" width="500" height="8" rx="4"/>
+          <text class="t cap" x="46" y="618">RESULT</text>
+          <text class="t xs" x="46" y="638">9 files written ▸   No commit before the next prompt   $0.18</text>
+          <text class="t xs acc" x="46" y="664">Open this turn in Prompts ›</text>
+          <g class="co"><circle cx="20" cy="388" r="10"/><text x="20" y="392">3</text></g>
+
+          <text class="t cap" x="706" y="378">ALONGSIDE</text>
+          <g>
+            <path d="M712 400 l5 5 l-5 5 l-5 -5z" fill="none" stroke="var(--fg)" stroke-width="1.2"/>
+            <text class="t s" x="726" y="410">Task notification</text><text class="t xs m" x="726" y="426">background test run finished, exit 1</text>
+            <rect x="707" y="442" width="10" height="10" rx="2" fill="none" stroke="var(--fg)" stroke-width="1.2"/>
+            <text class="t s" x="726" y="452">2 subagents started</text><text class="t xs m" x="726" y="468">Explore: “find every sleep in tests”</text><text class="t xs m" x="726" y="482">general-purpose: “rerun suites 5×”</text>
+            <circle cx="712" cy="504" r="5" fill="none" stroke="var(--fg)" stroke-width="1.2"/>
+            <text class="t s" x="726" y="508">Agent message</text><text class="t xs m" x="726" y="524">subagent report, 527 words ▸</text>
+            <text class="t xs m" x="706" y="566">System items sit beside the turn they</text><text class="t xs m" x="706" y="580">belong to, so the reading flows; open</text><text class="t xs m" x="706" y="594">one to see it in full.</text>
+          </g>
+          <g class="co"><circle cx="980" cy="388" r="10"/><text x="980" y="392">4</text></g>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>A title and a headline.</b> The session gets a name from its first typed prompt (you can rename it), and the headline sums up the arc: start, the hard part, the end, what changed.</span></li>
+        <li data-n="2"><span><b>The arc chart is the session at a glance.</b> One bar per turn (height = time the agent worked, colour = outcome), cumulative cost, rewording arcs, commits and system markers on one axis. Clicking a bar scrolls to that turn. It stays pinned in small at the top while you scroll.</span></li>
+        <li data-n="3"><span><b>Each turn reads Ask → Work → Answer → Result</b>, the same order as the prompt reader. "What the agent did" is a one-line replay with a plain summary, so a 30-minute turn is understandable without opening it.</span></li>
+        <li data-n="4"><span><b>System items become margin notes</b> next to the turn they belong to: task notifications, subagent briefs, agent messages, compactions. Today they sit between turns and break the reading; now they are next to it.</span></li>
+      </ul>
+      <p class="keeps"><b>Kept:</b> back link (now the zoom bar), title, tool, app, model, project, branch, time range, Export, the figures (prompts typed, system items, span, tool calls, cost, commits after your prompts), the outcome bar (now the arc), each turn's number, time, outcome, branch, text, facts and tool mix, files written, commits, every marker group (subagents, agent messages, task notifications, compactions, briefs), reword markers, "Read it all in the prompt".</p>
+    </div>
+  </div>
+
+  <!-- PROMPTS -->
+  <div class="page-block" id="prompts">
+    <h3>Prompts</h3>
+    <p class="story-q">What exactly did I ask, how did each turn go, and can I find it again?</p>
+    <div class="sketch">
+      <div class="sketch-head"><h4>D1 · List and reader together</h4><span class="route">/prompts?outcome=failed&amp;id=1033</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 720" role="img" aria-label="Prompts wireframe: a query bar where every filter is a token, quick filters and origins as chips under it, a dense list grouped by day with session lines, and a reader that tells the turn as Ask, Work, Answer, Result and Where it sits, with notes at the top and details tabs at the bottom.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="719" rx="12"/>
+          <text class="t cap" x="24" y="30">PROMPTS</text>
+          <text class="t l" x="24" y="54">4 failed turns this week, out of 278 prompts</text>
+          <rect class="w-card" x="24" y="68" width="600" height="34" rx="8"/>
+          <rect class="w-redsoft" x="32" y="75" width="110" height="20" rx="10"/><text class="t xs red mid" x="87" y="89">outcome: failed ×</text>
+          <rect class="w-sunk" x="148" y="75" width="80" height="20" rx="10"/><text class="t xs mid" x="188" y="89">last 7 days ×</text>
+          <text class="t s m" x="238" y="90">words, project:, model:, tag:, tool:, app:…</text>
+          <rect class="w-card" x="632" y="68" width="76" height="34" rx="8"/><text class="t xs mid" x="670" y="89">Export</text>
+          <g class="co"><circle cx="14" cy="84" r="10"/><text x="14" y="88">1</text></g>
+          <g>
+            <rect class="w-accsoft" x="24" y="110" width="74" height="20" rx="10"/><text class="t xs acc mid" x="61" y="124">Typed 496</text>
+            <rect class="w-accsoft" x="102" y="110" width="98" height="20" rx="10"/><text class="t xs acc mid" x="151" y="124">Slash command 7</text>
+            <rect class="w-card" x="204" y="110" width="108" height="20" rx="10"/><text class="t xs m mid" x="258" y="124">Task notification</text>
+            <rect class="w-card" x="316" y="110" width="92" height="20" rx="10"/><text class="t xs m mid" x="362" y="124">Agent message</text>
+            <rect class="w-card" x="412" y="110" width="88" height="20" rx="10"/><text class="t xs m mid" x="456" y="124">Programmatic</text>
+            <text class="t xs m" x="508" y="124">|</text>
+            <rect class="w-card" x="518" y="110" width="58" height="20" rx="10"/><text class="t xs m mid" x="547" y="124">Starred</text>
+            <rect class="w-redsoft" x="580" y="110" width="52" height="20" rx="10"/><text class="t xs red mid" x="606" y="124">Failed</text>
+            <rect class="w-card" x="636" y="110" width="72" height="20" rx="10"/><text class="t xs m mid" x="672" y="124">Changed files</text>
+          </g>
+
+          <text class="t cap" x="24" y="156">TODAY · 1</text>
+          <g>
+            <line class="s-line" x1="34" y1="166" x2="34" y2="400"/>
+            <rect class="w-accsoft" x="24" y="166" width="390" height="52" rx="6"/>
+            <circle class="w-red" cx="34" cy="182" r="5"/><text class="t xs mono m" x="46" y="186">10:19</text><text class="t s b" x="84" y="186">Fix failing test in theme.test.ts and the…</text>
+            <text class="t xs m" x="84" y="206">gitprompt · main · turn 23 · 10m · 29 tools · $0.12</text>
+            <text class="t cap" x="24" y="244">YESTERDAY · 3</text>
+            <circle class="w-red" cx="34" cy="264" r="5"/><text class="t xs mono m" x="46" y="268">17:18</text><text class="t s" x="84" y="268">ok then do not block completely as you sug…</text>
+            <text class="t xs m" x="84" y="286">gitprompt · main · turn 13 · 30m · 30 tools · 9 files</text>
+            <circle class="w-red" cx="34" cy="314" r="5"/><text class="t xs mono m" x="46" y="318">15:17</text><text class="t s" x="84" y="318">Make running just quality faster and more…</text>
+            <text class="t xs m" x="84" y="336">gitprompt · main · turn 1 · 18m · 280 tools</text>
+            <circle class="w-red" cx="34" cy="364" r="5"/><text class="t xs mono m" x="46" y="368">09:40</text><text class="t s" x="84" y="368">Review this PR and make sure it has ok tra…</text>
+            <text class="t xs m" x="84" y="386">esp-labs-web · main · turn 3 · 12m · 77 tools</text>
+          </g>
+          <text class="t xs m" x="24" y="424">The line on the left joins prompts of one session, as today.</text>
+          <text class="t xs m" x="24" y="440">Rows keep connector, app, model, tags and facts on hover.</text>
+          <g class="co"><circle cx="414" cy="166" r="10"/><text x="414" y="170">2</text></g>
+
+          <rect class="w-card" x="430" y="146" width="550" height="560" rx="10"/>
+          <rect class="w-redsoft" x="446" y="160" width="54" height="20" rx="10"/><text class="t xs red b mid" x="473" y="174">Failed</text>
+          <text class="t xs m" x="508" y="174">today 10:19 · turn 23 of its session · Claude Code CLI · Opus 5.5</text>
+          <text class="t xs m end" x="966" y="174">Star · Worked · Didn’t · Copy · ✕</text>
+          <rect class="w-sunk" x="446" y="186" width="520" height="22" rx="6"/>
+          <text class="t xs m" x="456" y="201">Tags: + add</text><text class="t xs m" x="560" y="201">Note: What made this prompt work, or not?</text>
+          <g class="co"><circle cx="980" cy="186" r="10"/><text x="980" y="190">3</text></g>
+
+          <text class="t cap" x="446" y="234">1 · YOU ASKED</text>
+          <text class="t" x="446" y="254">Fix failing test in src/lib/layout/theme.test.ts and the other</text>
+          <text class="t" x="446" y="272">failing in gitprompt-cli tests/doctor.rs</text>
+          <text class="t xs m" x="446" y="290">+ IDE selection added by the tool (folded) · 19 words, about 40 tokens</text>
+
+          <text class="t cap" x="446" y="320">2 · WHAT THE AGENT DID · 10M 01S</text>
+          <rect class="w-iris" x="446" y="330" width="20" height="10" rx="2"/><rect class="w-acc" x="468" y="330" width="120" height="10" rx="2"/><rect class="w-red" x="520" y="326" width="3" height="18"/><rect class="w-iris" x="590" y="330" width="20" height="10" rx="2"/><rect class="w-acc" x="612" y="330" width="200" height="10" rx="2"/><rect class="w-red" x="760" y="326" width="3" height="18"/><rect class="w-iris" x="814" y="330" width="20" height="10" rx="2"/>
+          <text class="t xs m" x="446" y="360">29 tool calls: ran tests 6×, read 9 files, edited 3 · 2 test runs failed</text>
+          <text class="t xs acc" x="846" y="340">Replay ›</text>
+
+          <text class="t cap" x="446" y="390">3 · CLAUDE ANSWERED</text>
+          <rect class="w-bar2" x="446" y="400" width="500" height="8" rx="4"/><rect class="w-bar2" x="446" y="416" width="460" height="8" rx="4"/>
+          <rect class="w-redsoft" x="446" y="432" width="520" height="24" rx="6"/><text class="t xs red" x="456" y="448">The turn ended on an error: StopFailure after the doctor test timed out</text>
+
+          <text class="t cap" x="446" y="484">4 · WHAT CAME OF IT</text>
+          <text class="t l" x="446" y="510">3</text><text class="t xs m" x="446" y="526">files</text>
+          <text class="t l" x="510" y="510">+41 −12</text><text class="t xs m" x="510" y="526">lines</text>
+          <text class="t l" x="610" y="510">0</text><text class="t xs m" x="610" y="526">commits after</text>
+          <text class="t l" x="710" y="510">$0.12</text><text class="t xs m" x="710" y="526">cost · 1.4M tokens, 98% cached</text>
+
+          <text class="t cap" x="446" y="560">5 · WHERE IT SITS</text>
+          <g><rect class="w-acc" x="446" y="572" width="6" height="18" rx="1"/><rect class="w-acc" x="454" y="566" width="8" height="24" rx="1"/><rect class="w-red" x="464" y="568" width="8" height="22" rx="1"/><rect class="w-acc" x="474" y="576" width="6" height="14" rx="1"/><rect class="w-acc" x="482" y="572" width="6" height="18" rx="1"/><rect class="w-red" x="490" y="564" width="10" height="26" rx="2" stroke="var(--fg)" stroke-width="1.5"/></g>
+          <text class="t xs" x="512" y="582">Turn 23 of “Strict lints”. First version of this prompt;</text>
+          <text class="t xs" x="512" y="596">a similar one finished in 4m in another session ›</text>
+
+          <line class="s-line" x1="446" y1="618" x2="966" y2="618"/>
+          <text class="t cap" x="446" y="640">DETAILS</text>
+          <text class="t xs b" x="446" y="664">Activity 29</text><text class="t xs m" x="520" y="664">Usage</text><text class="t xs m" x="566" y="664">Repository</text><text class="t xs m" x="632" y="664">Session</text><text class="t xs m" x="684" y="664">Versions 1</text><text class="t xs m" x="750" y="664">Events 41</text><text class="t xs m" x="812" y="664">Raw</text>
+          <rect class="w-acc" x="446" y="670" width="60" height="2"/>
+          <g class="co"><circle cx="430" cy="320" r="10"/><text x="430" y="324">4</text></g>
+          <g class="co"><circle cx="430" cy="640" r="10"/><text x="430" y="644">5</text></g>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>A headline and one query bar.</b> Range, text, tag, tool, app, model, outcome and project become tokens in one field, with suggestions as you type. Origins and the quick filters (starred, failed, changed files, ran commands, possible secret) stay as chips with their counts. Six rows of filters become two.</span></li>
+        <li data-n="2"><span><b>A denser list</b>, still grouped by day with the session line. Each row is two lines; connector, app, branch, tags and model show on hover and in the reader. About twice as many prompts fit on a screen.</span></li>
+        <li data-n="3"><span><b>Your notes come first</b>: star, rate, copy, tags and note sit in the header, not between the answer and the tabs.</span></li>
+        <li data-n="4"><span><b>The turn told in five steps</b>: You asked (with injected context folded, the secret warning, words and tokens) → What the agent did (a replay strip with a plain summary) → Claude answered (with the error, if any) → What came of it (files, lines, commits, cost) → Where it sits (its place in the session, versions, similar prompts that worked).</span></li>
+        <li data-n="5"><span><b>The 7 tabs stay, under "Details"</b>: Activity, Usage, Repository, Session, Versions, Events, Raw. Story first, raw evidence after. With nothing selected, the reader shows a summary of the current filter (outcomes, cost, the most expensive turn) instead of an empty card.</span></li>
+      </ul>
+      <p class="keeps"><b>Kept:</b> every filter (range, text, tag, tool, app, model, outcome, project, origins, quick filters with counts), Export, "newest N of M" and paging, grouping by day with the session line, live updates, row facts. In the reader: outcome, time, turn link, connector, project, branch, permission mode, version, star, worked well / didn't work, copy, close, your prompt with injected context, "show the whole prompt", agent and task voices, secret warning and redaction, worked for / tool calls / files, the turn timeline, the error callout, the answer, tags and notes, all 7 tabs. The /search page's word search with snippets lives here and in ⌘K.</p>
+    </div>
+  </div>
+
+  <!-- PROMPT READER deeper -->
+  <div class="page-block" id="prompt">
+    <h3>Prompt reader, up close: Replay and Versions</h3>
+    <p class="story-q">Why did this turn take 30 minutes, and did a better-worded version do better?</p>
+    <div class="sketch">
+      <div class="sketch-head"><h4>D2 · Replay and the life of a prompt</h4><span class="route">reader › Replay · Versions</span></div>
+      <div class="canvas">
+        <svg viewBox="0 0 1000 440" role="img" aria-label="Left: a replay with lanes for you, model, tools by kind, subagents, errors and git over a time axis, with a hover card for one tool call. Right: the versions of a prompt as a vertical thread with word changes and outcomes.">
+          <rect class="w-win" x="0.5" y="0.5" width="999" height="439" rx="12"/>
+          <text class="t b" x="30" y="36">Replay</text><text class="t xs m" x="90" y="36">30m 41s · drag to zoom · click a block for its event</text>
+          <g>
+            <text class="t xs m" x="30" y="76">You</text><text class="t xs m" x="30" y="106">Model</text><text class="t xs m" x="30" y="136">Read</text><text class="t xs m" x="30" y="166">Edit</text><text class="t xs m" x="30" y="196">Shell</text><text class="t xs m" x="30" y="226">Subagents</text><text class="t xs m" x="30" y="256">Git</text>
+            <line class="s-line" x1="96" y1="60" x2="96" y2="266"/>
+            <path class="w-fg" d="M100 66 l8 0 l0 14 l-8 0z"/>
+            <g class="w-iris"><rect x="110" y="98" width="20" height="12" rx="2"/><rect x="190" y="98" width="14" height="12" rx="2"/><rect x="280" y="98" width="24" height="12" rx="2"/><rect x="400" y="98" width="18" height="12" rx="2"/><rect x="520" y="98" width="16" height="12" rx="2"/><rect x="600" y="98" width="22" height="12" rx="2"/></g>
+            <g class="w-acc"><rect x="132" y="128" width="12" height="12" rx="2"/><rect x="148" y="128" width="10" height="12" rx="2"/><rect x="206" y="128" width="14" height="12" rx="2"/><rect x="420" y="128" width="12" height="12" rx="2"/></g>
+            <g class="w-blue"><rect x="306" y="158" width="20" height="12" rx="2"/><rect x="540" y="158" width="16" height="12" rx="2"/></g>
+            <g class="w-orange"><rect x="222" y="188" width="56" height="12" rx="2"/><rect x="330" y="188" width="66" height="12" rx="2"/><rect x="440" y="188" width="76" height="12" rx="2"/><rect x="560" y="188" width="36" height="12" rx="2"/></g>
+            <rect class="w-red" x="276" y="184" width="3" height="20"/><rect class="w-red" x="394" y="184" width="3" height="20"/>
+            <rect class="w-amber" x="300" y="218" width="150" height="12" rx="2"/><rect class="w-amber" x="320" y="232" width="90" height="8" rx="2" opacity="0.6"/>
+            <text class="t xs m" x="96" y="286">0</text><text class="t xs m mid" x="250" y="286">10m</text><text class="t xs m mid" x="420" y="286">20m</text><text class="t xs m end" x="626" y="286">30m</text>
+          </g>
+          <rect class="w-card" x="330" y="300" width="290" height="110" rx="8"/>
+          <text class="t xs m" x="344" y="320">SHELL · 20:14:08 · 1m 12s</text>
+          <text class="t xs mono" x="344" y="340">pnpm verify</text>
+          <text class="t xs red" x="344" y="358">exit 1 · 2 tests failed in theme.test.ts</text>
+          <text class="t xs m" x="344" y="378">Shown from the stored event; open in Events ›</text>
+          <path class="s-fg" d="M396 204 L420 300"/>
+          <g class="co"><circle cx="13" cy="32" r="10"/><text x="13" y="36">1</text></g>
+
+          <line class="s-line" x1="660" y1="20" x2="660" y2="420"/>
+          <text class="t b" x="690" y="36">Versions of this prompt</text>
+          <g>
+            <line class="s-line" x1="702" y1="70" x2="702" y2="320"/>
+            <circle class="w-amber" cx="702" cy="70" r="7"/>
+            <text class="t xs m" x="718" y="66">v1 · 17:17 · superseded after 26s</text>
+            <text class="t xs" x="718" y="84">does it make sense to block new time…</text>
+            <circle class="w-red" cx="702" cy="150" r="7"/>
+            <text class="t xs m" x="718" y="146">v2 · 17:18 · failed after 30m</text>
+            <text class="t xs" x="718" y="164">ok then do not block </text><rect class="w-redsoft" x="814" y="155" width="60" height="12" rx="2"/><text class="t xs red" x="816" y="164">completely</text>
+            <text class="t xs" x="718" y="180">as you suggested</text>
+            <circle class="w-acc" cx="702" cy="240" r="7"/>
+            <text class="t xs m" x="718" y="236">v3 · 18:02 · finished first time</text>
+            <text class="t xs" x="718" y="254">block only the kinds that </text><rect class="w-accsoft" x="842" y="245" width="100" height="12" rx="2"/><text class="t xs acc" x="844" y="254">cause flakiness</text>
+            <text class="t xs" x="718" y="270">and run the suites </text><rect class="w-accsoft" x="808" y="261" width="70" height="12" rx="2"/><text class="t xs acc" x="810" y="270">a few times</text>
+            <rect class="w-accsoft" x="690" y="300" width="160" height="22" rx="11"/><text class="t xs acc b mid" x="770" y="315">Outcome improved</text>
+          </g>
+          <text class="t cap" x="690" y="356">SAME INSTRUCTION ELSEWHERE</text>
+          <text class="t xs" x="690" y="376">2 other sessions · finished both times ›</text>
+          <text class="t xs m" x="690" y="400">From lineage (insights/lineage.rs) and WordDiff,</text>
+          <text class="t xs m" x="690" y="414">drawn as a thread instead of a table.</text>
+          <g class="co"><circle cx="970" cy="30" r="10"/><text x="970" y="34">2</text></g>
+        </svg>
+      </div>
+      <ul class="why">
+        <li data-n="1"><span><b>Replay</b> draws the turn's events (already stored and listed under Events) as lanes over time: you, model calls, each tool kind, subagents, errors, commits. The question "why did it take 30 minutes?" gets a visual answer: two failed test runs and a long subagent.</span></li>
+        <li data-n="2"><span><b>Versions as a thread</b>: each attempt with its outcome glyph and word changes, ending with "Outcome improved" when it did. This is how a person learns what wording works for them, using the existing lineage and word diff.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 06 FLOWS -->
+<section id="flows">
+  <div class="prose">
+    <h2><span class="n">06</span>How the pages connect</h2>
+    <p class="sub">Today every bar opens Prompts with a filter. That stays, and the zoom adds paths in and out, so a question started on the Overview ends on the turn that answers it.</p>
+  </div>
+  <div class="sketch">
+    <div class="canvas">
+      <svg viewBox="0 0 1000 360" role="img" aria-label="Flow diagram: from the Overview, a day opens Sessions on that day, a project opens its story, any figure opens Prompts filtered. From a project story, a chapter opens its sessions, a session opens its story, a turn opens the prompt reader. The zoom bar goes back up.">
+        <g>
+          <rect class="w-card" x="20" y="140" width="150" height="80" rx="10"/><text class="t b" x="36" y="166">Overview</text><text class="t xs m" x="36" y="186">week strip · figures</text><text class="t xs m" x="36" y="202">worth a look · panels</text>
+          <rect class="w-card" x="270" y="30" width="160" height="70" rx="10"/><text class="t b" x="286" y="56">Project story</text><text class="t xs m" x="286" y="76">river · chapters</text>
+          <rect class="w-card" x="270" y="150" width="160" height="70" rx="10"/><text class="t b" x="286" y="176">Sessions</text><text class="t xs m" x="286" y="196">day timeline · list</text>
+          <rect class="w-card" x="270" y="270" width="160" height="70" rx="10"/><text class="t b" x="286" y="296">Prompts</text><text class="t xs m" x="286" y="316">filtered list · reader</text>
+          <rect class="w-card" x="530" y="30" width="160" height="70" rx="10"/><text class="t b" x="546" y="56">Chapter</text><text class="t xs m" x="546" y="76">sessions · results</text>
+          <rect class="w-card" x="530" y="150" width="160" height="70" rx="10"/><text class="t b" x="546" y="176">Session story</text><text class="t xs m" x="546" y="196">arc · turns</text>
+          <rect class="w-accsoft" x="790" y="150" width="190" height="70" rx="10" stroke="var(--accent)"/><text class="t b" x="806" y="176">The turn</text><text class="t xs m" x="806" y="196">reader · replay · versions</text>
+        </g>
+        <path class="s-arrow" d="M170 160 C220 140 230 70 268 66"/><text class="t xs m" x="180" y="110">a project</text>
+        <path class="s-arrow" d="M170 180 L268 184"/><text class="t xs m" x="186" y="176">a day</text>
+        <path class="s-arrow" d="M170 200 C220 220 230 300 268 304"/><text class="t xs m" x="112" y="272">any figure / bar</text>
+        <path class="s-arrow" d="M430 66 L528 66"/><text class="t xs m" x="446" y="58">a chapter</text>
+        <path class="s-arrow" d="M610 100 L610 148"/><text class="t xs m" x="616" y="128">a session</text>
+        <path class="s-arrow" d="M430 186 L528 186"/><text class="t xs m" x="446" y="178">a row</text>
+        <path class="s-arrow" d="M690 186 L788 186"/><text class="t xs m" x="706" y="178">a bar / turn</text>
+        <path class="s-arrow" d="M430 304 C600 304 760 280 840 222"/><text class="t xs m" x="560" y="326">select a row</text>
+        <path d="M884 150 C884 20 400 6 340 28" class="s-dash" marker-end="url(#arrow)"/><text class="t xs m" x="620" y="16">zoom bar: back to session, chapter, project, overview</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 07 QUALITY -->
+<section id="quality">
+  <div class="prose">
+    <h2><span class="n">07</span>Prompt quality and leaks, inside the story</h2>
+    <p class="sub">Instead of new pages, quality and leaks show up where the story already is. Everything is computed locally from data GitPrompt captures; no model is called.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Where</th><th>Quality: how well prompts worked</th><th>Leaks: data, money, effort</th></tr></thead>
+    <tbody>
+      <tr><td>Overview</td><td>First-try rate next to Finished: finished, and not reworded or corrected within 30 minutes. Built from outcomes and lineage.</td><td>"Worth a look": possible secrets, cost outliers (3× your median), repeated prompts, an agent reading <code>.env</code> or <code>~/.ssh</code>.</td></tr>
+      <tr><td>Project / chapter</td><td>Rework count and outcome mix per chapter; first-try rate in Compare.</td><td>Most expensive chapter in the headline; failed turns on branch lanes.</td></tr>
+      <tr><td>Session</td><td>Rewording arcs in the arc chart.</td><td>Cost line; subagent share in the turn summary.</td></tr>
+      <tr><td>Prompt</td><td>"Where it sits": versions and a similar prompt that worked. Later, a short checklist (goal, files named, a way to check the result), shown only with enough evidence from your own history.</td><td>The existing secret warning and redaction, plus a banner when the agent read a sensitive file in this turn.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p class="note">Comparisons always show their sample size ("82% with a check, n=61; 54% without, n=140") and are hidden when there is too little data. GitPrompt only observes: it never blocks a prompt or edits a tool's settings (PLAN.md §4).</p>
+  </div>
+</section>
+
+<!-- 08 KEEP -->
+<section id="keep">
+  <div class="prose">
+    <h2><span class="n">08</span>Nothing is lost: where every feature goes</h2>
+    <p class="sub">The checklist for the rebuild. Each row is a feature that exists today; the redesign is done only when each one is reachable in its new place.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Feature today</th><th>New place</th><th></th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="3">Overview</td></tr>
+      <tr><td>Range, origin chips, tool / app / project / model selects</td><td>Range control, origin chips, Filters menu</td><td><span class="tag keep">same</span></td></tr>
+      <tr><td>Key figures (prompts, spend, typical turn, finished, agent commits)</td><td>Same five, with comparisons and links</td><td><span class="tag fix">enhanced</span></td></tr>
+      <tr><td>16 panels in 4 sections</td><td>4 tabs + Starred, each with a takeaway sentence</td><td><span class="tag fix">regrouped</span></td></tr>
+      <tr><td>Setup steps, empty state, Export, live refresh</td><td>Unchanged</td><td><span class="tag keep">same</span></td></tr>
+      <tr><td>—</td><td>Headline sentence, week strip, Worth a look</td><td><span class="tag new">new</span></td></tr>
+      <tr class="grp"><td colspan="3">Projects and project story</td></tr>
+      <tr><td>Project rows: counts, share, sparkline, tool-kind bar, branches, failed badge</td><td>Rows with river, current chapter, last-session fingerprint; tool kinds on hover</td><td><span class="tag fix">enhanced</span></td></tr>
+      <tr><td>Phases, phase table, prompts and cost per phase</td><td>Chapters (grouped phases) on the river; phase table inside each chapter</td><td><span class="tag fix">regrouped</span></td></tr>
+      <tr><td>Phase sections with prompt entries and commits</td><td>Chapter detail: sessions with fingerprints, commits folded per prompt</td><td><span class="tag fix">regrouped</span></td></tr>
+      <tr><td>—</td><td>Milestones from git, branch lanes, chapter names, Compare</td><td><span class="tag new">new</span></td></tr>
+      <tr class="grp"><td colspan="3">Sessions and session story</td></tr>
+      <tr><td>Search, sort, project chips, range, load more</td><td>Same, project chips as one filter</td><td><span class="tag keep">same</span></td></tr>
+      <tr><td>Session cards with figures, turn bars, models, every turn, links</td><td>Compact rows with fingerprint; every turn on expand</td><td><span class="tag fix">denser</span></td></tr>
+      <tr><td>Story: figures, outcome bar, turns, markers, rewording, files, commits</td><td>Arc chart, turns in Ask → Work → Answer → Result, markers as margin notes</td><td><span class="tag fix">enhanced</span></td></tr>
+      <tr><td>—</td><td>Day timeline, session names, pinned mini arc</td><td><span class="tag new">new</span></td></tr>
+      <tr class="grp"><td colspan="3">Prompts, prompt detail, search</td></tr>
+      <tr><td>All filters, quick filters, origin chips, export, paging, day groups</td><td>Query bar + chips; same URL parameters</td><td><span class="tag fix">condensed</span></td></tr>
+      <tr><td>Detail header, ratings, star, copy, tags, notes</td><td>Reader header</td><td><span class="tag keep">same</span></td></tr>
+      <tr><td>Prompt, injected context, voices, secret warning, turn overview, answer</td><td>Reader steps 1–4</td><td><span class="tag fix">reordered</span></td></tr>
+      <tr><td>Tabs: Activity, Usage, Repository, Session, Versions, Events, Raw</td><td>Details, under the story</td><td><span class="tag keep">same</span></td></tr>
+      <tr><td>/search with words, project, range, origin, tag, snippets</td><td>Prompts text search + ⌘K; /search redirects</td><td><span class="tag fix">merged</span></td></tr>
+      <tr><td>—</td><td>Replay, versions thread, "where it sits", summary when nothing is selected</td><td><span class="tag new">new</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 09 TEAMS -->
+<section id="teams">
+  <div class="prose">
+    <h2><span class="n">09</span>Ready for teams: groundwork now, features in step two</h2>
+    <p class="sub">Sharing with a team is the second step and only if people want it. What has to happen now is small: every record knows who made it, on which machine, in which workspace, and who may see it. With that in place, team features need no migration of anyone's history.</p>
+  </div>
+  <div class="sketch">
+    <div class="sketch-head"><h4>T1 · What the data model gains now</h4><span class="route">store + wire types</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="Data model: Person, Machine and Workspace entities linked to Prompt, Annotation and Saved view, each gaining actor, host, workspace and visibility fields with local defaults.">
+        <g>
+          <rect class="w-card" x="20" y="20" width="200" height="110" rx="10"/><text class="t b" x="36" y="44">Person</text>
+          <text class="t xs mono" x="36" y="66">actor_id</text><text class="t xs mono" x="36" y="82">display_name</text><text class="t xs mono" x="36" y="98">public_key</text>
+          <text class="t xs acc" x="36" y="120">now: you, one row</text>
+          <rect class="w-card" x="20" y="150" width="200" height="80" rx="10"/><text class="t b" x="36" y="174">Machine</text>
+          <text class="t xs mono" x="36" y="196">host_id · hostname · os</text><text class="t xs acc" x="36" y="216">now: this machine</text>
+          <rect class="w-card" x="20" y="250" width="200" height="66" rx="10"/><text class="t b" x="36" y="274">Workspace</text>
+          <text class="t xs mono" x="36" y="294">workspace_id</text><text class="t xs acc" x="120" y="294">now: local</text>
+        </g>
+        <path class="s-arrow" d="M220 76 L398 120"/><path class="s-arrow" d="M220 190 L398 160"/><path class="s-arrow" d="M220 282 L398 200"/>
+        <rect class="w-card" x="400" y="40" width="260" height="250" rx="10"/>
+        <text class="t b" x="416" y="64">Prompt (existing)</text>
+        <text class="t xs mono m" x="416" y="86">id, source, fields, raw, received_at…</text>
+        <rect class="w-accsoft" x="408" y="98" width="244" height="132" rx="6"/>
+        <text class="t xs mono acc" x="416" y="118">+ actor_id</text>
+        <text class="t xs mono acc" x="416" y="136">+ host_id</text>
+        <text class="t xs mono acc" x="416" y="154">+ workspace_id</text>
+        <text class="t xs mono acc" x="416" y="172">+ visibility</text><text class="t xs m" x="520" y="172">private | published | redacted</text>
+        <text class="t xs mono acc" x="416" y="190">+ published_at</text>
+        <text class="t xs m" x="416" y="214">all with local defaults</text>
+        <text class="t xs m" x="416" y="252">Same columns on annotations</text>
+        <text class="t xs m" x="416" y="268">(star, rating, tags, notes) and saved views.</text>
+        <g>
+          <text class="t b" x="700" y="44">What uses them, now</text>
+          <text class="t s" x="700" y="70">• Every API query is scoped by workspace</text>
+          <text class="t s" x="712" y="88">(always "local" for now).</text>
+          <text class="t s" x="700" y="112">• Annotations belong to a person, so notes</text>
+          <text class="t s" x="712" y="130">stay personal once shared.</text>
+          <text class="t s" x="700" y="154">• Exports record who and which machine,</text>
+          <text class="t s" x="712" y="172">the first step to signed bundles.</text>
+          <text class="t s" x="700" y="196">• The UI hides any “who” control while</text>
+          <text class="t s" x="712" y="214">there is one person.</text>
+          <text class="t xs m" x="700" y="252">An ADR first; then `just types` and</text>
+          <text class="t xs m" x="700" y="268">`just snapshots` for the wire changes.</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="sketch">
+    <div class="sketch-head"><h4>T2 · The same pages, in step two</h4><span class="route">workspace: platform-team</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 1000 400" role="img" aria-label="Step two: a project river split into one lane per person, a sessions list with avatars and a who filter, and a publish review listing what leaves the machine.">
+        <rect class="w-win" x="0.5" y="0.5" width="999" height="399" rx="12"/>
+        <text class="t cap" x="30" y="32">PROJECT STORY · TEAM WORKSPACE</text>
+        <text class="t l" x="30" y="56">checkout-service · 3 people published 64 turns</text>
+        <rect class="w-accsoft" x="30" y="70" width="104" height="22" rx="11"/><text class="t xs acc mid" x="82" y="85">who: everyone ▾</text>
+        <g>
+          <circle class="w-irissoft" cx="44" cy="124" r="12"/><text class="t xs iris mid b" x="44" y="128">AG</text>
+          <path class="w-accmid" d="M70 116 C120 110 160 112 200 118 S300 126 340 116 S440 108 520 118 L520 132 C460 138 400 136 340 132 S240 130 200 134 S110 132 70 132Z"/>
+          <circle class="w-ambersoft" cx="44" cy="168" r="12"/><text class="t xs amb mid b" x="44" y="172">MK</text>
+          <path d="M140 164 C180 158 220 156 260 162 S340 170 380 162 L380 176 C340 180 300 180 260 176 S180 176 140 176Z" fill="var(--amber)" opacity="0.35"/>
+          <circle class="w-bluesoft" cx="44" cy="212" r="12"/><text class="t xs blue mid b" x="44" y="216">JS</text>
+          <path d="M300 208 C340 202 380 200 420 206 S480 214 520 206 L520 220 C480 224 440 224 400 220 S340 220 300 220Z" fill="var(--blue)" opacity="0.35"/>
+          <line class="s-dash" x1="260" y1="100" x2="260" y2="232"/><text class="t xs b" x="266" y="104">Ch. 2 Payments retry</text>
+          <text class="t xs m" x="70" y="252">One lane per person; chapters and milestones are shared.</text>
+        </g>
+        <g class="co"><circle cx="20" cy="124" r="10"/><text x="20" y="128">1</text></g>
+
+        <text class="t cap" x="30" y="290">SESSIONS</text>
+        <rect class="w-card" x="30" y="300" width="500" height="40" rx="8"/>
+        <circle class="w-ambersoft" cx="50" cy="320" r="10"/><text class="t xs amb mid b" x="50" y="324">MK</text>
+        <text class="t s b" x="68" y="318">Retry webhook delivery</text><text class="t xs m" x="68" y="334">published · redacted</text>
+        <g><rect class="w-acc" x="300" y="310" width="6" height="22" rx="1"/><rect class="w-acc" x="308" y="316" width="6" height="16" rx="1"/><rect class="w-amber" x="316" y="312" width="6" height="20" rx="1"/><rect class="w-acc" x="324" y="306" width="8" height="26" rx="1"/></g>
+        <text class="t xs mono" x="350" y="324">4 turns · $3.10</text>
+        <rect class="w-card" x="30" y="346" width="500" height="40" rx="8"/>
+        <circle class="w-irissoft" cx="50" cy="366" r="10"/><text class="t xs iris mid b" x="50" y="370">AG</text>
+        <text class="t s b" x="68" y="364">Idempotency keys</text><text class="t xs m" x="68" y="380">yours · private</text>
+        <text class="t xs mono" x="350" y="370">6 turns · $5.40</text>
+        <g class="co"><circle cx="20" cy="320" r="10"/><text x="20" y="324">2</text></g>
+
+        <rect class="w-card" x="580" y="30" width="400" height="356" rx="12"/>
+        <text class="t l" x="600" y="62">Publish “Idempotency keys”</text>
+        <text class="t xs m" x="600" y="82">to platform-team · you can unpublish at any time</text>
+        <text class="t cap" x="600" y="112">WHAT LEAVES THIS MACHINE</text>
+        <rect class="w-acc" x="600" y="124" width="12" height="12" rx="3"/><text class="t s" x="620" y="135">Prompts you typed (6)</text>
+        <rect class="w-acc" x="600" y="148" width="12" height="12" rx="3"/><text class="t s" x="620" y="159">Outcomes, durations, tool counts, cost</text>
+        <rect class="w-card" x="600" y="172" width="12" height="12" rx="3"/><text class="t s" x="620" y="183">Answers</text>
+        <rect class="w-card" x="600" y="196" width="12" height="12" rx="3"/><text class="t s" x="620" y="207">File paths (relative only)</text>
+        <rect class="w-sunk" x="600" y="220" width="12" height="12" rx="3"/><text class="t s m" x="620" y="231">Notes, raw events: never</text>
+        <rect class="w-ambersoft" x="600" y="250" width="360" height="46" rx="8"/>
+        <text class="t xs amb" x="612" y="270">2 secrets hidden · 3 absolute paths shortened ·</text>
+        <text class="t xs amb" x="612" y="286">built with the export redaction you have today</text>
+        <rect class="w-card" x="760" y="330" width="80" height="32" rx="8"/><text class="t s mid" x="800" y="351">Cancel</text>
+        <rect class="w-acc" x="848" y="330" width="112" height="32" rx="8"/><text class="t s inv mid b" x="904" y="351">Publish 6 turns</text>
+        <g class="co"><circle cx="980" cy="30" r="10"/><text x="980" y="34">3</text></g>
+      </svg>
+    </div>
+    <ul class="why">
+      <li data-n="1"><span><b>The story pages gain a "who" dimension</b> without changing shape: the river splits into lanes per person, chapters and milestones stay shared. That works because the pictures are built from one query, and "who" is one more filter.</span></li>
+      <li data-n="2"><span><b>Rows get an avatar and a visibility state</b> (yours, private, published). The "who:" token joins the query bar.</span></li>
+      <li data-n="3"><span><b>Publishing reuses the export pipeline</b> (redaction, relative paths, figures-only defaults) behind a review that shows exactly what leaves, the same trust pattern as Connect's diff. Notes and raw events never leave.</span></li>
+    </ul>
+    <p class="note">Step two needs a team server (the daemon in team mode on a Postgres the team runs; PLAN.md already plans optional Postgres) and probably a new crate for sync. By the project's rules that is a design decision for you, so it is listed under Decisions, not assumed.</p>
+  </div>
+</section>
+
+<!-- 10 DESKTOP -->
+<section id="desktop">
+  <div class="prose">
+    <h2><span class="n">10</span>Desktop: how Tauri helps these pages</h2>
+    <p class="sub">The desktop app already runs the daemon in-process and keeps a tray icon. These additions serve the restructured pages without a second heavy UI.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Native feature</th><th>For which page</th><th>How, and its cost</th></tr></thead>
+    <tbody>
+      <tr><td>Live tray menu</td><td>Overview headline in the menu bar: recording state, today's prompts and cost, last 3 prompts to copy</td><td>Native menu items updated from daemon events in Rust. No web view, about 0 MB.</td></tr>
+      <tr><td>Deep links</td><td>Every zoom level has a link: <code>gitprompt://session/…</code>, <code>…/prompt/1033</code></td><td><code>tauri-plugin-deep-link</code>; also <code>gitprompt open</code> from the CLI.</td></tr>
+      <tr><td>Notifications</td><td>A long turn finished or failed, a possible secret, a connector gone quiet; each opens its turn</td><td><code>tauri-plugin-notification</code>; decided in the daemon so they work with the window closed; rate-limited.</td></tr>
+      <tr><td>Recall shortcut</td><td>Prompts: find a past prompt from any app and copy it</td><td><code>tauri-plugin-global-shortcut</code> + a small window created on first use.</td></tr>
+      <tr><td>Native window</td><td>All pages: overlay title bar, sidebar vibrancy, remembered size, ⌘1–⌘4 for the four levels</td><td><code>tauri-plugin-window-state</code>, app menu. About 0 cost.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p>Performance stays measured by the tools you already have (<code>just perf</code>, the quality dashboard): cold start to the Overview under 600 ms, idle CPU near zero with the window hidden, lists virtualised so 10,000 rows scroll smoothly. Aggregates stay on the server (<code>/api/stats</code>); the browser only draws.</p>
+  </div>
+</section>
+
+<!-- 11 BUILD -->
+<section id="build">
+  <div class="prose">
+    <h2><span class="n">11</span>How to build it</h2>
+    <h3>New shared components (web)</h3>
+    <p>Each one is small, single-purpose and shown on the Design system page. They reuse <code>lib/ui</code> and <code>lib/ui/charts</code> and add no chart library.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Component</th><th>Used by</th><th>Built from</th></tr></thead>
+    <tbody>
+      <tr><td>StoryHeader <span class="dim">(headline + figures)</span></td><td>All four levels</td><td>PageHeader, StatTile; sentences from <code>lib/stories/headline.ts</code> (pure, tested)</td></tr>
+      <tr><td>ZoomBar</td><td>Project, session, prompt</td><td>Breadcrumb from the route and the story data</td></tr>
+      <tr><td>OutcomeGlyph, TurnGlyph, SessionFingerprint</td><td>Every list and story</td><td>OutcomeBadge, TurnStrip (generalised)</td></tr>
+      <tr><td>WeekStrip</td><td>Overview</td><td>ColumnChart (stacked) + annotations</td></tr>
+      <tr><td>ProjectRiver</td><td>Projects, project story</td><td>Sparkline area + chapter dividers + milestone flags</td></tr>
+      <tr><td>DayTimeline</td><td>Sessions</td><td>Lanes</td></tr>
+      <tr><td>SessionArc</td><td>Session story</td><td>ColumnChart + cost line + arcs</td></tr>
+      <tr><td>Replay</td><td>Prompt reader, session turns (small)</td><td>Lanes over EventList data</td></tr>
+      <tr><td>QueryBar</td><td>Prompts, Sessions, Overview filters</td><td>FilterBar, PromptFilters, FacetSelects, OriginChips merged; same URL parameters</td></tr>
+      <tr><td>MarginNote</td><td>Session story</td><td>MarkerGroup</td></tr>
+      <tr><td>WorthALook</td><td>Overview</td><td>Callout + links built with <code>promptsHref</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="prose">
+    <h3>Backend additions, each in the lowest crate that can hold it</h3>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Crate</th><th>Adds</th></tr></thead>
+    <tbody>
+      <tr><td>gitprompt-insights</td><td>Chapters (grouping phases), chapter names from typed words and commit subjects, milestones from git refs and ADR files, comparison with the previous period, "worth a look" items, first-try rate. All pure functions, tested on fixtures.</td></tr>
+      <tr><td>gitprompt-store</td><td>Identity columns (§09) with defaults; user-given names for sessions and chapters; first-try signals in the rebuildable index.</td></tr>
+      <tr><td>gitprompt-server</td><td><code>previous</code> on stats queries; chapters and milestones in <code>/api/stories/project</code>; day lanes for sessions; <code>PUT</code> for names. Time from the app's <code>Clock</code>. Wire types with ts-rs, snapshots for every new read.</td></tr>
+      <tr><td>gitprompt-tauri / desktop</td><td>Tray menu state, deep links, notifications, shortcut.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">None of these needs a new crate or a new edge between crates. Headline sentences are written in the web (wording is presentation); the numbers behind them come from the server.</p>
+
+  <div class="prose"><h3>Order of work</h3><p>Each step ships on its own and keeps every existing feature working.</p></div>
+  <div class="road">
+    <div class="step"><div class="when"><b>Step 1</b>Vocabulary<span class="size">M</span></div><div><h4>Glyphs, zoom bar, navigation order</h4><p>OutcomeGlyph, TurnGlyph, SessionFingerprint, ZoomBar, StoryHeader on the Design system page. Sidebar reordered, ⌘K, /search redirect, Fields and Design system under Settings › Developer. Identity columns and their ADR.</p><p><b>Done when</b> every current route works or redirects and Lighthouse and perf scores hold.</p></div></div>
+    <div class="step"><div class="when"><b>Step 2</b>Prompts<span class="size">L</span></div><div><h4>Query bar, denser list, the reader as a story</h4><p>QueryBar, two-line rows, reader steps 1–5, Details tabs, Replay, versions thread, summary when nothing is selected.</p><p><b>Done when</b> every filter and tab in the §08 checklist is reachable and the URLs of saved links still work.</p></div></div>
+    <div class="step"><div class="when"><b>Step 3</b>Sessions<span class="size">M</span></div><div><h4>Day timeline, compact rows, the session arc</h4><p>DayTimeline, fingerprints, session names, SessionArc, turns as Ask → Work → Answer → Result, margin notes.</p></div></div>
+    <div class="step"><div class="when"><b>Step 4</b>Projects<span class="size">L</span></div><div><h4>Rivers, chapters, milestones</h4><p>Chapters and names in insights, milestones from git, ProjectRiver, chapter cards and detail, branch lanes, Compare.</p></div></div>
+    <div class="step"><div class="when"><b>Step 5</b>Overview<span class="size">M</span></div><div><h4>Headline, week strip, worth a look, tabs</h4><p>Previous-period comparisons, WeekStrip, WorthALook, the panels in tabs with takeaway sentences. Last, because it links into all the others.</p></div></div>
+    <div class="step"><div class="when"><b>Step 6</b>Desktop<span class="size">M</span></div><div><h4>Tray, deep links, notifications, shortcut</h4><p>Measured with <code>just perf</code>.</p></div></div>
+    <div class="step"><div class="when"><b>Later</b>Teams<span class="size">L</span></div><div><h4>Step two, if people want it</h4><p>Publish review, signed bundles, a team server, the "who" dimension on every page.</p></div></div>
+  </div>
+</section>
+
+<!-- 12 DECISIONS -->
+<section id="decide">
+  <div class="prose">
+    <h2><span class="n">12</span>Decisions for you</h2>
+    <p class="sub">These change direction or touch guarded files, so they are yours. Each has my recommendation.</p>
+  </div>
+  <ol class="decisions">
+    <li><b>Chapters: group phases or keep 18?</b>Grouping makes long projects readable; the phase table stays inside each chapter.<span class="rec">Recommendation: group, with names you can edit, and keep phases one level down.</span></li>
+    <li><b>Where does the team server live (step two)?</b>Self-hosted only, or also a hosted service?<span class="rec">Recommendation: self-hosted first. A hosted service would break the "stays on this machine" promise, which is the product's strongest point.</span></li>
+    <li><b>A new crate for sync (step two).</b>It changes <code>rules.rs</code> and <code>docs/extending.md</code>.<span class="rec">Recommendation: decide when step two starts. Steps 1–6 need no new crate.</span></li>
+    <li><b>Navigation order.</b>Far to near (Overview, Projects, Sessions, Prompts) or the current order?<span class="rec">Recommendation: far to near, so the sidebar matches the zoom bar.</span></li>
+  </ol>
+</section>
+</main>
+</div>
+</body>
+</html>
