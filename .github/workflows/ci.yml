@@ -14,7 +14,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -85,9 +85,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: backend -> target
-          # PRs restore master's cache but never write their own: the 10 GB repository cache is
-          # not evicted by one-off branches, so master's entries stay warm.
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          # PRs restore main's cache but never write their own: the 10 GB repository cache is
+          # not evicted by one-off branches, so main's entries stay warm.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: cargo clippy
         working-directory: backend
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
@@ -129,7 +129,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: backend -> target
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: cargo test (unit, integration, end-to-end)
         working-directory: backend
@@ -159,7 +159,7 @@ jobs:
         with:
           workspaces: backend -> target
           key: perf
-          save-if: ${{ github.ref == 'refs/heads/master' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: load benchmark with budgets
         working-directory: backend
         run: cargo run --release --locked -q -p gitprompt-server --example load -- --check --max-read-p95-ms 500
