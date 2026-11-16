@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Ban } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { Source } from '#lib/api/types.ts';
 	import { surfaceIcon } from '#lib/prompts/surface.ts';
+	import { promptListHref } from '#lib/shared/links.ts';
 
 	/**
 	 * Where a tool's prompts can come from (spec `captures`), each with how it is told apart, and the
@@ -25,9 +25,8 @@
 					<span class="icon" aria-hidden="true"><Icon size={14} /></span>
 					<a
 						class="name"
-						href="{resolve('/prompts')}?source={encodeURIComponent(
-							source.id
-						)}&surface={encodeURIComponent(app.id)}">{app.name}</a
+						href={promptListHref({ source: source.id, surface: app.id })}
+						title="Prompts › {app.name}">{app.name}</a
 					>
 					<span class="note">{app.note}</span>
 				</li>

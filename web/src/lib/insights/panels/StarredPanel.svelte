@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Prompt } from '#lib/api/types.ts';
 	import { typedText } from '#lib/prompts/origin.ts';
 	import { excerpt } from '#lib/shared/format.ts';
+	import { promptHref } from '#lib/shared/links.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
 
@@ -11,11 +11,17 @@
 </script>
 
 <Panel title="Which prompts did I keep?" description="Prompts you starred.">
-	{#snippet actions()}{#if prompts.length}<a class="all" {href}>All starred</a>{/if}{/snippet}
+	{#snippet actions()}{#if prompts.length}<a class="all" {href} title="Prompts › Starred"
+				>All starred</a
+			>{/if}{/snippet}
 	{#if prompts.length}
 		<ul class="starred">
 			{#each prompts as p (p.id)}
-				<li><a href="{resolve('/prompts')}?id={p.id}">{excerpt(typedText(p), 160)}</a></li>
+				<li>
+					<a href={promptHref(p.id)} title="Prompt › {excerpt(typedText(p), 40)}"
+						>{excerpt(typedText(p), 160)}</a
+					>
+				</li>
 			{/each}
 		</ul>
 	{:else}

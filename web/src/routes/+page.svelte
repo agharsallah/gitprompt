@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { refreshAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { pageHref } from '#lib/shared/links.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import type { Capability, PromptQuery } from '#lib/api/types.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
@@ -43,7 +43,7 @@
 	const linkFor =
 		(o: Overview) =>
 		(extra: PromptQuery = {}) =>
-			promptsHref(resolve('/prompts'), o.filters, extra);
+			promptsHref(pageHref('/prompts'), o.filters, extra);
 	const slotsFor = (o: Overview) =>
 		timeSlots(
 			o.activity.groups,
@@ -99,7 +99,7 @@
 				{#if ever}
 					<EmptyState title="Nothing {rangePhrase(o.filters.range)} for these filters">
 						Pick a longer range, more origins or fewer filters, or open the
-						<a href={resolve('/prompts')}>full list of prompts</a>.
+						<a href={pageHref('/prompts')} title="Prompts">full list of prompts</a>.
 					</EmptyState>
 				{/if}
 			{:else}

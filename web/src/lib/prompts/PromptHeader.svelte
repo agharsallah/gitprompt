@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Bot, GitBranch, ShieldCheck, X } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { Annotation, PromptDetail } from '#lib/api/types.ts';
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
@@ -14,7 +13,9 @@
 	import type { FactsView } from '#lib/prompts/facts.ts';
 	import OutcomeBadge from '#lib/prompts/OutcomeBadge.svelte';
 	import { typedText } from '#lib/prompts/origin.ts';
-	import { projectId } from '#lib/stories/story.ts';
+	import { projectHref, sessionHref } from '#lib/shared/links.ts';
+	import { anchor, projectId } from '#lib/stories/story.ts';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 
 	/**
 	 * Where a prompt sits: how it ended, when, its turn in the session, and the actions on it; then
@@ -49,9 +50,12 @@
 			><RelativeTime iso={prompt.received_at} /></span
 		>
 		{#if session && s.turn}
-			<a href="{resolve('/sessions/[id]', { id: session })}#prompt-{prompt.id}">
+			<LinkArrow
+				href={sessionHref(session, { anchor: anchor(prompt.id) })}
+				title="Session › Turn {s.turn}"
+			>
 				Turn {s.turn} of its session
-			</a>
+			</LinkArrow>
 		{/if}
 	</div>
 	<div class="actions">
@@ -74,10 +78,9 @@
 		<Badge tone="agent" icon={Bot} title={view.model.hint}>{view.model.name}</Badge>
 	{/if}
 	{#if project.root}
-		<a
-			class="project"
-			href="{resolve('/projects/[id]', { id: projectId(project.root) })}#prompt-{prompt.id}"
-			>{project.name}</a
+		<LinkArrow
+			href={projectHref(projectId(project.root), { anchor: anchor(prompt.id) })}
+			title="Project › {project.name}">{project.name}</LinkArrow
 		>
 	{:else}
 		<span class="project">{project.name}</span>
@@ -140,11 +143,6 @@
 		color: var(--color-text);
 		font-weight: var(--weight-semibold);
 		text-decoration: none;
-	}
-
-	a.project:hover {
-		color: var(--color-accent-text);
-		text-decoration: underline;
 	}
 
 	.branch {

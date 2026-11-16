@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Annotation } from '#lib/api/types.ts';
+	import { promptListHref } from '#lib/shared/links.ts';
 	import Chip from '#lib/ui/Chip.svelte';
 
 	/**
@@ -41,7 +41,8 @@
 		<div class="tag-box">
 			{#each value.tags as tag (tag)}
 				<Chip
-					href="{resolve('/prompts')}?tag={encodeURIComponent(tag)}"
+					href={promptListHref({ tag })}
+					title="Prompts › #{tag}"
 					onremove={() => save({ tags: value.tags.filter((t) => t !== tag) })}
 					removeLabel="Remove tag {tag}"
 				>

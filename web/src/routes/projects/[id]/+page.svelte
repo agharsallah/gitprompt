@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ArrowLeft } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
+	import { pageHref } from '#lib/shared/links.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import ExportButton from '#lib/export/ExportButton.svelte';
@@ -17,7 +17,9 @@
 
 <svelte:head><title>{story.value?.name ?? 'Project'} · GitPrompt</title></svelte:head>
 
-<a class="back" href={resolve('/projects')}><ArrowLeft size={14} aria-hidden="true" />Projects</a>
+<a class="back" href={pageHref('/projects')} title="Projects"
+	><ArrowLeft size={14} aria-hidden="true" />Projects</a
+>
 <Deferred resource={story} label="Loading the project" what="this project" variant="page">
 	{#snippet pending()}<StorySkeleton />{/snippet}
 	{#snippet children(story)}

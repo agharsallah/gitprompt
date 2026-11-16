@@ -13,7 +13,6 @@
 	} from '@lucide/svelte';
 	import { onMount, tick } from 'svelte';
 	import { refreshAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { api } from '#lib/api/client.ts';
 	import type { Change, ConfigAction, Source, StatsBucket } from '#lib/api/types.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
@@ -28,7 +27,7 @@
 	import {
 		layerName,
 		present,
-		promptsQuery,
+		viewPromptsHref,
 		type ConnectorAction,
 		type ConnectorStateId
 	} from '#lib/sources/state.ts';
@@ -192,7 +191,7 @@
 		{:else}
 			<div class="actions">
 				{#if current.action === 'view'}
-					<Button href="{resolve('/prompts')}{promptsQuery(source)}" icon={ICONS.view}
+					<Button href={viewPromptsHref(source)} icon={ICONS.view} title="Prompts › {source.name}"
 						>{current.actionLabel}</Button
 					>
 				{:else}

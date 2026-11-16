@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Search, Tag } from '@lucide/svelte';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
+	import { pageHref } from '#lib/shared/links.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
@@ -29,7 +29,7 @@
 	function moreHref() {
 		const params = new URLSearchParams(page.url.search);
 		params.set('limit', String(data.limit + data.page));
-		return `${resolve('/search')}?${params}`;
+		return pageHref('/search', { query: params });
 	}
 </script>
 
@@ -46,7 +46,7 @@
 	bind:this={form}
 	class="form"
 	method="GET"
-	action={resolve('/search')}
+	action={pageHref('/search')}
 	role="search"
 	data-sveltekit-keepfocus
 >

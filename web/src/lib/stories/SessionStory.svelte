@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { Bot, FolderGit2, GitBranch } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { SessionStory, StoryItem } from '#lib/api/types.ts';
 	import { duration, excerpt, integer, modelName, money, plural } from '#lib/shared/format.ts';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import Badge from '#lib/ui/Badge.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import { projectHref } from '#lib/shared/links.ts';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Chapter from '#lib/stories/Chapter.svelte';
 	import MarkerGroup from '#lib/stories/MarkerGroup.svelte';
@@ -46,8 +47,8 @@
 			{#each models as m (m)}<Badge tone="agent" icon={Bot} title="Model: {m}">{modelName(m)}</Badge
 				>{/each}
 			{#if story.project}
-				<a class="project" href={resolve('/projects/[id]', { id: story.project.id })}
-					><FolderGit2 size={14} aria-hidden="true" />{story.project.name}</a
+				<LinkArrow href={projectHref(story.project.id)} title="Project › {story.project.name}"
+					><FolderGit2 size={14} aria-hidden="true" />{story.project.name}</LinkArrow
 				>
 			{/if}
 			{#each story.branches as b (b)}<span class="branch"
@@ -126,16 +127,10 @@
 		gap: var(--space-1) var(--space-4);
 	}
 
-	.project,
 	.branch {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-	}
-
-	.project {
-		color: var(--color-text);
-		font-weight: var(--weight-medium);
 	}
 
 	.summary {

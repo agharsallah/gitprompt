@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { refreshAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { settingsApi, type CleanupReport, type SettingsState } from '#lib/api/settings.ts';
 	import { plural } from '#lib/shared/format.ts';
+	import { pageHref } from '#lib/shared/links.ts';
 	import { daysAgo } from '#lib/settings/describe.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
 	import CleanupReview from '#lib/settings/CleanupReview.svelte';
@@ -119,7 +119,9 @@
 		label="Telemetry noise"
 		description="Lifecycle events that no page uses (hook registered, plugin loaded…) are dropped on arrival by each source's spec. Already stored ones can be removed under Data › Compact."
 	>
-		<Button size="sm" variant="ghost" href={resolve('/fields')}>See what is dropped</Button>
+		<Button size="sm" variant="ghost" href={pageHref('/fields')} title="Fields"
+			>See what is dropped</Button
+		>
 	</SettingRow>
 
 	{#if editor.message}<Callout tone="success" live>{editor.message}</Callout>{/if}

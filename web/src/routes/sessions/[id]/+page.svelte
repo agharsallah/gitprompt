@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ArrowLeft } from '@lucide/svelte';
 	import { refreshAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { pageHref } from '#lib/shared/links.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
@@ -21,7 +21,9 @@
 
 <svelte:head><title>Session story · GitPrompt</title></svelte:head>
 
-<a class="back" href={resolve('/sessions')}><ArrowLeft size={14} aria-hidden="true" />Sessions</a>
+<a class="back" href={pageHref('/sessions')} title="Sessions"
+	><ArrowLeft size={14} aria-hidden="true" />Sessions</a
+>
 <Deferred resource={story} label="Loading the session" what="this session" variant="page">
 	{#snippet pending()}<StorySkeleton />{/snippet}
 	{#snippet children(story)}

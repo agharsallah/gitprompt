@@ -1,5 +1,5 @@
 // First run: the steps from nothing to a captured prompt, from the connectors' state. Each connect
-// step links to /sources?connect=<id>, which opens that connector's consent review directly, so the
+// step links to Connectors with `connect` set (sourcesHref), which opens that connector's consent review directly, so the
 // whole path is one click here plus one confirmation there. Pure, tested in setup.test.ts.
 import type { Source } from '#lib/api/types.ts';
 import { layerName, tools } from '#lib/sources/state.ts';
@@ -55,6 +55,3 @@ export function setupSteps(sources: Source[]): SetupStep[] {
 		}
 	];
 }
-
-/** Where a connect step goes. */
-export const connectQuery = (id: string) => `?connect=${encodeURIComponent(id)}`;

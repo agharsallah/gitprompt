@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { CircleFadingArrowUp, X } from '@lucide/svelte';
 	import { fly } from 'svelte/transition';
-	import { resolve } from '$app/paths';
 	import { updates } from '#lib/layout/updates.svelte.ts';
-	import { updateQuery, updateSummary } from '#lib/sources/updates.ts';
+	import { updateHref, updateSummary } from '#lib/sources/updates.ts';
 
 	/**
 	 * A quiet note at the bottom of the sidebar when a connection needs an update: it never covers
@@ -22,7 +21,7 @@
 		<div class="body">
 			<p class="title">Update available</p>
 			<p class="text">{updateSummary(updates.list)}</p>
-			<a class="review" href="{resolve('/sources')}{updateQuery(updates.list)}">
+			<a class="review" href={updateHref(updates.list)} title="Connectors">
 				{updates.list.length === 1 ? 'Review the update' : 'Review updates'}
 			</a>
 		</div>

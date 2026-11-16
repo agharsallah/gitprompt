@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
+	import { sourcesHref } from '#lib/shared/links.ts';
 	import { names, updateNote, type Availability } from '#lib/sources/capabilities.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 
@@ -18,7 +18,10 @@
 	{:else if a.connectable.length}
 		{What} come from
 		{#each a.connectable as c, i (c.toolId)}{i ? ' or ' : ''}{c.tool}’s {c.layer.toLowerCase()}{/each}.
-		<a href="{resolve('/sources')}#tool-{a.connectable[0].toolId}">Connect it</a> to see them.
+		<a
+			href={sourcesHref({ tool: a.connectable[0].toolId })}
+			title="Connectors › {a.connectable[0].tool}">Connect it</a
+		> to see them.
 	{:else if a.updatable.length}
 		{What} need a newer version: {updateNote(a)}
 	{:else}

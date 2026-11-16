@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { FileText, FolderInput, Settings2 } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { PromptDetail } from '#lib/api/types.ts';
 	import {
 		duration,
@@ -10,9 +9,11 @@
 		present,
 		relativePath
 	} from '#lib/shared/format.ts';
+	import { promptListHref, sessionsHref } from '#lib/shared/links.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import KeyValue from '#lib/ui/KeyValue.svelte';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 
 	/** The session this prompt belongs to: its span, what it loaded, what telemetry counted. */
@@ -80,10 +81,12 @@
 		</div>
 		{#if id}
 			<p class="links">
-				<a href="{resolve('/prompts')}?session={encodeURIComponent(id)}"
-					>Every prompt in this session</a
+				<LinkArrow href={promptListHref({ session: id })} title="Prompts › This session"
+					>Every prompt in this session</LinkArrow
 				>
-				<a href="{resolve('/sessions')}#session-{id}">See it among your sessions</a>
+				<LinkArrow href={sessionsHref({ session: id })} title="Sessions › This session"
+					>See it among your sessions</LinkArrow
+				>
 			</p>
 		{/if}
 	</section>

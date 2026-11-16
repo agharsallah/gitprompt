@@ -27,7 +27,7 @@
 	import { CircleX, FilePen, KeyRound, Search, SquareTerminal, Star, Tag } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
+	import { pageHref } from '#lib/shared/links.ts';
 	import type { Filters, Origin, Stats } from '#lib/api/types.ts';
 	import FacetSelects from '#lib/insights/FacetSelects.svelte';
 	import type { Facet } from '#lib/insights/filters.ts';
@@ -89,8 +89,7 @@
 
 	/** The current URL without one pinned value (and without the selection). */
 	function without(pin: Pin) {
-		const query = unpin(page.url.search, pin);
-		return `${resolve('/prompts')}${query ? `?${query}` : ''}`;
+		return pageHref('/prompts', { query: new URLSearchParams(unpin(page.url.search, pin)) });
 	}
 
 	const pinned = $derived(
@@ -118,7 +117,7 @@
 <!-- A plain GET form: filters live in the URL, so the page's load function does the fetching. -->
 <form
 	method="GET"
-	action={resolve('/prompts')}
+	action={pageHref('/prompts')}
 	bind:this={form}
 	data-sveltekit-reset="false"
 	role="search"

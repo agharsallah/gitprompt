@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { RefreshCw, RotateCcw } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import { describeError } from '#lib/errors/describe.ts';
+	import { pageHref } from '#lib/shared/links.ts';
 	import Button from '#lib/ui/Button.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import CodeBlock from '#lib/ui/CodeBlock.svelte';
@@ -68,7 +68,8 @@
 	{#if variant === 'page'}
 		<Button
 			variant={d.retry || d.reload ? 'secondary' : 'primary'}
-			href={resolve('/')}
+			href={pageHref('/')}
+			title="Overview"
 			data-sveltekit-reload={d.reload || undefined}>Go to the overview</Button
 		>
 	{/if}

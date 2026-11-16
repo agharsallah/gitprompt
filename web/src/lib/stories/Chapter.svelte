@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { GitBranch, Redo2 } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { Chapter } from '#lib/api/types.ts';
 	import { plural, relativePath, timeOfDay } from '#lib/shared/format.ts';
+	import { promptHref } from '#lib/shared/links.ts';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import CommitList from '#lib/stories/CommitList.svelte';
@@ -28,7 +28,7 @@
 	} = $props();
 
 	const c = $derived(chapter);
-	const href = $derived(`${resolve('/prompts')}?id=${c.id}`);
+	const href = $derived(promptHref(c.id));
 	const long = $derived(c.text.length > 700 || c.text.split('\n').length > 10);
 	let expanded = $state(false);
 </script>
@@ -37,7 +37,9 @@
 	<span class="rail"><RailNode outcome={railOutcome(c.outcome)} size={16} /></span>
 	<div class="body">
 		<p class="meta">
-			<a id="{anchor(c.id)}-title" class="turn" {href}>Turn {c.turn}</a>
+			<a id="{anchor(c.id)}-title" class="turn" {href} title="Prompt › Turn {c.turn}"
+				>Turn {c.turn}</a
+			>
 			<time datetime={c.received_at}>{timeOfDay(c.received_at)}</time>
 			<OutcomeLabel outcome={c.outcome} />
 			{#if c.branch}<span class="branch"><GitBranch size={12} aria-hidden="true" />{c.branch}</span
@@ -57,7 +59,7 @@
 						onclick={() => (expanded = !expanded)}
 						>{expanded ? 'Show less' : 'Show the whole prompt'}</button
 					>{/if}
-				{#if c.clipped}<a {href}>Read it all in the prompt</a>{/if}
+				{#if c.clipped}<a {href} title="Prompt › Turn {c.turn}">Read it all in the prompt</a>{/if}
 			</p>
 		{/if}
 		<div class="facts">

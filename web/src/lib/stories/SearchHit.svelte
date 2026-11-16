@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { GitBranch } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { SearchHit } from '#lib/api/types.ts';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import { factsView } from '#lib/prompts/facts.ts';
 	import OriginBadge from '#lib/prompts/OriginBadge.svelte';
 	import { isSystem } from '#lib/prompts/origin.ts';
 	import { shortDate, timeOfDay } from '#lib/shared/format.ts';
+	import { projectHref, promptHref, sessionHref } from '#lib/shared/links.ts';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import OutcomeLabel from '#lib/stories/OutcomeLabel.svelte';
 	import Snippet from '#lib/stories/Snippet.svelte';
@@ -34,14 +35,15 @@
 			{#if view.model}<span class="model" title={view.model.hint}>{view.model.name}</span>{/if}
 			{#if view.cost}<span>{view.cost}</span>{/if}
 		</p>
-		<a class="text" href="{resolve('/prompts')}?id={h.id}"><Snippet segments={h.snippet} /></a>
+		<a class="text" href={promptHref(h.id)} title="Prompt"><Snippet segments={h.snippet} /></a>
 		<p class="links">
-			{#if h.session}<a href="{resolve('/sessions/[id]', { id: h.session })}#{anchor(h.id)}"
-					>Show in session story</a
+			{#if h.session}<LinkArrow
+					href={sessionHref(h.session, { anchor: anchor(h.id) })}
+					title={h.title ? `Session › ${h.title}` : 'Session'}>Show in session story</LinkArrow
 				>{/if}
-			{#if h.project && !system}<a
-					href="{resolve('/projects/[id]', { id: h.project.id })}#{anchor(h.id)}"
-					>Show in project story</a
+			{#if h.project && !system}<LinkArrow
+					href={projectHref(h.project.id, { anchor: anchor(h.id) })}
+					title="Project › {h.project.name}">Show in project story</LinkArrow
 				>{/if}
 		</p>
 	</div>

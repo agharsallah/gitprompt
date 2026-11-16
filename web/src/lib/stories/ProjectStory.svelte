@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { FolderGit2, Folder } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { ProjectStory } from '#lib/api/types.ts';
 	import { integer, money, plural, relativePath } from '#lib/shared/format.ts';
+	import { promptListHref, sessionsHref } from '#lib/shared/links.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Evolution from '#lib/stories/Evolution.svelte';
@@ -35,7 +35,7 @@
 		<div>
 			<dt>Prompts you typed</dt>
 			<dd>
-				<a href="{resolve('/prompts')}?repo={encodeURIComponent(story.repo)}"
+				<a href={promptListHref({ repo: story.repo })} title="Prompts › {story.name}"
 					>{integer(t.prompts)}</a
 				>
 			</dd>
@@ -43,7 +43,7 @@
 		<div>
 			<dt>Sessions</dt>
 			<dd>
-				<a href="{resolve('/sessions')}?project={encodeURIComponent(story.repo)}"
+				<a href={sessionsHref({ project: story.repo })} title="Sessions › {story.name}"
 					>{integer(t.sessions)}</a
 				>
 			</dd>

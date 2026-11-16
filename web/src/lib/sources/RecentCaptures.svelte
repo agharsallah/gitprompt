@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { FolderGit2, GitBranch, MessagesSquare } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { RecentCapture } from '#lib/api/types.ts';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import { modelName, plural, relative } from '#lib/shared/format.ts';
+	import { promptHref } from '#lib/shared/links.ts';
 
 	/**
 	 * The newest prompt of each tool and app it was typed in, and where GitPrompt put it: when,
@@ -32,7 +32,7 @@
 		<ul>
 			{#each captures as c (`${c.connector.id}/${c.surface?.id ?? ''}`)}
 				<li>
-					<a class="row" href="{resolve('/prompts')}?id={c.id}">
+					<a class="row" href={promptHref(c.id)} title="Prompt › {c.connector.name}">
 						<span class="who">
 							<ConnectorBadge connector={c.connector} surface={c.surface} />
 							{#if !c.surface}<span class="unknown">App not reported</span>{/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Marker } from '#lib/api/types.ts';
 	import { timeOfDay } from '#lib/shared/format.ts';
+	import { promptHref } from '#lib/shared/links.ts';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import { MARKERS, markerSummary } from '#lib/stories/story.ts';
 
@@ -13,7 +13,6 @@
 	let { markers }: { markers: Marker[] } = $props();
 
 	const kinds = $derived([...new Set(markers.map((m) => m.kind))]);
-	const href = (m: Marker) => `${resolve('/prompts')}?id=${m.id}`;
 </script>
 
 <li class="group">
@@ -35,7 +34,7 @@
 					<li>
 						<p class="head">
 							<info.icon size={13} aria-hidden="true" />
-							<a href={href(m)} title={info.hint}>{info.label}</a>
+							<a href={promptHref(m.id)} title={info.hint}>{info.label}</a>
 							{#if m.label}<span class="label">{m.label}</span>{/if}
 							{#if m.detail}<span class="detail">{m.detail}</span>{/if}
 							<time datetime={m.received_at}>{timeOfDay(m.received_at)}</time>

@@ -2,7 +2,7 @@
 	import { Search } from '@lucide/svelte';
 	import { goto, refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
+	import { pageHref, sourcesHref } from '#lib/shared/links.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
@@ -32,8 +32,7 @@
 			if (value === null) params.delete(key);
 			else params.set(key, value);
 		}
-		const query = params.toString();
-		return `${resolve('/sessions')}${query ? `?${query}` : ''}`;
+		return pageHref('/sessions', { query: params });
 	}
 	const filtered = $derived(!!(data.q || data.project));
 	const projectName = (key: string) =>
@@ -53,7 +52,7 @@
 	<form
 		class="search"
 		method="GET"
-		action={resolve('/sessions')}
+		action={pageHref('/sessions')}
 		data-sveltekit-reset="false"
 		role="search"
 	>
@@ -136,7 +135,9 @@
 			<EmptyState title="No sessions match">Try other words, or another project.</EmptyState>
 		{:else}
 			<EmptyState title="No sessions {rangePhrase(data.filters.range)}">
-				Pick a longer range, or <a href={resolve('/sources')}>check that a source is connected</a>.
+				Pick a longer range, or <a href={sourcesHref()} title="Connectors"
+					>check that a source is connected</a
+				>.
 			</EmptyState>
 		{/if}
 	{/snippet}

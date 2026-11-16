@@ -4,7 +4,7 @@ import {
 	dismissValue,
 	isDismissed,
 	pendingUpdates,
-	updateQuery,
+	updateHref,
 	updateSummary
 } from '#lib/sources/updates.ts';
 import { source } from '#lib/testing/builders.ts';
@@ -49,8 +49,8 @@ describe('the hint', () => {
 	const three = [...two, { id: 'copilot-cli', name: 'GitHub Copilot CLI' }];
 
 	it('opens the review of a single update, else the Connectors page', () => {
-		expect(updateQuery(one)).toBe('?connect=codex');
-		expect(updateQuery(two)).toBe('');
+		expect(updateHref(one)).toBe('/sources?connect=codex');
+		expect(updateHref(two)).toBe('/sources');
 	});
 
 	it('names up to two connections, then counts them', () => {

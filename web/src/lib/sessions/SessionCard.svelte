@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { GitBranch } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { SessionSummary } from '#lib/insights/aggregate.ts';
 	import { outcome } from '#lib/insights/outcome.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
@@ -13,8 +12,10 @@
 		plural,
 		timeOfDay
 	} from '#lib/shared/format.ts';
+	import { promptHref, promptListHref, sessionHref } from '#lib/shared/links.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 	import PromptRow from '#lib/prompts/PromptRow.svelte';
 	import { typedText } from '#lib/prompts/origin.ts';
@@ -36,7 +37,8 @@
 	<header>
 		<div class="heading">
 			<h2 id="session-{s.id}-title" class="title">
-				{#if real}<a href={resolve('/sessions/[id]', { id: s.id })}>{title}</a>{:else}{title}{/if}
+				{#if real}<a href={sessionHref(s.id)} title="Session › {title}">{title}</a
+					>{:else}{title}{/if}
 			</h2>
 			<p class="where">
 				<span class="project">{s.project.name}</span>
@@ -90,8 +92,12 @@
 
 	<Disclosure summary="Every turn">
 		{#snippet meta()}
-			{#if real}<a href={resolve('/sessions/[id]', { id: s.id })}>Read the story</a>
-				<a href="{resolve('/prompts')}?session={encodeURIComponent(s.id)}">Open in prompts</a>{/if}
+			{#if real}<LinkArrow href={sessionHref(s.id)} title="Session › {title}"
+					>Read the story</LinkArrow
+				>
+				<LinkArrow href={promptListHref({ session: s.id })} title="Prompts › {title}"
+					>Open in prompts</LinkArrow
+				>{/if}
 		{/snippet}
 		<ol class="turns">
 			{#each s.prompts as p, i (p.id)}
@@ -99,7 +105,7 @@
 					<PromptRow
 						prompt={p}
 						outcome={outcome(p, clock.now, p.id !== lastId)}
-						href="{resolve('/prompts')}?id={p.id}"
+						href={promptHref(p.id)}
 						joinPrev={i > 0}
 						joinNext={i < s.prompts.length - 1}
 						showProject={false}

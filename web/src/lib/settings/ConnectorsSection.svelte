@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Plug, Power, PowerOff } from '@lucide/svelte';
 	import { refreshAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { api } from '#lib/api/client.ts';
 	import type { Source, SpecProblem } from '#lib/api/types.ts';
 	import { relativePath } from '#lib/shared/format.ts';
+	import { sourcesHref } from '#lib/shared/links.ts';
 	import { Task } from '#lib/shared/task.svelte.ts';
 	import SpecProblems from '#lib/sources/SpecProblems.svelte';
 	import StateRow from '#lib/sources/StateRow.svelte';
@@ -40,14 +40,14 @@
 	description="The tools GitPrompt captures from. Every change to a tool's settings is reviewed as a diff first. A connector you turn off keeps its entries in the tool's settings, but what it sends is discarded."
 >
 	{#snippet actions()}
-		<Button href={resolve('/sources')} icon={Plug} size="sm">Manage connectors</Button>
+		<Button href={sourcesHref()} icon={Plug} size="sm" title="Connectors">Manage connectors</Button>
 	{/snippet}
 	<div class="tools">
 		<SpecProblems {problems} />
 		{#each list as tool (tool.id)}
 			<section aria-labelledby="summary-{tool.id}">
 				<h3 id="summary-{tool.id}">
-					<a href="{resolve('/sources')}#tool-{tool.id}">{tool.name}</a>
+					<a href={sourcesHref({ tool: tool.id })} title="Connectors › {tool.name}">{tool.name}</a>
 				</h3>
 				<ul>
 					{#each tool.layers as layer (layer.id)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { connectQuery, setupSteps } from '#lib/sources/setup.ts';
+import { setupSteps } from '#lib/sources/setup.ts';
 import { source } from '#lib/testing/builders.ts';
 
 const telemetry = (overrides = {}) =>
@@ -36,9 +36,5 @@ describe('setupSteps', () => {
 
 	it('has nothing to show without connectors', () => {
 		expect(setupSteps([])).toEqual([]);
-	});
-
-	it('links a step to the connector’s consent review', () => {
-		expect(connectQuery('claude-code')).toBe('?connect=claude-code');
 	});
 });

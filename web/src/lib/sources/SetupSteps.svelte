@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Check } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { Source } from '#lib/api/types.ts';
-	import { connectQuery, setupSteps } from '#lib/sources/setup.ts';
+	import { sourcesHref } from '#lib/shared/links.ts';
+	import { setupSteps } from '#lib/sources/setup.ts';
 	import Button from '#lib/ui/Button.svelte';
 
 	/**
@@ -33,7 +33,8 @@
 				</div>
 				{#if step.connect && !step.done}
 					<Button
-						href="{resolve('/sources')}{connectQuery(step.connect)}"
+						href={sourcesHref({ connect: step.connect })}
+						title="Connectors › {step.title}"
 						variant={i === next ? 'primary' : 'secondary'}
 						size="sm">{step.action}</Button
 					>

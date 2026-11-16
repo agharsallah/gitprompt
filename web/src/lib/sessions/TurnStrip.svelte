@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Prompt } from '#lib/api/types.ts';
 	import { OUTCOMES, outcome } from '#lib/insights/outcome.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
 	import { typedText } from '#lib/prompts/origin.ts';
 	import { duration, excerpt } from '#lib/shared/format.ts';
+	import { promptHref } from '#lib/shared/links.ts';
 	import Tooltip from '#lib/ui/charts/Tooltip.svelte';
 
 	/**
@@ -34,7 +34,7 @@
 		{@const o = outcome(p, clock.now, p.id !== last)}
 		<a
 			class="turn {o}"
-			href="{resolve('/prompts')}?id={p.id}"
+			href={promptHref(p.id)}
 			style:height="{height(p)}px"
 			aria-label={describe(p, o)}
 			onpointerenter={(e) => show(e, p)}

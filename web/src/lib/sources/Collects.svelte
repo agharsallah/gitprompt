@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import type { Source } from '#lib/api/types.ts';
 	import { plural } from '#lib/shared/format.ts';
+	import { pageHref } from '#lib/shared/links.ts';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 
 	/** What a connector collects, straight from its spec: kept, received but dropped, never asked for. */
@@ -43,8 +43,9 @@
 			</section>
 		{/if}
 		<p class="muted">
-			The fields each event carries, documented and seen, are on the <a href={resolve('/fields')}
-				>Fields page</a
+			The fields each event carries, documented and seen, are on the <a
+				href={pageHref('/fields')}
+				title="Fields">Fields page</a
 			>.
 		</p>
 	</div>

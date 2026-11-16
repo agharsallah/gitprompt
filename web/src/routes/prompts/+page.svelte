@@ -2,7 +2,7 @@
 	import { ArrowLeft } from '@lucide/svelte';
 	import { refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
+	import { pageHref, sourcesHref } from '#lib/shared/links.ts';
 	import { api } from '#lib/api/client.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import type { PromptDetail as Detail, Origin, Prompt } from '#lib/api/types.ts';
@@ -73,13 +73,14 @@
 			if (value === null) params.delete(key);
 			else params.set(key, value);
 		}
-		const query = params.toString();
-		return `${resolve('/prompts')}${query ? `?${query}` : ''}`;
+		return pageHref('/prompts', { query: params });
 	}
 	const hrefFor = (p: Prompt) => url({ id: String(p.id) });
 	/** Every filter cleared; the time range stays, as on the other pages. */
 	const cleared = $derived(
-		`${resolve('/prompts')}${page.url.searchParams.has('range') ? `?range=${data.range.id}` : ''}`
+		pageHref('/prompts', {
+			query: { range: page.url.searchParams.has('range') ? data.range.id : undefined }
+		})
 	);
 
 	// The selected prompt's detail: fetched on selection, refetched on live updates.
@@ -204,7 +205,9 @@
 						<EmptyState title="No prompts yet">
 							Connect a source, then type a prompt in it: it shows up here as soon as you send it.
 							{#snippet actions()}
-								<Button variant="primary" href={resolve('/sources')}>Connect a source</Button>
+								<Button variant="primary" href={sourcesHref()} title="Connectors"
+									>Connect a source</Button
+								>
 							{/snippet}
 						</EmptyState>
 					{/if}

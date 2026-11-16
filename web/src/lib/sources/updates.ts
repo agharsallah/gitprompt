@@ -1,7 +1,7 @@
 // Connections that need an update ("Update available"), as the app-wide hint in the sidebar shows
 // them. Pure, tested in updates.test.ts; the hint itself is layout/UpdateHint.svelte.
 import type { Source } from '#lib/api/types.ts';
-import { connectQuery } from '#lib/sources/setup.ts';
+import { sourcesHref } from '#lib/shared/links.ts';
 import { connectorState, layerName, tools } from '#lib/sources/state.ts';
 
 /** One connection to update: its connector id and the name a person knows it by. */
@@ -23,9 +23,9 @@ export function pendingUpdates(sources: Source[], now: number): PendingUpdate[] 
 	);
 }
 
-/** The query for the hint's link to Connectors: open the review of the only update, else none. */
-export const updateQuery = (updates: PendingUpdate[]) =>
-	updates.length === 1 ? connectQuery(updates[0].id) : '';
+/** The hint's link to Connectors: open the review of the only update, else the page. */
+export const updateHref = (updates: PendingUpdate[]) =>
+	sourcesHref(updates.length === 1 ? { connect: updates[0].id } : {});
 
 /** The hint's one line: what needs an update. */
 export function updateSummary(updates: PendingUpdate[]): string {

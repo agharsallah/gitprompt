@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { ArrowDown, ArrowUp, Equal } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import { api } from '#lib/api/client.ts';
 	import type { Lineage, Version } from '#lib/api/types.ts';
 	import { percent, plural, shortDate, timeOfDay } from '#lib/shared/format.ts';
+	import { promptHref, sessionHref } from '#lib/shared/links.ts';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
@@ -92,10 +93,12 @@
 							{v.text}
 						</p>{/if}
 					<p class="links">
-						{#if v.place !== 'self'}<a href="{resolve('/prompts')}?id={v.id}">Open this version</a
+						{#if v.place !== 'self'}<a href={promptHref(v.id)} title="Prompt › This version"
+								>Open this version</a
 							>{/if}
-						{#if v.session}<a href="{resolve('/sessions/[id]', { id: v.session })}#{anchor(v.id)}"
-								>Show in its session</a
+						{#if v.session}<LinkArrow
+								href={sessionHref(v.session, { anchor: anchor(v.id) })}
+								title="Session › This prompt">Show in its session</LinkArrow
 							>{/if}
 					</p>
 				</div>

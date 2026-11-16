@@ -8,6 +8,7 @@ import { queryParams, type StatsQuery } from '#lib/api/query.ts';
 import type { Origin, PromptQuery, Stats, TurnOutcome } from '#lib/api/types.ts';
 import { TURN_OUTCOMES } from '#lib/insights/outcome.ts';
 import { folder, modelName } from '#lib/shared/format.ts';
+import { withQuery } from '#lib/shared/links.ts';
 import { ALL_ORIGINS, isAll, parseOrigins } from '#lib/prompts/originFilter.svelte.ts';
 import { parseRange, rangeStart, type Range, type RangeId } from '#lib/insights/range.ts';
 
@@ -114,7 +115,7 @@ export function promptsHref(
 	// The Prompts page reads no origin as "the remembered choice": name every origin instead.
 	const origin = query.origin?.length ? query.origin : ALL_ORIGINS;
 	const params = queryParams({ ...query, origin, ...extra });
-	return `${base}?${new URLSearchParams([['range', filters.range.id], ...params])}`;
+	return withQuery(base, new URLSearchParams([['range', filters.range.id], ...params]));
 }
 
 /** A link to the prompts behind a number, under the page's filters (see promptsHref). */

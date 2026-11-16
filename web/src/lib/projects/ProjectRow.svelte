@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { FolderGit2, Folder, GitBranch } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { ProjectSummary } from '#lib/projects/summary.ts';
 	import { KIND_INFO } from '#lib/insights/tools.ts';
 	import { projectId } from '#lib/stories/story.ts';
+	import { projectHref, promptListHref, sessionsHref } from '#lib/shared/links.ts';
 	import { integer, money, plural, relativePath } from '#lib/shared/format.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
@@ -26,7 +26,7 @@
 			/>{/if}
 		<div class="titles">
 			<h2 id="project-{p.key}">
-				<a href={resolve('/projects/[id]', { id: projectId(p.key) })}>{p.name}</a>
+				<a href={projectHref(projectId(p.key))} title="Project › {p.name}">{p.name}</a>
 			</h2>
 			<p class="path mono" title={p.key}>{relativePath(p.key)}</p>
 		</div>
@@ -34,7 +34,7 @@
 
 	<div class="volume">
 		<p class="prompts">
-			<a class="n" href="{resolve('/prompts')}?repo={encodeURIComponent(p.key)}"
+			<a class="n" href={promptListHref({ repo: p.key })} title="Prompts › {p.name}"
 				>{integer(summary.prompts)}</a
 			>
 			<span class="muted">{summary.prompts === 1 ? 'prompt' : 'prompts'}</span>
@@ -55,7 +55,7 @@
 		<div>
 			<dt>Sessions</dt>
 			<dd>
-				<a href="{resolve('/sessions')}?project={encodeURIComponent(p.key)}"
+				<a href={sessionsHref({ project: p.key })} title="Sessions › {p.name}"
 					>{integer(summary.sessions)}</a
 				>
 			</dd>

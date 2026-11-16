@@ -2,6 +2,7 @@
 // and how every page shows it. One state -> one icon, label, tone, primary action and sentence, used by
 // the Connectors page, the Settings summary, first-run steps and the Design system page. Pure, tested
 // in state.test.ts against the fixtures in fixtures.ts.
+import { promptListHref } from '#lib/shared/links.ts';
 import {
 	Activity,
 	CircleDashed,
@@ -228,5 +229,4 @@ export function tools(sources: Source[]): Tool[] {
 export const layerName = (s: Source) => s.layer || s.name;
 
 /** Where "View prompts" goes: this connector's prompts, or all of them for a layer without any. */
-export const promptsQuery = (s: Source) =>
-	s.total > 0 ? `?source=${encodeURIComponent(s.id)}` : '';
+export const viewPromptsHref = (s: Source) => promptListHref(s.total > 0 ? { source: s.id } : {});

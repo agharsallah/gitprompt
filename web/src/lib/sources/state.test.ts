@@ -8,8 +8,8 @@ import {
 	explain,
 	layerName,
 	present,
-	promptsQuery,
-	tools
+	tools,
+	viewPromptsHref
 } from '#lib/sources/state.ts';
 import { source } from '#lib/testing/builders.ts';
 
@@ -117,7 +117,7 @@ describe('tools', () => {
 	});
 
 	it('links to a connector’s own prompts only when it has some', () => {
-		expect(promptsQuery(source({ total: 3 }))).toBe('?source=claude-code');
-		expect(promptsQuery(telemetry)).toBe('');
+		expect(viewPromptsHref(source({ total: 3 }))).toBe('/prompts?source=claude-code');
+		expect(viewPromptsHref(telemetry)).toBe('/prompts');
 	});
 });

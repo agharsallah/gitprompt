@@ -8,6 +8,7 @@
 	 */
 	let {
 		href,
+		title,
 		onremove,
 		removeLabel = 'Remove',
 		icon: Icon,
@@ -15,6 +16,8 @@
 		children
 	}: {
 		href?: string;
+		/** What a link goes to, shown on hover. */
+		title?: string;
 		onremove?: () => void;
 		removeLabel?: string;
 		icon?: LucideIcon;
@@ -25,7 +28,7 @@
 
 <span class={['chip', mono && 'mono-chip']}>
 	{#if href}
-		<a class="body" {href}>
+		<a class="body" {href} {title}>
 			{#if Icon}<Icon size={12} aria-hidden="true" />{/if}{@render children()}
 		</a>
 	{:else}

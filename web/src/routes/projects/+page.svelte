@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { refreshAll } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { sourcesHref } from '#lib/shared/links.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
@@ -58,7 +58,7 @@
 		{:else}
 			<EmptyState title="No projects {rangePhrase(data.filters.range)}">
 				Projects appear as soon as you send a prompt from a folder. Pick a longer range, or
-				<a href={resolve('/sources')}>check your sources</a>.
+				<a href={sourcesHref()} title="Connectors">check your sources</a>.
 			</EmptyState>
 		{/if}
 	{/snippet}

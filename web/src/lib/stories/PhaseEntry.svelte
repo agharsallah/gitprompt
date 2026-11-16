@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { GitBranch, MessagesSquare, Redo2 } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	import type { StoryEntry } from '#lib/api/types.ts';
-	import { timeOfDay } from '#lib/shared/format.ts';
+	import { excerpt, timeOfDay } from '#lib/shared/format.ts';
+	import { promptHref, sessionHref } from '#lib/shared/links.ts';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import CommitList from '#lib/stories/CommitList.svelte';
 	import OutcomeLabel from '#lib/stories/OutcomeLabel.svelte';
@@ -28,13 +29,15 @@
 			{#if e.retry_of}<span class="retry" title="Rewords an earlier prompt of its session"
 					><Redo2 size={12} aria-hidden="true" />Reworded</span
 				>{/if}
-			{#if e.session}<a
-					class="session"
-					href="{resolve('/sessions/[id]', { id: e.session })}#{anchor(e.id)}"
-					><MessagesSquare size={12} aria-hidden="true" />In its session</a
+			{#if e.session}<LinkArrow
+					href={sessionHref(e.session, { anchor: anchor(e.id) })}
+					title="Session › This prompt"
+					><MessagesSquare size={12} aria-hidden="true" />In its session</LinkArrow
 				>{/if}
 		</p>
-		<a class="text clamp-2" href="{resolve('/prompts')}?id={e.id}">{e.text}</a>
+		<a class="text clamp-2" href={promptHref(e.id)} title="Prompt › {excerpt(e.text, 40)}"
+			>{e.text}</a
+		>
 		<StoryFacts turn={e} tool />
 		{#if e.commits.length}<CommitList commits={e.commits} />{/if}
 	</div>
@@ -77,8 +80,7 @@
 	}
 
 	.branch,
-	.retry,
-	.session {
+	.retry {
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
@@ -86,10 +88,6 @@
 
 	.retry {
 		color: var(--color-warning-text);
-	}
-
-	.session {
-		color: var(--color-text-secondary);
 	}
 
 	.text {

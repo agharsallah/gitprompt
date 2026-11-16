@@ -12,12 +12,12 @@
 		TextQuote
 	} from '@lucide/svelte';
 	import { page } from '$app/state';
-	import { resolve } from '$app/paths';
 	import BrandMark from '#lib/layout/BrandMark.svelte';
 	import LiveStatus from '#lib/layout/LiveStatus.svelte';
 	import ThemeToggle from '#lib/layout/ThemeToggle.svelte';
 	import UpdateHint from '#lib/layout/UpdateHint.svelte';
 	import { updates } from '#lib/layout/updates.svelte.ts';
+	import { pageHref } from '#lib/shared/links.ts';
 	import { isViewPage } from '#lib/settings/views.ts';
 	import { views } from '#lib/settings/views.svelte.ts';
 
@@ -53,7 +53,7 @@
 	type Route = (typeof groups)[number]['links'][number]['route'];
 
 	/** A filtering page opens in the view you left it in (its kept query, lib/settings/views.ts). */
-	const href = (route: Route) => resolve(route) + (isViewPage(route) ? views.search[route] : '');
+	const href = (route: Route) => pageHref(route) + (isViewPage(route) ? views.search[route] : '');
 </script>
 
 <svelte:window onfocus={() => updates.refresh()} />
