@@ -105,13 +105,16 @@ impl Bench {
         Ok(Ingest { events, bytes, elapsed, index: started.elapsed() })
     }
 
-    /// The main dashboard reads, on a prompt and a session from the middle of the store.
+    /// The main dashboard reads, on a prompt, its session and its project from the middle of the store.
     pub(crate) async fn reads(&self) -> Result<Vec<ReadSpec>, String> {
         let (_, list) = get(&self.router, &self.host, "/api/prompts?limit=50").await?;
         let list: Value = serde_json::from_slice(&list).map_err(|e| format!("/api/prompts: {e}"))?;
         let sample = list.as_array().and_then(|l| l.get(l.len() / 2)).ok_or("no prompt listed")?;
         let id = sample["id"].as_i64().ok_or("a prompt without id")?;
         let session = sample["fields"]["session_id"].as_str().ok_or("a prompt without session")?;
+        let (_, story) = get(&self.router, &self.host, &format!("/api/stories/session/{session}")).await?;
+        let story: Value = serde_json::from_slice(&story).map_err(|e| format!("/api/stories/session: {e}"))?;
+        let project = story["project"]["id"].as_str().ok_or("a session story without project")?;
         let read = |name, path: String, under_load| ReadSpec { name, path, under_load };
         Ok(vec![
             read("prompts (limit=50)", "/api/prompts?limit=50".into(), true),
@@ -122,6 +125,7 @@ impl Bench {
             read("sources", "/api/sources".into(), true),
             read("data", "/api/data".into(), false),
             read("session story", format!("/api/stories/session/{session}"), false),
+            read("project story", format!("/api/stories/project/{project}"), false),
             read("search", "/api/search?q=retry".into(), false),
             read("fields", "/api/fields".into(), false),
         ])

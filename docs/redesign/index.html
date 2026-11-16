@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GitPrompt Story Redesign</title>
-<meta name="description" content="Restructuring Overview, Projects, Sessions and Prompts around one story told at four zoom levels, keeping every existing feature, ready for teams later.">
+<title>GitPrompt Redesign v3</title>
+<meta name="description" content="Product review of the dashboard redesign: scored, refocused on four jobs people come back for, and re-ordered so the first step ships something new.">
 <style>
 /* Fonts: the dashboard's own bundled files (web/node_modules after `just setup`), never a CDN. System fonts otherwise. */
 @font-face { font-family: "GP Sans"; src: url("../../web/node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wdth-normal.woff2") format("woff2"); font-weight: 400 700; font-stretch: 75% 100%; font-display: swap; }
@@ -102,6 +102,21 @@ ul.tight, ol.tight { padding-left: 1.2rem; margin: 0 0 1rem; display: grid; gap:
 .tag.fix { background: var(--amber-soft); color: var(--amber-text); }
 .tag.new { background: var(--iris-soft); color: var(--iris); }
 .tag.later { background: var(--sunk); color: var(--muted); }
+.tag.v3 { background: var(--callout); color: var(--callout-fg); }
+.tag.cut { background: var(--red-soft); color: var(--red-text); }
+
+/* v3 review: verdict, score bars, notes on sketches the review changes. */
+.verdict { max-width: 46rem; font-size: 1.25rem; font-stretch: 90%; line-height: 1.4; border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1.5rem 0; }
+.score { display: grid; grid-template-columns: 2.6rem 6rem; gap: 0.6rem; align-items: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.score i { display: block; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.score i b { display: block; height: 100%; background: var(--accent); }
+.score.low i b { background: var(--red); }
+.score.mid i b { background: var(--amber); }
+.v3note { max-width: 64rem; font-size: 0.9rem; background: var(--raised); border: 1px solid var(--line-strong); border-left: 3px solid var(--callout); border-radius: 10px; padding: 0.7rem 1rem; margin: 0.75rem 0 1rem; }
+.v3note .tag { margin-right: 0.4rem; }
+.step .know { color: var(--accent-text); }
+.job { max-width: 46rem; font-size: 0.95rem; margin: -0.25rem 0 1.25rem; padding: 0.55rem 0.85rem; border-radius: 8px; background: var(--accent-soft); color: var(--accent-text); }
+.job b { font-weight: 650; }
 
 .tablewrap { overflow-x: auto; margin: 1rem 0 1.5rem; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); max-width: 64rem; }
 table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
@@ -262,6 +277,10 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
 <nav class="toc" aria-label="Contents">
   <p>Contents</p>
   <ol>
+    <li><a href="#why"><span>00</span>Why people come back</a></li>
+    <li class="sub"><a href="#jobs">Four jobs</a></li>
+    <li class="sub"><a href="#review">Review of v2, answered</a></li>
+    <li class="sub"><a href="#changes">What v3 changes</a></li>
     <li><a href="#today"><span>01</span>Where we are</a></li>
     <li><a href="#idea"><span>02</span>One story, four zooms</a></li>
     <li><a href="#vocabulary"><span>03</span>Visual vocabulary</a></li>
@@ -281,21 +300,213 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
     <li><a href="#desktop"><span>10</span>Desktop</a></li>
     <li><a href="#build"><span>11</span>How to build it</a></li>
     <li><a href="#decide"><span>12</span>Decisions</a></li>
+    <li><a href="tickets.html"><span>→</span>Delivery tickets</a></li>
   </ol>
 </nav>
 
 <main>
 <header class="doc prose">
-  <p class="eyebrow">Design proposal · dashboard restructure</p>
-  <h1>One story, told at <em>four zoom levels</em></h1>
-  <p class="lede">Overview, Projects, Sessions and Prompts already hold everything needed to tell how your work with coding agents went. This proposal keeps every feature they have and reorganises them so each page reads as a story: a headline, one signature picture, chapters, then the evidence.</p>
+  <p class="eyebrow">Design proposal v3 · product review applied</p>
+  <h1>A tool you use, <em>not a report you read</em></h1>
+  <p class="lede">Version 2 reorganised Overview, Projects, Sessions and Prompts into one story at four zoom levels. The design is good. The bet was wrong: it made the history nicer to read, and people rarely come back to read. Version 3 keeps the sketches and puts four reasons to open the app first: find a prompt again, pick a session up, see which prompt produced a commit, and see what the agents cost you.</p>
   <div class="meta">
     <span>14 Nov 2026</span>
-    <span>Status: proposal v2, after review; nothing built yet</span>
-    <span>Based on the running app with real data and the code in <code>web/src</code> and <code>backend/crates</code></span>
+    <span>Status: proposal v3, nothing built yet</span>
+    <span>v2 sketches unchanged unless marked <span class="tag v3">v3</span></span>
   </div>
   <p class="hint"><b>Interactive.</b> <span>Switch the states and tabs above each sketch. Inside the sketches, click links (›), tabs and chart marks; hover charts for values; click a numbered mark to find its explanation.</span></p>
 </header>
+
+<!-- 00 WHY -->
+<section id="why">
+  <div class="prose">
+    <h2><span class="n">00</span>Why people come back</h2>
+    <p class="sub">Four moments in a working day when GitPrompt hands you something you would otherwise have to rebuild. Each takes seconds and ends with you back at work. The design is judged on these four first.</p>
+  </div>
+  <div class="sketch" id="s-w1">
+    <div class="sketch-head"><h4><span class="tag v3">v3</span> W1 · Four moments, and what you leave with</h4><span class="route">click a card to see its screen</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="Four cards. Find it again, several times a day: I wrote a good prompt for this last week; you leave with the prompt copied. Pick it up, every morning: where was I yesterday; you leave with the session resumed. Explain the code, at every review: why is this code here; you leave with the prompt behind the commit. Stay in control, when it matters: did that run finish and what did it cost; you leave with one thing to act on.">
+        <g>
+          <rect class="w-card" x="10" y="10" width="236" height="280" rx="12"/>
+          <text class="t cap" x="26" y="36">SEVERAL TIMES A DAY</text>
+          <text data-go="s-palette" class="t l" x="26" y="64">Find it again</text>
+          <text class="t s" x="26" y="94">“I wrote a good prompt for</text><text class="t s" x="26" y="110">this last week.”</text>
+          <rect class="w-sunk" x="26" y="128" width="204" height="26" rx="6"/><text class="t xs m" x="36" y="145">rust api</text><text class="t xs mono m end" x="222" y="145">⌘K</text>
+          <rect class="w-accsoft" x="26" y="160" width="204" height="24" rx="6"/><text class="t xs b" x="36" y="176">Move the backend to Rust…</text><text class="t xs acc end" x="222" y="176">↵ copy</text>
+          <line class="s-line" x1="26" y1="212" x2="230" y2="212"/>
+          <text class="t cap" x="26" y="234">YOU LEAVE WITH</text>
+          <text class="t s b acc" x="26" y="254">The prompt, copied</text>
+          <text class="t xs m" x="26" y="272">one keystroke · ⌘K, recall, the terminal</text>
+        </g>
+        <g>
+          <rect class="w-card" x="258" y="10" width="236" height="280" rx="12"/>
+          <text class="t cap" x="274" y="36">EVERY MORNING</text>
+          <text data-go="s-a1" class="t l" x="274" y="64">Pick it up</text>
+          <text class="t s" x="274" y="94">“Where was I yesterday, and</text><text class="t s" x="274" y="110">which session was it?”</text>
+          <rect class="w-sunk" x="274" y="128" width="204" height="56" rx="6"/>
+          <circle class="w-red" cx="288" cy="146" r="4"/><text class="t xs b" x="298" y="149">Port the store to rusqlite</text>
+          <text class="t xs m" x="298" y="164">stopped 18:40 · last turn failed</text>
+          <rect class="w-acc" x="398" y="166" width="72" height="14" rx="4"/><text class="t xs inv b mid" x="434" y="177">Copy resume</text>
+          <line class="s-line" x1="274" y1="212" x2="478" y2="212"/>
+          <text class="t cap" x="274" y="234">YOU LEAVE WITH</text>
+          <text class="t s b acc" x="274" y="254">The session, resumed</text>
+          <text class="t xs m" x="274" y="272">one paste · Overview, Sessions, the tray</text>
+        </g>
+        <g>
+          <rect class="w-card" x="506" y="10" width="236" height="280" rx="12"/>
+          <text class="t cap" x="522" y="36">AT EVERY REVIEW</text>
+          <text data-go="s-r1" class="t l" x="522" y="64">Explain the code</text>
+          <text class="t s" x="522" y="94">“Why is this code here, and</text><text class="t s" x="522" y="110">what was asked for?”</text>
+          <rect class="w-fg" x="522" y="128" width="204" height="56" rx="6"/>
+          <text class="t xs mono inv" x="532" y="146">$ gitprompt why f11e5a3</text>
+          <text class="t xs mono inv b" x="532" y="162">“Move the backend to Rust…”</text>
+          <text class="t xs mono inv" x="532" y="176">turn 4 · 41 min · $6.20</text>
+          <line class="s-line" x1="522" y1="212" x2="726" y2="212"/>
+          <text class="t cap" x="522" y="234">YOU LEAVE WITH</text>
+          <text class="t s b acc" x="522" y="254">The prompt behind the commit</text>
+          <text class="t xs m" x="522" y="272">one command · terminal, Commits tab, PR</text>
+        </g>
+        <g>
+          <rect class="w-card" x="754" y="10" width="236" height="280" rx="12"/>
+          <text class="t cap" x="770" y="36">WHEN IT MATTERS</text>
+          <text data-go="s-n1" class="t l" x="770" y="64">Stay in control</text>
+          <text class="t s" x="770" y="94">“Did that run finish? What</text><text class="t s" x="770" y="110">did this week cost me?”</text>
+          <rect class="w-win" x="770" y="128" width="204" height="56" rx="6"/>
+          <text class="t xs b" x="780" y="146">Turn finished after 47 min</text>
+          <text class="t xs m" x="780" y="161">3 commits · $9.40</text>
+          <text class="t xs acc" x="780" y="176">Open the turn ›</text>
+          <line class="s-line" x1="770" y1="212" x2="974" y2="212"/>
+          <text class="t cap" x="770" y="234">YOU LEAVE WITH</text>
+          <text class="t s b acc" x="770" y="254">One thing to act on</text>
+          <text class="t xs m" x="770" y="272">it comes to you · notification, tray, recap</text>
+        </g>
+      </svg>
+    </div>
+    <p class="note">Reading the story of a week, a project or a session is still here (§02–§06). It is what you do after one of these four brought you in, so it no longer decides what gets built first.</p>
+  </div>
+
+  <div class="prose" id="jobs">
+    <h3>The four jobs, and where v2 had them</h3>
+    <p>Everything below is already somewhere in v2. The change is that these four lead, and the reading experience follows.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Job</th><th>The moment it happens</th><th>What answers it</th><th>Where v2 had it</th></tr></thead>
+    <tbody>
+      <tr><td>1 · Find it again</td><td>"I wrote a good prompt for this last week." Several times a day.</td><td>⌘K over prompts, sessions and commits; copy the prompt; the recall shortcut from any app; <code>gitprompt find</code> in the terminal; prompts you repeat, offered as slash commands</td><td>⌘K in step 1 (kept). Recall in step 6, desktop only. No terminal command.</td></tr>
+      <tr><td>2 · Pick it up</td><td>Next morning, or with three sessions running at once.</td><td>The resume command on every session row; session names you can edit; which sessions are running now</td><td>Step 3, as one part of the session story redesign.</td></tr>
+      <tr><td>3 · Explain the code</td><td>Reviewing a pull request, or asking "why did we do this?" a month later.</td><td>Commit → prompt, both ways; <code>gitprompt why &lt;commit&gt;</code>; "the prompts behind this branch" copied as Markdown for a pull request</td><td>Step 4, the fourth tab of the project story. This is what the product's name promises.</td></tr>
+      <tr><td>4 · Stay in control</td><td>When something needs attention, whether or not the window is open.</td><td>Spend and the part of it that went to redone work; possible leaks; a long turn that finished; a tool that stopped reporting; a weekly recap as one notification</td><td>Steps 5 and 6. Redone work was removed from the headlines.</td></tr>
+      <tr><td><span class="dim">Then · Read the story</span></td><td>Now and then: a retrospective, a write-up, curiosity.</td><td>The four zoom levels, the session arc, the project river (§02–§06)</td><td>Steps 1–5: nearly the whole plan.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="sketch" id="s-r1">
+    <div class="sketch-head"><h4><span class="tag v3">v3</span> R1 · The same history, where the work happens</h4><span class="route">any app · the terminal · a pull request</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 1000 330" role="img" aria-label="Three panels. A small recall window opened from any app, listing past prompts that match the word rust with copy and open actions. A terminal running gitprompt why with a commit hash, answering with the session, the prompt and what it cost. A Markdown block for a pull request listing the prompts behind a branch.">
+        <rect class="w-card" x="10" y="10" width="316" height="310" rx="12"/>
+        <text class="t cap" x="26" y="34">1 · FIND IT AGAIN, FROM ANY APP</text>
+        <rect class="w-win" x="26" y="48" width="284" height="214" rx="10"/>
+        <rect class="w-sunk" x="38" y="60" width="260" height="30" rx="6"/><text class="t s" x="50" y="79">rust api</text><text class="t xs mono m end" x="288" y="79">⌥ Space</text>
+        <rect class="w-accsoft" x="38" y="100" width="260" height="46" rx="6"/>
+        <text class="t s b" x="48" y="118">Move the backend to Rust and keep</text><text class="t s b" x="48" y="133">the API working</text>
+        <circle class="w-acc" cx="286" cy="114" r="5"/>
+        <text class="t s" x="48" y="168">Is the Rust daemon faster than the</text><text class="t s" x="48" y="183">Python one?</text>
+        <circle class="w-acc" cx="286" cy="164" r="5"/>
+        <text class="t s" x="48" y="212">Port the store to rusqlite, same</text><text class="t s" x="48" y="227">schema</text>
+        <circle class="w-amber" cx="286" cy="208" r="5"/>
+        <line class="s-line" x1="38" y1="240" x2="298" y2="240"/><text class="t xs m" x="48" y="255">↵ copy · ⌘↵ open the turn · ⇥ its session</text>
+        <text class="t xs m" x="26" y="284">Finished prompts first: the wording that worked.</text>
+        <text class="t xs m" x="26" y="300">Web build: the same list in ⌘K.</text>
+
+        <rect class="w-card" x="342" y="10" width="316" height="310" rx="12"/>
+        <text class="t cap" x="358" y="34">3 · EXPLAIN THE CODE, IN THE TERMINAL</text>
+        <rect class="w-fg" x="358" y="48" width="284" height="214" rx="10"/>
+        <text class="t xs mono inv" x="372" y="72">$ gitprompt why f11e5a3</text>
+        <text class="t xs mono inv b" x="372" y="98">f11e5a3 Add HTTP API with routes</text>
+        <text class="t xs mono inv" x="372" y="113">8 Nov · +412 −38 · 9 files</text>
+        <text class="t xs mono inv" x="372" y="139">Prompt, turn 4 of "Port the store":</text>
+        <text class="t xs mono inv b" x="372" y="154">"Move the backend to Rust and keep</text>
+        <text class="t xs mono inv b" x="372" y="169">the API working"</text>
+        <text class="t xs mono inv" x="372" y="195">Claude Code · 41 min · $6.20</text>
+        <text class="t xs mono inv" x="372" y="210">reworded twice before it finished</text>
+        <text class="t xs mono inv" x="372" y="236">open: gitprompt://prompt/1033</text>
+        <text class="t xs m" x="358" y="284">Also: gitprompt find "rust api", and</text>
+        <text class="t xs m" x="358" y="300">gitprompt resume to list sessions to pick up.</text>
+
+        <rect class="w-card" x="674" y="10" width="316" height="310" rx="12"/>
+        <text class="t cap" x="690" y="34">3 · THE PROMPTS BEHIND A BRANCH</text>
+        <rect class="w-sunk" x="690" y="48" width="284" height="214" rx="10"/>
+        <text class="t xs mono b" x="704" y="72">## How this was built</text>
+        <text class="t xs mono" x="704" y="96">6 prompts in 2 sessions, 11 commits,</text>
+        <text class="t xs mono" x="704" y="111">3h 10m of agent time, $18.40.</text>
+        <text class="t xs mono" x="704" y="137">1. Move the backend to Rust and</text>
+        <text class="t xs mono" x="704" y="152">   keep the API working → f11e5a3</text>
+        <text class="t xs mono" x="704" y="170">2. Port the store to rusqlite,</text>
+        <text class="t xs mono" x="704" y="185">   same schema → 2 commits</text>
+        <text class="t xs mono m" x="704" y="203">3. … 4 more</text>
+        <rect class="w-acc" x="704" y="222" width="120" height="26" rx="6"/><text class="t xs inv b mid" x="764" y="239">Copy Markdown</text>
+        <text class="t xs m" x="690" y="284">Figures only by default; prompt text when you</text>
+        <text class="t xs m" x="690" y="300">tick it. Secrets always masked. Nothing uploads.</text>
+      </svg>
+    </div>
+    <p class="note">None of this needs new data. Recall and <code>find</code> use the search index; <code>why</code> reads the existing "commits after a prompt" link the other way round; the Markdown block is one more shape for the export crate, with its existing privacy defaults. The commands are run by you, in your terminal: they don't change, block or add to any prompt.</p>
+  </div>
+
+</section>
+
+<!-- REVIEW -->
+<section id="review">
+  <div class="prose">
+    <h2><span class="n">R</span>The review of v2, and how the design answers it</h2>
+    <p class="sub">Read as a product owner: what would make someone open GitPrompt next Tuesday, and did the plan get them there soon?</p>
+  </div>
+  <p class="verdict"><b>6 out of 10.</b> A strong design in service of a weak goal. The plan spends six steps rearranging what exists so that it reads well, and ships its most useful ideas last or "on desktop only".</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>What I scored</th><th>Score</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Diagnosis of today's pages</td><td><span class="score"><span>8</span><i><b style="width:80%"></b></i></span></td><td>Accurate and measured on the running app: 14 panels with no headline, six filter rows before the first prompt, 18 unnamed phases.</td></tr>
+      <tr><td>Design quality</td><td><span class="score"><span>8.5</span><i><b style="width:85%"></b></i></span></td><td>One anatomy for every page, one link style, six panel states, glyphs that keep their meaning. It would feel like one product.</td></tr>
+      <tr><td>Fit with the code</td><td><span class="score"><span>8</span><i><b style="width:80%"></b></i></span></td><td>Reuses the chart kit, puts each addition in the right crate, needs no new crate. Two additions collide with the permanent non-goals in <code>PLAN.md</code> and the plan doesn't say so (D4, D5).</td></tr>
+      <tr><td>New value for the user</td><td><span class="score mid"><span>5</span><i><b style="width:50%"></b></i></span></td><td>The useful ideas are there but buried: the resume command is one mark on a session sketch, the recall shortcut is a row in the desktop table, the commit → prompt trace is the fourth tab of a project.</td></tr>
+      <tr><td>Focus</td><td><span class="score low"><span>4</span><i><b style="width:40%"></b></i></span></td><td>About 30 new components, 14 sketches, a team data model and an AI settings page in one proposal. "Nothing is lost" is the definition of done, so nothing can be simplified.</td></tr>
+      <tr><td>Order of work</td><td><span class="score low"><span>3</span><i><b style="width:30%"></b></i></span></td><td>Step 1 ships glyphs and a reordered sidebar. The Overview, the page everyone lands on, comes fifth. Tray and notifications, the only parts that reach you when the window is closed, come sixth.</td></tr>
+      <tr><td>Evidence and measures</td><td><span class="score low"><span>3</span><i><b style="width:30%"></b></i></span></td><td>Built from one person's 503 prompts. No step says how we will know it worked. Chapter names, which the whole Projects page depends on, are untested.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="prose">
+    <h3>Each criticism, and where the design now answers it</h3>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Criticism of v2</th><th>Answer in v3</th><th>See</th></tr></thead>
+    <tbody>
+      <tr><td>People don't return to read about themselves</td><td>The Overview opens on "Pick up where you left off" and "Worth a look", each row ending in an action. ⌘K and recall return a prompt in one keystroke. The charts come after.</td><td><a href="#s-w1">W1</a>, <a href="#s-a1">A1</a>, <a href="#s-r1">R1</a></td></tr>
+      <tr><td>A local dashboard is out of sight</td><td>The tray shows what is running and what to pick up; three kinds of notification and one weekly recap reach you with the window closed; <code>find</code>, <code>why</code> and <code>resume</code> work in the terminal.</td><td><a href="#s-n1">N1</a>, <a href="#s-r1">R1</a></td></tr>
+      <tr><td>Wasted money was hidden</td><td>Redone work is a key figure, the subject of the headline when it stands out, and a Worth a look item that opens the costliest redone turn.</td><td><a href="#s-a1">A1</a>, §07</td></tr>
+      <tr><td>A headline that repeats the tiles</td><td>The headline is written only when a figure changed or stands out, and names that figure. Otherwise the page shows the figures alone.</td><td><a href="#s-a1">A1</a></td></tr>
+      <tr><td>Nine new words to learn</td><td>The sidebar says what each page is for in the user's words. River, arc, fingerprint, replay and margin note stay as component names and never appear as labels.</td><td><a href="#s-nav">§04</a>, <a href="#vocabulary">§03</a></td></tr>
+      <tr><td>The useful ideas were buried</td><td>Every page states the job it serves under its title. Resume, recall and the commit trace have their own sketches and ship in steps 1 and 2.</td><td><a href="#pages">§05</a>, <a href="#build">§11</a></td></tr>
+      <tr><td>The order shipped vocabulary first</td><td>Find and resume, then the commit trace, then the Overview with tray and notifications. Glyphs are built with the first page that uses them.</td><td><a href="#build">§11</a></td></tr>
+      <tr><td>Nothing could be simplified</td><td>"Every feature reachable" is a constraint, not the goal. Local usage counts show what is opened; team columns, Compare, pinning and four smaller items are parked.</td><td>D1, D2, <a href="#changes">below</a></td></tr>
+      <tr><td>No way to know it worked</td><td>Each step has an "It worked if" line about behaviour. Chapter names are tested on three real projects before the river is built.</td><td><a href="#build">§11</a>, D6</td></tr>
+      <tr><td>Two additions collide with permanent non-goals</td><td>Open in Terminal and an MCP server are not built until you rule on them. Copy and the CLI ship regardless.</td><td>D4, D5</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="prose" id="changes">
+    <h3>What v3 changes</h3>
+  </div>
+  <div class="cards">
+    <div class="card"><h4><span class="tag v3">Reordered</span> Value first, vocabulary as needed</h4><p>Find and resume ship first, then the commit trace, then the Overview's first screen with tray and notifications. The reading redesign follows. Glyphs are built with the first page that uses them, not as a step of their own (§11).</p></div>
+    <div class="card"><h4><span class="tag new">Added</span> The history outside the dashboard</h4><p><code>gitprompt find</code>, <code>why</code> and <code>resume</code> in the terminal, "the prompts behind this branch" for a pull request, and a weekly recap notification (R1 above).</p></div>
+    <div class="card"><h4><span class="tag fix">Changed</span> Redone work is a headline figure</h4><p>One of the five Overview figures becomes <b>what the turns you had to redo cost</b>: failed, interrupted or reworded, in money and agent time. It reverses a v2 choice, so it is decision D3.</p></div>
+    <div class="card"><h4><span class="tag fix">Changed</span> Chapters must pass a test first</h4><p>The project river is only as good as its chapter names. Before building it, generate names for your three largest projects and count how many you would keep. Below 8 in 10, phases stay as they are, with dates (D6).</p></div>
+    <div class="card"><h4><span class="tag cut">Deferred</span> Team columns, Compare, pinning</h4><p>Identity columns leave step 1: adding columns with defaults costs the same later, and data leaving the machine is still a permanent non-goal. Also parked until someone asks: the Compare lens, pinned panels, ghost bars, custom compare ranges, the setup panel (C3; the strip stays), window vibrancy.</p></div>
+    <div class="card"><h4><span class="tag fix">Changed</span> What "done" means</h4><p>v2: every existing feature is reachable. v3: each step names the job it serves and how we will know it worked. Every feature stays reachable in this round, since tabs make that cheap, but that is a constraint and no longer the goal (D1, D2).</p></div>
+  </div>
+</section>
 
 <!-- 01 -->
 <section id="today">
@@ -307,13 +518,13 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
     <div><b>503</b><span>prompts kept; 81 sessions in the last 7 days</span></div>
     <div><b>57%</b><span>of the week's prompts typed by you; the rest came from the harness or agents</span></div>
     <div><b>$453</b><span>spent in 7 days; subagents took 43%</span></div>
-    <div><b>16 + 18</b><span>Overview panels, and "Phase 1…18" in one project</span></div>
+    <div><b>14 + 18</b><span>Overview panels, and "Phase 1…18" in one project</span></div>
   </div>
   <div class="prose">
     <p>The data is rich and accurate. The pages show it as inventories: long vertical lists where everything has the same weight. You can find any fact, but you have to build the story yourself.</p>
   </div>
   <div class="cards">
-    <div class="card"><h4><span class="tag fix">Overview</span> 16 panels, no headline</h4><p>Each panel asks a good question, but the page doesn't say what happened this week, what changed since last week, or what deserves a look. It is <b>3,600px tall</b>.</p></div>
+    <div class="card"><h4><span class="tag fix">Overview</span> 14 panels, no headline</h4><p>Each panel asks a good question, but the page doesn't say what happened this week, what changed since last week, or what deserves a look. It is <b>3,600px tall</b>.</p></div>
     <div class="card"><h4><span class="tag fix">Projects</span> Rows of numbers</h4><p>Each project shows counts and a sparkline, but not <b>where the work stands</b>: which chapter it is in, whether it's active, or what was achieved.</p></div>
     <div class="card"><h4><span class="tag fix">Project story</span> Phases without names</h4><p>"Phase 1 … Phase 18", a table, then a <b>4,000px list</b> with commit dumps (15 rows under one prompt). The shape of the project is lost.</p></div>
     <div class="card"><h4><span class="tag fix">Sessions</span> Tall cards</h4><p>About 150px each, so 5 per screen. The title is the first prompt, truncated. The turn sparkline, the most telling part, is the smallest. <b>Parallel sessions are invisible.</b></p></div>
@@ -420,7 +631,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
     <div class="l3">Ask · Work · Answer · Result · Where it sits</div>
 
     <div class="r">Evidence</div>
-    <div class="l4">The 16 existing panels</div>
+    <div class="l4">The 14 existing panels</div>
     <div class="l4">Prompt entries, commits, phase table</div>
     <div class="l4">Facts, files written, commits</div>
     <div class="l4">The 7 existing tabs, under Details</div>
@@ -496,6 +707,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
       </svg>
     </div>
   </div>
+  <p class="v3note"><span class="tag v3">v3</span> These are names for components and for this document. On screen the labels stay in the user's words: project, session, prompt, commit, cost, and "phase" or "chapter" for a stretch of a project. A chart is introduced by the question it answers ("How did it go, turn by turn?"), never by "arc", "river", "fingerprint" or "replay".</p>
   <div class="sketch" id="s-states">
     <div class="sketch-head"><h4>States every panel supports</h4><span class="route">lib/ui · Design system page</span></div>
     <div class="canvas">
@@ -528,12 +740,12 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
         <text class="t cap" x="340" y="24">PROPOSED</text>
         <rect class="w-card" x="330" y="34" width="250" height="250" rx="10"/>
         <rect class="w-sunk" x="342" y="46" width="226" height="26" rx="6"/><text data-go="s-palette" class="t s m" x="354" y="63">Find anything…</text><text class="t s mono m end" x="558" y="63">⌘K</text>
-        <text class="t cap" x="346" y="96">YOUR STORY, FAR TO NEAR</text>
+        <text class="t cap" x="346" y="96">YOUR WORK</text>
         <rect class="w-accsoft" x="340" y="104" width="230" height="22" rx="6"/>
-        <text class="t b acc" x="352" y="120">Overview</text><text class="t xs m end" x="560" y="120">your practice</text>
-        <text class="t" x="352" y="144">Projects</text><text class="t xs m end" x="560" y="144">journeys</text>
-        <text class="t" x="352" y="168">Sessions</text><text class="t xs m end" x="560" y="168">conversations</text>
-        <text class="t" x="352" y="192">Prompts</text><text class="t xs m end" x="560" y="192">turns + search</text>
+        <text class="t b acc" x="352" y="120">Overview</text><text class="t xs m end" x="560" y="120">what needs you</text>
+        <text class="t" x="352" y="144">Projects</text><text class="t xs m end" x="560" y="144">where each stands</text>
+        <text class="t" x="352" y="168">Sessions</text><text class="t xs m end" x="560" y="168">pick one up</text>
+        <text class="t" x="352" y="192">Prompts</text><text class="t xs m end" x="560" y="192">find and reuse</text>
         <text class="t cap" x="346" y="222">SETUP</text>
         <text class="t" x="352" y="244">Connectors</text>
         <circle class="w-acc" cx="440" cy="240" r="4"/><circle class="w-acc" cx="452" cy="240" r="4"/><circle class="w-acc" cx="464" cy="240" r="4"/><circle class="w-amber" cx="476" cy="240" r="4"/>
@@ -581,11 +793,12 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="overview">
     <h3>Overview</h3>
     <p class="story-q">When and how do I work with the agents, how long do they work for me, what did it produce, and where does the money go?</p>
+    <p class="job"><b>Why you open it:</b> to see what needs you. Sessions to pick up, things worth a look, what the week cost. <b>Jobs:</b> pick it up, stay in control.</p>
 
     <div class="sketch" id="s-a1">
-      <div class="sketch-head"><h4>A1 · The first screen</h4><span class="route">/?range=7d</span><div class="states" role="group" aria-label="States"><span class="label">States</span><button type="button" data-state="base" aria-pressed="true">Ready</button><button type="button" data-state="loading" aria-pressed="false">Loading</button><button type="button" data-state="firstrun" aria-pressed="false">First run</button><button type="button" data-state="empty" aria-pressed="false">Nothing in range</button><button type="button" data-state="ai" aria-pressed="false">AI on (opt-in)</button></div></div>
+      <div class="sketch-head"><h4><span class="tag v3">v3</span> A1 · The first screen: what needs you, then how the week went</h4><span class="route">/?range=7d</span><div class="states" role="group" aria-label="States"><span class="label">States</span><button type="button" data-state="base" aria-pressed="true">Ready</button><button type="button" data-state="loading" aria-pressed="false">Loading</button><button type="button" data-state="firstrun" aria-pressed="false">First run</button><button type="button" data-state="empty" aria-pressed="false">Nothing in range</button></div></div>
       <div class="canvas">
-        <svg viewBox="0 0 1000 640" role="img" aria-label="Overview wireframe: a headline sentence with comparisons, filters folded into one row, five key figures (prompts, agent working time, spend, commits, possible leaks), a week strip of prompts per day by project with spend and annotations, and a list of things worth a look.">
+        <svg viewBox="0 0 1000 640" role="img" aria-label="Overview wireframe: a headline naming what stood out this week, a list of sessions to pick up with a copy-resume action on each, a list of things worth a look with an action on each, five key figures starting with redone work, a week strip of prompts per day by project, and the existing panels behind five tabs.">
           <rect class="w-win" x="0.5" y="0.5" width="999" height="639" rx="12"/>
           <rect class="w-panel" x="1" y="1" width="170" height="638" rx="12"/>
           <rect class="w-sunk" x="12" y="16" width="148" height="24" rx="6"/><text data-go="s-palette" class="t xs m" x="22" y="32">Find anything…</text><text class="t xs mono m end" x="150" y="32">⌘K</text>
@@ -594,84 +807,89 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
           <text class="t cap" x="22" y="186">SETUP</text><text class="t s" x="22" y="208">Connectors</text><text class="t s" x="22" y="232">Settings</text>
 
           <text class="t cap" x="196" y="34">OVERVIEW · LAST 7 DAYS</text>
-          <text class="t xl" x="196" y="64">You typed 278 prompts in 81 sessions, 12% more</text>
-          <text class="t xl" x="196" y="92">than last week. The agents worked 31 hours for you.</text>
-          <text class="t s m" x="196" y="116">$453 spent (▼ 8%), most of it on gitprompt · 79 commits followed your prompts</text>
+          <text class="t xl" x="196" y="72">$58 of this week's $453 went to turns you had to redo.</text>
+          <text class="t s m" x="196" y="94">13% of spend, up from 6% last week · 278 prompts in 81 sessions · the agents worked 31h 20m for you</text>
           <rect class="w-sunk" x="780" y="24" width="136" height="26" rx="6"/><rect class="w-card" x="820" y="27" width="40" height="20" rx="4"/>
           <text class="t xs m mid" x="800" y="41">24h</text><text class="t xs b mid" x="840" y="41">7d</text><text class="t xs m mid" x="878" y="41">30d</text><text class="t xs m mid" x="902" y="41">All</text>
           <rect class="w-card" x="924" y="24" width="60" height="26" rx="6"/><text class="t xs mid" x="954" y="41">Export</text>
-          <rect class="w-card" x="196" y="128" width="96" height="24" rx="12"/><text class="t xs mid" x="244" y="144">Filters · 2 ▾</text>
-          <rect class="w-accsoft" x="300" y="128" width="78" height="24" rx="12"/><text class="t xs acc mid" x="339" y="144">Typed 273</text>
-          <rect class="w-accsoft" x="384" y="128" width="104" height="24" rx="12"/><text class="t xs acc mid" x="436" y="144">Slash command 5</text>
-          <text class="t xs m" x="498" y="144">+ system: task notification 137 · agent message 73</text>
-          <rect class="w-irissoft" x="830" y="128" width="154" height="24" rx="12"/><text data-show="ai" class="t xs iris mid" x="907" y="144">✦ Explain this week (opt-in)</text>
-          <g class="co"><circle cx="186" cy="56" r="10"/><text x="186" y="60">1</text></g>
+          <rect class="w-card" x="196" y="106" width="96" height="24" rx="12"/><text class="t xs mid" x="244" y="122">Filters · 2 ▾</text>
+          <rect class="w-accsoft" x="300" y="106" width="78" height="24" rx="12"/><text class="t xs acc mid" x="339" y="122">Typed 273</text>
+          <rect class="w-accsoft" x="384" y="106" width="104" height="24" rx="12"/><text class="t xs acc mid" x="436" y="122">Slash command 5</text>
+          <text class="t xs m" x="498" y="122">+ system: task notification 137 · agent message 73</text>
+          <g class="co"><circle cx="186" cy="64" r="10"/><text x="186" y="68">1</text></g>
 
-          <g>
-            <rect class="w-card" x="196" y="166" width="150" height="70" rx="10"/><text class="t xs m" x="208" y="184">Prompts</text><text class="t l" x="208" y="206">278</text><text class="t xs acc" x="208" y="224">▲ 12% vs last week</text>
+          <rect class="w-card" x="196" y="142" width="480" height="162" rx="10"/>
+          <text class="t b" x="212" y="166">Pick up where you left off</text><text data-go="s-c1" class="t xs acc end" x="660" y="166">All sessions ›</text>
+          <rect class="w-accsoft" x="204" y="176" width="464" height="38" rx="6"/>
+          <circle class="w-acc pulse" cx="220" cy="195" r="4"/>
+          <text data-go="s-c2" class="t s b" x="234" y="192">Block flaky timing in tests</text><text class="t xs m" x="234" y="207">gitprompt · running now · turn 13, 12 min in</text>
+          <rect class="w-card" x="576" y="183" width="84" height="24" rx="6"/><text data-go="s-c2" class="t xs mid" x="618" y="199">Open ›</text>
+          <circle class="w-red" cx="220" cy="237" r="5"/>
+          <text data-go="s-c2" class="t s b" x="234" y="234">Port the store to rusqlite</text><text class="t xs m" x="234" y="249">gitprompt · stopped yesterday 18:40 · last turn failed, no commit followed</text>
+          <rect class="w-acc" x="560" y="225" width="100" height="24" rx="6"/><text data-tip="Copies the tool's own command with the session id, to run from the session's folder: claude --resume &lt;session id&gt;" class="t xs inv b mid" x="610" y="241">Copy resume</text>
+          <circle class="w-acc" cx="220" cy="279" r="5"/>
+          <text data-go="s-c2" class="t s b" x="234" y="276">Quality report trends</text><text class="t xs m" x="234" y="291">system-design-lab · yesterday 16:05 · finished, 4 commits</text>
+          <rect class="w-card" x="560" y="267" width="100" height="24" rx="6"/><text data-tip="Copies the tool's own command with the session id, to run from the session's folder" class="t xs mid" x="610" y="283">Copy resume</text>
+          <g class="co"><circle cx="676" cy="142" r="10"/><text x="676" y="146">2</text></g>
+
+          <rect class="w-card" x="688" y="142" width="296" height="162" rx="10"/>
+          <text class="t b" x="704" y="166">Worth a look</text>
+          <rect class="w-red" x="700" y="180" width="3" height="32" rx="1.5"/>
+          <text data-go="s-l1" class="t s b" x="712" y="192">AWS key + 2 emails in 3 prompts</text><text data-go="s-l1" class="t xs acc" x="712" y="207">Hide the values ›</text>
+          <rect class="w-amber" x="700" y="222" width="3" height="32" rx="1.5"/>
+          <text data-go="s-c2" class="t s b" x="712" y="234">$31 redone in one session</text><text data-go="s-d2" class="t xs acc" x="712" y="249">Open the turn reworded 3 times ›</text>
+          <rect class="w-bar" x="700" y="264" width="3" height="32" rx="1.5"/>
+          <text data-go="s-a2:types" class="t s b" x="712" y="276">“commit” typed 9 times</text><text data-tip="Copies the text of a command file; you decide where it goes. GitPrompt doesn't write into your tools." class="t xs acc" x="712" y="291">Copy it as a slash command ›</text>
+          <g class="co"><circle cx="984" cy="142" r="10"/><text x="984" y="146">3</text></g>
+
+          <g transform="translate(0 150)">
+            <rect class="w-card" x="196" y="166" width="150" height="70" rx="10"/><text data-tip="v3: spend and agent time on turns that failed, were interrupted or had to be reworded" class="t xs m" x="208" y="184">Redone work</text><text class="t l" x="208" y="206">$58</text><text class="t xs amb" x="208" y="224">13% of spend · 14 turns</text>
             <rect class="w-card" x="354" y="166" width="150" height="70" rx="10"/><text data-go="s-a2" class="t xs m" x="366" y="184">Agent working time</text><text class="t l" x="366" y="206">31h 20m</text><text class="t xs m" x="366" y="224">longest run 47m</text>
             <rect class="w-card" x="512" y="166" width="150" height="70" rx="10"/><text class="t xs m" x="524" y="184">Spend</text><text class="t l" x="524" y="206">$453</text><text class="t xs m" x="524" y="224">▼ 8% · gitprompt $154</text>
             <rect class="w-card" x="670" y="166" width="150" height="70" rx="10"/><text data-go="s-a2:agentic" class="t xs m" x="682" y="184">Commits</text><text class="t l" x="682" y="206">79</text><text class="t xs m" x="682" y="224">after 30 prompts (11%)</text>
             <rect class="w-card" x="828" y="166" width="156" height="70" rx="10"/><text data-go="s-l1" class="t xs m" x="840" y="184">Possible leaks</text><text class="t l red" x="840" y="206">3</text><text class="t xs red" x="840" y="224">1 key · 2 emails · review</text>
           </g>
-          <g class="co"><circle cx="984" cy="166" r="10"/><text x="984" y="170">2</text></g>
+          <g class="co"><circle cx="984" cy="316" r="10"/><text x="984" y="320">4</text></g>
 
-          <rect class="w-card" x="196" y="250" width="540" height="290" rx="10"/>
-          <text class="t b" x="212" y="274">Your week</text><text class="t xs m" x="290" y="274">prompts per day by project · spend · commits · what happened</text>
-          <line class="s-line" x1="232" y1="480" x2="720" y2="480"/>
+          <rect class="w-card" x="196" y="398" width="788" height="146" rx="10"/>
+          <text class="t b" x="212" y="420">Your week</text><text class="t xs m" x="290" y="420">prompts per day by project · commits · a day opens its sessions</text>
+          <rect class="w-acc" x="640" y="411" width="10" height="10" rx="2"/><text class="t xs" x="654" y="420">gitprompt</text>
+          <rect class="w-orange" x="712" y="411" width="10" height="10" rx="2"/><text class="t xs" x="726" y="420">system-design-lab</text>
+          <rect class="w-blue" x="822" y="411" width="10" height="10" rx="2"/><text class="t xs" x="836" y="420">bridge</text>
+          <rect class="w-pink" x="878" y="411" width="10" height="10" rx="2"/><text class="t xs" x="892" y="420">docs-to-md</text>
+          <line class="s-line" x1="232" y1="516" x2="948" y2="516"/>
+          <text class="t xs m mid" x="370" y="508">no prompts</text>
+          <text class="t xs end" x="634" y="446">busiest: 70 prompts</text>
+          <path d="M806 436 l0 26 M806 436 l10 4 l-10 4z" fill="var(--fg)" stroke="var(--fg)" stroke-width="1.2"/><text class="t xs" x="820" y="444">tag v0.3</text>
           <g>
-            <rect class="w-acc" x="246" y="430" width="48" height="50"/><rect class="w-blue" x="246" y="410" width="48" height="20"/>
-            <rect class="w-acc" x="456" y="420" width="48" height="60"/><rect class="w-orange" x="456" y="400" width="48" height="20"/><rect class="w-pink" x="456" y="388" width="48" height="12"/>
-            <rect class="w-acc" x="526" y="390" width="48" height="90"/><rect class="w-orange" x="526" y="350" width="48" height="40"/><rect class="w-blue" x="526" y="330" width="48" height="20"/>
-            <rect class="w-acc" x="596" y="400" width="48" height="80"/><rect class="w-orange" x="596" y="370" width="48" height="30"/><rect class="w-pink" x="596" y="340" width="48" height="30"/>
-            <rect class="w-acc" x="666" y="440" width="48" height="40"/><rect class="w-orange" x="666" y="420" width="48" height="20"/>
+            <rect class="w-acc" x="242" y="486" width="56" height="30"/><rect class="w-blue" x="242" y="474" width="56" height="12"/><rect class="hit" x="236" y="428" width="68" height="112" data-tip="Sat 8 Nov · 37 prompts · $190 · 1 commit · click: that day&#x27;s sessions" data-go="s-c1"/>
+            <rect class="hit" x="336" y="428" width="68" height="112" data-tip="Sun 9 Nov · no prompts" data-go="s-c1"/>
+            <rect class="w-acc" x="442" y="502" width="56" height="14"/><rect class="hit" x="436" y="428" width="68" height="112" data-tip="Mon 10 Nov · 12 prompts · $14 · click: that day&#x27;s sessions" data-go="s-c1"/>
+            <rect class="w-acc" x="542" y="480" width="56" height="36"/><rect class="w-orange" x="542" y="468" width="56" height="12"/><rect class="w-pink" x="542" y="460" width="56" height="8"/><rect class="hit" x="536" y="428" width="68" height="112" data-tip="Tue 11 Nov · 48 prompts · $62 · 2 commits · click: that day&#x27;s sessions" data-go="s-c1"/>
+            <rect class="w-acc" x="642" y="468" width="56" height="48"/><rect class="w-orange" x="642" y="448" width="56" height="20"/><rect class="w-blue" x="642" y="438" width="56" height="10"/><rect class="hit" x="636" y="428" width="68" height="112" data-tip="Wed 12 Nov · 70 prompts · $88 · 3 commits · click: that day&#x27;s sessions" data-go="s-c1"/>
+            <rect class="w-acc" x="742" y="472" width="56" height="44"/><rect class="w-orange" x="742" y="456" width="56" height="16"/><rect class="w-pink" x="742" y="440" width="56" height="16"/><rect class="hit" x="736" y="428" width="68" height="112" data-tip="Thu 13 Nov · 66 prompts · $71 · 3 commits · tag v0.3 · click: that day&#x27;s sessions" data-go="s-c1"/>
+            <rect class="w-acc" x="842" y="492" width="56" height="24"/><rect class="w-orange" x="842" y="480" width="56" height="12"/><rect class="hit" x="836" y="428" width="68" height="112" data-tip="Fri 14 Nov · 45 prompts · $28 · 1 commit so far · click: that day&#x27;s sessions" data-go="s-c1"/>
           </g>
-          <g class="w-fg"><circle cx="262" cy="488" r="3"/><circle cx="470" cy="488" r="3"/><circle cx="480" cy="488" r="3"/><circle cx="540" cy="488" r="3"/><circle cx="550" cy="488" r="3"/><circle cx="560" cy="488" r="3"/><circle cx="612" cy="488" r="3"/><circle cx="680" cy="488" r="3"/></g>
-          <g class="w-iris"><circle cx="270" cy="312" r="5"/><circle cx="480" cy="352" r="4"/><circle cx="550" cy="356" r="4"/><circle cx="620" cy="364" r="3"/><circle cx="690" cy="356" r="4"/></g>
-          <path class="s-iris" d="M270 312 L480 352 L550 356 L620 364 L690 356" stroke-dasharray="2 3" stroke-width="1.4"/>
-          <text class="t xs iris" x="282" y="308">$190 on Saturday</text>
-          <line class="s-fg" x1="540" y1="326" x2="514" y2="300"/><text class="t xs end" x="510" y="300">busiest: 70 prompts</text>
-          <path class="w-fg" d="M640 286 l0 50 M640 286 l12 5 l-12 5z"/><text class="t xs" x="656" y="292">tag v0.3</text>
-          <text class="t xs m mid" x="270" y="504">Sat</text><text class="t xs m mid" x="340" y="504">Sun</text><text class="t xs m mid" x="410" y="504">Mon</text><text class="t xs m mid" x="480" y="504">Tue</text><text class="t xs m mid" x="550" y="504">Wed</text><text class="t xs m mid" x="620" y="504">Thu</text><text class="t xs m mid" x="690" y="504">Fri</text>
-          <text class="t xs m mid" x="375" y="466">no prompts</text>
-          <rect class="w-acc" x="212" y="516" width="10" height="10" rx="2"/><text class="t xs" x="226" y="525">gitprompt</text>
-          <rect class="w-orange" x="282" y="516" width="10" height="10" rx="2"/><text class="t xs" x="296" y="525">system-design-lab</text>
-          <rect class="w-blue" x="390" y="516" width="10" height="10" rx="2"/><text class="t xs" x="404" y="525">bridge</text>
-          <rect class="w-pink" x="444" y="516" width="10" height="10" rx="2"/><text class="t xs" x="458" y="525">docs-to-md</text>
-          <circle class="w-fg" cx="532" cy="521" r="3"/><text class="t xs m" x="540" y="525">commits · a day opens its sessions</text>
-          <g class="co"><circle cx="736" cy="250" r="10"/><text x="736" y="254">3</text></g>
-
-          <rect class="w-card" x="748" y="250" width="236" height="290" rx="10"/>
-          <text class="t b" x="764" y="274">Worth a look</text>
-          <rect class="w-red" x="760" y="290" width="3" height="44" rx="1.5"/>
-          <text data-go="s-l1" class="t s b" x="772" y="304">Possible AWS key + 2 emails</text><text class="t xs m" x="772" y="320">in 3 prompts sent to the provider</text>
-          <rect class="w-amber" x="760" y="346" width="3" height="44" rx="1.5"/>
-          <text data-go="s-a2:money" class="t s b" x="772" y="360">gitprompt took 34% of spend</text><text class="t xs m" x="772" y="376">$1.48 a prompt; 47% subagents</text>
-          <rect class="w-iris" x="760" y="402" width="3" height="44" rx="1.5"/>
-          <text data-go="s-c2" class="t s b" x="772" y="416">A 2-day session, 808 tool calls</text><text class="t xs m" x="772" y="432">your longest agent run this week</text>
-          <rect class="w-bar" x="760" y="458" width="3" height="44" rx="1.5"/>
-          <text data-go="s-a2:types" class="t s b" x="772" y="472">“commit” typed 9 times</text><text class="t xs m" x="772" y="488">a slash command would save typing</text>
-          <text class="t xs acc" x="764" y="526">Each item opens what it is about ›</text>
-          <g class="co"><circle cx="984" cy="250" r="10"/><text x="984" y="254">4</text></g>
+          <text class="t xs m mid" x="270" y="534">Sat</text><text class="t xs m mid" x="370" y="534">Sun</text><text class="t xs m mid" x="470" y="534">Mon</text><text class="t xs m mid" x="570" y="534">Tue</text><text class="t xs m mid" x="670" y="534">Wed</text><text class="t xs m mid" x="770" y="534">Thu</text><text class="t xs m mid" x="870" y="534">Fri</text>
+          <g class="co"><circle cx="984" cy="398" r="10"/><text x="984" y="402">5</text></g>
 
           <rect class="w-sunk" x="196" y="556" width="788" height="66" rx="10"/>
           <text class="t cap" x="212" y="578">BELOW: FIVE TABS, EACH SAYING WHAT IT HOLDS (A2)</text>
           <text class="t s" x="212" y="600">Activity · Prompt types · Models and cost · Agentic work · Starred</text>
           <text class="t xs m" x="212" y="614">Activity opens first: week rhythm (GitHub squares), each hour, each day, sessions and agent runs</text>
-          <g class="co"><circle cx="186" cy="589" r="10"/><text x="186" y="593">5</text></g>
-        <rect class="hit" x="242" y="284" width="56" height="214" data-tip="Sat 8 Nov · 37 prompts · $190 · 1 commit · click: that day&#x27;s sessions" data-go="s-c1"/><rect class="hit" x="312" y="284" width="56" height="214" data-tip="Sun 9 Nov · no prompts · click: that day&#x27;s sessions" data-go="s-c1"/><rect class="hit" x="382" y="284" width="56" height="214" data-tip="Mon 10 Nov · no prompts · click: that day&#x27;s sessions" data-go="s-c1"/><rect class="hit" x="452" y="284" width="56" height="214" data-tip="Tue 11 Nov · 52 prompts · $38 · 2 commits · click: that day&#x27;s sessions" data-go="s-c1"/><rect class="hit" x="522" y="284" width="56" height="214" data-tip="Wed 12 Nov · 70 prompts · $41 · 3 commits · click: that day&#x27;s sessions" data-go="s-c1"/><rect class="hit" x="592" y="284" width="56" height="214" data-tip="Thu 13 Nov · 67 prompts · $29 · 1 commit · click: that day&#x27;s sessions" data-go="s-c1"/><rect class="hit" x="662" y="284" width="56" height="214" data-tip="Fri 14 Nov · 48 prompts · $35 · 1 commit · click: that day&#x27;s sessions" data-go="s-c1"/>
+          <g class="co"><circle cx="186" cy="589" r="10"/><text x="186" y="593">6</text></g>
 <g class="layer" data-layer="loading"><rect class="w-cover" x="176" y="12" width="816" height="620" rx="0"/><text class="t cap" x="196" y="34">OVERVIEW · LAST 7 DAYS</text><rect class="w-bar2 sk" x="196" y="48" width="500" height="22" rx="6"/><rect class="w-bar2 sk" x="196" y="78" width="420" height="22" rx="6"/><rect class="w-bar2 sk" x="196" y="110" width="320" height="10" rx="5"/><rect class="w-card" x="196" y="166" width="150" height="70" rx="10"/><rect class="w-bar2 sk" x="208" y="180" width="70" height="10" rx="5"/><rect class="w-bar2 sk" x="208" y="198" width="90" height="16" rx="5"/><rect class="w-bar2 sk" x="208" y="222" width="60" height="6" rx="5"/><rect class="w-card" x="354" y="166" width="150" height="70" rx="10"/><rect class="w-bar2 sk" x="366" y="180" width="70" height="10" rx="5"/><rect class="w-bar2 sk" x="366" y="198" width="90" height="16" rx="5"/><rect class="w-bar2 sk" x="366" y="222" width="60" height="6" rx="5"/><rect class="w-card" x="512" y="166" width="150" height="70" rx="10"/><rect class="w-bar2 sk" x="524" y="180" width="70" height="10" rx="5"/><rect class="w-bar2 sk" x="524" y="198" width="90" height="16" rx="5"/><rect class="w-bar2 sk" x="524" y="222" width="60" height="6" rx="5"/><rect class="w-card" x="670" y="166" width="150" height="70" rx="10"/><rect class="w-bar2 sk" x="682" y="180" width="70" height="10" rx="5"/><rect class="w-bar2 sk" x="682" y="198" width="90" height="16" rx="5"/><rect class="w-bar2 sk" x="682" y="222" width="60" height="6" rx="5"/><rect class="w-card" x="828" y="166" width="156" height="70" rx="10"/><rect class="w-bar2 sk" x="840" y="180" width="70" height="10" rx="5"/><rect class="w-bar2 sk" x="840" y="198" width="90" height="16" rx="5"/><rect class="w-bar2 sk" x="840" y="222" width="60" height="6" rx="5"/><rect class="w-card" x="196" y="250" width="540" height="290" rx="10"/><rect class="w-bar2 sk" x="212" y="266" width="120" height="10" rx="5"/><rect class="w-bar2 sk" x="246" y="420" width="48" height="60" rx="2"/><rect class="w-bar2 sk" x="316" y="460" width="48" height="20" rx="2"/><rect class="w-bar2 sk" x="386" y="460" width="48" height="20" rx="2"/><rect class="w-bar2 sk" x="456" y="390" width="48" height="90" rx="2"/><rect class="w-bar2 sk" x="526" y="350" width="48" height="130" rx="2"/><rect class="w-bar2 sk" x="596" y="370" width="48" height="110" rx="2"/><rect class="w-bar2 sk" x="666" y="410" width="48" height="70" rx="2"/><rect class="w-card" x="748" y="250" width="236" height="290" rx="10"/><rect class="w-bar2 sk" x="764" y="266" width="100" height="10" rx="5"/><rect class="w-bar2 sk" x="772" y="296" width="170" height="10" rx="5"/><rect class="w-bar2 sk" x="772" y="314" width="120" height="6" rx="5"/><rect class="w-bar2 sk" x="772" y="352" width="170" height="10" rx="5"/><rect class="w-bar2 sk" x="772" y="370" width="120" height="6" rx="5"/><rect class="w-bar2 sk" x="772" y="408" width="170" height="10" rx="5"/><rect class="w-bar2 sk" x="772" y="426" width="120" height="6" rx="5"/><rect class="w-bar2 sk" x="772" y="464" width="170" height="10" rx="5"/><rect class="w-bar2 sk" x="772" y="482" width="120" height="6" rx="5"/><text class="t xs m" x="196" y="580">Loading: the frame and the previous numbers stay while new ones arrive; panels below the fold load as you scroll.</text></g>
 <g class="layer" data-layer="firstrun"><rect class="w-cover" x="176" y="12" width="816" height="620" rx="0"/><text class="t cap" x="196" y="34">OVERVIEW</text><text class="t xl" x="196" y="64">Connect your first tool</text><text class="t s m" x="196" y="88">GitPrompt found 3 AI tools on this machine. Nothing is captured until you connect one.</text><rect class="w-card" x="196" y="108" width="252" height="300" rx="10"/><text class="t b" x="212" y="134">1 · Pick a tool</text><text class="t xs m" x="212" y="151">Detected from their config folders</text><text class="t s b" x="212" y="170">Claude Code</text><text class="t xs m" x="212" y="186">2.1.325 · detected</text><rect class="w-acc" x="366" y="156" width="66" height="28" rx="6"/><text class="t xs inv b mid" x="399.0" y="174">Connect</text><text class="t s b" x="212" y="222">Codex</text><text class="t xs m" x="212" y="238">0.167.0 · detected</text><rect class="w-card" x="366" y="208" width="66" height="28" rx="6"/><text class="t xs mid" x="399.0" y="226">Connect</text><text class="t s b" x="212" y="274">Cursor</text><text class="t xs m" x="212" y="290">detected</text><rect class="w-card" x="366" y="260" width="66" height="28" rx="6"/><text class="t xs mid" x="399.0" y="278">Connect</text><text class="t s b" x="212" y="326">Copilot CLI</text><text class="t xs m" x="212" y="342">not found</text><rect class="w-card" x="462" y="108" width="252" height="300" rx="10"/><text class="t b" x="478" y="134">2 · Review the change</text><text class="t xs m" x="478" y="151">Shown before anything is written</text><rect class="w-sunk" x="478" y="160" width="220" height="120" rx="6"/><text class="t xs mono m" x="488" y="180">~/.claude/settings.json</text><rect class="w-accsoft" x="484" y="190" width="208" height="16" rx="3"/><text class="t xs mono acc" x="490" y="202">+ &quot;UserPromptSubmit&quot;: [ …curl</text><rect class="w-accsoft" x="484" y="210" width="208" height="16" rx="3"/><text class="t xs mono acc" x="490" y="222">+   127.0.0.1:7878/ingest … ]</text><text class="t xs mono m" x="490" y="246">  …18 more observational events</text><text class="t xs" x="478" y="302">A backup goes to ~/.gitprompt/backups.</text><text class="t xs" x="478" y="318">Disconnect removes only what was added.</text><rect class="w-acc" x="478" y="340" width="120" height="28" rx="6"/><text class="t xs inv b mid" x="538.0" y="358">Confirm and connect</text><rect class="w-card" x="728" y="108" width="256" height="300" rx="10"/><text class="t b" x="744" y="134">3 · Type a prompt</text><text class="t xs m" x="744" y="151">In the tool you connected</text><circle class="w-acc pulse" cx="748" cy="176" r="5"/><text class="t s" x="760" y="180">Waiting for the first prompt…</text><text class="t xs m" x="744" y="210">It appears here within seconds,</text><text class="t xs m" x="744" y="224">and on Prompts with its whole turn.</text><rect class="w-sunk" x="744" y="246" width="224" height="60" rx="6"/><text class="t xs mono" x="756" y="268">gitprompt check</text><text class="t xs m" x="756" y="288">shows the newest prompt per tool</text><g opacity="0.35"><rect class="w-card" x="196" y="424" width="788" height="190" rx="10"/><rect class="w-bar" x="250" y="550" width="40" height="40" rx="0"/><rect class="w-bar" x="314" y="590" width="40" height="2" rx="0"/><rect class="w-bar" x="378" y="590" width="40" height="2" rx="0"/><rect class="w-bar" x="442" y="530" width="40" height="60" rx="0"/><rect class="w-bar" x="506" y="500" width="40" height="90" rx="0"/><rect class="w-bar" x="570" y="510" width="40" height="80" rx="0"/><rect class="w-bar" x="634" y="540" width="40" height="50" rx="0"/><rect class="w-bar" x="700" y="450" width="260" height="12" rx="6"/><rect class="w-bar" x="700" y="474" width="200" height="12" rx="6"/><rect class="w-bar" x="700" y="498" width="230" height="12" rx="6"/></g><text class="t xs m" x="212" y="448">What you&#x27;ll see here once prompts arrive: your week, rhythm, spend, commits.</text></g>
 <g class="layer" data-layer="empty"><rect class="w-cover" x="176" y="12" width="816" height="620" rx="0"/><text class="t cap" x="196" y="34">OVERVIEW · LAST 24 HOURS</text><text class="t xl" x="196" y="64">No prompts in the last 24 hours</text><text class="t s m" x="196" y="88">for these filters: project gitprompt · typed and slash commands</text><rect class="w-sunk" x="780" y="24" width="136" height="26" rx="6"/><rect class="w-card" x="782" y="27" width="36" height="20" rx="4"/><text class="t xs b mid" x="800" y="41">24h</text><text class="t xs m mid" x="840" y="41">7d</text><text class="t xs m mid" x="878" y="41">30d</text><text class="t xs m mid" x="902" y="41">All</text><rect class="w-accsoft" x="196" y="108" width="126" height="22" rx="11"/><text class="t xs mid acc" x="259.0" y="123">project: gitprompt ×</text><rect class="w-accsoft" x="330" y="108" width="46" height="22" rx="11"/><text class="t xs mid acc" x="353.0" y="123">Typed</text><rect class="w-accsoft" x="386" y="108" width="89" height="22" rx="11"/><text class="t xs mid acc" x="430.5" y="123">Slash command</text><rect class="w-card" x="196" y="160" width="788" height="300" rx="10"/><circle class="w-sunk" cx="590" cy="230" r="26"/><text class="t l mid m" x="590" y="236">∅</text><text class="t l mid" x="590" y="290">Nothing in the last 24 hours for these filters</text><text class="t s m mid" x="590" y="314">Your last prompt in gitprompt was yesterday at 22:40.</text><rect class="w-acc" x="452" y="340" width="120" height="28" rx="6" data-show="base"/><text class="t xs inv b mid" x="512.0" y="358" data-show="base">Last 7 days</text><rect class="w-card" x="582" y="340" width="110" height="28" rx="6"/><text class="t xs mid" x="637.0" y="358">Clear filters</text><text class="t xs acc" x="712" y="358">All prompts ›</text><text class="t xs m" x="196" y="500">The key figures and tabs come back as soon as the range has prompts. A connector that stopped receiving says so here instead.</text></g>
-<g class="layer" data-layer="ai"><rect class="w-cover" x="186" y="124" width="806" height="420" rx="0"/><rect class="w-card" x="196" y="128" width="96" height="24" rx="12"/><text class="t xs mid" x="244" y="144">Filters · 2 ▾</text><rect class="w-iris" x="830" y="128" width="154" height="24" rx="12"/><text class="t xs inv b mid" x="907" y="144">✦ Explaining this week</text><rect class="w-irissoft" x="196" y="166" width="788" height="210" rx="10"/><rect class="w-card" x="212" y="180" width="258" height="22" rx="11"/><text class="t xs mid iris" x="341.0" y="195">✦ AI summary · llama 3 (local) · figures only</text><text class="t xs m end" x="968" y="195" data-show="base">Dismiss ✕</text><text class="t s" x="212" y="228">A heavier week than usual (+12%), centred on gitprompt and system-design-lab.</text><text class="t s" x="212" y="248">The agents worked longest on Wednesday and Thursday afternoons, your focus hours;</text><text class="t s" x="212" y="268">runs you started after 22:00 took 40% longer. Subagents spent 43% of the money,</text><text class="t s" x="212" y="288">mostly in two sessions. 79 commits followed 30 prompts.</text><text class="t xs acc" x="212" y="316">Sources: Your week › Rhythm › Agent runs › Money by project › Commits ›</text><rect class="w-card" x="212" y="330" width="600" height="30" rx="8"/><text class="t xs m" x="224" y="349">Ask a follow-up about these numbers…</text><text class="t xs acc" x="830" y="349">request log ›</text><rect class="w-card" x="196" y="388" width="788" height="150" rx="10"/><text class="t b" x="212" y="414">Your week</text><text class="t xs m" x="212" y="431">moves below the summary while it is open</text><rect class="w-acc" x="246" y="480" width="48" height="40" rx="0"/><rect class="w-bar2" x="336" y="520" width="48" height="2" rx="0"/><rect class="w-bar2" x="426" y="520" width="48" height="2" rx="0"/><rect class="w-acc" x="516" y="472" width="48" height="48" rx="0"/><rect class="w-acc" x="606" y="448" width="48" height="72" rx="0"/><rect class="w-acc" x="696" y="456" width="48" height="64" rx="0"/><rect class="w-acc" x="786" y="488" width="48" height="32" rx="0"/></g>
         </svg>
       </div>
       <ul class="why">
-        <li data-n="1"><span><b>A headline sentence in place of "Overview"</b>, built from the totals the page already loads plus the previous period. The filters fold into one "Filters · 2" button; the origin chips stay visible because they change every number. "Explain this week" appears only once AI analysis is switched on in Settings (§10).</span></li>
-        <li data-n="2"><span><b>Five key figures that match what you watch</b>: prompts, how long the agents worked for you, spend (with the top project), commits that followed prompts, and possible leaks. Typical turn and Finished move into the Agentic work tab: still there, no longer headline.</span></li>
-        <li data-n="3"><span><b>The week strip</b> merges "prompts each day" and "spend per day", splits each day by project, marks days with commits, and notes what stands out. Clicking a day opens that day's sessions on a timeline.</span></li>
-        <li data-n="4"><span><b>Worth a look</b> ranks what you said matters: possible leaks first, then where the money went, long agent runs, and repeated prompts. Failures don't appear here; they stay in their panel.</span></li>
-        <li data-n="5"><span><b>The four sections become tabs, plus Starred</b> (A2). Each tab names what it holds, Activity opens first, and the page shrinks from 3,600px to two screens with every panel one click away.</span></li>
+        <li data-n="1"><span><b>A headline only when something stands out.</b> It names the figure that changed or is unusual (here, redone work doubling), with the plain totals on the line below. In a week like the last one there is no sentence, only the totals. The filters fold into one "Filters · 2" button; the origin chips stay visible because they change every number.</span></li>
+        <li data-n="2"><span><b>Pick up where you left off</b> is the first thing on the page: the session still running, then the ones you left, each with how it ended and a <b>Copy resume</b> action. This is the reason to open GitPrompt in the morning. It always shows your latest sessions, whatever range is selected.</span></li>
+        <li data-n="3"><span><b>Worth a look, each with an action.</b> Possible leaks first, then redone work, then prompts you repeat. Each item ends in what you can do about it: hide the values, open the turn, copy a slash command. The same list feeds the notifications and the weekly recap (N1). At most three; an empty list says "Nothing needs you".</span></li>
+        <li data-n="4"><span><b>Five key figures you can act on</b>: redone work (what failed, interrupted and reworded turns cost), how long the agents worked for you, spend with the top project, commits that followed prompts, and possible leaks. Typical turn and Finished move into the Agentic work tab.</span></li>
+        <li data-n="5"><span><b>The week strip</b> splits each day by project, marks what stands out, and shows spend and commits on hover. Clicking a day opens that day's sessions on a timeline. It is half the height it had in v2: context, after the two lists.</span></li>
+        <li data-n="6"><span><b>The four sections become tabs, plus Starred</b> (A2). Each tab names what it holds, Activity opens first, and the page shrinks from 3,600px to two screens with every panel one click away. "Explain this week" (opt-in AI, §09) lives in ⌘K and S2, not on this screen.</span></li>
       </ul>
     </div>
 
@@ -1361,6 +1579,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="projects">
     <h3>Projects</h3>
     <p class="story-q">Where is each piece of work, which ones are moving, and where did the effort and money go?</p>
+    <p class="job"><b>Why you open it:</b> to see where each project stands before choosing what to work on. <b>Job:</b> pick it up; then reading.</p>
     <div class="sketch" id="s-b1">
       <div class="sketch-head"><h4>B1 · Projects as a portfolio of journeys</h4><span class="route">/projects?range=7d</span><div class="states" role="group" aria-label="States"><span class="label">States</span><button type="button" data-state="base" aria-pressed="true">List</button><button type="button" data-state="compare" aria-pressed="false">Compare lens</button><button type="button" data-state="empty" aria-pressed="false">No projects</button></div></div>
       <div class="canvas">
@@ -1440,6 +1659,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="project">
     <h3>Project story</h3>
     <p class="story-q">How did this project get from its first prompt to where it is now, and which prompts and commits made each step?</p>
+    <p class="job"><b>Why you open it:</b> to find the prompt behind a commit, or everything asked for in a stretch of work. <b>Job:</b> explain the code.</p>
 
     <div class="prose">
       <p><b>Links look the same everywhere.</b> Anything that opens another level is in the accent colour and ends with an arrow: <span style="color:var(--accent-text)">Prompt ›</span> opens the turn, <span style="color:var(--accent-text)">Session ›</span> its session story, <span style="color:var(--accent-text)">Commits ›</span> the commits it produced. A commit hash opens the commit (on the remote too, when the repository has one). Hovering a link shows where it goes.</p>
@@ -1669,6 +1889,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="sessions">
     <h3>Sessions</h3>
     <p class="story-q">Which conversations did I have, when, in parallel or one after another, and which went badly?</p>
+    <p class="job"><b>Why you open it:</b> to get back into a session: the one still running, or the one you left yesterday. <b>Job:</b> pick it up.</p>
     <div class="sketch" id="s-c1">
       <div class="sketch-head"><h4>C1 · A day of sessions, then the list</h4><span class="route">/sessions?range=7d&amp;day=2026-11-13</span><div class="states" role="group" aria-label="States"><span class="label">States</span><button type="button" data-state="base" aria-pressed="true">Day timeline</button><button type="button" data-state="list" aria-pressed="false">List only</button><button type="button" data-state="live" aria-pressed="false">Session running</button><button type="button" data-state="nomatch" aria-pressed="false">No match</button></div></div>
       <div class="canvas">
@@ -1753,6 +1974,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="session">
     <h3>Session story</h3>
     <p class="story-q">How did this conversation unfold, with which models and settings, what did it produce, and how do I pick it up again?</p>
+    <p class="job"><b>Why you open it:</b> to resume the session with its command, or to see where it went wrong before you do. <b>Job:</b> pick it up.</p>
     <div class="sketch" id="s-c2">
       <div class="sketch-head"><h4>C2 · Resume it, see its setup, read its arc</h4><span class="route">/sessions/[id]</span><div class="states" role="group" aria-label="States"><span class="label">States</span><button type="button" data-state="base" aria-pressed="true">Ready</button><button type="button" data-state="live" aria-pressed="false">Running now</button><button type="button" data-state="copilot" aria-pressed="false">Tool without telemetry</button></div></div>
       <div class="canvas">
@@ -1921,6 +2143,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="prompts">
     <h3>Prompts</h3>
     <p class="story-q">What exactly did I ask, how did each turn go, and can I find it again?</p>
+    <p class="job"><b>Why you open it:</b> to find a prompt you wrote and use it again. <b>Job:</b> find it again.</p>
     <div class="sketch" id="s-d1">
       <div class="sketch-head"><h4>D1 · List and reader together</h4><span class="route">/prompts?outcome=failed&amp;id=1033</span><div class="states" role="group" aria-label="States"><span class="label">States</span><button type="button" data-state="base" aria-pressed="true">Prompt selected</button><button type="button" data-state="summary" aria-pressed="false">Nothing selected</button><button type="button" data-state="system" aria-pressed="false">System prompt</button><button type="button" data-state="secret" aria-pressed="false">Possible secret</button><button type="button" data-state="loading" aria-pressed="false">Loading</button></div></div>
       <div class="canvas">
@@ -2024,6 +2247,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
   <div class="page-block" id="prompt">
     <h3>Prompt reader, up close: Replay and Versions</h3>
     <p class="story-q">Why did this turn take 30 minutes, and did a better-worded version do better?</p>
+    <p class="job"><b>Why you open it:</b> to copy the wording that worked, and to see what a turn produced. <b>Jobs:</b> find it again, explain the code.</p>
     <div class="sketch" id="s-d2">
       <div class="sketch-head"><h4>D2 · Replay and the life of a prompt</h4><span class="route">reader › Replay · Versions</span></div>
       <div class="canvas">
@@ -2185,7 +2409,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
     </tbody>
   </table></div>
   <div class="prose">
-    <p class="note">Failed turns and failed tool calls stay visible where they are today (outcome icons, the Outcomes and Performance panels, the outcome filter) but are no longer headline material. They can come back later if we find a way to act on them.</p>
+    <p class="note"><span class="tag v3">v3</span> Failed turns and failed tool calls stay where they are today (outcome icons, the Outcomes and Performance panels, the outcome filter). A count of failures is still not a headline. Their <b>cost</b> is: "Redone work" adds up spend and agent time for turns that failed, were interrupted or were reworded, from the outcome, lineage and per-turn cost the insights crate already derives. It is shown only for tools that report cost; for the others the tile gives agent time alone.</p>
   </div>
 </section>
 
@@ -2193,7 +2417,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
 <section id="keep">
   <div class="prose">
     <h2><span class="n">08</span>Nothing is lost: where every feature goes</h2>
-    <p class="sub">The checklist for the rebuild. Each row is a feature that exists today; the redesign is done only when each one is reachable in its new place.</p>
+    <p class="sub">The checklist for the rebuild. Each row is a feature that exists today, and each stays reachable in its new place. <span class="tag v3">v3</span> This is a constraint, not the goal: a step is done when its job in §00 works. If local usage counts (D2) later show a panel nobody opens, removing it is a decision, not a loss.</p>
   </div>
   <div class="tablewrap"><table>
     <thead><tr><th>Feature today</th><th>New place</th><th></th></tr></thead>
@@ -2201,7 +2425,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
       <tr class="grp"><td colspan="3">Overview</td></tr>
       <tr><td>Range, origin chips, tool / app / project / model selects</td><td>Range control, origin chips, Filters menu</td><td><span class="tag keep">same</span></td></tr>
       <tr><td>Key figures (prompts, spend, typical turn, finished, agent commits)</td><td>Prompts, agent working time, spend, commits, possible leaks; typical turn and Finished move to the Agentic work tab</td><td><span class="tag fix">refocused</span></td></tr>
-      <tr><td>16 panels in 4 sections</td><td>5 tabs (Activity, Prompt types, Models and cost, Agentic work, Starred), each listing its panels; Activity keeps the GitHub-style squares; any panel can be pinned to the first screen</td><td><span class="tag fix">regrouped</span></td></tr>
+      <tr><td>14 panels in 4 sections</td><td>5 tabs (Activity, Prompt types, Models and cost, Agentic work, Starred), each listing its panels; Activity keeps the GitHub-style squares; any panel can be pinned to the first screen</td><td><span class="tag fix">regrouped</span></td></tr>
       <tr><td>Setup steps, empty state, Export, live refresh</td><td>Unchanged</td><td><span class="tag keep">same</span></td></tr>
       <tr><td>—</td><td>Headline sentence, week strip, Worth a look, prompts per hour, agent run lengths, commits panel, possible leaks panel</td><td><span class="tag new">new</span></td></tr>
       <tr class="grp"><td colspan="3">Projects and project story</td></tr>
@@ -2229,7 +2453,7 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
 <section id="teams">
   <div class="prose">
     <h2><span class="n">09</span>Later, and only if you opt in: AI analysis, teams, stored data</h2>
-    <p class="sub">AI analysis and team sharing come after this step, and only for people who switch them on. Sharing with a team is the second step. What has to happen now is small: every record knows who made it, on which machine, in which workspace, and who may see it. With that in place, team features need no migration of anyone's history.</p>
+    <p class="sub">AI analysis and team sharing come after this step, and only for people who switch them on. Sharing with a team is the second step. <span class="tag v3">v3</span> Nothing is laid down for it now. v2 added identity columns in step 1 so that teams would need no migration; a migration that adds columns with local defaults is the same work whenever it runs, and until then every query, wire type and snapshot would carry fields nobody uses. T1 below stays as the design to pick up when teams start (D7).</p>
   </div>
   <div class="prose">
     <h3>Opt-in, in Settings: AI analysis, teams, stored data</h3>
@@ -2457,15 +2681,64 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
 <section id="desktop">
   <div class="prose">
     <h2><span class="n">10</span>Desktop: how Tauri helps these pages</h2>
-    <p class="sub">The desktop app already runs the daemon in-process and keeps a tray icon. These additions serve the restructured pages without a second heavy UI.</p>
+    <p class="sub">The desktop app already runs the daemon in-process and keeps a tray icon. <span class="tag v3">v3</span> Tray, notifications and the recall shortcut are how the app reaches you when its window is closed, so they move up: recall into step 1, tray and notifications into step 3 (§11).</p>
+  </div>
+  <div class="sketch" id="s-n1">
+    <div class="sketch-head"><h4><span class="tag v3">v3</span> N1 · Reaches you when the window is closed</h4><span class="route">menu bar · notifications · once a week</span></div>
+    <div class="canvas">
+      <svg viewBox="0 0 1000 300" role="img" aria-label="Three panels. The tray menu: recording state, today's prompts, agent time and spend, the session running now, a session to pick up with copy resume, and the last prompts to copy. Three notifications: a turn finished after 47 minutes, a possible AWS key in a prompt, a connector that has been quiet for two days, each with one action. A weekly recap with spend, redone work, commits, agent time and one thing worth a look.">
+        <rect class="w-card" x="10" y="10" width="316" height="280" rx="12"/>
+        <text class="t cap" x="26" y="34">THE TRAY: WHAT IS RUNNING, WHAT TO PICK UP</text>
+        <rect class="w-fg" x="26" y="44" width="284" height="20" rx="4"/><circle class="w-acc" cx="240" cy="54" r="4"/><text class="t xs inv end" x="300" y="58">42 · $61</text>
+        <rect class="w-win" x="70" y="68" width="240" height="196" rx="8"/>
+        <text class="t cap" x="82" y="86">RECORDING · 3 TOOLS</text>
+        <text class="t xs" x="82" y="102">Today: 42 prompts · 5h 10m · $61</text>
+        <line class="s-line" x1="82" y1="110" x2="298" y2="110"/>
+        <text class="t cap" x="82" y="126">RUNNING</text>
+        <circle class="w-acc pulse" cx="86" cy="140" r="3"/><text class="t xs b" x="94" y="143">Block flaky timing · turn 13</text><text class="t xs m end" x="298" y="143">12 min</text>
+        <text class="t cap" x="82" y="164">PICK UP</text>
+        <text class="t xs" x="82" y="180">Port the store to rusqlite</text><text class="t xs acc end" x="298" y="180">copy resume</text>
+        <line class="s-line" x1="82" y1="190" x2="298" y2="190"/>
+        <text class="t cap" x="82" y="206">LAST PROMPTS · CLICK TO COPY</text>
+        <text class="t xs" x="82" y="222">Fix failing test in theme.test.ts…</text>
+        <text class="t xs" x="82" y="238">Move the timing ledger check to CI…</text>
+        <text class="t xs m" x="82" y="256">Open GitPrompt</text><text class="t xs mono m end" x="298" y="256">⌘1</text>
+        <text class="t xs m" x="26" y="280">A native menu fed by daemon events; no web view.</text>
+
+        <rect class="w-card" x="342" y="10" width="316" height="280" rx="12"/>
+        <text class="t cap" x="358" y="34">NOTIFICATIONS: ONE ACTION EACH</text>
+        <rect class="w-win" x="358" y="46" width="284" height="64" rx="8"/>
+        <text class="t s b" x="372" y="66">Turn finished after 47 min</text><text class="t xs m" x="372" y="82">Block flaky timing · 3 commits · $9.40</text><text data-go="s-d1" class="t xs acc" x="372" y="98">Open the turn ›</text>
+        <rect class="w-win" x="358" y="118" width="284" height="64" rx="8"/><rect class="w-red" x="358" y="126" width="3" height="48" rx="1.5"/>
+        <text class="t s b" x="372" y="138">Possible AWS key in a prompt</text><text class="t xs m" x="372" y="154">gitprompt · sent to the provider 2 min ago</text><text data-go="s-l1" class="t xs acc" x="372" y="170">Review and hide ›</text>
+        <rect class="w-win" x="358" y="190" width="284" height="64" rx="8"/>
+        <text class="t s b" x="372" y="210">Cursor has been quiet for 2 days</text><text class="t xs m" x="372" y="226">an update may have removed its hook</text><text class="t xs acc" x="372" y="242">Check the connector ›</text>
+        <text class="t xs m" x="358" y="280">Rate-limited. Each kind has its own switch in Settings.</text>
+
+        <rect class="w-card" x="674" y="10" width="316" height="280" rx="12"/>
+        <text class="t cap" x="690" y="34">ONCE A WEEK: THE RECAP</text>
+        <rect class="w-win" x="690" y="46" width="284" height="170" rx="8"/>
+        <text class="t cap" x="704" y="66">MONDAY 09:00 · YOUR WEEK</text>
+        <text class="t l" x="704" y="92">$453 · $58 redone</text>
+        <text class="t xs" x="704" y="112">79 commits followed your prompts</text>
+        <text class="t xs" x="704" y="128">31h 20m of agent time, in 81 sessions</text>
+        <line class="s-line" x1="704" y1="140" x2="960" y2="140"/>
+        <text class="t xs m" x="704" y="158">Worth a look: AWS key + 2 emails in 3 prompts</text>
+        <rect class="w-acc" x="704" y="174" width="120" height="26" rx="6"/><text data-go="s-a1" class="t xs inv b mid" x="764" y="191">Open the Overview</text>
+        <text class="t xs m" x="690" y="240">One notification, skipped in a week with nothing</text>
+        <text class="t xs m" x="690" y="254">to say. Built on this machine; nothing is sent.</text>
+        <text class="t xs m" x="690" y="280">Web build: the same card at the top of the Overview.</text>
+      </svg>
+    </div>
+    <p class="note">The tray and the notifications show the same two lists as the Overview's first screen (A1): what to pick up, and what is worth a look. One source in the insights crate, three places it appears.</p>
   </div>
   <div class="tablewrap"><table>
     <thead><tr><th>Native feature</th><th>For which page</th><th>How, and its cost</th></tr></thead>
     <tbody>
       <tr><td>Live tray menu</td><td>Overview headline in the menu bar: recording state, today's prompts and cost, last 3 prompts to copy</td><td>Native menu items updated from daemon events in Rust. No web view, about 0 MB.</td></tr>
       <tr><td>Deep links</td><td>Every zoom level has a link: <code>gitprompt://session/…</code>, <code>…/prompt/1033</code></td><td><code>tauri-plugin-deep-link</code>; also <code>gitprompt open</code> from the CLI.</td></tr>
-      <tr><td>Notifications</td><td>A long turn finished or failed, a possible secret, a connector gone quiet; each opens its turn</td><td><code>tauri-plugin-notification</code>; decided in the daemon so they work with the window closed; rate-limited.</td></tr>
-      <tr><td>Open in Terminal</td><td>Session story and rows: run the resume command in the session's folder</td><td>A small Rust command that opens the default terminal with the command; the web build only copies it.</td></tr>
+      <tr><td>Notifications</td><td>A long turn finished or failed, a possible secret, a connector gone quiet; each opens its turn. <b>v3:</b> plus one weekly recap (spend, redone work, commits, the top item of Worth a look), which opens the Overview</td><td><code>tauri-plugin-notification</code>; decided in the daemon so they work with the window closed; rate-limited.</td></tr>
+      <tr><td>Open in Terminal</td><td>Session story and rows: run the resume command in the session's folder</td><td>A small Rust command that opens the default terminal with the command; the web build only copies it. <span class="tag v3">v3</span> Not built until D4 is answered: starting a tool on your behalf sits close to the non-goal "automating any tool". Copy ships regardless.</td></tr>
       <tr><td>Recall shortcut</td><td>Prompts: find a past prompt from any app and copy it</td><td><code>tauri-plugin-global-shortcut</code> + a small window created on first use.</td></tr>
       <tr><td>Native window</td><td>All pages: overlay title bar, sidebar vibrancy, remembered size, ⌘1–⌘4 for the four levels</td><td><code>tauri-plugin-window-state</code>, app menu. About 0 cost.</td></tr>
     </tbody>
@@ -2510,25 +2783,43 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
     <thead><tr><th>Crate</th><th>Adds</th></tr></thead>
     <tbody>
       <tr><td>gitprompt-core</td><td>A <code>resume:</code> template in the connector spec schema (data, per tool). Personal-information patterns (emails, phones, IBANs, your own list) next to <code>secrets.rs</code>; sensitive path rules.</td></tr>
-      <tr><td>gitprompt-insights</td><td>Agent run lengths and longest runs, prompts per hour, commits per project and per prompt, possible-leak findings from prompts and tool events, session setup timeline (model, mode, config changes). Chapters (grouping phases), chapter names from typed words and commit subjects, milestones from git refs and ADR files, comparison with the previous period, "worth a look" items, first-try rate. All pure functions, tested on fixtures.</td></tr>
-      <tr><td>gitprompt-store</td><td>Commit → prompt lookup (the existing link, indexed the other way); finding states (hidden, not sensitive). Identity columns (§09) with defaults; user-given names for sessions and chapters; first-try signals in the rebuildable index.</td></tr>
+      <tr><td>gitprompt-insights</td><td>Agent run lengths and longest runs, prompts per hour, commits per project and per prompt, possible-leak findings from prompts and tool events, session setup timeline (model, mode, config changes). Chapters (grouping phases), chapter names from typed words and commit subjects, milestones from git refs and ADR files, comparison with the previous period, "worth a look" items, first-try rate, <b>v3:</b> redone work (cost and agent time of failed, interrupted and reworded turns). All pure functions, tested on fixtures.</td></tr>
+      <tr><td>gitprompt-store</td><td>Commit → prompt lookup (the existing link, indexed the other way); finding states (hidden, not sensitive). User-given names for sessions and chapters (identity columns wait for teams, §09); first-try signals in the rebuildable index.</td></tr>
       <tr><td>gitprompt-server</td><td><code>previous</code> on stats queries; chapters and milestones in <code>/api/stories/project</code>; day lanes for sessions; <code>PUT</code> for names. Time from the app's <code>Clock</code>. Wire types with ts-rs, snapshots for every new read.</td></tr>
-      <tr><td>gitprompt-tauri / desktop</td><td>Tray menu state, deep links, notifications, shortcut.</td></tr>
+      <tr><td>gitprompt-export</td><td><b>v3:</b> "The prompts behind this branch" as Markdown, with the existing privacy defaults.</td></tr>
+      <tr><td>gitprompt-cli</td><td><b>v3:</b> <code>find</code>, <code>why</code> and <code>resume</code>, thin commands over the same store and insights queries the server uses.</td></tr>
+      <tr><td>gitprompt-tauri / desktop</td><td>Tray menu state, deep links, notifications (with the weekly recap), shortcut.</td></tr>
     </tbody>
   </table></div>
   <p class="note">None of these needs a new crate or a new edge between crates. Headline sentences are written in the web (wording is presentation); the numbers behind them come from the server.</p>
 
-  <div class="prose"><h3>Order of work</h3><p>Each step ships on its own and keeps every existing feature working.</p></div>
+  <div class="prose"><h3>Order of work <span class="tag v3">v3</span></h3><p>Each step ships on its own, keeps every existing feature working, and names the job it serves (§00). Shared pieces from the component table (glyphs, the zoom bar, the link style) are built with the first step that needs them and shown on the Design system page then. The steps are cut into 59 tickets, with a gate inside each phase and a checkpoint after it, in <a href="tickets.html">Delivery tickets</a>.</p></div>
   <div class="road">
-    <div class="step"><div class="when"><b>Step 1</b>Vocabulary<span class="size">M</span></div><div><h4>Glyphs, zoom bar, navigation order</h4><p>OutcomeGlyph, TurnGlyph, SessionFingerprint, ZoomBar, StoryHeader on the Design system page. Sidebar reordered, ⌘K, /search redirect, Fields and Design system under Settings › Developer. Identity columns and their ADR.</p><p><b>Done when</b> every current route works or redirects and Lighthouse and perf scores hold.</p></div></div>
-    <div class="step"><div class="when"><b>Step 2</b>Prompts<span class="size">L</span></div><div><h4>Query bar, denser list, the reader as a story</h4><p>QueryBar, two-line rows, reader steps 1–5, Details tabs, Replay, versions thread, summary when nothing is selected.</p><p><b>Done when</b> every filter and tab in the §08 checklist is reachable and the URLs of saved links still work.</p></div></div>
-    <div class="step"><div class="when"><b>Step 3</b>Sessions<span class="size">M</span></div><div><h4>Day timeline, compact rows, the session arc</h4><p>DayTimeline, fingerprints, session names, resume command, setup strip and panel, SessionArc with model changes, turns as Ask → Work → Answer → Result, margin notes.</p></div></div>
-    <div class="step"><div class="when"><b>Step 4</b>Projects<span class="size">L</span></div><div><h4>Rivers, chapters, milestones</h4><p>Chapters and names in insights, milestones from git, ProjectRiver, Prompts / Sessions / Commits tabs, chapter cards and detail with links on every prompt and commit, the commit → prompt trace, branch lanes, Compare.</p></div></div>
-    <div class="step"><div class="when"><b>Step 5</b>Overview<span class="size">M</span></div><div><h4>Headline, week strip, worth a look, tabs</h4><p>Previous-period comparisons, the new key figures, WeekStrip, WorthALook, the five tabs with their contents listed (prompts per hour, the contribution calendar, agent run lengths and commits are new), possible leaks, pinning. Last, because it links into all the others.</p></div></div>
-    <div class="step"><div class="when"><b>Step 6</b>Desktop<span class="size">M</span></div><div><h4>Tray, deep links, notifications, shortcut</h4><p>Measured with <code>just perf</code>.</p></div></div>
+    <div class="step"><div class="when"><b>Step 1</b>Find and resume<span class="size">M</span></div><div><h4>⌘K, copy a prompt, the resume command, the recall shortcut</h4><p>⌘K over prompts, sessions, projects and commits, with finished prompts first; /search redirects to it. Copy on every prompt row. A <code>resume:</code> template in each connector spec, the copy action on session rows and stories, session names you can edit. <code>gitprompt find</code> and <code>gitprompt resume</code> in the CLI. On desktop, the recall shortcut. Sidebar reordered.</p><p><b>Done when</b> every current route works or redirects, and each resume command is verified against its tool's documentation and hidden where a spec has none.</p><p class="know"><b>It worked if</b> you copy a past prompt or a resume command on most working days.</p></div></div>
+    <div class="step"><div class="when"><b>Step 2</b>Explain the code<span class="size">M</span></div><div><h4>Commit → prompt, in the app, the terminal and a pull request</h4><p>The commit → prompt lookup in the store. The Commits tab of a project (B4) on today's project page, "What came of it" in the prompt reader, <code>gitprompt why &lt;commit&gt;</code>, and "the prompts behind this branch" as a Markdown export.</p><p><b>Done when</b> any commit that followed a prompt leads to that prompt in one step, and a commit made by hand says so.</p><p class="know"><b>It worked if</b> the Markdown block ends up in your pull requests, or <code>why</code> answers a question you would otherwise have searched for.</p></div></div>
+    <div class="step"><div class="when"><b>Step 3</b>Stay in control<span class="size">M</span></div><div><h4>The Overview's first screen, the tray, notifications</h4><p>A1 only: the headline when it has something to say, the five figures with redone work, Worth a look with an action on every item, possible leaks (L1), and the existing panels behind tabs (A2 without its new panels). Previous-period comparison in stats. On desktop: the live tray menu, notifications for a long turn, a possible secret and a quiet connector, the weekly recap.</p><p><b>Done when</b> the Overview fits two screens and every Worth a look item and notification opens the turn it is about.</p><p class="know"><b>It worked if</b> you act on a Worth a look item most weeks (a hidden value, a prompt turned into a command), and no notification kind gets switched off for being noisy.</p></div></div>
+    <div class="step"><div class="when"><b>Step 4</b>Read a turn and a session<span class="size">L</span></div><div><h4>Query bar, the reader as a story, the session arc</h4><p>QueryBar and two-line rows in Prompts; the reader as Ask → Work → Answer → Result with Details tabs, Replay and the versions thread; compact session rows, the day timeline, the session arc with model changes and the setup strip.</p><p><b>Done when</b> every filter and tab in the §08 checklist is reachable and saved links still work.</p><p class="know"><b>It worked if</b> "why did this turn take so long?" is answered from the reader without opening Events or Raw.</p></div></div>
+    <div class="step"><div class="when"><b>Step 5</b>Project journeys<span class="size">L</span></div><div><h4>Chapters, the river, milestones: only after the naming test</h4><p>First a spike in insights: chapter names from branch names and commit subjects, run on your three largest projects (D6). If the names hold: chapters, ProjectRiver, milestones from git, chapter cards, the Prompts and Sessions tabs. If they don't: phases keep their dates and get the same links and tabs, without the river.</p><p><b>Done when</b> the spike result is recorded in an ADR and the page built matches it.</p></div></div>
+    <div class="step"><div class="when"><b>Step 6</b>Finish the Overview and desktop<span class="size">S</span></div><div><h4>The new panels, deep links, native window</h4><p>Prompts per hour, agent run lengths, the commits panel, the contribution calendar; <code>gitprompt://</code> links and <code>gitprompt open</code>; remembered window size and ⌘1–⌘4. Measured with <code>just perf</code>.</p></div></div>
     <div class="step"><div class="when"><b>Later</b>AI analysis<span class="size">M</span></div><div><h4>Opt-in summaries and questions</h4><p>Settings section, request preview, the labelled summary card on Overview, project and session. Off by default.</p></div></div>
-    <div class="step"><div class="when"><b>Later</b>Teams<span class="size">L</span></div><div><h4>Step two, if people want it</h4><p>Publish review, signed bundles, a team server, the "who" dimension on every page.</p></div></div>
+    <div class="step"><div class="when"><b>Later</b>Teams<span class="size">L</span></div><div><h4>If people ask for it</h4><p>Identity columns and their ADR (moved here from step 1), publish review, signed bundles, a team server, the "who" dimension on every page.</p></div></div>
   </div>
+  <div class="prose">
+    <h3>What moved, against v2</h3>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Item</th><th>v2</th><th>v3</th></tr></thead>
+    <tbody>
+      <tr><td>First thing a user can do that they couldn't before</td><td>Step 2 (Replay), after a vocabulary step</td><td>Step 1: find, copy, resume</td></tr>
+      <tr><td>Commit → prompt</td><td>Step 4, inside the project redesign</td><td>Step 2, on today's pages, plus the terminal and pull requests</td></tr>
+      <tr><td>Overview first screen</td><td>Step 5</td><td>Step 3</td></tr>
+      <tr><td>Tray and notifications</td><td>Step 6</td><td>Step 3</td></tr>
+      <tr><td>Recall shortcut</td><td>Step 6</td><td>Step 1</td></tr>
+      <tr><td>Glyphs, zoom bar, StoryHeader</td><td>Step 1, on their own</td><td>With the first page that uses each</td></tr>
+      <tr><td>Chapters and the river</td><td>Step 4, assumed to work</td><td>Step 5, after a naming test</td></tr>
+      <tr><td>Identity columns for teams</td><td>Step 1</td><td>With teams, later</td></tr>
+    </tbody>
+  </table></div>
 </section>
 
 <!-- 12 DECISIONS -->
@@ -2538,9 +2829,13 @@ svg rect[data-show]:hover { stroke: var(--accent); stroke-width: 1.5; }
     <p class="sub">These change direction or touch guarded files, so they are yours. Each has my recommendation.</p>
   </div>
   <ol class="decisions">
-    <li><b>Chapters: group phases or keep 18?</b>Grouping makes long projects readable; the phase table stays inside each chapter.<span class="rec">Recommendation: group, with names you can edit, and keep phases one level down.</span></li>
-    <li><b>Where does the team server live (step two)?</b>Self-hosted only, or also a hosted service?<span class="rec">Recommendation: self-hosted first. A hosted service would break the "stays on this machine" promise, which is the product's strongest point.</span></li>
-    <li><b>A new crate for sync (step two).</b>It changes <code>rules.rs</code> and <code>docs/extending.md</code>.<span class="rec">Recommendation: decide when step two starts. Steps 1–6 need no new crate.</span></li>
+    <li><b>What "done" means. <span class="tag v3">v3</span></b>v2: every existing feature reachable. v3: each step serves one of the four jobs and says how we will know.<span class="rec">Recommendation: v3. Keep every feature reachable in this round, as a constraint.</span></li>
+    <li><b>Local usage counts. <span class="tag v3">v3</span></b>To learn which panels and actions are used, count opens and copies in your own database, show them under Settings › Developer, never send them. It is a new kind of stored data, so it is yours to allow.<span class="rec">Recommendation: yes. Without it, "it worked if" stays a feeling and every later cut is a guess.</span></li>
+    <li><b>Redone work as a headline figure. <span class="tag v3">v3</span></b>This reverses the v2 review choice to keep failures out of the headlines.<span class="rec">Recommendation: yes, as cost and agent time, never as a count of failures.</span></li>
+    <li><b>Open in Terminal. <span class="tag v3">v3</span></b>The desktop app would start your tool with the resume command. <code>PLAN.md</code> lists "automating any tool" as a permanent non-goal.<span class="rec">Recommendation: ship Copy only. Add Open in Terminal only if you decide a click that runs one visible command is within the rule.</span></li>
+    <li><b>Agents reading the history. <span class="tag v3">v3</span></b><code>gitprompt find</code> and <code>why</code> are commands you run. An MCP server would let an agent query your history on its own, which is useful and close to the non-goal "adding context to prompts".<span class="rec">Recommendation: the CLI now. No MCP server until you rule on it.</span></li>
+    <li><b>Chapters: group phases, or keep 18?</b>Grouping makes long projects readable only if the names are good. <span class="tag v3">v3</span> Names come from branch names and commit subjects, which a person wrote, before typed words.<span class="rec">Recommendation: run the naming test on three projects. Group if you would keep 8 names in 10 unedited; otherwise keep phases with dates.</span></li>
+    <li><b>Team groundwork now, or with teams? <span class="tag v3">v3</span></b>Includes where a team server would live and the new crate for sync, which changes <code>rules.rs</code> and <code>docs/extending.md</code>.<span class="rec">Recommendation: all of it with teams. Self-hosted first when that day comes; a hosted service would break "stays on this machine".</span></li>
     <li><b>Which AI providers, when AI analysis comes?</b>A local model only, or also your own API key for a hosted model?<span class="rec">Recommendation: both, off by default, figures only unless you also allow prompt text, and a preview before every request.</span></li>
     <li><b>Resume commands as connector data.</b>A <code>resume:</code> template in each spec, verified per tool version.<span class="rec">Recommendation: yes; hide the action for a tool without one.</span></li>
     <li><b>Navigation order.</b>Far to near (Overview, Projects, Sessions, Prompts) or the current order?<span class="rec">Recommendation: far to near, so the sidebar matches the zoom bar.</span></li>
