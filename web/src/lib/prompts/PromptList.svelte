@@ -2,7 +2,8 @@
 	import type { Prompt } from '#lib/api/types.ts';
 	import { outcome, supersededIds } from '#lib/insights/outcome.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
-	import { dayKey, dayLabel, plural } from '#lib/shared/format.ts';
+	import { dayLabel, plural } from '#lib/shared/format.ts';
+	import { byDay } from '#lib/prompts/days.ts';
 	import PromptRow from '#lib/prompts/PromptRow.svelte';
 
 	/**
@@ -22,15 +23,7 @@
 	} = $props();
 
 	const superseded = $derived(supersededIds(prompts));
-	const days = $derived.by(() => {
-		const groups: { key: string; prompts: Prompt[] }[] = [];
-		for (const p of prompts) {
-			const key = dayKey(p.received_at);
-			if (groups.at(-1)?.key !== key) groups.push({ key, prompts: [] });
-			groups.at(-1)!.prompts.push(p);
-		}
-		return groups;
-	});
+	const days = $derived(byDay(prompts));
 	const same = (a?: Prompt, b?: Prompt) =>
 		!!a && !!b && !!a.fields.session_id && a.fields.session_id === b.fields.session_id;
 </script>
