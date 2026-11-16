@@ -11,6 +11,8 @@ use crate::error::{DbResult, failure};
 const STORE: &str = include_str!("store.sql");
 /// The prompt index (storage/index.py): a cache that can be dropped and rebuilt.
 const INDEX: &str = include_str!("index.sql");
+/// Dashboard usage counts per action and day: durable, never part of the index (see the file).
+const USAGE: &str = include_str!("usage.sql");
 /// Rows and bytes per (source, event), kept by triggers (see the file).
 const EVENT_STATS: &str = include_str!("event_stats.sql");
 /// Recomputes `event_stats` from the event table.
@@ -40,6 +42,7 @@ pub(crate) const INDEX_TABLES: [&str; 9] = [
 pub(crate) fn create(conn: &Connection) -> DbResult<()> {
     conn.execute_batch(STORE)?;
     create_event_stats(conn)?;
+    conn.execute_batch(USAGE)?;
     create_index(conn)
 }
 

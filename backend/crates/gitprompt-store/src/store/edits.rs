@@ -7,8 +7,8 @@ use rusqlite::Connection;
 
 use gitprompt_core::{Error, Json, JsonMap, Result};
 
-use super::Store;
 use super::reads::events_of_turns;
+use super::{MAX_USAGE_ACTIONS, Store};
 use crate::decode::{self, field_text};
 use crate::error::DbResult;
 use crate::rows::{Annotation, EventRow, PromptRow};
@@ -28,6 +28,34 @@ impl Store {
             conn.prepare_cached("insert or replace into annotation (id, data) values (?, ?)")?.execute((id, &data))?;
             Ok(())
         })?)
+    }
+
+    /// Add `n` to the count of `action` on `day` (`YYYY-MM-DD`). A new action name is dropped once
+    /// [`MAX_USAGE_ACTIONS`] distinct names are kept. Durable: not part of the index, so a reindex
+    /// keeps it.
+    pub fn increment_usage(&self, action: &str, day: &str, n: u64) -> Result<()> {
+        let n = i64::try_from(n).unwrap_or(i64::MAX);
+        let limit = i64::try_from(MAX_USAGE_ACTIONS).unwrap_or(i64::MAX);
+        Ok(self.db().write(|conn| {
+            conn.prepare_cached(
+                "insert into usage_counts (action, day, n) \
+                 select ?1, ?2, ?3 where exists (select 1 from usage_counts where action = ?1) \
+                   or (select count(distinct action) from usage_counts) < ?4 \
+                 on conflict (action, day) do update set n = n + excluded.n",
+            )?
+            .execute((action, day, n, limit))?;
+            Ok(())
+        })?)
+    }
+
+    /// Drop the counts of days before `day` (`YYYY-MM-DD`); returns the rows dropped.
+    pub fn prune_usage(&self, day: &str) -> Result<u64> {
+        Ok(self.db().write(|conn| Ok(conn.prepare_cached("delete from usage_counts where day < ?1")?.execute([day])?))? as u64)
+    }
+
+    /// Forget every usage count.
+    pub fn clear_usage(&self) -> Result<()> {
+        Ok(self.db().write(|conn| Ok(conn.execute_batch("delete from usage_counts")?))?)
     }
 
     /// Apply `edit` to a prompt's fields, context and raw, and to its turn's events' fields and raw

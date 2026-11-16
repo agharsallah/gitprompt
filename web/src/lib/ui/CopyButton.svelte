@@ -4,11 +4,14 @@
 	let {
 		text,
 		label = 'Copy',
-		ghost = false
+		ghost = false,
+		oncopy
 	}: {
 		text: string;
 		label?: string;
 		/** No frame: for toolbars of icon buttons. */ ghost?: boolean;
+		/** Called once the text is on the clipboard. */
+		oncopy?: () => void;
 	} = $props();
 
 	let copied = $state(false);
@@ -18,6 +21,7 @@
 		try {
 			await navigator.clipboard.writeText(text);
 			copied = true;
+			oncopy?.();
 			clearTimeout(timer);
 			timer = setTimeout(() => (copied = false), 1600);
 		} catch {

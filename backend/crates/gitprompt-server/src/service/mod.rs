@@ -17,6 +17,7 @@ mod settings;
 mod sources;
 mod stats;
 mod stories;
+mod usage;
 
 use std::sync::{Arc, Mutex, PoisonError};
 

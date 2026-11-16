@@ -7,6 +7,7 @@
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Meter from '#lib/ui/charts/Meter.svelte';
 	import { missingNotice } from '#lib/sources/missing.ts';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
@@ -59,7 +60,12 @@
 	);
 </script>
 
-<Panel title="Which model do I use most?" description={describe} state={view}>
+<Panel
+	{@attach countPanel('models')}
+	title="Which model do I use most?"
+	description={describe}
+	state={view}
+>
 	{#snippet actions()}
 		{#if offered.length > 1}
 			<SegmentedControl

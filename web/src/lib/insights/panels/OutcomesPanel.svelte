@@ -18,6 +18,7 @@
 	import { integer, percent, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import { missingNotice } from '#lib/sources/missing.ts';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import PanelState from '#lib/ui/PanelState.svelte';
 	import { READY, readyOr, type PanelState as State } from '#lib/ui/panelState.ts';
@@ -55,6 +56,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('outcomes')}
 	state={view}
 	title="What came of my prompts?"
 	description="Superseded: no end was recorded and you sent another prompt, so it was interrupted or abandoned."

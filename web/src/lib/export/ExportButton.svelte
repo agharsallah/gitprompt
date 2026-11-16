@@ -3,6 +3,7 @@
 	import type { Component } from 'svelte';
 	import type { ExportTarget } from '#lib/export/export.ts';
 	import { describeError } from '#lib/errors/describe.ts';
+	import { track } from '#lib/shared/usage.ts';
 	import Button from '#lib/ui/Button.svelte';
 
 	/** A page's one export entry point: opens the preview, which starts at the most private options. */
@@ -29,6 +30,7 @@
 	}
 
 	async function show() {
+		track('export.open');
 		busy = true;
 		failure = '';
 		try {

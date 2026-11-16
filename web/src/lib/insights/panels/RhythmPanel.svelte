@@ -5,6 +5,7 @@
 	import type { WeekStart } from '#lib/insights/week.ts';
 	import { plural } from '#lib/shared/format.ts';
 	import Heatmap from '#lib/ui/charts/Heatmap.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 	import { NO_PROMPTS } from './states.ts';
@@ -18,6 +19,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('rhythm')}
 	state={view}
 	title="When in the week do I prompt?"
 	description="By weekday and hour, in your time zone."

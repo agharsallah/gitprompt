@@ -8,6 +8,7 @@
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import Boundary from '#lib/errors/Boundary.svelte';
 	import ExportButton from '#lib/export/ExportButton.svelte';
+	import { clickThrough } from '#lib/insights/counting.ts';
 	import FilterBar from '#lib/insights/FilterBar.svelte';
 	import { promptsHref } from '#lib/insights/filters.ts';
 	import type { Overview } from '#lib/insights/overview.ts';
@@ -88,7 +89,7 @@
 		{@const slots = slotsFor(o)}
 		{@const can = (c: Capability) => availability(sources, c)}
 		{@const ever = sources.some((s) => s.total > 0)}
-		<div class="overview">
+		<div class="overview" use:clickThrough>
 			{#if !sources.some((s) => s.connected) || !ever}
 				<SetupSteps {sources} />
 			{/if}

@@ -4,6 +4,7 @@
 	import { ratio, repeated } from '#lib/insights/series.ts';
 	import { excerpt, percent, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 
@@ -25,6 +26,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('reuse')}
 	state={view}
 	title="Which prompts do I send again?"
 	description={t.prompts

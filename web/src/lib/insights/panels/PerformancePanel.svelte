@@ -4,6 +4,7 @@
 	import type { Overview } from '#lib/insights/overview.ts';
 	import { duration, integer, plural } from '#lib/shared/format.ts';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 	import Facts from './Facts.svelte';
@@ -24,6 +25,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('performance')}
 	state={view}
 	title="How fast and reliable are turns?"
 	description={t.ended ? `Over ${plural(t.ended, 'finished turn')}.` : undefined}

@@ -5,6 +5,8 @@
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { count, inline } from '#lib/shared/format.ts';
 	import { Task } from '#lib/shared/task.svelte.ts';
+	import { track } from '#lib/shared/usage.ts';
+	import type { ReaderTab } from '#lib/shared/usage-actions.ts';
 	import Callout from '#lib/ui/Callout.svelte';
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import ActivityPanel from '#lib/prompts/ActivityPanel.svelte';
@@ -63,7 +65,7 @@
 		}
 	}
 
-	type TabId = 'activity' | 'usage' | 'git' | 'session' | 'versions' | 'events' | 'raw';
+	type TabId = ReaderTab;
 	let tab = $state<TabId>('activity');
 	const tabs = $derived([
 		{ id: 'activity' as const, label: 'Activity', count: count(s.tool_calls) },
@@ -105,7 +107,12 @@
 		<NotesEditor value={prompt.annotation} {save} {saved} />
 	</section>
 
-	<Tabs {tabs} bind:selected={tab} label="Prompt details">
+	<Tabs
+		{tabs}
+		bind:selected={tab}
+		onselect={(id) => track(`reader.tab.${id}`)}
+		label="Prompt details"
+	>
 		{#snippet panel(id)}
 			{#if id === 'activity'}
 				<ActivityPanel {prompt} />

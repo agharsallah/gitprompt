@@ -148,3 +148,16 @@ async fn connectors_fields_and_settings() {
     insta::assert_json_snapshot!("fields", get(&api, "/api/fields").await);
     insta::assert_json_snapshot!("settings", get(&api, "/api/settings").await);
 }
+
+/// What the page reported on one day and the next: both days, oldest first, the range around them.
+#[tokio::test]
+async fn usage_counts_over_two_days() {
+    let clock = ManualClock::new(START.parse().expect("instant"));
+    let api = harness().moving_clock(&clock).start();
+    let report = |hits: Value| api.post("/api/usage").dashboard().json(serde_json::json!({ "hits": hits })).send();
+    let first = report(serde_json::json!([{"action": "copy.prompt", "n": 2}, {"action": "panel.seen.rhythm", "n": 1}])).await;
+    assert_eq!(first.status, 204);
+    clock.advance(SignedDuration::from_hours(24));
+    report(serde_json::json!([{"action": "copy.prompt", "n": 1}, {"action": "reader.tab.events", "n": 3}])).await;
+    insta::assert_json_snapshot!("usage", get(&api, "/api/usage?days=7").await);
+}

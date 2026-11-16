@@ -14,6 +14,7 @@ use jiff::tz::TimeZone;
 use serde::de::DeserializeOwned;
 
 use gitprompt_store::filter::{Outcome, PromptFilter};
+use gitprompt_store::store::USAGE_KEEP_DAYS;
 
 use crate::error::ApiError;
 use crate::model::{ExportQuery, PromptQuery, StatsQuery};
@@ -180,6 +181,11 @@ pub fn export_query(pairs: &[(String, String)]) -> Result<ExportQuery, ApiError>
         }
     }
     Ok(q)
+}
+
+/// `days` of `/api/usage` (1 to the days the store keeps, default 7).
+pub fn usage_days(pairs: &[(String, String)]) -> Result<u32, ApiError> {
+    last(pairs, "days").map(|v| integer("days", v, 1..=USAGE_KEEP_DAYS)).transpose().map(|v| v.unwrap_or(7))
 }
 
 /// `dry_run` of the write routes, with the route's default.

@@ -69,6 +69,16 @@ impl<S: Send + Sync, const DEFAULT: bool> FromRequestParts<S> for DryRun<DEFAULT
     }
 }
 
+/// `days` of `/api/usage`.
+pub(super) struct UsageDays(pub u32);
+
+impl<S: Send + Sync> FromRequestParts<S> for UsageDays {
+    type Rejection = ApiError;
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::usage_days(&pairs(parts)).map(UsageDays))
+    }
+}
+
 /// Path parameters; one that doesn't parse (a prompt id that isn't a number) is a 422.
 pub(super) struct Params<T>(pub T);
 

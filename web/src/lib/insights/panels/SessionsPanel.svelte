@@ -4,6 +4,7 @@
 	import { compact, plural } from '#lib/shared/format.ts';
 	import { sessionsHref } from '#lib/shared/links.ts';
 	import ColumnChart from '#lib/ui/charts/ColumnChart.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 
@@ -23,6 +24,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('sessions')}
 	state={view}
 	title="How long do my sessions last?"
 	description={t.sessions

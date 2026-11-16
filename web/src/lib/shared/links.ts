@@ -18,6 +18,23 @@ export type PageRoute =
 	| '/settings'
 	| '/design';
 
+/**
+ * Each page's SvelteKit route id, by the name the page goes by: what reads the route a page is on
+ * (usage counts) maps it through here, as links are built through the functions below.
+ */
+export const ROUTE_IDS = {
+	overview: '/',
+	prompts: '/prompts',
+	sessions: '/sessions',
+	session: '/sessions/[id]',
+	projects: '/projects',
+	project: '/projects/[id]',
+	search: '/search',
+	sources: '/sources',
+	fields: '/fields',
+	settings: '/settings'
+} as const;
+
 type QueryValue = string | number | undefined;
 /** A query: ready-made search params, or a record (an undefined value is left out). */
 export type Query = URLSearchParams | Record<string, QueryValue>;

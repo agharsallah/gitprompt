@@ -7,6 +7,7 @@
 	import { integer, money, percent, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Meter from '#lib/ui/charts/Meter.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 	import Facts from './Facts.svelte';
@@ -37,7 +38,11 @@
 	);
 </script>
 
-<Panel state={view} title="How much work goes to subagents and MCP servers?">
+<Panel
+	{@attach countPanel('delegation')}
+	state={view}
+	title="How much work goes to subagents and MCP servers?"
+>
 	<div class="stack">
 		{#if share !== null}
 			<div class="share">

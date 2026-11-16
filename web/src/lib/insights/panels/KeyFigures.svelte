@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CircleCheck, Coins, GitCommitHorizontal, Hourglass, Keyboard } from '@lucide/svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import type { Doorway } from '#lib/insights/filters.ts';
 	import type { Overview } from '#lib/insights/overview.ts';
 	import { ratio, type Slot } from '#lib/insights/series.ts';
@@ -29,7 +30,7 @@
 	const usage = $derived(t.api_requests > 0);
 </script>
 
-<div class="tiles">
+<div class="tiles" {@attach countPanel('key-figures')}>
 	<StatTile
 		label="Prompts"
 		icon={Keyboard}

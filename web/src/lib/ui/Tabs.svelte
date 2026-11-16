@@ -11,8 +11,22 @@
 		tabs,
 		selected = $bindable(),
 		label,
-		panel
-	}: { tabs: Tab[]; selected: T; label: string; panel: Snippet<[T]> } = $props();
+		panel,
+		onselect
+	}: {
+		tabs: Tab[];
+		selected: T;
+		label: string;
+		panel: Snippet<[T]>;
+		/** Called when the user picks a tab (a click or an arrow key), not when `selected` is set. */
+		onselect?: (id: T) => void;
+	} = $props();
+
+	function select(id: T) {
+		if (id === selected) return;
+		selected = id;
+		onselect?.(id);
+	}
 
 	const id = $props.id();
 	const buttons: HTMLButtonElement[] = $state([]);
@@ -28,7 +42,7 @@
 		}[event.key];
 		if (target === undefined) return;
 		event.preventDefault();
-		selected = tabs[target].id;
+		select(tabs[target].id);
 		buttons[target]?.focus();
 	}
 </script>
@@ -45,7 +59,7 @@
 				aria-selected={tab.id === selected}
 				tabindex={tab.id === selected ? 0 : -1}
 				disabled={tab.disabled}
-				onclick={() => (selected = tab.id)}
+				onclick={() => select(tab.id)}
 				onkeydown={(e) => move(e, i)}
 			>
 				{tab.label}

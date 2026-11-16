@@ -6,6 +6,7 @@
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import { missingNotice } from '#lib/sources/missing.ts';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import Facts from './Facts.svelte';
@@ -28,6 +29,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('spend')}
 	state={view}
 	title="Where does the money go?"
 	description={t.cost_usd ? `${money(t.cost_usd)} over ${plural(t.prompts, 'prompt')}.` : undefined}

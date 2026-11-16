@@ -1,0 +1,30 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/usage?days=7\").await"
+---
+{
+  "since": "2025-12-31",
+  "until": "2026-01-06",
+  "counts": [
+    {
+      "action": "copy.prompt",
+      "day": "2026-01-05",
+      "n": 2
+    },
+    {
+      "action": "panel.seen.rhythm",
+      "day": "2026-01-05",
+      "n": 1
+    },
+    {
+      "action": "copy.prompt",
+      "day": "2026-01-06",
+      "n": 1
+    },
+    {
+      "action": "reader.tab.events",
+      "day": "2026-01-06",
+      "n": 3
+    }
+  ]
+}

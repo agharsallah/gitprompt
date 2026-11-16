@@ -35,6 +35,9 @@
 //! | GET    | /api/search                            |              | `SearchResults`                 |
 //! | GET    | /api/export/{kind}                     |              | the file; 422 kind/id, 404 unknown id |
 //! | GET    | /api/export/{kind}/charts              |              | `[ChartInfo]`                   |
+//! | GET    | /api/usage?days=                       |              | `UsageOut`; 422 days outside 1..=366 |
+//! | POST   | /api/usage                             | X-GitPrompt  | 204; 422 a name or count that doesn't validate |
+//! | DELETE | /api/usage                             | X-GitPrompt  | 204                             |
 //! | GET    | /api/status                            |              | `StatusOut` (no secrets)        |
 //! | GET    | /healthz                               |              | `{"ok": true}`                  |
 //!
@@ -52,6 +55,7 @@ mod sources;
 mod stats;
 mod status;
 mod stories;
+mod usage;
 
 use axum::Router;
 use axum::middleware::from_fn;
@@ -66,6 +70,7 @@ pub fn api(service: Service) -> Router {
         .merge(settings::writes())
         .merge(data::writes())
         .merge(security::writes())
+        .merge(usage::writes())
         .route_layer(from_fn(crate::security::require_dashboard));
     let ingest = ingest::router().route_layer(axum::middleware::from_fn_with_state(service.clone(), crate::security::require_token));
     Router::new()
@@ -79,6 +84,7 @@ pub fn api(service: Service) -> Router {
         .merge(stories::router())
         .merge(export::router())
         .merge(status::router())
+        .merge(usage::router())
         .merge(writes)
         .merge(ingest)
         .with_state(service)

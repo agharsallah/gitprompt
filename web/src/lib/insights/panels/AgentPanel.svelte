@@ -5,6 +5,7 @@
 	import { integer, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 
@@ -33,6 +34,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('agent')}
 	state={view}
 	title="What does the agent do?"
 	description={t.tool_calls

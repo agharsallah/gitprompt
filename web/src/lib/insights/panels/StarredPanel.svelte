@@ -3,6 +3,7 @@
 	import { typedText } from '#lib/prompts/origin.ts';
 	import { excerpt } from '#lib/shared/format.ts';
 	import { promptHref } from '#lib/shared/links.ts';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 
@@ -18,7 +19,12 @@
 	);
 </script>
 
-<Panel title="Which prompts did I keep?" description="Prompts you starred." state={view}>
+<Panel
+	{@attach countPanel('starred')}
+	title="Which prompts did I keep?"
+	description="Prompts you starred."
+	state={view}
+>
 	{#snippet actions()}{#if prompts.length}<a class="all" {href} title="Prompts › Starred"
 				>All starred</a
 			>{/if}{/snippet}

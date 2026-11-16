@@ -13,6 +13,7 @@
 	} from '#lib/shared/format.ts';
 	import { durationTicks } from '#lib/ui/charts/scale.ts';
 	import ColumnChart from '#lib/ui/charts/ColumnChart.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 	import { NO_PROMPTS } from './states.ts';
@@ -28,6 +29,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('writing')}
 	state={view}
 	title="How long are my prompts, and what's in them?"
 	description="Typed characters, without the context the tool added."

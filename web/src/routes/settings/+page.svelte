@@ -6,6 +6,7 @@
 	import CaptureSection from '#lib/settings/CaptureSection.svelte';
 	import ConnectorsSection from '#lib/settings/ConnectorsSection.svelte';
 	import DataSection from '#lib/settings/DataSection.svelte';
+	import DeveloperSection from '#lib/settings/DeveloperSection.svelte';
 	import GeneralSection from '#lib/settings/GeneralSection.svelte';
 	import PrivacySection from '#lib/settings/PrivacySection.svelte';
 	import SecuritySection from '#lib/settings/SecuritySection.svelte';
@@ -26,7 +27,8 @@
 		['privacy', 'Privacy'],
 		['data', 'Data'],
 		['security', 'Security'],
-		['browser', 'This browser']
+		['browser', 'This browser'],
+		['developer', 'Developer']
 	] as const;
 </script>
 
@@ -93,6 +95,9 @@
 			</div>
 			<div id="browser">
 				<Boundary what="the browser settings"><BrowserSection /></Boundary>
+			</div>
+			<div id="developer">
+				<Boundary what="the developer settings"><DeveloperSection /></Boundary>
 			</div>
 		</div>
 	{/snippet}

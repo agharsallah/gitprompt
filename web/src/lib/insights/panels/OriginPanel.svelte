@@ -5,6 +5,7 @@
 	import { ORIGINS } from '#lib/prompts/origin.ts';
 	import { percent, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 	import { NO_PROMPTS } from './states.ts';
@@ -25,6 +26,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('origin')}
 	state={view}
 	title="Who wrote these prompts?"
 	description={all

@@ -4,6 +4,7 @@
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
 	import { when } from '#lib/shared/format.ts';
+	import { track } from '#lib/shared/usage.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import CopyButton from '#lib/ui/CopyButton.svelte';
@@ -60,7 +61,12 @@
 	</div>
 	<div class="actions">
 		<AnnotationActions value={prompt.annotation} {save} {busy} />
-		<CopyButton text={typedText(prompt) ?? ''} label="Copy prompt" ghost />
+		<CopyButton
+			text={typedText(prompt) ?? ''}
+			label="Copy prompt"
+			ghost
+			oncopy={() => track('copy.prompt')}
+		/>
 		<Button
 			variant="ghost"
 			size="sm"

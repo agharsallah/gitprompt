@@ -4,6 +4,7 @@
 	import { plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import { missingNotice } from '#lib/sources/missing.ts';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import type { Availability } from '#lib/sources/capabilities.ts';
@@ -49,6 +50,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('commands')}
 	state={view}
 	title="Which slash commands do I run?"
 	description={fromTelemetry

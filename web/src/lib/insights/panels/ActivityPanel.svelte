@@ -4,6 +4,7 @@
 	import { slotWindow, streaks, type Slot } from '#lib/insights/series.ts';
 	import { compact, dayKey, dayLabel, money, plural } from '#lib/shared/format.ts';
 	import ColumnChart, { type Column } from '#lib/ui/charts/ColumnChart.svelte';
+	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
 	import { readyOr } from '#lib/ui/panelState.ts';
 
@@ -46,6 +47,7 @@
 </script>
 
 <Panel
+	{@attach countPanel('activity')}
 	state={view}
 	title={hourly ? 'How much do I prompt each hour?' : 'How much do I prompt each day?'}
 	{description}

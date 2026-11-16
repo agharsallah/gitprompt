@@ -11,9 +11,18 @@
 	import Sidebar from '#lib/layout/Sidebar.svelte';
 	import { isViewPage } from '#lib/settings/views.ts';
 	import { views } from '#lib/settings/views.svelte.ts';
+	import { forgetSeen } from '#lib/shared/seen.ts';
+	import { track } from '#lib/shared/usage.ts';
+	import { PageWatch } from '#lib/shared/usage-page.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+
+	// Counted here, once, for every page: the page opened, and the filters changed on it.
+	const watch = new PageWatch(forgetSeen);
+	$effect(() => {
+		for (const action of watch.visit(page.route.id, page.url)) track(action);
+	});
 
 	// The one place a page's view is kept (lib/settings/views.ts): when the URL you are on changes,
 	// never in a load (links preloaded on hover run loads too).

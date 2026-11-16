@@ -132,6 +132,10 @@ impl Api {
         Req::new(self, "PUT", path)
     }
 
+    pub fn delete(&self, path: &str) -> Req<'_> {
+        Req::new(self, "DELETE", path)
+    }
+
     /// POST a hook payload with the token; the receiver must answer an empty 204.
     pub async fn ingest(&self, source: &str, payload: Value) {
         let response = self.post(&format!("/ingest/{source}")).auth().json(payload).send().await;

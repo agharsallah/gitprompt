@@ -122,6 +122,10 @@ The dashboard's API types are **generated** from the Rust wire types into `web/s
 
 `gitprompt-server/tests/api_snapshots.rs` ingests every conformance fixture and snapshots each read endpoint (insta, `tests/snapshots/`). The app runs on a `ManualClock` that moves a fixed step before each fixture, so times and durations are exact values; only the temp directory is normalized. Anything on the server that needs "now" reads the app's `Clock` (`gitprompt-server/src/clock.rs`), never the system clock. After an intended change, `just snapshots` rewrites them: review the diff before committing.
 
+## A usage count (what the dashboard counts about itself)
+
+Local only: counts per action and day in the durable `usage_counts` table (`gitprompt-store/src/schema/usage.sql`, not part of the rebuildable index, so `gitprompt reindex` keeps it), written by `POST /api/usage`, read and cleared in Settings, Developer. A new thing to count is one entry in a list of `web/src/lib/shared/usage-actions.ts` (the closed `UsageAction` union; a test keeps every name valid for the daemon) and one `track(action)` call, or `use:seen` on an element. Pages opened and filters changed are counted once, in the root layout (`usage-page.ts`), never per page.
+
 ## A desktop (Tauri) command
 
 A function in `gitprompt-tauri/src/commands.rs` calling `Service`, its name in `command_names.rs` (permissions are generated from that list) and a test in `gitprompt-tauri/tests/plugin.rs`. The dashboard calls it only when running inside the app; everything else goes through the HTTP API, which works in both.

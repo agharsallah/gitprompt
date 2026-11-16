@@ -38,6 +38,20 @@ async fn reindex_reports_the_prompts_it_indexed_and_the_time_taken() {
 }
 
 #[test]
+fn reindex_keeps_the_usage_counts() {
+    let home = home();
+    let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
+    store.increment_usage("reader.tab.events", "2026-11-03", 4).unwrap();
+    drop(store);
+
+    home.cmd(&["reindex"]).assert().success();
+
+    let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
+    let counts = store.usage_between("2026-11-03", "2026-11-03").unwrap();
+    assert_eq!(counts.iter().map(|c| (c.action.as_str(), c.n)).collect::<Vec<_>>(), [("reader.tab.events", 4)]);
+}
+
+#[test]
 fn reindex_of_an_empty_home_indexes_nothing() {
     let home = home();
     let output = home.cmd(&["reindex"]).assert().success().get_output().clone();

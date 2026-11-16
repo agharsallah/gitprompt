@@ -58,6 +58,22 @@ pub struct EventUsage {
     pub bytes: u64,
 }
 
+/// How many times one dashboard feature was used on one day (`YYYY-MM-DD`, UTC).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UsageCount {
+    pub action: String,
+    pub day: String,
+    pub n: u64,
+}
+
+/// Distinct action names the usage table keeps: a bound on what a client can stuff into it. A
+/// count of an action beyond it is dropped.
+pub const MAX_USAGE_ACTIONS: usize = 256;
+
+/// Days of usage counts kept, today included: the longest window the dashboard reads. Older days
+/// are dropped as new counts arrive, so the table stays a year of rows at most.
+pub const USAGE_KEEP_DAYS: u32 = 366;
+
 /// A new event to store in a batch.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NewEvent {

@@ -6,7 +6,7 @@ use rusqlite::Connection;
 
 use gitprompt_core::Result;
 
-use super::{HourCount, Sample, SourceStats, Store};
+use super::{HourCount, Sample, SourceStats, Store, UsageCount};
 use crate::decode::{self, count};
 use crate::error::{DbResult, failure};
 use crate::filter::{Outcome, PromptFilter};
@@ -178,6 +178,16 @@ impl Store {
             let mut out = hourly_rows(conn, "prompt", since)?;
             out.extend(hourly_rows(conn, "event", since)?);
             Ok(out)
+        })?)
+    }
+
+    /// The usage counts of the days `since..=until` (`YYYY-MM-DD`), oldest day first, then by action.
+    pub fn usage_between(&self, since: &str, until: &str) -> Result<Vec<UsageCount>> {
+        Ok(self.db().read(|conn| {
+            let select = "select action, day, n from usage_counts where day >= ? and day <= ? order by day, action";
+            decode::all(conn, select, (since, until), |row| {
+                Ok(UsageCount { action: row.get("action")?, day: row.get("day")?, n: count(row, "n")? })
+            })
         })?)
     }
 }

@@ -900,6 +900,46 @@ export type Updated = { updated: number, };
 
 export type Usage = { api_requests: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, cost_usd: number, };
 
+/**
+ * How many times one feature was used on one day.
+ */
+
+export type UsageDay = { action: string, 
+/**
+ * `YYYY-MM-DD`, UTC.
+ */
+day: string, n: number, };
+
+/**
+ * One feature used `n` times since the page last reported.
+ */
+
+export type UsageHit = { 
+/**
+ * A dotted lowercase name such as `copy.prompt` (see `service::usage::valid_action`).
+ */
+action: string, n: number, };
+
+/**
+ * `POST /api/usage`: what the page counted since its last report.
+ */
+
+export type UsageIn = { hits: Array<UsageHit>, };
+
+/**
+ * `GET /api/usage?days=`: the counts of the last `days` days, today included.
+ */
+
+export type UsageOut = { 
+/**
+ * The first and last day of the range, `YYYY-MM-DD`.
+ */
+since: string, until: string, 
+/**
+ * Oldest day first, then by action; a day with no use has no row.
+ */
+counts: Array<UsageDay>, };
+
 export type ValueSource = "env" | "file" | "default";
 
 /**

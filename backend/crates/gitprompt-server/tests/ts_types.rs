@@ -73,6 +73,9 @@ fn roots(c: &mut Collect<'_>) {
     c.visit::<model::SecurityOut>();
     c.visit::<model::Rotation>();
     c.visit::<model::ChartInfo>();
+    // local usage counts
+    c.visit::<model::UsageIn>();
+    c.visit::<model::UsageOut>();
 }
 
 fn render() -> String {
