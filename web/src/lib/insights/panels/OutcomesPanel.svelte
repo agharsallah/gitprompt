@@ -17,12 +17,14 @@
 	import { hasTelemetry, metric } from '#lib/insights/series.ts';
 	import { integer, percent, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
-	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import { missingNotice } from '#lib/sources/missing.ts';
 	import Panel from '#lib/ui/Panel.svelte';
+	import PanelState from '#lib/ui/PanelState.svelte';
+	import { READY, readyOr, type PanelState as State } from '#lib/ui/panelState.ts';
 	import Facts from './Facts.svelte';
 	import type { Availability } from '#lib/sources/capabilities.ts';
 	import CapabilityNote from './CapabilityNote.svelte';
-	import NotAvailable from './NotAvailable.svelte';
+	import { NO_PROMPTS } from './states.ts';
 
 	/** What came of the prompts: how turns ended, commits, lines of code, and prompts nobody followed up. */
 	let { data, link, availability }: { data: Overview; link: Doorway; availability: Availability } =
@@ -44,71 +46,72 @@
 	const added = $derived(metric(tel, 'linesAdded'));
 	const removed = $derived(metric(tel, 'linesRemoved'));
 	const commits = $derived(metric(tel, 'commits'));
+	const view = $derived(readyOr(t.prompts, NO_PROMPTS));
+	const codeState = $derived<State>(
+		hasTelemetry(tel)
+			? READY
+			: { kind: 'unsupported', ...missingNotice('lines of code and commits', availability) }
+	);
 </script>
 
 <Panel
+	state={view}
 	title="What came of my prompts?"
 	description="Superseded: no end was recorded and you sent another prompt, so it was interrupted or abandoned."
 >
-	{#if t.prompts}
-		<div class="stack">
-			<BarList
-				label="Prompts by how their turn ended"
-				items={ORDER.filter((o) => count(o)).map((o) => ({
-					key: o,
-					label: TURN_OUTCOMES[o].label,
-					value: count(o),
-					icon: ICONS[o],
-					href: link({ outcome: [o] })
-				}))}
-				format={(v) => `${integer(v)} (${percent(v / t.prompts)})`}
-			/>
+	<div class="stack">
+		<BarList
+			label="Prompts by how their turn ended"
+			items={ORDER.filter((o) => count(o)).map((o) => ({
+				key: o,
+				label: TURN_OUTCOMES[o].label,
+				value: count(o),
+				icon: ICONS[o],
+				href: link({ outcome: [o] })
+			}))}
+			format={(v) => `${integer(v)} (${percent(v / t.prompts)})`}
+		/>
+		<Facts
+			label="Follow-up and commits"
+			facts={[
+				{
+					label: 'Last prompt of their session',
+					value: integer(lastOfSession),
+					icon: Minus,
+					hint: 'no prompt came after it: the conversation ended there',
+					href: lastOfSession ? link({ has: ['no_follow_up'] }) : undefined
+				},
+				{
+					label: 'Led to a commit by the agent',
+					value: integer(t.with_commit),
+					icon: GitCommitHorizontal,
+					hint: `${plural(t.git_commits, 'git commit')} run from its shell`,
+					href: t.with_commit ? link({ has: ['commit'] }) : undefined
+				}
+			]}
+		/>
+		<h3 class="sub">In these sessions (telemetry)</h3>
+		<PanelState state={codeState}>
 			<Facts
-				label="Follow-up and commits"
+				label="Code changed, from telemetry"
 				facts={[
 					{
-						label: 'Last prompt of their session',
-						value: integer(lastOfSession),
-						icon: Minus,
-						hint: 'no prompt came after it: the conversation ended there',
-						href: lastOfSession ? link({ has: ['no_follow_up'] }) : undefined
+						label: 'Lines of code added',
+						value: added !== null ? integer(added) : '—',
+						icon: SquarePen,
+						hint: removed !== null ? `${integer(removed)} removed` : undefined
 					},
 					{
-						label: 'Led to a commit by the agent',
-						value: integer(t.with_commit),
+						label: 'Commits',
+						value: commits !== null ? integer(commits) : '—',
 						icon: GitCommitHorizontal,
-						hint: `${plural(t.git_commits, 'git commit')} run from its shell`,
-						href: t.with_commit ? link({ has: ['commit'] }) : undefined
+						hint: `over ${plural(tel.sessions, 'session')}`
 					}
 				]}
 			/>
-			<h3 class="sub">In these sessions (telemetry)</h3>
-			{#if hasTelemetry(tel)}
-				<Facts
-					label="Code changed, from telemetry"
-					facts={[
-						{
-							label: 'Lines of code added',
-							value: added !== null ? integer(added) : '—',
-							icon: SquarePen,
-							hint: removed !== null ? `${integer(removed)} removed` : undefined
-						},
-						{
-							label: 'Commits',
-							value: commits !== null ? integer(commits) : '—',
-							icon: GitCommitHorizontal,
-							hint: `over ${plural(tel.sessions, 'session')}`
-						}
-					]}
-				/>
-				<CapabilityNote {availability} />
-			{:else}
-				<NotAvailable what="lines of code and commits" {availability} />
-			{/if}
-		</div>
-	{:else}
-		<EmptyState compact title="No prompts in this window" />
-	{/if}
+			<CapabilityNote {availability} />
+		</PanelState>
+	</div>
 </Panel>
 
 <style>

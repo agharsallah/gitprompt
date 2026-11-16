@@ -3,11 +3,11 @@
 	import type { Overview } from '#lib/insights/overview.ts';
 	import { plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
-	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import { missingNotice } from '#lib/sources/missing.ts';
 	import Panel from '#lib/ui/Panel.svelte';
+	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import type { Availability } from '#lib/sources/capabilities.ts';
 	import CapabilityNote from './CapabilityNote.svelte';
-	import NotAvailable from './NotAvailable.svelte';
 
 	/**
 	 * Slash commands you ran. Most never reach the hooks as prompts (only those that expand into one
@@ -39,26 +39,28 @@
 					href: link({ command })
 				}))
 	);
+	const view = $derived<PanelState>(
+		items.length
+			? READY
+			: !availability.available.length
+				? { kind: 'unsupported', ...missingNotice('slash commands', availability) }
+				: { kind: 'empty', title: 'No slash commands', message: 'None were run in these sessions.' }
+	);
 </script>
 
 <Panel
+	state={view}
 	title="Which slash commands do I run?"
 	description={fromTelemetry
 		? 'From telemetry, in the sessions these prompts belong to.'
 		: undefined}
 >
-	{#if items.length}
-		<BarList
-			label="Slash commands"
-			max={8}
-			otherLabel="Other commands"
-			{items}
-			format={(v) => plural(v, 'use')}
-		/>
-		<CapabilityNote {availability} />
-	{:else if !availability.available.length}
-		<NotAvailable what="slash commands" {availability} />
-	{:else}
-		<EmptyState compact title="No slash commands">None were run in these sessions.</EmptyState>
-	{/if}
+	<BarList
+		label="Slash commands"
+		max={8}
+		otherLabel="Other commands"
+		{items}
+		format={(v) => plural(v, 'use')}
+	/>
+	<CapabilityNote {availability} />
 </Panel>

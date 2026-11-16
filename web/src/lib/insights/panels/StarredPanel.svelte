@@ -3,32 +3,34 @@
 	import { typedText } from '#lib/prompts/origin.ts';
 	import { excerpt } from '#lib/shared/format.ts';
 	import { promptHref } from '#lib/shared/links.ts';
-	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
+	import { readyOr } from '#lib/ui/panelState.ts';
 
 	/** Prompts you marked as worth keeping, newest first, under the page's filters. */
 	let { prompts, href }: { prompts: Prompt[]; href: string } = $props();
+
+	const view = $derived(
+		readyOr(prompts.length, {
+			kind: 'empty',
+			title: 'No starred prompts here',
+			message: 'Star a prompt that worked well to find it again here.'
+		})
+	);
 </script>
 
-<Panel title="Which prompts did I keep?" description="Prompts you starred.">
+<Panel title="Which prompts did I keep?" description="Prompts you starred." state={view}>
 	{#snippet actions()}{#if prompts.length}<a class="all" {href} title="Prompts › Starred"
 				>All starred</a
 			>{/if}{/snippet}
-	{#if prompts.length}
-		<ul class="starred">
-			{#each prompts as p (p.id)}
-				<li>
-					<a href={promptHref(p.id)} title="Prompt › {excerpt(typedText(p), 40)}"
-						>{excerpt(typedText(p), 160)}</a
-					>
-				</li>
-			{/each}
-		</ul>
-	{:else}
-		<EmptyState compact title="No starred prompts here"
-			>Star a prompt that worked well to find it again here.</EmptyState
-		>
-	{/if}
+	<ul class="starred">
+		{#each prompts as p (p.id)}
+			<li>
+				<a href={promptHref(p.id)} title="Prompt › {excerpt(typedText(p), 40)}"
+					>{excerpt(typedText(p), 160)}</a
+				>
+			</li>
+		{/each}
+	</ul>
 </Panel>
 
 <style>

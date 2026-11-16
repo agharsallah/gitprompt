@@ -6,11 +6,12 @@
 	import { compact, integer, modelName, money, percent, plural } from '#lib/shared/format.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import Meter from '#lib/ui/charts/Meter.svelte';
+	import { missingNotice } from '#lib/sources/missing.ts';
 	import Panel from '#lib/ui/Panel.svelte';
+	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
 	import type { Availability } from '#lib/sources/capabilities.ts';
 	import CapabilityNote from './CapabilityNote.svelte';
-	import NotAvailable from './NotAvailable.svelte';
 
 	/**
 	 * Which model does the work. "Most used" depends on the measure: a small model can serve the most
@@ -44,6 +45,9 @@
 		[...models].sort((a, b) => MEASURES[key].value(b) - MEASURES[key].value(a))[0]?.key;
 	const leaders = $derived(offered.map((k) => ({ k, model: top(k) })));
 	const cache = $derived(cacheShare(data.activity.totals));
+	const view = $derived<PanelState>(
+		models.length ? READY : { kind: 'unsupported', ...missingNotice('models', availability) }
+	);
 	const describe = $derived(
 		!models.length
 			? undefined
@@ -55,7 +59,7 @@
 	);
 </script>
 
-<Panel title="Which model do I use most?" description={describe}>
+<Panel title="Which model do I use most?" description={describe} state={view}>
 	{#snippet actions()}
 		{#if offered.length > 1}
 			<SegmentedControl
@@ -66,33 +70,29 @@
 			/>
 		{/if}
 	{/snippet}
-	{#if models.length}
-		<div class="stack">
-			<BarList
-				label="{m.label} by model"
-				color="var(--color-agent)"
-				items={sorted.map((g) => ({
-					key: g.key!,
-					label: modelName(g.key!),
-					value: m.value(g),
-					hint: usage
-						? `${integer(g.api_requests)} requests · ${compact(tokenTotal(g))} tokens${g.cost_usd ? ` · ${money(g.cost_usd)}` : ''}`
-						: plural(g.prompts, 'prompt'),
-					href: link({ model: [g.key!] })
-				}))}
-				format={m.format}
-			/>
-			{#if cache !== null}
-				<div class="cache">
-					<p><span class="num">{percent(cache)}</span> of prompt tokens were served from cache</p>
-					<Meter value={cache} label="Prompt tokens served from cache" />
-				</div>
-			{/if}
-			<CapabilityNote {availability} />
-		</div>
-	{:else}
-		<NotAvailable what="models" {availability} />
-	{/if}
+	<div class="stack">
+		<BarList
+			label="{m.label} by model"
+			color="var(--color-agent)"
+			items={sorted.map((g) => ({
+				key: g.key!,
+				label: modelName(g.key!),
+				value: m.value(g),
+				hint: usage
+					? `${integer(g.api_requests)} requests · ${compact(tokenTotal(g))} tokens${g.cost_usd ? ` · ${money(g.cost_usd)}` : ''}`
+					: plural(g.prompts, 'prompt'),
+				href: link({ model: [g.key!] })
+			}))}
+			format={m.format}
+		/>
+		{#if cache !== null}
+			<div class="cache">
+				<p><span class="num">{percent(cache)}</span> of prompt tokens were served from cache</p>
+				<Meter value={cache} label="Prompt tokens served from cache" />
+			</div>
+		{/if}
+		<CapabilityNote {availability} />
+	</div>
 </Panel>
 
 <style>

@@ -4,8 +4,8 @@
 	import { slotWindow, streaks, type Slot } from '#lib/insights/series.ts';
 	import { compact, dayKey, dayLabel, money, plural } from '#lib/shared/format.ts';
 	import ColumnChart, { type Column } from '#lib/ui/charts/ColumnChart.svelte';
-	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
+	import { readyOr } from '#lib/ui/panelState.ts';
 
 	/** How much you prompt, day by day (or hour by hour over 24 hours), and how steadily. */
 	let { data, slots, link }: { data: Overview; slots: Slot[]; link: Doorway } = $props();
@@ -31,6 +31,13 @@
 	const slotOf = (c: Column) => slots.find((s) => s.key === c.key)!;
 	const open = (c: Column) => link(slotWindow(slotOf(c), hourly));
 	const cost = $derived(data.activity.totals.cost_usd > 0);
+	const view = $derived(
+		readyOr(data.activity.totals.prompts, {
+			kind: 'empty',
+			title: 'No prompts in this window',
+			message: 'Pick a longer range or other filters.'
+		})
+	);
 	const description = $derived(
 		hourly
 			? undefined
@@ -39,33 +46,28 @@
 </script>
 
 <Panel
+	state={view}
 	title={hourly ? 'How much do I prompt each hour?' : 'How much do I prompt each day?'}
 	{description}
 >
-	{#if data.activity.totals.prompts}
+	<ColumnChart
+		label={hourly ? 'Prompts per hour' : 'Prompts per day'}
+		data={columns((s) => s.bucket?.prompts ?? 0)}
+		format={(v) => plural(v, 'prompt')}
+		axisFormat={compact}
+		hrefFor={open}
+	/>
+	{#if cost}
+		<h3 class="sub">{hourly ? 'Spend per hour' : 'Spend per day'}</h3>
 		<ColumnChart
-			label={hourly ? 'Prompts per hour' : 'Prompts per day'}
-			data={columns((s) => s.bucket?.prompts ?? 0)}
-			format={(v) => plural(v, 'prompt')}
-			axisFormat={compact}
+			label={hourly ? 'Spend per hour' : 'Spend per day'}
+			data={columns((s) => s.bucket?.cost_usd ?? 0)}
+			height={80}
+			format={money}
+			axisFormat={money}
+			color="var(--chart-2)"
 			hrefFor={open}
 		/>
-		{#if cost}
-			<h3 class="sub">{hourly ? 'Spend per hour' : 'Spend per day'}</h3>
-			<ColumnChart
-				label={hourly ? 'Spend per hour' : 'Spend per day'}
-				data={columns((s) => s.bucket?.cost_usd ?? 0)}
-				height={80}
-				format={money}
-				axisFormat={money}
-				color="var(--chart-2)"
-				hrefFor={open}
-			/>
-		{/if}
-	{:else}
-		<EmptyState compact title="No prompts in this window"
-			>Pick a longer range or other filters.</EmptyState
-		>
 	{/if}
 </Panel>
 

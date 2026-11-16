@@ -14,7 +14,8 @@
 	import Meter from '#lib/ui/charts/Meter.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
-	import NotAvailable from '#lib/insights/panels/NotAvailable.svelte';
+	import { missingNotice } from '#lib/sources/missing.ts';
+	import PanelState from '#lib/ui/PanelState.svelte';
 	import type { Availability } from '#lib/sources/capabilities.ts';
 
 	/**
@@ -37,7 +38,9 @@
 
 {#if !s.api_requests}
 	{#if availability}
-		<NotAvailable what="tokens and cost" {availability} />
+		<PanelState
+			state={{ kind: 'unsupported', ...missingNotice('tokens and cost', availability) }}
+		/>
 	{/if}
 {:else}
 	<div class="usage">

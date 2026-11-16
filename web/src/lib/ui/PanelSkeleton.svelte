@@ -10,7 +10,8 @@
 		body = 'chart',
 		rows = 5,
 		height = '11rem',
-		title = true
+		title = true,
+		frame = true
 	}: {
 		body?: 'chart' | 'rows' | 'figures' | 'text';
 		/** Rows for `rows`, figures for `figures`, lines for `text`. */
@@ -18,13 +19,15 @@
 		/** Height of a `chart` body. */
 		height?: string;
 		title?: boolean;
+		/** Draw the Panel's frame. Off inside a Panel that already has one (PanelState). */
+		frame?: boolean;
 	} = $props();
 
 	// Bars of decreasing length read as "a ranked list" without pretending to be data.
 	const widths = ['92%', '74%', '61%', '48%', '37%', '29%', '22%', '16%'];
 </script>
 
-<div class="panel" aria-hidden="true">
+<div class={['skeleton', frame && 'framed']} aria-hidden="true">
 	{#if title}
 		<div class="header">
 			<Skeleton width="45%" height="1.05rem" />
@@ -57,10 +60,13 @@
 </div>
 
 <style>
-	.panel {
+	.skeleton {
 		display: grid;
 		gap: var(--space-4);
 		min-width: 0;
+	}
+
+	.framed {
 		padding: var(--space-5);
 		border-radius: var(--radius-lg);
 		background: var(--color-surface);

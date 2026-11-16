@@ -5,11 +5,12 @@
 	import { WORK, WORK_INFO } from '#lib/insights/series.ts';
 	import BarList from '#lib/ui/charts/BarList.svelte';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
+	import { missingNotice } from '#lib/sources/missing.ts';
 	import Panel from '#lib/ui/Panel.svelte';
+	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import Facts from './Facts.svelte';
 	import type { Availability } from '#lib/sources/capabilities.ts';
 	import CapabilityNote from './CapabilityNote.svelte';
-	import NotAvailable from './NotAvailable.svelte';
 
 	/**
 	 * Who the money was spent for (telemetry `query_source`): answering you, subagents, or calls the
@@ -21,62 +22,62 @@
 	const t = $derived(data.activity.totals);
 	const cost = (key: string) => data.work.groups.find((g) => g.key === key)?.cost_usd ?? 0;
 	const projects = $derived(data.repos.groups.filter((g) => g.cost_usd > 0));
+	const view = $derived<PanelState>(
+		t.cost_usd ? READY : { kind: 'unsupported', ...missingNotice('costs', availability) }
+	);
 </script>
 
 <Panel
+	state={view}
 	title="Where does the money go?"
 	description={t.cost_usd ? `${money(t.cost_usd)} over ${plural(t.prompts, 'prompt')}.` : undefined}
 >
-	{#if t.cost_usd}
-		<div class="stack">
-			<SegmentedBar
-				variant="tall"
-				label="Cost by who the model worked for"
-				parts={WORK.map((w) => ({
-					key: w,
-					label: WORK_INFO[w].label,
-					value: cost(w),
-					color: WORK_INFO[w].color
-				}))}
-				format={money}
-			/>
-			<Facts
-				label="Cost per prompt"
-				facts={[
-					{
-						label: 'Per prompt',
-						value: money(t.cost_usd / t.prompts),
-						hint: 'everything, divided by the prompts kept'
-					},
-					{ label: 'Answering you, per prompt', value: money(cost('main') / t.prompts) },
-					{
-						label: 'Subagent work',
-						value: money(cost('subagent')),
-						hint: WORK_INFO.subagent.hint,
-						href: t.subagents ? link({ has: ['subagent'] }) : undefined
-					},
-					{ label: 'System calls', value: money(cost('system')), hint: WORK_INFO.system.hint }
-				]}
-			/>
-			<h3 class="sub">By project</h3>
-			<BarList
-				label="Cost by project"
-				max={6}
-				otherLabel="Other projects"
-				items={projects.map((g) => ({
-					key: g.key ?? '(none)',
-					label: g.detail ?? folder(g.key) ?? 'No folder',
-					value: g.cost_usd,
-					hint: `${money(g.cost_usd / g.prompts)} per prompt`,
-					href: g.key ? link({ repo: g.key }) : undefined
-				}))}
-				format={money}
-			/>
-			<CapabilityNote {availability} />
-		</div>
-	{:else}
-		<NotAvailable what="costs" {availability} />
-	{/if}
+	<div class="stack">
+		<SegmentedBar
+			variant="tall"
+			label="Cost by who the model worked for"
+			parts={WORK.map((w) => ({
+				key: w,
+				label: WORK_INFO[w].label,
+				value: cost(w),
+				color: WORK_INFO[w].color
+			}))}
+			format={money}
+		/>
+		<Facts
+			label="Cost per prompt"
+			facts={[
+				{
+					label: 'Per prompt',
+					value: money(t.cost_usd / t.prompts),
+					hint: 'everything, divided by the prompts kept'
+				},
+				{ label: 'Answering you, per prompt', value: money(cost('main') / t.prompts) },
+				{
+					label: 'Subagent work',
+					value: money(cost('subagent')),
+					hint: WORK_INFO.subagent.hint,
+					href: t.subagents ? link({ has: ['subagent'] }) : undefined
+				},
+				{ label: 'System calls', value: money(cost('system')), hint: WORK_INFO.system.hint }
+			]}
+		/>
+		<h3 class="sub">By project</h3>
+		<BarList
+			label="Cost by project"
+			max={6}
+			otherLabel="Other projects"
+			items={projects.map((g) => ({
+				key: g.key ?? '(none)',
+				label: g.detail ?? folder(g.key) ?? 'No folder',
+				value: g.cost_usd,
+				hint: `${money(g.cost_usd / g.prompts)} per prompt`,
+				href: g.key ? link({ repo: g.key }) : undefined
+			}))}
+			format={money}
+		/>
+		<CapabilityNote {availability} />
+	</div>
 </Panel>
 
 <style>

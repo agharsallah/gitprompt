@@ -1,9 +1,15 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import PanelState from '#lib/ui/PanelState.svelte';
+	import { READY, type PanelState as State } from '#lib/ui/panelState.ts';
 
 	/**
 	 * A titled region of a page. `tone` sets its weight in the hierarchy: outlined panels hold the
 	 * main content, sunken ones hold secondary detail, plain ones are just a heading and content.
+	 * `state` (panelState.ts) says what the body shows: the children when `ready`, else loading, empty,
+	 * not reported, error or too little data, drawn the same way in every panel. The header stays.
+	 * Other attributes and attachments go on the region itself (a page adds its own behaviour there).
 	 */
 	let {
 		title,
@@ -13,9 +19,11 @@
 		pad = 'md',
 		actions,
 		footer,
+		state = READY,
 		children,
-		class: className
-	}: {
+		class: className,
+		...rest
+	}: Omit<HTMLAttributes<HTMLElement>, 'title' | 'children' | 'class'> & {
 		title?: string;
 		description?: string | Snippet;
 		level?: 2 | 3;
@@ -23,6 +31,7 @@
 		pad?: 'none' | 'sm' | 'md';
 		actions?: Snippet;
 		footer?: Snippet;
+		state?: State;
 		children: Snippet;
 		class?: string;
 	} = $props();
@@ -33,6 +42,7 @@
 <section
 	class={['panel', `tone-${tone}`, `pad-${pad}`, className]}
 	aria-labelledby={title ? id : undefined}
+	{...rest}
 >
 	{#if title || actions}
 		<header>
@@ -49,7 +59,7 @@
 			{#if actions}<div class="actions">{@render actions()}</div>{/if}
 		</header>
 	{/if}
-	<div class="body">{@render children()}</div>
+	<div class="body"><PanelState {state} {children} /></div>
 	{#if footer}<footer>{@render footer()}</footer>{/if}
 </section>
 

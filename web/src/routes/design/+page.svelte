@@ -8,6 +8,7 @@
 	import ControlsPanel from './ControlsPanel.svelte';
 	import LoadingPanel from './LoadingPanel.svelte';
 	import LinksPanel from './LinksPanel.svelte';
+	import PanelStatesPanel from './PanelStatesPanel.svelte';
 	import StatusPanel from './StatusPanel.svelte';
 	import TypeSection from './TypeSection.svelte';
 </script>
@@ -54,6 +55,7 @@
 	<ContentPanel />
 	<LinksPanel />
 	<LoadingPanel />
+	<PanelStatesPanel />
 </div>
 
 <style>
