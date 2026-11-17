@@ -7,7 +7,7 @@
 	import { perform, type ActionContext } from '#lib/palette/actions.ts';
 	import { commands } from '#lib/palette/commands.ts';
 	import { copyText } from '#lib/palette/copy.ts';
-	import { intentOf, isMac, keyLabel, moveActive } from '#lib/palette/keys.ts';
+	import { highlightedIndex, intentOf, isMac, keyLabel, moveActive } from '#lib/palette/keys.ts';
 	import {
 		actionKeyIn,
 		actionsIn,
@@ -45,7 +45,8 @@
 	let input = $state<HTMLInputElement>();
 	let query = $state('');
 	let settled = $state('');
-	let active = $state(0);
+	/** The highlighted row, by its key: results that change under it do not move it to another row. */
+	let highlighted = $state<string>();
 	let attempt = $state(0);
 
 	// The words are searched once typing pauses; opening again fetches the recent items afresh.
@@ -78,7 +79,12 @@
 		)
 	);
 	const rows = $derived(rowsOf(view.groups));
-	const current = $derived(rows.length ? Math.min(active, rows.length - 1) : -1);
+	const current = $derived(
+		highlightedIndex(
+			rows.map((row) => row.key),
+			highlighted
+		)
+	);
 	const keys = $derived(
 		(rows[current] ? actionsIn(mode, rows[current].item.kind) : []).map((a) => ({
 			key: keyLabel(a.key, mac),
@@ -117,7 +123,8 @@
 		const intent = intentOf(event);
 		if (!intent) return;
 		event.preventDefault();
-		if (intent.type === 'move') active = moveActive(current, intent.delta, rows.length);
+		if (intent.type === 'move')
+			highlighted = rows[moveActive(current, intent.delta, rows.length)]?.key;
 		else if (rows[current]) void perform(rows[current].item, actionKeyIn(mode, intent.key), ctx);
 	}
 
@@ -126,7 +133,7 @@
 		if (!dialog) return;
 		if (palette.open && !dialog.open) {
 			query = settled = '';
-			active = 0;
+			highlighted = undefined;
 			dialog.showModal();
 			input?.focus();
 		} else if (!palette.open && dialog.open) dialog.close();
@@ -160,9 +167,9 @@
 		commandMode={parsed.mode === 'commands'}
 		{words}
 		{onkeydown}
-		oninput={() => (active = 0)}
+		oninput={() => (highlighted = undefined)}
 		onpick={(index) => rows[index] && void perform(rows[index].item, 'enter', ctx)}
-		onhover={(index) => (active = index)}
+		onhover={(index) => (highlighted = rows[index]?.key)}
 	/>
 </dialog>
 

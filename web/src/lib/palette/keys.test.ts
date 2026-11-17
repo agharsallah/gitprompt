@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	actionKeyOf,
 	intentOf,
+	highlightedIndex,
 	isShortcut,
 	keyLabel,
 	moveActive,
@@ -53,6 +54,16 @@ describe('keys', () => {
 		expect(moveActive(2, 1, 3)).toBe(0);
 		expect(moveActive(0, -1, 3)).toBe(2);
 		expect(moveActive(0, 1, 0)).toBe(-1);
+	});
+
+	it('keeps the highlight on the same row when the list changes under it (↓ while results load)', () => {
+		expect(highlightedIndex(['a', 'b', 'c'], 'b')).toBe(1);
+		// The new results moved it: it follows the row, so ↵ opens what the eye was on.
+		expect(highlightedIndex(['x', 'a', 'b'], 'b')).toBe(2);
+		// Its row is gone: the first row, never a different row at the same position.
+		expect(highlightedIndex(['x', 'y', 'z'], 'b')).toBe(0);
+		expect(highlightedIndex(['x', 'y'], undefined)).toBe(0);
+		expect(highlightedIndex([], 'b')).toBe(-1);
 	});
 
 	it('writes keys on a keycap for the platform', () => {

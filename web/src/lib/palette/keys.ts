@@ -38,6 +38,16 @@ export function moveActive(active: number, delta: number, count: number): number
 	return (((active + delta) % count) + count) % count;
 }
 
+/**
+ * The index of the highlighted row among `keys` (the rows' keys, top to bottom). The highlight is
+ * kept by the row, not by its position: new results arrive while ↓ is pressed, and ↵ must open the
+ * row that was highlighted, or the first when that one is gone. -1 when there are no rows.
+ */
+export function highlightedIndex(keys: readonly string[], highlighted: string | undefined): number {
+	if (!keys.length) return -1;
+	return Math.max(0, highlighted === undefined ? 0 : keys.indexOf(highlighted));
+}
+
 /** How a key is written on a keycap: ↵, ⌘↵ (Ctrl ↵ off a Mac), ⌥↵ (Alt ↵). */
 export function keyLabel(key: ActionKey, mac: boolean): string {
 	if (key === 'enter') return '↵';
