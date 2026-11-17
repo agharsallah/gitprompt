@@ -74,6 +74,7 @@ export type UsageAction =
 	| `filter.${FilterKind}`
 	| 'copy.prompt'
 	| 'copy.resume'
+	| 'copy.code'
 	| 'export.open'
 	| 'palette.open'
 	| 'palette.copy';
@@ -90,6 +91,7 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	...FILTER_KINDS.map((k) => `filter.${k}` as const),
 	'copy.prompt',
 	'copy.resume',
+	'copy.code',
 	'export.open',
 	'palette.open',
 	'palette.copy'

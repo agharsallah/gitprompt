@@ -7,7 +7,6 @@
 	import { isSystem } from '#lib/prompts/origin.ts';
 	import { shortDate, timeOfDay } from '#lib/shared/format.ts';
 	import { projectHref, promptHref, sessionHref } from '#lib/shared/links.ts';
-	import { track } from '#lib/shared/usage.ts';
 	import CopyButton from '#lib/ui/CopyButton.svelte';
 	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
@@ -65,7 +64,7 @@
 	</div>
 	{#if copy}
 		<span class="copy">
-			<CopyButton text={copy} label="Copy prompt" ghost say oncopy={() => track('copy.prompt')} />
+			<CopyButton text={copy} label="Copy prompt" ghost say count="copy.prompt" />
 		</span>
 	{/if}
 </li>

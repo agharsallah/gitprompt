@@ -1,35 +1,33 @@
 <script lang="ts">
 	import { Check, Copy } from '@lucide/svelte';
+	import { copyCounted } from '#lib/shared/clipboard.ts';
+	import type { UsageAction } from '#lib/shared/usage-actions.ts';
 
 	let {
 		text,
 		label = 'Copy',
 		ghost = false,
 		say = false,
-		oncopy
+		count
 	}: {
 		text: string;
 		label?: string;
 		/** No frame: for toolbars of icon buttons. */ ghost?: boolean;
 		/** Writes "Copied" next to the check for a moment (a row's copy, which has no toast). */
 		say?: boolean;
-		/** Called once the text is on the clipboard. */
-		oncopy?: () => void;
+		/** What a copy is counted as (usage-actions.ts): every copy is, so it is not optional. */
+		count: UsageAction;
 	} = $props();
 
 	let copied = $state(false);
 	let timer: ReturnType<typeof setTimeout>;
 
 	async function copy() {
-		try {
-			await navigator.clipboard.writeText(text);
-			copied = true;
-			oncopy?.();
-			clearTimeout(timer);
-			timer = setTimeout(() => (copied = false), 1600);
-		} catch {
-			// Clipboard access can be denied; the text stays selectable.
-		}
+		// A refusal (access can be denied) shows nothing and counts nothing: the text stays selectable.
+		if (!(await copyCounted(text, count))) return;
+		copied = true;
+		clearTimeout(timer);
+		timer = setTimeout(() => (copied = false), 1600);
 	}
 </script>
 

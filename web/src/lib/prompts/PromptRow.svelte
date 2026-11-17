@@ -4,7 +4,6 @@
 	import { OUTCOMES, type Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
 	import { timeOfDay } from '#lib/shared/format.ts';
-	import { track } from '#lib/shared/usage.ts';
 	import CopyButton from '#lib/ui/CopyButton.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
@@ -87,7 +86,7 @@
 	</a>
 	{#if text}
 		<span class="copy">
-			<CopyButton {text} label="Copy prompt" ghost say oncopy={() => track('copy.prompt')} />
+			<CopyButton {text} label="Copy prompt" ghost say count="copy.prompt" />
 		</span>
 	{/if}
 </div>

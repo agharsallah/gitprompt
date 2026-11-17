@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Resume } from '#lib/api/types.ts';
-	import { countResumeCopy } from '#lib/sessions/resume.ts';
 	import CodeBlock from '#lib/ui/CodeBlock.svelte';
 	import CopyButton from '#lib/ui/CopyButton.svelte';
 
@@ -15,18 +14,14 @@
 {#if resume}
 	{#if compact}
 		<span class="compact" title={resume.paste}>
-			<CopyButton
-				text={resume.paste}
-				label="Copy resume command"
-				oncopy={() => countResumeCopy()}
-			/>
+			<CopyButton text={resume.paste} label="Copy resume command" count="copy.resume" />
 		</span>
 	{:else}
 		<CodeBlock
 			code={resume.paste}
 			label="Resume in a terminal"
 			maxHeight="8rem"
-			oncopy={() => countResumeCopy()}
+			count="copy.resume"
 		/>
 	{/if}
 {/if}

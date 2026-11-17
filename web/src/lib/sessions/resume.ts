@@ -20,28 +20,3 @@ export const noResumeText = (tool?: string | null) =>
 /** Count a copy of a resume command (on this machine only, lib/shared/usage.ts). */
 export const countResumeCopy = (count: (action: UsageAction) => void = track) =>
 	count('copy.resume');
-
-/** Where the text goes: the clipboard; tests give their own. */
-export type Write = (text: string) => Promise<void>;
-
-const toClipboard: Write = (text) => navigator.clipboard.writeText(text);
-
-/**
- * Copy the resume line of `session` and count it; false when there is nothing to copy or the
- * clipboard refused (nothing is counted then). What the palette's "copy resume" runs.
- */
-export async function copyResume(
-	session: Resumable,
-	write: Write = toClipboard,
-	count: (action: UsageAction) => void = track
-): Promise<boolean> {
-	const text = resumeText(session);
-	if (text === null) return false;
-	try {
-		await write(text);
-	} catch {
-		return false;
-	}
-	countResumeCopy(count);
-	return true;
-}

@@ -1,3 +1,6 @@
+import { track } from '#lib/shared/usage.ts';
+import type { UsageAction } from '#lib/shared/usage-actions.ts';
+
 /**
  * Writing text to the clipboard when the text may still be on its way (a fetch). Safari, and the
  * desktop app's web view on macOS, only allow a clipboard write that starts inside the key press or
@@ -16,4 +19,22 @@ export function writeClipboard(text: Pending): Promise<void> {
 	}
 	const blob = text.then((value) => new Blob([value], { type: 'text/plain' }));
 	return navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]);
+}
+
+/**
+ * Copy `text`, and count the copy under `action` once it is on the clipboard (usage.ts). False when
+ * the clipboard refused: nothing is counted then. What a copy button runs.
+ */
+export async function copyCounted(
+	text: Pending,
+	action: UsageAction,
+	count: (action: UsageAction) => void = track
+): Promise<boolean> {
+	try {
+		await writeClipboard(text);
+	} catch {
+		return false;
+	}
+	count(action);
+	return true;
 }
