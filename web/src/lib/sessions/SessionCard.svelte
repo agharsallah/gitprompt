@@ -11,6 +11,9 @@
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 	import PromptRow from '#lib/prompts/PromptRow.svelte';
 	import { saveSessionName } from '#lib/sessions/rename.ts';
+	import ResumeCommand from '#lib/sessions/ResumeCommand.svelte';
+	import { endedPrompt } from '#lib/sessions/running.ts';
+	import RunningNow from '#lib/sessions/RunningNow.svelte';
 	import TurnStrip from '#lib/sessions/TurnStrip.svelte';
 	import InlineRename from '#lib/ui/InlineRename.svelte';
 
@@ -59,9 +62,11 @@
 			</p>
 		</div>
 		<div class="badges">
+			<RunningNow lastEventAt={s.lastEventAt} ended={endedPrompt(s.prompts)} />
 			{#if s.failed}<Badge tone="danger" size="sm">{plural(s.failed, 'failed turn')}</Badge>{/if}
 			{#each s.permissionModes as mode (mode)}<Badge variant="outline" size="sm">{mode}</Badge
 				>{/each}
+			<ResumeCommand compact resume={s.resume} />
 		</div>
 	</header>
 
@@ -196,6 +201,7 @@
 	.badges {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: var(--space-1);
 	}
 

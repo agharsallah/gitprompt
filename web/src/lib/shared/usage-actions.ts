@@ -74,7 +74,10 @@ export type UsageAction =
 	| `page.opened.${PageName}`
 	| `filter.${FilterKind}`
 	| 'copy.prompt'
-	| 'export.open';
+	| 'copy.resume'
+	| 'export.open'
+	| 'palette.open'
+	| 'palette.copy';
 
 export const panelAction = <K extends 'seen' | 'click', P extends PanelName>(kind: K, panel: P) =>
 	`panel.${kind}.${panel}` as const;
@@ -87,5 +90,8 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	...PAGES.map((p) => `page.opened.${p}` as const),
 	...FILTER_KINDS.map((k) => `filter.${k}` as const),
 	'copy.prompt',
-	'export.open'
+	'copy.resume',
+	'export.open',
+	'palette.open',
+	'palette.copy'
 ];

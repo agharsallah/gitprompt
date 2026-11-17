@@ -5,6 +5,12 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 {
   "session": "abc123",
   "label": "Write a function to calculate the factorial of a number",
+  "resume": {
+    "command": "claude --resume abc123",
+    "cwd": "/work/app",
+    "paste": "cd /work/app && claude --resume abc123"
+  },
+  "last_event_at": "2026-01-05T09:00:56.000000+00:00",
   "source": "claude-code",
   "connector": {
     "id": "claude-code",

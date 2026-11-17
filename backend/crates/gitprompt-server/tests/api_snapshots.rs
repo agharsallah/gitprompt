@@ -117,7 +117,7 @@ async fn prompts_and_their_details() {
 async fn stats_and_telemetry() {
     let api = loaded().await;
     insta::assert_json_snapshot!("stats", get(&api, "/api/stats").await);
-    for group in ["source", "origin", "outcome", "model", "tool_kind"] {
+    for group in ["source", "origin", "outcome", "model", "tool_kind", "session"] {
         insta::assert_json_snapshot!(format!("stats_by_{group}"), get(&api, &format!("/api/stats?group_by={group}")).await);
     }
     insta::assert_json_snapshot!("telemetry", get(&api, "/api/stats/telemetry").await);

@@ -11,7 +11,8 @@
 		wrap = true,
 		diff = false,
 		maxHeight = '24rem',
-		copy = true
+		copy = true,
+		oncopy
 	}: {
 		code: string;
 		/** Shown in the top bar, e.g. a file name or "bash". */
@@ -20,6 +21,8 @@
 		diff?: boolean;
 		maxHeight?: string;
 		copy?: boolean;
+		/** Called once the text is on the clipboard. */
+		oncopy?: () => void;
 	} = $props();
 
 	const lineKind = (line: string) =>
@@ -38,10 +41,11 @@
 	{#if label}
 		<div class="bar">
 			<span class="label mono">{label}</span>
-			{#if copy}<span class="copy"><CopyButton text={code} label="Copy {label}" /></span>{/if}
+			{#if copy}<span class="copy"><CopyButton text={code} label="Copy {label}" {oncopy} /></span
+				>{/if}
 		</div>
 	{:else if copy}
-		<span class="copy floating"><CopyButton text={code} /></span>
+		<span class="copy floating"><CopyButton text={code} {oncopy} /></span>
 	{/if}
 	<!-- tabindex: a scrollable region must be reachable by keyboard -->
 	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->

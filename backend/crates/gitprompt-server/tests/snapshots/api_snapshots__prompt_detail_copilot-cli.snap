@@ -119,7 +119,8 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     ],
     "resume": {
       "command": "copilot --resume=8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-      "cwd": "/work/app"
+      "cwd": "/work/app",
+      "paste": "cd /work/app && copilot --resume=8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10"
     }
   },
   "commits": {},

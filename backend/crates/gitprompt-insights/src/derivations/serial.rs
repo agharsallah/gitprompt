@@ -11,10 +11,10 @@ use ts_rs::TS;
 
 use gitprompt_core::Blank;
 use gitprompt_core::Json;
-use gitprompt_core::spec::ToolKind;
+use gitprompt_core::spec::{Resume, ToolKind};
 use gitprompt_store::index::UsageTotals;
 
-use super::{PromptStats, Resume, SessionSummary, SubagentResult, SubagentTask, TurnError, TurnSummary};
+use super::{PromptStats, SessionSummary, SubagentResult, SubagentTask, TurnError, TurnSummary};
 
 /// Requests, tokens and cost of model calls, every count present.
 #[derive(Clone, Debug, PartialEq, Serialize, TS)]

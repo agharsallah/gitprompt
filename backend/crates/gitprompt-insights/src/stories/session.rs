@@ -1,6 +1,6 @@
 //! One session as a narrative ([`super::session_story`]).
 
-use gitprompt_core::spec::{Origin, Pattern, SurfaceRef};
+use gitprompt_core::spec::{Origin, Pattern, Resume, SurfaceRef};
 use gitprompt_store::Outcome;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -162,6 +162,16 @@ pub struct SessionStory {
     pub name: Option<String>,
     /// Its default name: the title its tool reported, else what you first typed ([`crate::label`]).
     pub label: Option<String>,
+    /// How to pick it up again; the server fills it from the tool's spec, omitted when there is
+    /// no command for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub resume: Option<Resume>,
+    /// When the latest event or prompt of the session arrived (the server fills it, omitted
+    /// without): `ended_at` is when its last turn ended, this is when it last did anything.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_event_at: Option<String>,
     /// The first prompt's source.
     pub source: Option<String>,
     /// The first prompt's connector (from its facts).
@@ -246,6 +256,8 @@ pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commi
         session: session.to_owned(),
         name: None,
         label: label_of(rows),
+        resume: None,
+        last_event_at: None,
         source: first.map(|p| p.prompt.row.source.clone()),
         connector: first.and_then(|p| p.facts.as_ref()).map(|f| f.connector.clone()),
         surface: facts().find_map(|f| f.surface.clone()),

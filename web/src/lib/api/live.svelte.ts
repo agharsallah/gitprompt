@@ -3,12 +3,15 @@ import { STREAM_URL } from '#lib/api/client.ts';
 /** How long to wait before reopening a stream the server closed for good (an HTTP error). */
 export const RETRY_MS = 5_000;
 
+/** What the stream is doing: `open` while notices can arrive. */
+export type StreamState = 'connecting' | 'open' | 'reconnecting' | 'closed';
+
 /**
  * The daemon's "something was captured" stream, shared by the whole dashboard: one EventSource,
  * opened while anything listens. `state` and `lastNotice` are reactive (the sidebar shows them).
  */
 class Live {
-	state = $state<'connecting' | 'open' | 'reconnecting' | 'closed'>('closed');
+	state = $state<StreamState>('closed');
 	/** When the last notice arrived (ms), null before the first one. */
 	lastNotice = $state<number | null>(null);
 

@@ -12,9 +12,11 @@
 mod data;
 mod export;
 mod find;
+mod homes;
 mod ingest;
 mod names;
 mod prompts;
+mod resume;
 mod settings;
 mod sources;
 mod stats;
@@ -40,6 +42,9 @@ use crate::health::{Health, Monitor, ProcessSampler, Sample};
 use crate::options::AppOptions;
 use crate::query::iso;
 use crate::status::{self, StatusOut};
+
+pub use find::PromptMatch;
+pub use resume::{SessionPick, SessionResume, session_id};
 
 /// The OTLP signal of `/ingest/{source}/v1/{signal}`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -26,12 +26,12 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize, Serializer};
 use ts_rs::TS;
 
-use gitprompt_core::spec::{Origin, Pattern, Spec, ToolKind, Usage};
+use gitprompt_core::spec::{Origin, Pattern, Resume, Spec, ToolKind, Usage};
 use gitprompt_core::{Json, JsonMap};
 use gitprompt_store::index::UsageTotals;
 use gitprompt_store::{EventRow, PromptView};
 
-pub use resume::{Resume, resume};
+pub use resume::resume;
 
 use crate::origin::Classified;
 use crate::raw::{self, Raw, Reads};

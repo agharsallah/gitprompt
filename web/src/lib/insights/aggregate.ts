@@ -4,7 +4,7 @@
  * over many prompts come from GET /api/stats instead (lib/insights/overview.ts). Pure functions,
  * tested in aggregate.test.ts.
  */
-import type { Prompt } from '#lib/api/types.ts';
+import type { Prompt, Resume } from '#lib/api/types.ts';
 import { mergeProject, projectOf, type ProjectRef } from '#lib/insights/project.ts';
 
 export const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
@@ -58,6 +58,10 @@ export type SessionSummary = {
 	name: string | null;
 	/** Its default name, from the daemon: its tool's title, else what you first typed. */
 	label: string | null;
+	/** How to pick it up again, from its tool's spec; null when the tool has no command. */
+	resume: Resume | null;
+	/** When it last did anything (the daemon's clock), null when the daemon did not say. */
+	lastEventAt: string | null;
 	branch: string | null;
 	startedAt: string;
 	/** When the last turn ended (or was sent, if it has no end). */
@@ -74,13 +78,21 @@ export type SessionSummary = {
 const endOf = (p: Prompt) =>
 	new Date(Date.parse(p.received_at) + n(p.summary.response_s) * 1000).toISOString();
 
-/** What the daemon says a session is called (the `name` and `label` of its /api/stats group). */
-export type SessionNames = { name?: string; label?: string };
+/**
+ * What the daemon says about a session beside its prompts (its /api/stats group): what it is
+ * called, how to resume it, and when it last did anything.
+ */
+export type SessionGroup = {
+	name?: string;
+	label?: string;
+	resume?: Resume;
+	last_event_at?: string;
+};
 
-/** Prompts grouped by session, most recently active first; `names` is by session id. */
+/** Prompts grouped by session, most recently active first; `known` is by session id. */
 export function sessions(
 	prompts: Prompt[],
-	names: ReadonlyMap<string, SessionNames> = new Map()
+	known: ReadonlyMap<string, SessionGroup> = new Map()
 ): SessionSummary[] {
 	const groups = new Map<string, Prompt[]>();
 	for (const p of prompts) {
@@ -101,8 +113,10 @@ export function sessions(
 				id,
 				project: ordered.map(projectOf).reduce(mergeProject),
 				prompts: ordered,
-				name: names.get(id)?.name ?? null,
-				label: names.get(id)?.label ?? null,
+				name: known.get(id)?.name ?? null,
+				label: known.get(id)?.label ?? null,
+				resume: known.get(id)?.resume ?? null,
+				lastEventAt: known.get(id)?.last_event_at ?? null,
 				branch: last.context.git_branch ?? null,
 				startedAt: first.received_at,
 				endedAt: endOf(last),

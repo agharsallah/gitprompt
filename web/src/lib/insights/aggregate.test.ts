@@ -41,8 +41,18 @@ describe('sessions', () => {
 		}),
 		prompt({ id: 20, received_at: '2026-11-05T09:00:00Z', fields: { session_id: 's2' } })
 	];
-	const names = new Map([['s1', { name: 'My login fix', label: 'Fix login' }]]);
-	const [first, second] = sessions(list, names);
+	const resume = {
+		command: 'claude --resume s1',
+		cwd: '/work/app',
+		paste: 'cd /work/app && claude --resume s1'
+	};
+	const groups = new Map([
+		[
+			's1',
+			{ name: 'My login fix', label: 'Fix login', resume, last_event_at: '2026-11-05T10:07:00Z' }
+		]
+	]);
+	const [first, second] = sessions(list, groups);
 
 	it('orders sessions by when they were last active', () =>
 		expect([first.id, second.id]).toEqual(['s1', 's2']));
@@ -70,6 +80,11 @@ describe('sessions', () => {
 	it('carries the name and label the daemon gave, and none for a session it did not name', () => {
 		expect([first.name, first.label]).toEqual(['My login fix', 'Fix login']);
 		expect([second.name, second.label]).toEqual([null, null]);
+	});
+
+	it('carries how to resume it and when it last did anything, and nothing for an unknown session', () => {
+		expect([first.resume, first.lastEventAt]).toEqual([resume, '2026-11-05T10:07:00Z']);
+		expect([second.resume, second.lastEventAt]).toEqual([null, null]);
 	});
 
 	it('keeps a prompt without a session on its own', () => {

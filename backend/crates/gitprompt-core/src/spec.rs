@@ -10,6 +10,7 @@ mod expand;
 mod model;
 mod parse;
 mod pattern;
+mod resume;
 mod validate;
 
 use std::collections::BTreeMap;
@@ -30,6 +31,7 @@ pub use model::{
 use parse::bundled_text;
 pub use parse::{bundled_defaults, parse_spec};
 pub use pattern::Pattern;
+pub use resume::Resume;
 
 use crate::{Error, Result, Settings};
 

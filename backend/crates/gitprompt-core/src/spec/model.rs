@@ -369,6 +369,12 @@ impl Spec {
         super::expand::resume_command(&self.resume.as_ref()?.command, session_id, cwd)
     }
 
+    /// The action that resumes a session: its command and where to run it; `None` like
+    /// [`Spec::resume_command`].
+    pub fn resume_action(&self, session_id: &str, cwd: Option<&str>) -> Option<super::Resume> {
+        Some(super::Resume::new(self.resume_command(session_id, cwd)?, cwd))
+    }
+
     /// The kind of a tool (`tool_kinds`); unmapped = `Other`.
     pub fn tool_kind(&self, tool: Option<&str>) -> ToolKind {
         by_name(&self.tool_kinds, tool).copied().unwrap_or_default()

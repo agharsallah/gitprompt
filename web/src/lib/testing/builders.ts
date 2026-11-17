@@ -3,7 +3,7 @@
  * the fields the test is about. Deep-merges the nested objects so a test can say
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
-import type { Event, Facts, Prompt, Source, StatsBucket } from '#lib/api/types.ts';
+import type { Event, Facts, Prompt, SessionStory, Source, StatsBucket } from '#lib/api/types.ts';
 import type { PreferenceKey, Preferences, Setting, SettingsState } from '#lib/api/settings.ts';
 
 let nextId = 1;
@@ -175,6 +175,39 @@ export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
 		first_at: null,
 		last_at: null,
 		parts: null,
+		...overrides
+	};
+}
+
+/** GET /api/stories/session/{id}: an empty Claude Code session; the test sets what it is about. */
+export function sessionStory(overrides: Partial<SessionStory> = {}): SessionStory {
+	return {
+		session: 'session-a',
+		label: 'Fix the failing test',
+		source: 'claude-code',
+		connector: {
+			id: 'claude-code',
+			name: 'Claude Code',
+			label: 'Claude Code',
+			assistant: 'Claude'
+		},
+		surface: null,
+		models: {},
+		project: null,
+		branches: [],
+		started_at: '2026-11-05T10:00:00Z',
+		ended_at: '2026-11-05T10:05:00Z',
+		totals: {
+			chapters: 0,
+			markers: 0,
+			cost_usd: 0,
+			tool_calls: 0,
+			files_written: 0,
+			outcomes: {},
+			retries: 0,
+			diffstat: null
+		},
+		items: [],
 		...overrides
 	};
 }

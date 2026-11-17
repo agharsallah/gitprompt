@@ -173,7 +173,8 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     ],
     "resume": {
       "command": "codex resume 0190a1b2-0000-7000-8000-000000000001",
-      "cwd": "/work/app"
+      "cwd": "/work/app",
+      "paste": "cd /work/app && codex resume 0190a1b2-0000-7000-8000-000000000001"
     }
   },
   "commits": {},

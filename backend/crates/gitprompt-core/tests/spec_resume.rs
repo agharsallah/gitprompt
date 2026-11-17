@@ -138,3 +138,41 @@ fn bundled_templates_are_the_verified_ones() {
         }
     }
 }
+
+#[test]
+fn the_line_to_paste_goes_to_the_folder_first_with_it_quoted() {
+    let spec = with_command("mytool --resume {session_id}");
+
+    let plain = spec.resume_action("abc", Some("/work/app")).unwrap();
+    assert_eq!(
+        (plain.command.as_str(), plain.cwd.as_deref(), plain.paste.as_str()),
+        ("mytool --resume abc", Some("/work/app"), "cd /work/app && mytool --resume abc")
+    );
+
+    let awkward = spec.resume_action("abc", Some("/my work/o'neil")).unwrap();
+    assert_eq!(awkward.cwd.as_deref(), Some("/my work/o'neil"), "the folder is kept as it is");
+    assert_eq!(awkward.paste, r"cd '/my work/o'\''neil' && mytool --resume abc");
+}
+
+#[test]
+fn without_a_folder_the_line_to_paste_is_the_command() {
+    let spec = with_command("mytool --resume {session_id}");
+    for cwd in [None, Some("")] {
+        let resume = spec.resume_action("abc", cwd).unwrap();
+        assert_eq!((resume.cwd, resume.paste.as_str()), (None, "mytool --resume abc"), "{cwd:?}");
+    }
+}
+
+#[test]
+fn no_template_gives_no_action() {
+    assert_eq!(bundled_spec("cursor").resume_action("abc", Some("/work")), None);
+}
+
+#[test]
+fn line_is_the_paste_the_cli_prints_and_the_dashboard_copies() {
+    let spec = with_command("mytool --resume {session_id}");
+    let with = spec.resume_action("abc", Some("/work/my app")).unwrap();
+    assert_eq!(with.line(), "cd '/work/my app' && mytool --resume abc");
+    assert_eq!(with.line(), with.paste);
+    assert_eq!(spec.resume_action("abc", None).unwrap().line(), "mytool --resume abc");
+}

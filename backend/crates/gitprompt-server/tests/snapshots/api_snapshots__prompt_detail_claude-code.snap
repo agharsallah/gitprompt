@@ -95,7 +95,8 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
     "last_event_at": "2026-01-05T09:00:21.000000+00:00",
     "resume": {
       "command": "claude --resume abc123",
-      "cwd": "/work/app"
+      "cwd": "/work/app",
+      "paste": "cd /work/app && claude --resume abc123"
     }
   },
   "commits": {},

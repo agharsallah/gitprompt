@@ -11,6 +11,10 @@
 	import InlineRename from '#lib/ui/InlineRename.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import { saveSessionName } from '#lib/sessions/rename.ts';
+	import { noResumeText } from '#lib/sessions/resume.ts';
+	import ResumeCommand from '#lib/sessions/ResumeCommand.svelte';
+	import { endedOutcome } from '#lib/sessions/running.ts';
+	import RunningNow from '#lib/sessions/RunningNow.svelte';
 	import Chapter from '#lib/stories/Chapter.svelte';
 	import MarkerGroup from '#lib/stories/MarkerGroup.svelte';
 	import OutcomeMix from '#lib/stories/OutcomeMix.svelte';
@@ -31,6 +35,8 @@
 			? (Date.parse(story.ended_at) - Date.parse(story.started_at)) / 1000
 			: null
 	);
+	/** The tool is done with the session's latest turn and waits for you. */
+	const ended = $derived(endedOutcome(chapters.at(-1)?.outcome));
 	const t = $derived(story.totals);
 	const changes = $derived(diffstatText(t.diffstat));
 	const models = $derived(
@@ -73,6 +79,15 @@
 		</p>
 	{/snippet}
 </PageHeader>
+
+<section class="resume" aria-label="Pick this session up again">
+	<RunningNow lastEventAt={story.last_event_at} {ended} />
+	{#if story.resume}
+		<div class="command"><ResumeCommand resume={story.resume} /></div>
+	{:else}
+		<p class="muted">{noResumeText(story.connector?.label)}</p>
+	{/if}
+</section>
 
 <section class="summary" aria-label="The session in figures">
 	<dl class="figures">
@@ -144,6 +159,18 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
+	}
+
+	.resume {
+		display: grid;
+		justify-items: start;
+		gap: var(--space-2);
+		margin-bottom: var(--space-5);
+	}
+
+	.command {
+		justify-self: stretch;
+		max-width: var(--reading-max);
 	}
 
 	.summary {

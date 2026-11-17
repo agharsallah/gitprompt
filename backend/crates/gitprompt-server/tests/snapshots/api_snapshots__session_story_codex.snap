@@ -5,6 +5,12 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 {
   "session": "0190a1b2-0000-7000-8000-000000000001",
   "label": "Add a retry to the upload client",
+  "resume": {
+    "command": "codex resume 0190a1b2-0000-7000-8000-000000000001",
+    "cwd": "/work/app",
+    "paste": "cd /work/app && codex resume 0190a1b2-0000-7000-8000-000000000001"
+  },
+  "last_event_at": "2026-01-05T09:03:02.000000+00:00",
   "source": "codex",
   "connector": {
     "id": "codex",

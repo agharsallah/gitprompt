@@ -10,6 +10,7 @@ mod sessions;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use gitprompt_core::spec::Resume;
 use gitprompt_core::{Error, Result};
 
 use crate::Store;
@@ -101,6 +102,16 @@ pub struct Bucket {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub label: Option<String>,
+    /// Session groups: how to pick the session up again, from its tool's spec (the server fills
+    /// it); omitted when the spec has no resume command or the session's folder is unknown.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub resume: Option<Resume>,
+    /// Session groups: when the latest event or prompt of the session arrived (the server fills
+    /// it); what tells a session that is still going from one you left.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub last_event_at: Option<String>,
     pub prompts: i64,
     pub sessions: i64,
     pub api_requests: f64,

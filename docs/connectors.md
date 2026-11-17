@@ -84,7 +84,7 @@ resume:
 
 Each value is **shell-quoted** (POSIX) when filled in: left as it is if it only has letters, digits and `_ - . / : @ % + = ,`, else in single quotes with every `'` written `'\''`, so `/Users/me/My Project` becomes `'/Users/me/My Project'` and a value can never add a second command. The template itself is yours: quote around placeholders and the result is quoted twice. If the session has no value for a placeholder the template uses (no `cwd`), there is no command rather than one with a hole in it. POSIX shells only; Windows is not supported yet.
 
-The dashboard gets `session.resume` on a prompt's detail (`{command, cwd?}`, left out when there is no command); `cwd` is the folder to `cd` to first (Claude Code looks a session up in the folder it started in).
+The dashboard gets `resume` on a prompt's detail (`session.resume`), on each session of the Sessions list (the stats grouped by session) and on a session story: `{command, cwd?, paste}`, left out when there is no command. `cwd` is the folder to `cd` to first (Claude Code looks a session up in the folder it started in; the first one any event of the session carries) and is raw; `command` has its values shell-quoted; `paste` is the one line to copy, `cd <folder> && <command>` with the folder shell-quoted (just `command` without a folder). It is built in one place, `Resume::new` in `gitprompt-core`, so the dashboard and a CLI show the same text.
 
 **Verifying a template for a new tool version** (do not start an interactive session):
 

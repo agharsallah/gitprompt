@@ -5,6 +5,12 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 {
   "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
   "label": "Add a retry to the upload client",
+  "resume": {
+    "command": "copilot --resume=8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+    "cwd": "/work/app",
+    "paste": "cd /work/app && copilot --resume=8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10"
+  },
+  "last_event_at": "2026-01-05T09:04:33.000000+00:00",
   "source": "copilot-cli",
   "connector": {
     "id": "copilot-cli",

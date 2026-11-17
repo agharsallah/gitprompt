@@ -575,9 +575,14 @@ export type Resume = {
 command: string, 
 /**
  * The session's working folder (where it started): `cd` there first. Absent when no event
- * of the session said.
+ * of the session said. Raw, not quoted: for display.
  */
-cwd?: string, };
+cwd?: string, 
+/**
+ * What to paste into a terminal: `cd <folder> && <command>` with the folder shell-quoted, or
+ * just `command` without a folder. The one place that line is built.
+ */
+paste: string, };
 
 export type Rotation = { reconnects: Array<Reconnect>, 
 /**
@@ -657,6 +662,16 @@ name?: string,
  * Its default name: the title its tool reported, else what you first typed ([`crate::label`]).
  */
 label: string | null, 
+/**
+ * How to pick it up again; the server fills it from the tool's spec, omitted when there is
+ * no command for it.
+ */
+resume?: Resume, 
+/**
+ * When the latest event or prompt of the session arrived (the server fills it, omitted
+ * without): `ended_at` is when its last turn ended, this is when it last did anything.
+ */
+last_event_at?: string, 
 /**
  * The first prompt's source.
  */
@@ -773,7 +788,17 @@ name?: string,
 /**
  * Session groups: its default name (the server fills it, see `gitprompt_insights::label`).
  */
-label?: string, prompts: number, sessions: number, api_requests: number, cost_usd: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, api_time_s: number, api_errors: number, tool_calls: number, tool_failures: number, tool_time_s: number, subagent_tool_calls: number, subagents: number, files_written: number, git_commits: number, compactions: number, denials: number, rejections: number, 
+label?: string, 
+/**
+ * Session groups: how to pick the session up again, from its tool's spec (the server fills
+ * it); omitted when the spec has no resume command or the session's folder is unknown.
+ */
+resume?: Resume, 
+/**
+ * Session groups: when the latest event or prompt of the session arrived (the server fills
+ * it); what tells a session that is still going from one you left.
+ */
+last_event_at?: string, prompts: number, sessions: number, api_requests: number, cost_usd: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, api_time_s: number, api_errors: number, tool_calls: number, tool_failures: number, tool_time_s: number, subagent_tool_calls: number, subagents: number, files_written: number, git_commits: number, compactions: number, denials: number, rejections: number, 
 /**
  * Prompts whose turn has an end.
  */

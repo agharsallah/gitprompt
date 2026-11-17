@@ -38,6 +38,7 @@ impl Service {
             names.name_groups(query.group_by, query.split_by, &mut result.groups);
             if query.group_by == Some(GroupBy::Session) {
                 inner.name_sessions(&mut result.groups)?;
+                inner.present_sessions(&set, &mut result.groups)?;
             }
             Ok(Stats { group_by: query.group_by, split_by: query.split_by, aggregate: result })
         })

@@ -58,7 +58,13 @@ impl Service {
                 tool_files: spec.map_or(&none_files, |s| &s.tool_files),
             };
             let story = stories::session_story(&session, &rows, tools, &commits);
-            Ok(SessionStory { name: inner.name_of_session(&session)?, ..story })
+            let present = inner.presence_of_session(&set, &session)?;
+            Ok(SessionStory {
+                name: inner.name_of_session(&session)?,
+                resume: present.resume,
+                last_event_at: present.last_event_at,
+                ..story
+            })
         })
         .await
     }

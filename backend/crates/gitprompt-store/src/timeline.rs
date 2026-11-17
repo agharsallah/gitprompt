@@ -52,12 +52,35 @@ pub struct Opener {
     pub typed: Vec<String>,
 }
 
+/// Where a session ran and when it last did anything: what a resume command needs, and whether
+/// the session is still going.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Home {
+    /// The first prompt's source (the connector id).
+    pub source: Option<String>,
+    /// The first `cwd` any event of the session carries, else the first prompt's.
+    pub cwd: Option<String>,
+    /// When the latest event or prompt of the session was received.
+    pub last_event_at: Option<String>,
+}
+
 /// Characters of each typed text [`Store::session_openers`] returns: room to drop a slash command
 /// or a path and still fill a label.
 pub const OPENER_CHARS: usize = 400;
 
 const OPENER_TITLES: &str = "select s.value session, (select title from prompt_index where session = s.value and coalesce(title, '') <> '' \
     order by id limit 1) title from json_each(?1) s";
+
+const HOMES: &str = "select s.value session,
+  (select source from prompt_index where session = s.value order by id limit 1) source,
+  coalesce(
+    (select json_extract(fields, '$.cwd') from event where session_id = s.value and coalesce(json_extract(fields, '$.cwd'), '') <> '' order by id limit 1),
+    (select json_extract(p.fields, '$.cwd') from prompt_index i join prompt p on p.id = i.id
+       where i.session = s.value and coalesce(json_extract(p.fields, '$.cwd'), '') <> '' order by i.id limit 1)
+  ) cwd,
+  (select received_at from event where session_id = s.value order by id desc limit 1) last_event,
+  (select received_at from prompt_index where session = s.value order by id desc limit 1) last_prompt
+from json_each(?1) s";
 
 const OPENER_TEXTS: &str = "select session, text from (
   select i.session session, i.id id, substr(f.typed_text, 1, ?4) text, row_number() over (partition by i.session order by i.id) n
@@ -84,6 +107,18 @@ impl Store {
             out.entry(session).or_default().typed.push(text);
         }
         Ok(out)
+    }
+
+    /// The [`Home`] of each of these sessions, in one read; a session with no prompt has none.
+    pub fn session_homes(&self, sessions: &[String]) -> Result<BTreeMap<String, Home>> {
+        let ids = json_list(sessions)?;
+        let homes = self.db().read(|conn| {
+            decode::all(conn, HOMES, [&ids], |row| {
+                let last_event_at = text_at(row, "last_event")?.max(text_at(row, "last_prompt")?);
+                Ok((row.get::<_, String>("session")?, Home { source: text_at(row, "source")?, cwd: text_at(row, "cwd")?, last_event_at }))
+            })
+        })?;
+        Ok(homes.into_iter().filter(|(_, home)| home.source.is_some()).collect())
     }
 
     /// The prompts the filter keeps, oldest first unless `newest_first` (by `received_at`, then id).
