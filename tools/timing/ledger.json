@@ -123,11 +123,6 @@
 			"const now = Date.now();"
 		]
 	},
-	"web/src/routes/search/+page.ts": {
-		"wall-clock": [
-			"const base = { ...toQuery(filters, Date.now()), tag };"
-		]
-	},
 	"web/src/routes/sessions/+page.ts": {
 		"wall-clock": [
 			"const base = { ...toQuery(filters, Date.now()), repo: project };"
