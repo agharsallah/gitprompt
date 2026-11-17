@@ -163,6 +163,16 @@ fn print_gives_the_whole_text_of_one_match_and_nothing_else() {
 }
 
 #[test]
+fn print_says_one_prompt_matched_not_one_prompts_and_names_the_words_when_none_did() {
+    let home = seeded();
+    let one = run_plain(&home, &["find", "auth", "--project", "api", "--print", "2"]);
+    assert_eq!((one.code, one.err.as_str()), (1, "No match 2: 1 prompt matched.\n"));
+
+    let none = run_plain(&home, &["find", "kubernetes", "--print", "1"]);
+    assert_eq!((none.code, none.out.as_str(), none.err.as_str()), (1, "", "No prompts matching \"kubernetes\".\n"));
+}
+
+#[test]
 fn colour_only_on_a_terminal_and_never_with_no_color() {
     let home = seeded();
     let piped = run_in(&home, &["find", "auth"], false, false);

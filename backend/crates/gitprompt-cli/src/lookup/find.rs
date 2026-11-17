@@ -20,7 +20,7 @@ pub(crate) fn find(settings: &Settings, args: &FindArgs, io: &mut Io<'_>) -> Exi
     let wanted = args.print.map_or(args.limit, |n| n.max(args.limit));
     let mut matches = block(service.find_prompts(&q, args.project.as_deref(), wanted))??;
     if let Some(n) = args.print {
-        return print_text(&matches, n, io);
+        return print_text(&matches, n, (&q, args.project.as_deref()), io);
     }
     matches.truncate(args.limit);
     let shown = &matches;
@@ -45,11 +45,17 @@ fn nothing(q: &str, project: Option<&str>, io: &mut Io<'_>) -> Exit {
     Ok(1)
 }
 
-/// `--print N`: the whole text of match N, as typed, and nothing else, so it pipes. A terminal
-/// gets the final newline; a pipe gets the text exactly (a paste must not end in Enter).
-fn print_text(matches: &[PromptMatch], n: usize, io: &mut Io<'_>) -> Exit {
+/// `--print N`: the whole text of match N, as typed, and nothing else, so it pipes. A terminal gets
+/// the final newline; a pipe gets the text exactly (a paste must not end in Enter). `asked` is the
+/// words and the project, for saying that nothing matched.
+fn print_text(matches: &[PromptMatch], n: usize, asked: (&str, Option<&str>), io: &mut Io<'_>) -> Exit {
+    if matches.is_empty() {
+        return nothing(asked.0, asked.1, io);
+    }
     let Some(found) = n.checked_sub(1).and_then(|i| matches.get(i)) else {
-        writeln!(io.stderr, "No match {n}: {} prompts matched.", matches.len())?;
+        let count = matches.len();
+        let noun = if count == 1 { "prompt" } else { "prompts" };
+        writeln!(io.stderr, "No match {n}: {count} {noun} matched.")?;
         return Ok(1);
     };
     write!(io.stdout, "{}", found.text)?;
