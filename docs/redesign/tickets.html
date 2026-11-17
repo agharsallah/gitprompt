@@ -226,6 +226,10 @@ td a { white-space: nowrap; }
 .tk dd .wave { font-weight: 650; }
 .tk .vf { margin: 0.75rem 0 0; padding: 0.45rem 0.75rem; border-radius: 8px; background: var(--sunk); font-size: 0.86rem; }
 .tk .vf b { font-weight: 650; }
+.tk .nat { margin: 0.75rem 0 0; padding: 0.45rem 0.75rem; border-radius: 8px; border: 1px solid var(--line); border-left: 3px solid var(--accent); font-size: 0.86rem; }
+.tk .nat b { font-weight: 650; }
+.tk ul.ux { border-left: 2px solid var(--line-strong); padding-left: 1.6rem; }
+.tk ul.ux li { margin: 0.25rem 0; }
 .mini { margin: 0.7rem 0 0.2rem; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow-x: auto; }
 .mini svg { display: block; width: 100%; min-width: 520px; height: auto; }
 .mini figcaption { font-size: 0.78rem; color: var(--muted); padding: 0.3rem 0.7rem 0.45rem; border-top: 1px solid var(--line); }
@@ -260,6 +264,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <li><a href="#review"><span>··</span>Review of the first cut</a></li>
     <li><a href="#how"><span>··</span>How to read a ticket</a></li>
     <li><a href="#map"><span>··</span>The plan at a glance</a></li>
+    <li><a href="#pages"><span>··</span>Pages and charts</a></li>
     <li><a href="#p0"><span>P0</span>Groundwork<em data-prog="p0"></em></a></li>
     <li><a href="#p1"><span>P1</span>Find and resume<em data-prog="p1"></em></a></li>
     <li><a href="#p2"><span>P2</span>Explain the code<em data-prog="p2"></em></a></li>
@@ -330,6 +335,8 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <tr><td>Design</td><td>The sketch in the proposal (A1, C2…), an in-between sketch on this page (I1–I5), or a small sketch inside the ticket.</td></tr>
         <tr><td>Asks first</td><td>Approvals the project's guardrails require: a new dependency (<code>deny.toml</code>), API snapshots, a new kind of stored data.</td></tr>
         <tr><td>Do</td><td>The work, lowest crate first, then component by component.</td></tr>
+        <tr><td>UI and UX</td><td>On tickets you can see: what a row or a tile holds, the keys, the words on screen and the calm state. Written so two people would build the same thing.</td></tr>
+        <tr><td>Native</td><td>Only on the seven tickets where the desktop app can be faster or take a step away (<a href="#t11">11</a>, <a href="#t15">15</a>, <a href="#t32">32</a>, <a href="#t52">52</a>, <a href="#t56">56</a>, <a href="#t57">57</a>, <a href="#t58">58</a>): what Tauri does there, and what the browser does instead.</td></tr>
         <tr><td>Verify</td><td>The tests and commands that prove it.</td></tr>
         <tr><td>Done when</td><td>What a reviewer checks before merging: behaviour, not lines written.</td></tr>
       </tbody>
@@ -343,6 +350,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <li><b>Small parts.</b> Functions under 80 lines and complexity 15, files under 500 (Rust) or 400 (web). A new component is shown on <code>/design</code> in the ticket that adds it.</li>
     <li><b>Replace, then delete.</b> A ticket that replaces a component moves its users over. The phase's quality ticket deletes what has no user left; nothing lives on as a wrapper.</li>
     <li><b>Count the new action.</b> A new copy, open or command calls <code>track()</code> with a name added to the closed list from <a href="#t01">01</a>, so each "It worked if" has a number.</li>
+    <li><b>Native only where it pays.</b> A Tauri feature is added when it makes something faster or removes a step, never for looks. The decision is a pure function in <code>gitprompt-tauri</code>; <code>backend/apps/desktop</code> only draws. The page reaches it through <code>web/src/lib/platform/</code> (<a href="#t11">11</a>), which also answers in the browser, so the web build never changes. A new plugin asks first, and idle CPU with the window hidden stays at the baseline.</li>
     <li><b>No silencing.</b> No <code>eslint-disable</code>, <code>@ts-ignore</code> or <code>any</code>; no new entry in <code>COMPLEX</code>; no line added to the timing ledger.</li>
     <li><b>Nothing is lost.</b> Every ticket that moves a feature keeps it reachable (<a href="index.html#keep">§08 checklist</a>). Old URLs keep working or redirect.</li>
   </ul>
@@ -381,6 +389,66 @@ figure.mini { margin-left: 0; margin-right: 0; }
 </section>
 
 <!-- P0 -->
+<section id="pages">
+  <div class="prose">
+    <h2>Pages, and the charts we already have</h2>
+    <p class="sub">Two checks before any ticket starts. Every page of the finished app has a design and the tickets that build it. And every chart that works today has a place in the new app, where it answers a question instead of filling a panel. No ticket draws a new kind of chart: the seven in <code>web/src/lib/ui/charts/</code> are enough.</p>
+  </div>
+  <h3>Every page, its design and its tickets</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Page</th><th>Why you open it</th><th>Design</th><th>Built by</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td>Overview, first screen</td><td>What needs you now</td><td><a href="index.html#s-a1">A1</a></td><td><a href="#t20">20</a> <a href="#t21">21</a> <a href="#t22">22</a> <a href="#t25">25</a> <a href="#t26">26</a> <a href="#t27">27</a></td><td>Pick up, Worth a look, five figures, the week strip.</td></tr>
+        <tr><td>Overview, tabs</td><td>How you work, in five tabs</td><td><a href="index.html#s-a2">A2</a></td><td><a href="#t28">28</a> <a href="#t53">53</a> <a href="#t54">54</a> <a href="#t55">55</a></td><td>Today's 14 panels regrouped, plus hours, run lengths, the calendar and commits.</td></tr>
+        <tr><td>Possible leaks</td><td>Nothing private slipped out</td><td><a href="index.html#s-l1">L1</a></td><td><a href="#t23">23</a> <a href="#t24">24</a> <a href="#t29">29</a></td><td>A panel, a banner in the reader, a marker on the turn.</td></tr>
+        <tr><td>Projects</td><td>Where each project stands</td><td><a href="index.html#s-b1">B1</a></td><td><a href="#t51">51</a></td><td>Rows that say where you left each project, grouped by movement.</td></tr>
+        <tr><td>Project › Journey</td><td>How this project got here</td><td><a href="index.html#s-b2">B2</a> <a href="index.html#s-b3">B3</a></td><td><a href="#t46">46</a> <a href="#t47">47</a> <a href="#t48">48</a> <a href="#t49">49</a></td><td>The river, a card per stretch, the calendar strip.</td></tr>
+        <tr><td>Project › Commits</td><td>Which prompt made this commit</td><td><a href="index.html#s-b4">B4</a></td><td><a href="#t13">13</a> <a href="#t14">14</a> <a href="#t15">15</a> <a href="#t16">16</a> <a href="#t19">19</a></td><td>Every commit with its prompt; the branch as Markdown.</td></tr>
+        <tr><td>Project › Prompts, Sessions</td><td>Trace anything without leaving</td><td><a href="index.html#s-b2">B2</a></td><td><a href="#t50">50</a></td><td>The same lists as the top-level pages, scoped.</td></tr>
+        <tr><td>Sessions</td><td>Get back into a session</td><td><a href="index.html#s-c1">C1</a></td><td><a href="#t08">08</a> <a href="#t09">09</a> <a href="#t40">40</a> <a href="#t41">41</a></td><td>Rows by day, the day timeline, resume, names.</td></tr>
+        <tr><td>Session story</td><td>How a session went</td><td><a href="index.html#s-c2">C2</a></td><td><a href="#t42">42</a> <a href="#t43">43</a> <a href="#t44">44</a></td><td>The session chart, turns with notes beside them, the setup strip.</td></tr>
+        <tr><td>Prompts</td><td>Find a prompt again</td><td><a href="index.html#s-d1">D1</a></td><td><a href="#t06">06</a> <a href="#t35">35</a> <a href="#t36">36</a></td><td>The query bar and a denser list.</td></tr>
+        <tr><td>Prompt reader</td><td>What one turn did and produced</td><td><a href="index.html#s-d1">D1</a> <a href="index.html#s-d2">D2</a></td><td><a href="#t17">17</a> <a href="#t37">37</a> <a href="#t38">38</a> <a href="#t39">39</a></td><td>The turn as a story, Replay, versions as a thread.</td></tr>
+        <tr><td>⌘K palette</td><td>Find or run anything</td><td><a href="index.html#s-palette">N1</a></td><td><a href="#t04">04</a> <a href="#t05">05</a></td><td>One box on every page.</td></tr>
+        <tr><td>Connectors, Fields, Settings</td><td>Set up and check capture</td><td><a href="index.html#s-c3">C3</a> <a href="index.html#s-s1">S1</a></td><td><a href="#t01">01</a> <a href="#t02">02</a> <a href="#t03">03</a> <a href="#t11">11</a> <a href="#t30">30</a></td><td>Kept as they are. They gain the shared link style and panel states, and Settings gains Developer, notification switches and the recall shortcut.</td></tr>
+        <tr><td>Menu bar, notifications, recall</td><td>Reach you with the window closed</td><td><a href="index.html#desktop">§10</a></td><td><a href="#t11">11</a> <a href="#t30">30</a> <a href="#t31">31</a> <a href="#t32">32</a> <a href="#t56">56</a> <a href="#t57">57</a></td><td>Tray menu, native notifications, the weekly recap, the recall window.</td></tr>
+        <tr><td>Terminal</td><td>The same answers without the app</td><td><a href="index.html#s-r1">R1</a></td><td><a href="#t10">10</a> <a href="#t18">18</a> <a href="#t56">56</a></td><td><code>find</code>, <code>resume</code>, <code>why</code>, <code>open</code>.</td></tr>
+        <tr><td><code>/design</code> reference</td><td>See every part in both themes</td><td>today's page</td><td><a href="#t02">02</a> <a href="#t03">03</a> <a href="#t34">34</a> <a href="#t58">58</a></td><td>Each ticket adds the component it creates; <a href="#t58">58</a> checks that none is missing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Charts we keep, and where each one goes</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Chart today</th><th>Where it is</th><th>Where it goes</th><th>Ticket</th><th>What it gains</th></tr></thead>
+      <tbody>
+        <tr><td><code>ColumnChart</code> with streaks</td><td>Activity panel, far down the Overview</td><td>The week strip on the first screen, stacked by project</td><td><a href="#t27">27</a> <a href="#t54">54</a></td><td>A mark on the day that stands out, commit dots, a day opens its sessions.</td></tr>
+        <tr><td><code>Heatmap</code>, weekday × hour</td><td>Rhythm panel</td><td>Activity tab, under a sentence naming your focus hours</td><td><a href="#t53">53</a></td><td>Stays as it is; the sentence makes it readable at a glance.</td></tr>
+        <tr><td><code>Heatmap</code> as a calendar</td><td>Not used this way yet</td><td>Activity tab (a year), and a strip on each project's Journey</td><td><a href="#t53">53</a> <a href="#t48">48</a></td><td>The GitHub-style year: weeks as columns, a day opens its timeline.</td></tr>
+        <tr><td><code>Lanes</code></td><td>Built, but used by no page and missing from <code>/design</code></td><td>Day timeline of sessions, Replay of a turn, branch lanes on the river</td><td><a href="#t41">41</a> <a href="#t38">38</a> <a href="#t48">48</a></td><td>Its first real use: parallel work becomes visible.</td></tr>
+        <tr><td><code>Sparkline</code> in <code>StatTile</code></td><td>Key figures, project rows</td><td>The five figures with their change, the small river on Projects</td><td><a href="#t25">25</a> <a href="#t51">51</a></td><td>Each tile is a link; the change is said in words.</td></tr>
+        <tr><td><code>TurnStrip</code></td><td>Session cards</td><td>The fingerprint on session rows, in ⌘K and on project rows; the session chart</td><td><a href="#t34">34</a> <a href="#t40">40</a> <a href="#t42">42</a></td><td>One component in three sizes; the old one is deleted in <a href="#t45">45</a>.</td></tr>
+        <tr><td><code>TurnTimeline</code></td><td>Reader, inside a tab</td><td>Step 2 of the reader, then replaced by Replay</td><td><a href="#t37">37</a> <a href="#t38">38</a></td><td>Moves from evidence to the middle of the story.</td></tr>
+        <tr><td><code>SegmentedBar</code>, <code>OutcomeMix</code>, <code>ToolMix</code></td><td>Performance, spend and story panels</td><td>Stretch cards, session rows, "What came of it"</td><td><a href="#t49">49</a> <a href="#t40">40</a> <a href="#t17">17</a></td><td>One outcome colour table for all of them (<a href="#t34">34</a>).</td></tr>
+        <tr><td><code>BarList</code></td><td>Eight Overview panels</td><td>The same panels behind tabs; money by project first</td><td><a href="#t28">28</a> <a href="#t55">55</a></td><td>Every bar opens Prompts with the matching query-bar token (<a href="#t35">35</a>).</td></tr>
+        <tr><td><code>Meter</code></td><td>Delegation and cache share</td><td>Stays; also the share of commits that followed a prompt</td><td><a href="#t54">54</a></td><td>One ratio, one meter.</td></tr>
+        <tr><td><code>Evolution</code></td><td>Project story</td><td>The river and the stretch cards</td><td><a href="#t48">48</a> <a href="#t49">49</a></td><td>Prompts and cost per phase become the shape of the project.</td></tr>
+        <tr><td><code>WordDiff</code></td><td>Versions panel</td><td>The versions thread in the reader</td><td><a href="#t39">39</a></td><td>Only the changed words, with "Use this wording".</td></tr>
+        <tr><td><code>Heartbeat</code></td><td>Connectors page</td><td>Stays there; its state also feeds the tray's recording line</td><td><a href="#t32">32</a></td><td>"Is anything arriving?" answered from the menu bar.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Rules for a chart</h3>
+  <ul class="tight prose">
+    <li><b>A question, then a sentence, then the chart.</b> The title is the question, one sentence states the answer from the numbers, and the chart is the proof.</li>
+    <li><b>Every mark is a doorway.</b> A bar, a square or a tick opens the prompts, the day or the session behind it, through <code>links.ts</code>, and the click is counted (<a href="#t01">01</a>).</li>
+    <li><b>One colour, one meaning.</b> Outcome colours come from one module (<a href="#t34">34</a>); a project keeps its colour on every page.</li>
+    <li><b>What exists is kept.</b> The table view, keyboard readout and tooltips of today's charts stay; a moved chart loses nothing.</li>
+    <li><b>Shown where the decision is.</b> The week belongs on the first screen, the year on Activity, a turn's timeline inside the turn. A chart nobody opens (usage counts) is a candidate for removal after M6.</li>
+  </ul>
+</section>
+
 <section id="p0" data-phase="p0" data-title="Groundwork">
   <div class="prose">
     <h2><span class="n">P0</span>Groundwork <span class="prog" data-prog="p0"></span></h2>
@@ -582,7 +650,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
   </div>
 
   <div class="tickets">
-    <article class="tk" id="t04" data-area="be" data-size="M" data-pri="core" data-needs="">
+    <article class="tk" id="t04" data-area="be" data-size="M" data-pri="core" data-needs="" data-status="done">
       <details><summary><span class="tt">Find API: one search over prompts, sessions and projects</span><span class="goal">One request returns the best matches of each kind, grouped, with finished prompts ranked first.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1 ⌘K</a>, I1</dd><dt>Asks first</dt><dd>API snapshot.</dd></dl>
@@ -596,10 +664,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <h5>Builds on</h5><p><code>gitprompt-server/src/routes/stories.rs</code> (<code>/api/search</code>), <code>service/stories.rs</code>, <code>gitprompt-insights/src/{indexer,snippets}.rs</code>.</p>
         <p class="vf"><b>Verify</b> ranking unit tests (finished before failed at equal match; recency breaks ties) · snapshot over the conformance fixtures · the bench number written in the pull request.</p>
         <p class="dod"><b>Done when</b> the snapshot is reviewed and a query for a word you know returns the prompt you expect first on your own database.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> <code>GET /api/find?q=&amp;kinds=&amp;limit=</code> returns <code>FindResults { prompts, sessions, projects }</code>; each hit has a target (prompt id, session id, project id as the story route takes it), a title, a marked snippet, when, and the outcome for prompts. Ranking lives in <code>gitprompt-insights/src/find.rs</code>, pure: a whole-query match, then a phrase, then every word; finished prompts first; then newest; at most 5 per kind. Each kind is one function. Sessions match through <code>session_text</code>, which also matches the names from <a href="#t09">09</a>. An empty <code>q</code> returns the most recent of each kind; a bad <code>kinds</code> or <code>limit</code> is a 422. Two snapshots read. <code>just perf</code>: find p95 24.7 ms, against a 50 ms budget. Note: candidates come from the 200 most recent matches of each kind.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t05" data-area="web" data-size="M" data-pri="core" data-needs="t04 t02">
+    <article class="tk" id="t05" data-area="web" data-size="M" data-pri="core" data-needs="t04 t02" data-status="done">
       <details><summary><span class="tt">⌘K palette and the command registry</span><span class="goal">One box, on every page, finds any object, or after "&gt;" runs any command that a feature registered.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a> (states: empty, searching, commands), I1</dd></dl>
@@ -611,12 +680,20 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>States: empty query shows recent items, no match says so and offers the Prompts page with the words.</li>
           <li>Mounted once in <code>routes/+layout.svelte</code>; ⌘K or Ctrl K; <code>track('palette.open')</code>, <code>track('palette.copy')</code>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Empty, it opens on what you most likely want: your last sessions first, then the last things you opened. ⌘K then ↵ gets you back into yesterday's work.</li>
+          <li>One line per result: glyph, name or first line, project, when; the matched words in bold. The footer shows the keys for the highlighted row (↵ open · ⌘↵ copy), so shortcuts are learned in place.</li>
+          <li>Prefixes narrow without a mode switch: <code>&gt;</code> commands, <code>#</code> a project, <code>@</code> a session. A pasted hash goes straight to commits once <a href="#t15">15</a> lands.</li>
+          <li>Copy closes the palette and confirms in a toast with the size ("Copied · 1,240 characters").</li>
+        </ul>
         <p class="vf"><b>Verify</b> a keyboard-only component test (open, type, move, copy, close) · axe check on the dialog · unit test for the registry.</p>
         <p class="dod"><b>Done when</b> you can find and copy a prompt without the mouse, and three commands are registered by their own features.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> ⌘K or Ctrl K opens <code>lib/palette/</code> from any page. It is loaded on first use, in its own chunk. It is a native modal <code>&lt;dialog&gt;</code>: ↑ ↓ ↵ Esc, results grouped by kind, matched words in bold as text and never as markup. The prefixes <code>&gt;</code>, <code>#</code> and <code>@</code> narrow the results. Each kind's actions are data (<code>registerAction(kind, {key, label, run})</code> in <code>actions.ts</code>), and the footer lists them. Commands come from <code>registerCommand</code> in any <code>*.commands.ts</code> under <code>lib/</code>, loaded by <code>features.ts</code>. Registered: Go to (6 pages), Toggle theme, Connect a tool, and Export this view while a page can export. ⌘↵ copies a prompt's full text, with a toast ("Copied · 1,240 characters"; the first toast in the dashboard, <code>lib/ui/toast.svelte.ts</code>). Empty, it shows recent sessions, prompts and projects. With no match, a row offers the Prompts page with the words. Tracked: <code>palette.open</code> and <code>palette.copy</code>. Tests: a keyboard-only flow, the registry, and ARIA structure checks (the repo has no axe or DOM library). Notes: "last things you opened" is not recorded yet, so the empty state shows only recent items. The Prompts page shows text results from <a href="#t06">06</a>. Not yet clicked through in a browser.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t06" data-area="web" data-size="M" data-needs="t05 t00">
+    <article class="tk" id="t06" data-area="web" data-size="M" data-needs="t05 t00" data-status="done">
       <details><summary><span class="tt">Sidebar far to near, /search folded in, copy on every row</span><span class="goal">The sidebar matches the zoom and says what each page is for, nothing from /search is lost, and any prompt is one click from the clipboard.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#navigation">§04</a>, "Why you open it" lines in <a href="index.html#pages">§05</a>, I1 (order per D10)</dd></dl>
@@ -628,12 +705,19 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>PromptRow.svelte</code> gets a <code>CopyButton</code> (full text, injected context excluded); <code>track('copy.prompt')</code>.</li>
           <li>Saved views (<code>settings/views.ts</code>) that point at <code>/search</code> keep opening.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Collapsed, the sidebar keeps the icons and shows each purpose line as a tooltip. The page you are on is marked by weight and a bar, not by colour alone.</li>
+          <li>Copy appears on hover and on keyboard focus, and is always visible on touch. It turns into a check with "Copied" for a moment; no toast for something this frequent.</li>
+          <li>An old <code>/search</code> bookmark lands on Prompts with a one-time line: "Search now lives here".</li>
+        </ul>
         <p class="vf"><b>Verify</b> a route test that visits every route of the old sidebar · a table test: each old <code>/search</code> URL gives the same results on <code>/prompts</code> · a saved-view test.</p>
         <p class="dod"><b>Done when</b> every old route works or redirects with the same results, and copy works from a row without opening the reader.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> The sidebar reads Overview, Projects, Sessions, Prompts, each with its purpose line from <code>lib/layout/nav.ts</code> (<code>PURPOSES</code>). The four page headers show the same lines through a new <code>purpose</code> prop on <code>PageHeader</code>. The current page is marked by weight and the accent bar. Search became a Find button (⌘K, or Ctrl K off a Mac) that opens the palette. <code>/search</code> is now only a 307 redirect to <code>/prompts</code>, carrying <code>q</code>, <code>repo</code>, <code>tag</code>, every <code>origin</code> and the effective range (/search used the <code>default_range</code> setting). With words set, Prompts shows the search hits in context, still under the quick filters. An old link shows "Search now lives here" once. A saved /search view moves into the Prompts view unless Prompts keeps its own. Every prompt row and hit has a copy button (the typed text): shown on hover or focus, always on touch, and it turns into "Copied" without a toast. <code>track('copy.prompt')</code>. Tests: every old sidebar route, 15 old /search URLs mapped, and the saved-view migration. Notes: the page-usage name <code>search</code> is gone with the page. Not yet clicked through in a browser.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t07" data-area="be" data-size="S" data-pri="core" data-needs="t00">
+    <article class="tk" id="t07" data-area="be" data-size="S" data-pri="core" data-needs="t00" data-status="done">
       <details><summary><span class="tt">Resume command as connector data</span><span class="goal">Each tool's spec says how to resume one of its sessions, so a new tool or a changed flag is a data edit.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-c2">C2</a> resume table (D9)</dd><dt>Asks first</dt><dd>API snapshots (session summaries change).</dd></dl>
@@ -646,10 +730,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> spec tests: expansion, a bad placeholder, a folder with a space or a quote · snapshot with a command for the Claude Code fixture and none for a spec without one · each command run once by hand against the real tool.</p>
         <p class="dod"><b>Done when</b> the four templates are verified (or left out) with the tool version noted in the pull request.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> Specs take <code>resume: { command, verified }</code> with the placeholders <code>{session_id}</code> and <code>{cwd}</code>. Validation rejects unknown, empty or unbalanced placeholders. Values are POSIX single-quoted, and a missing value gives no command rather than one with a hole in it. Session data carries <code>resume?: { command, cwd? }</code>. Verified on 2026-11-16 with the tools' own <code>--help</code>: Claude Code 2.1.326 <code>claude --resume {session_id}</code>, Codex 0.167.0 <code>codex resume {session_id}</code>, Copilot CLI 1.0.112 <code>copilot --resume={session_id}</code>. Cursor is left out, because nothing confirms its hook id is the id the CLI resumes. Documented in <code>docs/connectors.md</code>. Note: the resume action is on the session in prompt detail; <a href="#t08">08</a> brings it to the Sessions list.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t08" data-area="web" data-size="M" data-pri="core" data-needs="t07">
+    <article class="tk" id="t08" data-area="web" data-size="M" data-pri="core" data-needs="t07" data-status="done">
       <details><summary><span class="tt">Resume and "running now" in Sessions</span><span class="goal">Pick a session up from its row or story in one click, and see which sessions are still running.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-c2">C2</a> (Ready, Running now, no telemetry), I1, sketch below</dd></dl>
@@ -677,6 +762,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <p class="vf"><b>Verify</b> unit tests for <code>running.ts</code> · a component test with fake timers that flips a session from running to left · copy tested on row, story and palette.</p>
         <p class="dod"><b>Done when</b> the copied command, pasted in a terminal, reopens the session for each verified tool.</p>
         <p class="warn">Open in Terminal is not part of this ticket: it waits for D4.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> <code>Resume</code> moved to core and gained <code>paste</code>, the one line to copy: <code>cd &lt;quoted folder&gt; &amp;&amp; &lt;command&gt;</code>. Session groups (<code>/api/stats?group_by=session</code>) and the session story carry <code>resume?</code> and <code>last_event_at?</code>, from one batched read (<code>Store::session_homes</code>). The folder is the session's first <code>cwd</code>. <code>ResumeCommand.svelte</code>: a compact copy button on the card, and the block under the story header, or "Cursor has no resume command". <code>running.ts</code> (pure) says running or left from the last event age (the 10-minute active window), the latest turn's end and the live stream state. A fake-timer test flips it. ⌥↵ in the palette copies the same line (<code>sessions/resume.commands.ts</code>). <code>track('copy.resume')</code>. Snapshots read, including a new <code>stats_by_session</code>. Note: the copied commands were not run by hand again after <a href="#t07">07</a>.</p>
       </div></details>
     </article>
 
@@ -690,7 +776,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       <p class="stop"><b>Stop if</b> ranking misses: fix <a href="#t04">04</a> before the CLI (<a href="#t10">10</a>) and recall (<a href="#t11">11</a>) build on the same query.</p>
     </div>
 
-    <article class="tk" id="t09" data-area="be web" data-size="M" data-needs="">
+    <article class="tk" id="t09" data-area="be web" data-size="M" data-needs="" data-status="done">
       <details><summary><span class="tt">Session names you can edit</span><span class="goal">Sessions carry a short readable name, and you can rename one, so the list and ⌘K read like your own notes.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-c1">C1</a> row titles, I1</dd><dt>Asks first</dt><dd>API snapshots.</dd></dl>
@@ -701,12 +787,19 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>server</b>: <code>PUT</code> and <code>DELETE /api/names/session/{id}</code>; session summaries carry <code>name</code> (yours) and <code>label</code> (default). <code>/api/find</code> matches both.</li>
           <li><b>web</b>: <code>lib/ui/InlineRename.svelte</code> (Enter saves, Esc cancels, optimistic with rollback), used on the card and the story header, and by chapters later.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A suggested name is shown muted; a name you typed is shown in full weight, so you can tell which sessions you have labelled.</li>
+          <li>Rename by clicking the name or pressing F2 on a focused row. Saving an empty name goes back to the suggestion.</li>
+          <li>The name is the same everywhere at once: list, story header, ⌘K, the tray and <code>gitprompt resume</code>.</li>
+        </ul>
         <p class="vf"><b>Verify</b> label unit tests (slash command first, a path first, an empty prompt) · store test across a reindex · component test for save, cancel and a failed save.</p>
         <p class="dod"><b>Done when</b> a rename survives <code>gitprompt reindex</code> and shows on the card, the story and in ⌘K.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> A durable <code>names(kind, id, name)</code> table, kept by <code>gitprompt reindex</code> (a CLI test runs it). Names are trimmed, at most 80 characters, with no control characters. <code>PUT</code> and <code>DELETE /api/names/session/{id}</code> need the <code>X-GitPrompt</code> header. The default label (<code>gitprompt-insights/src/label.rs</code>) is the title the tool reported, else the first typed prompt without leading slash commands or paths, cut at 60 characters on a word. Session groups and the session story carry <code>name?</code> and <code>label</code>; the story's old <code>title</code> is gone. <code>lib/ui/InlineRename.svelte</code> is generic, with its state in <code>inlineRename.svelte.ts</code>: Enter saves, Esc cancels, optimistic with rollback. It is on the card, the story header and <code>/design</code>. <code>/api/find</code> matches a session on its name, its label or the tool's title, and calls it by its name. Notes: exports title a session by its name, else its label. Names of deleted sessions stay behind as harmless orphans.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t10" data-area="cli" data-size="M" data-needs="t04 t07">
+    <article class="tk" id="t10" data-area="cli" data-size="M" data-needs="t04 t07" data-status="done">
       <details><summary><span class="tt">gitprompt find and gitprompt resume</span><span class="goal">Find a past prompt or the command to resume a session without leaving the terminal.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-r1">R1</a></dd></dl>
@@ -717,13 +810,20 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>find</code> prints numbered matches (when, project, first line); <code>--json</code> for scripts; piping to the clipboard is documented. No clipboard crate.</li>
           <li><code>resume</code> prints <code>cd … &amp;&amp; command</code> and never runs it (D4).</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Output is made for a terminal: aligned columns, relative times, colour only on a terminal and never with <code>NO_COLOR</code>. Exit code 0 when something matched, 1 when nothing did.</li>
+          <li><code>gitprompt find</code> with no words lists the latest prompts. <code>gitprompt find auth --print 2</code> prints the full text of match 2, ready to pipe.</li>
+          <li><code>--help</code> shows three real lines to copy, such as <code>gitprompt resume --last | pbcopy</code>.</li>
+        </ul>
         <h5>Builds on</h5><p><code>commands.rs</code> tests with an in-memory store and injected io.</p>
         <p class="vf"><b>Verify</b> command tests on fixtures: match, no match, <code>--last</code>, a name that matches two sessions, a tool without a template · exit codes documented and tested.</p>
         <p class="dod"><b>Done when</b> both commands are in the README and <code>gitprompt resume --last</code> prints the same command the dashboard copies.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> <code>gitprompt find [words] [--project] [--limit 1..100] [--print N] [--json]</code> and <code>gitprompt resume &lt;id|name&gt; | --last [--json]</code> call the server's services: <code>find_prompts</code> shares the palette's ranking. <code>resume_session</code> gives the same <code>Resume::line()</code> as the Sessions list and story. Printing is in <code>gitprompt-cli/src/print.rs</code>, for <a href="#t18">18</a>: aligned columns and relative times from an injected clock. Colour appears only on a terminal, never with <code>NO_COLOR</code> or <code>TERM=dumb</code>. <code>--print</code> adds no final newline on a pipe. Exit 0 on a match, 1 for nothing, an ambiguous name, a tool without a template or no database, and 2 for usage. Resume never runs anything. In the README, with clipboard lines for each OS. 20 command tests. Note: a name is resolved through the palette's session search, and an exact title wins over partial matches.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t11" data-area="desk" data-size="M" data-needs="t05">
+    <article class="tk" id="t11" data-area="desk" data-size="M" data-needs="t05" data-status="partial">
       <details><summary><span class="tt">Recall shortcut on desktop</span><span class="goal">From any app a shortcut opens a small find window; Enter copies the prompt and the window goes away.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#desktop">§10</a> recall shortcut, <a href="index.html#s-r1">R1</a></dd><dt>Asks first</dt><dd><code>tauri-plugin-global-shortcut</code>: a new dependency (<code>deny.toml</code>) and a Tauri capability.</dd></dl>
@@ -734,8 +834,10 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Settings › General: the shortcut field; a conflict with another app is shown, never a crash.</li>
         </ul>
         <h5>Builds on</h5><p><code>backend/apps/desktop/src/{main,window}.rs</code>, the palette from <a href="#t05">05</a>.</p>
+        <p class="nat"><b>Native</b> The recall window is a panel, not a second app window: always on top, absent from the Dock and the app switcher, opened on the screen that has the pointer, hidden on blur. It is built on first use and then kept hidden, so the second opening shows in under 100 ms. This ticket also adds the one bridge every later ticket uses, <code>web/src/lib/platform/</code>: <code>platform.hideWindow()</code>, <code>saveFile()</code>, <code>onNavigate()</code>, <code>onWindowVisible()</code>, each with a browser answer (nothing, a download, nothing, <code>visibilitychange</code>). No component reads <code>window.__TAURI__</code> itself; a guard test like <code>links.guard.test.ts</code> enforces it.</p>
         <p class="vf"><b>Verify</b> a unit test for the shortcut parsing and the conflict path · by hand on macOS: main window closed, shortcut, type, Enter, paste elsewhere · idle CPU in the quality dashboard's performance report unchanged.</p>
         <p class="dod"><b>Done when</b> recall works with the main window closed and costs nothing while unused.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> <code>tauri-plugin-global-shortcut</code> 2.4 (approved). Two <code>deny.toml</code> skips are needed for its <code>global-hotkey</code> (<code>keyboard-types</code> 0.7, <code>windows-sys</code> 0.59); <code>rules.rs</code> is unchanged. The shortcut <code>CmdOrCtrl+Alt+P</code> (⌥⌘P) is the <code>recall_shortcut</code> preference, validated in core (<code>gitprompt-core/src/shortcut.rs</code>), with a 422 for a bad value. <code>apps/desktop/src/recall/</code> registers it in Rust; the web view gets no <code>global-shortcut</code> permission. The window is built on first use at <code>/?recall=1</code> and kept hidden: frameless, always on top, placed on the screen with the pointer, hidden on blur. There, the layout renders only the palette in <code>mode="recall"</code> (<code>palette/mode.ts</code>): prompts only, ↵ copies, then the window hides and the app gives focus back. Settings › General records a new shortcut; one another app holds is refused and the old one keeps working. <code>web/src/lib/platform/</code> has <code>hideWindow</code>, <code>saveFile</code>, <code>onNavigate</code> and <code>onWindowVisible</code>, each with a browser answer; <code>platform.guard.test.ts</code> stops any other file reaching <code>__TAURI__</code>. Nothing polls while unused. Notes: on macOS it is a normal window, not an NSPanel, so it shares the Dock icon and does not show over full-screen apps. <code>saveFile</code> on desktop is still the browser download. <b>Not yet checked by hand on macOS</b>: the shortcut with the main window closed, paste in the previous app, a conflict in Settings, idle CPU, and the 100 ms reopening.</p>
       </div></details>
     </article>
 
@@ -874,10 +976,10 @@ figure.mini { margin-left: 0; margin-right: 0; }
       <p class="stop"><b>Stop if</b> accuracy is below that: the Commits tab, <code>why</code> and the pull request block would all repeat the error. Fix the rule first; 16 can continue against the fixture meanwhile.</p>
     </div>
 
-    <article class="tk" id="t15" data-area="be" data-size="S" data-needs="t13">
+    <article class="tk" id="t15" data-area="be desk" data-size="S" data-needs="t13">
       <details><summary><span class="tt">A commit by its hash, on the remote, and in Find</span><span class="goal">A hash from anywhere (the terminal, ⌘K, a link) finds its trace, and opens on GitHub, GitLab or Bitbucket when there is a remote.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a> commits in results, <a href="index.html#s-b4">B4</a> remote link</dd><dt>Asks first</dt><dd>API snapshots.</dd></dl>
+        <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a> commits in results, <a href="index.html#s-b4">B4</a> remote link</dd><dt>Asks first</dt><dd>API snapshots. <code>tauri-plugin-opener</code>: a new dependency (<code>deny.toml</code>) and a capability.</dd></dl>
         <h5>Do</h5>
         <ul>
           <li><b>core</b> <code>git.rs</code>: <code>commit_url(remote, hash)</code> for GitHub, GitLab and Bitbucket remotes (https and ssh forms); pure, from the remote string.</li>
@@ -885,6 +987,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>A <code>commits</code> kind in <code>/api/find</code>: one function added to <a href="#t04">04</a>'s list, matching subject and hash.</li>
           <li>Only if G2 measured the read over 100 ms: a rebuildable <code>commit_prompt</code> table in the store's index.</li>
         </ul>
+        <p class="nat"><b>Native</b> The window loads the dashboard from the daemon, so today a link to GitHub would replace the dashboard inside the app window, with no way back. One <code>on_navigation</code> rule in <code>backend/apps/desktop/src/window.rs</code>: the daemon's own origin stays in the window, every other URL opens in the default browser. The decision is a pure function in <code>gitprompt-tauri</code> (table test: daemon URL, another port, https, a <code>javascript:</code> URL refused). It covers every external link in the app at once; the web code changes nothing.</p>
         <p class="vf"><b>Verify</b> table test for <code>commit_url</code> (each host, both URL forms, an unknown host gives none) · route tests: full hash, prefix, ambiguous, unknown · find snapshot with a commit hit.</p>
         <p class="dod"><b>Done when</b> ⌘K finds a commit by the first words of its subject and by seven characters of its hash.</p>
       </div></details>
@@ -901,6 +1004,12 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Anchors <code>#commit-&lt;hash&gt;</code>, so a commit from ⌘K opens its row. The hash links to the remote when <a href="#t15">15</a> gives a URL.</li>
           <li><code>track('tab.project.commits')</code>, <code>track('commit.open.prompt')</code>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The tab opens on one sentence: "212 commits · 187 followed a prompt · 25 by hand". Each part filters the table.</li>
+          <li>A row reads as cause and effect: hash, subject, lines changed, then the prompt's first line under it with its outcome glyph. Commits made by hand are muted, not hidden; "Only from prompts" hides them.</li>
+          <li>↑ ↓ move, ↵ opens the prompt, ⌘↵ opens the commit on the remote.</li>
+        </ul>
         <p class="vf"><b>Verify</b> component tests: grouping, search, the three row kinds · a route test: the tab survives reload and back · <code>PanelState</code> for empty and "not a git repository".</p>
         <p class="dod"><b>Done when</b> from any commit row you reach its prompt in one click, and a palette commit result lands on its row.</p>
       </div></details>
@@ -915,6 +1024,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>lib/prompts/WhatCameOfIt.svelte</code> from the data <code>GitPanel</code> and <code>TurnFacts</code> already read: files written, lines added and removed, commits after (to their row in the Commits tab, or the remote), cost.</li>
           <li>Placed after the answer in <code>PromptDetail.svelte</code>; <code>GitPanel</code> stays as the Repository tab. <a href="#t37">37</a> moves it into the story order without changing it.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>It leads with one sentence: "Wrote 6 files (+212 −40), 2 commits, $1.84". The five files that changed most follow, then "and 7 more".</li>
+          <li>A turn that produced nothing says so ("Nothing was written or committed"): for a failed turn that is the answer you came for.</li>
+        </ul>
         <p class="vf"><b>Verify</b> component tests: a turn with commits, one without ("No commit followed"), a tool that reports no cost.</p>
         <p class="dod"><b>Done when</b> a commit in the reader opens its row on the project's Commits tab.</p>
       </div></details>
@@ -928,6 +1042,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <ul>
           <li><code>Why { commit, --json }</code> over the service from <a href="#t15">15</a>: prints when, the session name, the prompt's first lines and a dashboard link (a deep link after <a href="#t56">56</a>). <code>HEAD</code> and other revisions resolve through git in the current folder.</li>
           <li>"Made by hand" and "likely" are said in words; an ambiguous prefix lists the candidates; outside a repository it says so.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The first line is the verdict, so it reads in a glance and in a script: <code>a1b2c3d ← "add retry to the uploader" · session Rust switch · 12 Nov</code>.</li>
+          <li>It sits next to git: the help shows the alias <code>git config alias.why '!gitprompt why'</code>, so <code>git why HEAD~2</code> works.</li>
         </ul>
         <p class="vf"><b>Verify</b> command tests: traced, likely, by hand, unknown, ambiguous, not a repository.</p>
         <p class="dod"><b>Done when</b> <code>gitprompt why HEAD</code> in this repository names the prompt behind the last commit.</p>
@@ -1113,6 +1232,12 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Added to the stats wire type with its <code>previous</code>.</li>
           <li>One source for the attention feed: the costliest redone turn, with "open the turn".</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The figure reads "$14.20 and 1 h 12 min redone". Its tooltip splits it into failed, interrupted and reworded.</li>
+          <li>It is amber, never red, and worded as cost: the point is waste to remove, not a score. A week with none says "Nothing redone".</li>
+          <li>A click opens Prompts on exactly those turns, costliest first.</li>
+        </ul>
         <p class="vf"><b>Verify</b> unit tests: a turn that failed and was then reworded counts once; an interrupted turn you resumed counts; a tool without cost shows time only · snapshots.</p>
         <p class="dod"><b>Done when</b> the figure for your last week, checked against five turns you remember redoing, is believable.</p>
       </div></details>
@@ -1143,6 +1268,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>server</b>: <code>GET /api/leaks?range=</code>, <code>PUT /api/leaks/{id}</code>; Hide reuses <code>POST /api/prompts/{id}/redact</code>. The leak count joins the stats wire type.</li>
           <li>One source for the attention feed: open findings, first in the order, with "hide values".</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Hide values asks once, showing what will be replaced and where, because it rewrites stored text. Not sensitive is one click and can be undone from "Dismissed · 3" in the leaks panel.</li>
+          <li>A finding you already handled never comes back for the same value.</li>
+        </ul>
         <p class="vf"><b>Verify</b> store test across a reindex · route tests for both states and an unknown id · snapshots with masked values only.</p>
         <p class="dod"><b>Done when</b> a dismissed finding stays dismissed after <code>gitprompt reindex</code>, and a hidden one is masked in the reader's API answer.</p>
       </div></details>
@@ -1168,6 +1298,12 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>lib/ui/StoryHeader.svelte</code> from <code>PageHeader</code> and <code>StatTile</code>: headline, totals line, figures.</li>
           <li><code>insights/panels/KeyFigures.svelte</code>: redone work, agent working time, spend with top project, commits after prompts, possible leaks; each with its change and a link to its prompts. Typical turn and Finished move into the Agentic work group.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The sentence appears only when something stands out; an ordinary week shows the totals line alone. Example: "Spend doubled this week, mostly gitprompt on Thursday".</li>
+          <li>Each figure tile: the value, the change in words ("+18% vs last week"), the existing <code>Sparkline</code> over the range. The whole tile is the link.</li>
+          <li>A figure no connected tool reports says "not reported" and which tool could, never 0.</li>
+        </ul>
         <p class="vf"><b>Verify</b> <code>headline.ts</code> tests: each figure standing out, two standing out (the larger change wins), nothing standing out, no "before" · component test for a tool without cost.</p>
         <p class="dod"><b>Done when</b> in a week like the last one there is no sentence, and in a week where redone work doubled the sentence says so.</p>
       </div></details>
@@ -1185,6 +1321,12 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>routes/+page.svelte</code> in A1 order: header, the two lists, key figures, week strip, then today's panels. First run keeps <code>SetupSteps</code>.</li>
           <li><code>track('pickup.copy')</code>, <code>track('worth.act.&lt;kind&gt;')</code>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A Pick up row: glyph, session name, project, how it stopped ("left 14 h ago, mid-turn"), Copy resume. At most three, then "All sessions ›".</li>
+          <li>A Worth a look row is one sentence and one button. Nothing is ranked by a score you cannot see: leaks, then redone work, then repeated prompts.</li>
+          <li>The calm state is a real state: "Nothing needs you" with last week in one line, not an empty box.</li>
+        </ul>
         <p class="vf"><b>Verify</b> component tests for the four states and for an unknown kind · a page test at 1280×800: both lists start above the fold · each action tested to do what it says.</p>
         <p class="dod"><b>Done when</b> the first thing on the Overview in the morning is yesterday's sessions with their commands.</p>
       </div></details>
@@ -1193,11 +1335,21 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <article class="tk" id="t27" data-area="web" data-size="S" data-needs="">
       <details><summary><span class="tt">Week strip and folded filters</span><span class="goal">The week reads as one short strip by project, and the filters take one button instead of a row.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a> week strip, "Filters · 2", I3</dd></dl>
+        <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a> week strip, "Filters · 2", I3, sketch below</dd></dl>
+        <figure class="mini">
+          <svg viewBox="0 0 640 132" role="img" aria-label="The week strip. Seven columns, one per day, each stacked by project. Thursday is the tallest and carries a mark. Today is outlined. A readout for Thursday shows prompts, spend, commits and the top project."><text class="t cap" x="12" y="16">THIS WEEK, BY PROJECT</text><rect class="w-acc" x="24" y="82" width="30" height="24" rx="2"/><rect class="w-iris" x="24" y="70" width="30" height="11" rx="2"/><rect class="w-amber" x="24" y="64" width="30" height="5" rx="2"/><text class="t xs m mid" x="39" y="122">Mon</text><rect class="w-acc" x="72" y="88" width="30" height="18" rx="2"/><rect class="w-iris" x="72" y="71" width="30" height="16" rx="2"/><text class="t xs m mid" x="87" y="122">Tue</text><rect class="w-acc" x="120" y="74" width="30" height="32" rx="2"/><rect class="w-iris" x="120" y="65" width="30" height="8" rx="2"/><rect class="w-amber" x="120" y="58" width="30" height="6" rx="2"/><text class="t xs m mid" x="135" y="122">Wed</text><rect class="w-acc" x="168" y="60" width="30" height="46" rx="2"/><rect class="w-iris" x="168" y="38" width="30" height="21" rx="2"/><rect class="w-amber" x="168" y="27" width="30" height="10" rx="2"/><text class="t xs m mid" x="183" y="122">Thu</text><rect class="w-acc" x="216" y="85" width="30" height="21" rx="2"/><rect class="w-iris" x="216" y="74" width="30" height="10" rx="2"/><rect class="w-amber" x="216" y="70" width="30" height="3" rx="2"/><text class="t xs m mid" x="231" y="122">Fri</text><rect class="w-acc" x="264" y="101" width="30" height="5" rx="2"/><text class="t xs m mid" x="279" y="122">Sat</text><rect class="w-acc" x="312" y="98" width="30" height="8" rx="2"/><rect class="w-iris" x="312" y="94" width="30" height="3" rx="2"/><text class="t xs m mid" x="327" y="122">Sun</text><rect class="s-acc" x="213" y="68" width="36" height="41" rx="4"/><text class="t xs acc mid" x="231" y="62">today</text><text class="t xs amb b" x="204" y="38">◀ stands out</text><rect class="w-card" x="392" y="24" width="236" height="84" rx="8"/><text class="t s b" x="404" y="44">Thursday 12 November</text><text class="t xs" x="404" y="62">96 prompts · $18.40 · 7 commits</text><text class="t xs m" x="404" y="78">mostly gitprompt</text><text class="t xs acc" x="404" y="98">↵ open the day ›</text></svg>
+          <figcaption>Today's <code>ColumnChart</code> and its streaks, moved to the first screen and stacked by project. A day is a doorway to its sessions.</figcaption>
+        </figure>
         <h5>Do</h5>
         <ul>
           <li><code>lib/overview/WeekStrip.svelte</code>: <code>ColumnChart</code> stacked by project, a mark on the day that stands out, spend and commits on hover; a day click goes to <code>/sessions?day=</code> (its timeline arrives in <a href="#t41">41</a>; until then the list filtered to that day).</li>
           <li><code>FilterBar</code> folds into a "Filters · N" button with a popover; the origin chips stay visible because they change every number. Same URL parameters.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Today is outlined. Hovering a day shows prompts, spend, commits and the top project; hovering a project in the legend dims the others.</li>
+          <li>← → move between days, ↵ opens the day. The strip keeps the table view <code>ColumnChart</code> already has.</li>
+          <li>Active filters show as removable chips beside the button, with "Clear all"; the button alone never hides that a filter is on.</li>
         </ul>
         <p class="vf"><b>Verify</b> component tests: stacking, the day link, keyboard access to each column · a filter test: every existing filter URL gives the same state.</p>
         <p class="dod"><b>Done when</b> the strip is half the height of today's daily chart and no filter was lost.</p>
@@ -1215,6 +1367,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>One takeaway sentence per tab from the tab's own numbers: one pure function per tab in <code>lib/stories/takeaways.ts</code>.</li>
           <li>Panels of a closed tab are not rendered (<code>async/Lazy.svelte</code>); <code>track('tab.overview.&lt;name&gt;')</code>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Each tab opens on its takeaway sentence, then "In this tab". The tab you used last is remembered (<code>settings/views.ts</code>) and the URL always wins.</li>
+          <li>← → move between tabs; a tab whose data no tool reports stays in place and says so, so the layout does not jump.</li>
+        </ul>
         <p class="vf"><b>Verify</b> a test that every panel of the <a href="index.html#keep">§08 checklist</a> is in the table once · takeaway unit tests · the page is at most two screens tall at 1280×800.</p>
         <p class="dod"><b>Done when</b> every Overview panel is reachable in one click, and reload keeps the tab.</p>
       </div></details>
@@ -1230,6 +1387,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>prompts/SecretWarning.svelte</code> grows into a banner for every kind, with the same two actions (one shared <code>LeakActions</code> component).</li>
           <li>A marker on the turn in the session story; the key figure and the Worth a look item link to the panel.</li>
           <li><code>track('leak.hide')</code>, <code>track('leak.dismiss')</code>.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The banner names the kind, shows the value masked (<code>sk-…a91f</code>) and where it sits: your prompt, the answer or a tool's output. Two buttons, nothing else.</li>
+          <li>After Hide it becomes one quiet line, "Hidden on 16 Nov". All clear says what was checked: "1,204 prompts checked for 9 kinds of secret".</li>
         </ul>
         <p class="vf"><b>Verify</b> component tests for both states and both actions · an end-to-end test: Hide masks the value in the reader and in an export.</p>
         <p class="dod"><b>Done when</b> both actions persist, and Not sensitive removes the banner everywhere the finding showed.</p>
@@ -1262,6 +1424,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>server</b>: one scheduled wait until <code>next_recap</code>; the instant comes from the <code>Clock</code> and the wait is a parameter tests set. It appears in <code>just timing</code> as a timer for review, which is expected.</li>
           <li>Preferences: weekday, hour, on or off. A week with no prompts sends nothing.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The text is four facts and one pointer: "This week: $42 · 1 h 10 redone · 23 commits. Worth a look: a key in Tuesday's session." It opens the Overview on last week.</li>
+          <li>Without the desktop app, the same recap is a dismissable card on the Overview the first time you open it that week.</li>
+        </ul>
         <p class="vf"><b>Verify</b> unit tests for <code>next_recap</code> (week edges, time zones, a changed preference) · a server test that advances a <code>ManualClock</code> past the instant and sees exactly one recap.</p>
         <p class="dod"><b>Done when</b> the recap arrives once at the set time and never twice after a restart.</p>
       </div></details>
@@ -1270,13 +1437,14 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <article class="tk" id="t32" data-area="desk" data-size="M" data-pri="core" data-needs="t30">
       <details><summary><span class="tt">Live tray menu and native notifications</span><span class="goal">The menu bar shows what is running and what to pick up, and a notification opens the turn it is about.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a></dd><dt>Asks first</dt><dd><code>tauri-plugin-notification</code>: a new dependency (<code>deny.toml</code>) and a capability.</dd></dl>
+        <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a></dd><dt>Asks first</dt><dd><code>tauri-plugin-notification</code> and <code>tauri-plugin-clipboard-manager</code> (the tray copies without a web view): new dependencies (<code>deny.toml</code>) and capabilities.</dd></dl>
         <h5>Do</h5>
         <ul>
           <li><code>backend/apps/desktop/src/tray.rs</code>: recording state, today's prompts and cost, three sessions to pick up (click copies the resume command), the last three prompts (click copies). The menu model is a pure function of the attention feed and today's stats in <code>gitprompt-tauri</code>; <code>tray.rs</code> only draws it. Updated from daemon events; no web view, no polling.</li>
           <li>Native notifications show what <a href="#t30">30</a> and <a href="#t31">31</a> emit; a click focuses the window on the target route (deep links replace this in <a href="#t56">56</a>).</li>
         </ul>
-        <p class="vf"><b>Verify</b> unit tests for the menu model (nothing running, three running, no cost data) · by hand: a new prompt changes the menu within a second; a notification opens its turn · idle CPU with the window hidden at the baseline.</p>
+        <p class="nat"><b>Native</b> While the window is hidden the page does no work: on hide and show <code>window.rs</code> tells the page through <code>platform.onWindowVisible()</code> (<a href="#t11">11</a>), and the page closes its live stream and timers, then refreshes once when shown again. The tray keeps its own daemon subscription in Rust. One Dock or taskbar badge, for one thing only: possible secrets not yet handled; it clears when they are, and has a switch in Settings.</p>
+        <p class="vf"><b>Verify</b> unit tests for the menu model (nothing running, three running, no cost data) · by hand: a new prompt changes the menu within a second; a notification opens its turn · idle CPU with the window hidden at the baseline, and no request from the page while hidden (daemon log).</p>
         <p class="dod"><b>Done when</b> you can copy yesterday's resume command from the menu bar without opening the window.</p>
       </div></details>
     </article>
@@ -1385,6 +1553,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Move every user of <code>TurnStrip</code>, <code>OutcomeBadge</code> and <code>OutcomeLabel</code> to the new components in this ticket; palette results get the glyph.</li>
           <li>The glyph sheet on <code>/design</code>, both themes. On screen the labels stay in the user's words: no "arc", "river" or "fingerprint" as text.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A glyph is a shape and a colour, never colour alone, and its tooltip says the outcome in words. Three sizes, one source.</li>
+          <li>On a fingerprint, hovering a column shows that turn's first line and how it ended; a click opens it.</li>
+        </ul>
         <p class="vf"><b>Verify</b> component tests per glyph and size, each with a text alternative · a test that outcome colours come from one module · the sheet compared with the proposal in both themes.</p>
         <p class="dod"><b>Done when</b> <code>TurnStrip</code>, <code>OutcomeBadge</code> and <code>OutcomeLabel</code> have no user left (they are deleted in <a href="#t45">45</a>).</p>
       </div></details>
@@ -1440,6 +1613,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>PromptRow</code> in two lines: glyph, time and first line; project, session and cost. Connector, app, branch, tags and model on hover and in the reader.</li>
           <li><code>lib/ui/windowing.ts</code>: a small pure helper (which rows are in view, given heights and scroll) used by <code>PromptList</code>; no new library unless the trace shows it is needed. <code>paging.ts</code> "newest N of M" and live updates kept.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>↑ ↓ (and j k) move the selection and the reader follows. The day header stays pinned with the day's totals ("Mon 16 Nov · 42 prompts · $6.10").</li>
+          <li>A density switch (comfortable, compact) is kept per person in views. Copy appears on hover and on focus.</li>
+        </ul>
         <p class="vf"><b>Verify</b> unit tests for the helper · a performance trace on a 10,000-row fixture: no task over 50 ms while scrolling · the list keeps list semantics and focus for screen readers.</p>
         <p class="dod"><b>Done when</b> twice as many rows fit at 1280×800 and a new prompt still appears live at the top.</p>
         <p class="warn">Stretch: the two-line row is the value. If windowing costs more than two days, ship the row with paging and stop.</p>
@@ -1457,6 +1635,12 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>The seven tabs under a "Details" <code>Disclosure</code>, unchanged; <code>track('reader.details.open')</code> beside the tab counts from <a href="#t01">01</a>.</li>
           <li>Nothing selected: a summary of the current filter (outcomes, cost, costliest turn) instead of an empty card.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>While you scroll, a slim header stays: glyph, first line, Copy. ← → go to the previous and next turn of the session.</li>
+          <li>A long answer is folded with its size ("Show all · 2,300 words"). Copy offers three forms: the prompt, prompt and answer, or Markdown.</li>
+          <li>The five step headings are anchors, so a link can point at "What came of it".</li>
+        </ul>
         <p class="vf"><b>Verify</b> a test that lists every reader item of the §08 checklist and finds it · component tests for the five states · no tab removed (a test names all seven).</p>
         <p class="dod"><b>Done when</b> you can say how a turn went from the first screen of the reader, without opening Details.</p>
       </div></details>
@@ -1473,6 +1657,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>A mark is focusable and opens its event under Details › Events; a tool without events shows <code>PanelState</code> "not reported".</li>
           <li><code>track('replay.mark.open')</code>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A time cursor runs across all lanes as you hover. Long waits are folded into a break ("4 min waiting"), so the picture is about work, not idle time.</li>
+          <li>The slowest span is labelled on the chart itself, and the one-line summary sits above it. Drag to zoom, double-click to reset.</li>
+        </ul>
         <p class="vf"><b>Verify</b> unit tests for <code>replay.ts</code>: overlapping tools, a subagent, a turn with no events, a turn of several hours · a fixture turn with two failed test runs shows both · keyboard pass over the marks.</p>
         <p class="dod"><b>Done when</b> for three slow turns of your own, the picture and its summary line name the cause without opening Events or Raw.</p>
       </div></details>
@@ -1488,6 +1677,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>web</b>: <code>VersionsPanel</code> becomes a thread: each attempt with its glyph and <code>WordDiff</code>, ending "Outcome improved" when it did; each attempt has Copy.</li>
           <li>Step 5 of the reader shows the thread's short form and the similar prompt, with links.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The thread runs top to bottom, one attempt per row with its glyph; the diff shows only the words that changed. "Use this wording" copies an attempt.</li>
+          <li>The similar prompt that worked is a card that says why it is similar ("same project, 8 of 11 words") and links to it.</li>
+        </ul>
         <p class="vf"><b>Verify</b> lineage unit tests (first try, three attempts, no similar prompt) · component test: a three-attempt lineage reads as a thread · snapshot.</p>
         <p class="dod"><b>Done when</b> from a failed turn you can copy the wording that worked in one click.</p>
       </div></details>
@@ -1496,11 +1690,20 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <article class="tk" id="t40" data-area="web" data-size="M" data-needs="t34 t35 t09">
       <details><summary><span class="tt">Sessions list: compact rows by day</span><span class="goal">Fifteen sessions per screen instead of five, with a bigger fingerprint, grouped like a diary.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd><a href="index.html#s-c1">C1</a> (List only, Session running, No match)</dd></dl>
+        <dl><dt>Design</dt><dd><a href="index.html#s-c1">C1</a> (List only, Session running, No match), sketch below</dd></dl>
+        <figure class="mini">
+          <svg viewBox="0 0 640 112" role="img" aria-label="Anatomy of a session row. A running session on top with a live dot, then a finished one: outcome glyph, name, project, figures on one line, a fingerprint of its turns as small columns, and a Copy resume button."><text class="t cap" x="12" y="16">MON 16 NOV · 6 SESSIONS · $9.20</text><rect class="w-accsoft" x="12" y="24" width="616" height="36" rx="8"/><circle class="w-acc" cx="30" cy="42" r="5"/><text class="t s b" x="46" y="39">Tauri native pass</text><text class="t xs m" x="46" y="52">gitprompt · running · last event 12 s ago</text><rect class="w-card" x="12" y="66" width="616" height="36" rx="8"/><circle class="w-iris" cx="30" cy="84" r="5"/><text class="t s b" x="46" y="81">Usage counts, store and route</text><text class="t xs m" x="46" y="94">gitprompt · 2 h 10 · 34 turns · $4.80 · 3 commits</text><rect class="w-accmid" x="330" y="50" width="5" height="4" rx="1"/><rect class="w-accmid" x="338" y="33" width="5" height="21" rx="1"/><rect class="w-accmid" x="346" y="46" width="5" height="8" rx="1"/><rect class="w-accmid" x="354" y="34" width="5" height="20" rx="1"/><rect class="w-accmid" x="362" y="42" width="5" height="12" rx="1"/><rect class="w-accmid" x="370" y="36" width="5" height="18" rx="1"/><rect class="w-accmid" x="378" y="38" width="5" height="16" rx="1"/><rect class="w-accmid" x="386" y="39" width="5" height="15" rx="1"/><rect class="w-accmid" x="394" y="35" width="5" height="19" rx="1"/><rect class="w-accmid" x="402" y="43" width="5" height="11" rx="1"/><rect class="w-accmid" x="410" y="33" width="5" height="21" rx="1"/><rect class="w-amber" x="418" y="48" width="5" height="6" rx="1"/><rect class="w-accmid" x="426" y="33" width="5" height="21" rx="1"/><rect class="w-accmid" x="434" y="49" width="5" height="5" rx="1"/><rect class="w-accmid" x="442" y="33" width="5" height="21" rx="1"/><rect class="w-accmid" x="450" y="44" width="5" height="10" rx="1"/><rect class="w-accmid" x="458" y="35" width="5" height="19" rx="1"/><rect class="w-accmid" x="466" y="40" width="5" height="14" rx="1"/><rect class="w-accmid" x="474" y="37" width="5" height="17" rx="1"/><rect class="w-accmid" x="482" y="37" width="5" height="17" rx="1"/><rect class="w-accmid" x="490" y="41" width="5" height="13" rx="1"/><rect class="w-accmid" x="498" y="34" width="5" height="20" rx="1"/><rect class="w-accmid" x="330" y="77" width="5" height="19" rx="1"/><rect class="w-accmid" x="338" y="85" width="5" height="11" rx="1"/><rect class="w-accmid" x="346" y="75" width="5" height="21" rx="1"/><rect class="w-accmid" x="354" y="89" width="5" height="7" rx="1"/><rect class="w-accmid" x="362" y="75" width="5" height="21" rx="1"/><rect class="w-accmid" x="370" y="91" width="5" height="5" rx="1"/><rect class="w-accmid" x="378" y="75" width="5" height="21" rx="1"/><rect class="w-red" x="386" y="87" width="5" height="9" rx="1"/><rect class="w-accmid" x="394" y="76" width="5" height="20" rx="1"/><rect class="w-accmid" x="402" y="82" width="5" height="14" rx="1"/><rect class="w-accmid" x="410" y="79" width="5" height="17" rx="1"/><rect class="w-amber" x="418" y="79" width="5" height="17" rx="1"/><rect class="w-accmid" x="426" y="82" width="5" height="14" rx="1"/><rect class="w-accmid" x="434" y="76" width="5" height="20" rx="1"/><rect class="w-accmid" x="442" y="87" width="5" height="9" rx="1"/><rect class="w-red" x="450" y="75" width="5" height="21" rx="1"/><rect class="w-accmid" x="458" y="91" width="5" height="5" rx="1"/><rect class="w-accmid" x="466" y="75" width="5" height="21" rx="1"/><rect class="w-accmid" x="474" y="89" width="5" height="7" rx="1"/><rect class="w-accmid" x="482" y="75" width="5" height="21" rx="1"/><rect class="w-accmid" x="490" y="85" width="5" height="11" rx="1"/><rect class="w-accmid" x="498" y="77" width="5" height="19" rx="1"/><rect class="w-card" x="532" y="31" width="86" height="22" rx="6"/><text class="t xs mid" x="575" y="46">Copy resume</text><rect class="w-card" x="532" y="73" width="86" height="22" rx="6"/><text class="t xs mid" x="575" y="88">Copy resume</text></svg>
+          <figcaption><code>TurnStrip</code> becomes the fingerprint: the same square-root heights and outcome colours, on one line with the name and the resume command.</figcaption>
+        </figure>
         <h5>Do</h5>
         <ul>
           <li><code>lib/sessions/SessionRow.svelte</code> replaces <code>SessionCard</code>: every figure on one line, <code>SessionFingerprint</code>, the name with inline rename, Copy resume, "Every turn" on expand.</li>
           <li>Grouped by day; Most turns and Costliest switch to a flat list; the project chips become a <code>QueryBar</code> token; load more kept.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Running sessions are pinned on top with a live dot (a still dot under reduced motion). Hovering a fingerprint column names the turn.</li>
+          <li>A row expands in place to its turns; ↵ opens the story, ⌥↵ copies the resume command. Costliest and Most turns keep the same row, in a flat list.</li>
         </ul>
         <p class="vf"><b>Verify</b> a test listing every Sessions item of the §08 checklist · old <code>?project=</code> links still filter · the three states through <code>PanelState</code>.</p>
         <p class="dod"><b>Done when</b> 15 sessions fit at 1280×800 and <code>SessionCard</code> has no user left.</p>
@@ -1517,6 +1720,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>server</b>: <code>GET /api/sessions/day?date=</code>, zone and "today" from the <code>Clock</code>.</li>
           <li><b>web</b>: <code>DayTimeline.svelte</code> on <code>charts/Lanes</code>, coloured by project; a lane opens its session; <code>/sessions?day=</code> shows it above the list; the Overview week strip lands here.</li>
           <li>The Sessions headline: how many sessions, how much in parallel, the longest one.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>The axis fits the day: from the first event to the last, with half an hour on each side. Today has a "now" line.</li>
+          <li>← → change the day. The headline says it in words: "6 sessions, up to 3 at once, the longest 2 h 10".</li>
         </ul>
         <p class="vf"><b>Verify</b> unit tests: a daylight-saving day, a session across midnight, three in parallel · snapshot with <code>FixedClock</code> · keyboard access to each lane.</p>
         <p class="dod"><b>Done when</b> clicking a day on the Overview shows that day's sessions as lanes.</p>
@@ -1569,6 +1777,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Rename the session-level <code>stories/Chapter.svelte</code> to <code>TurnEntry</code>, freeing "chapter" for projects.</li>
           <li><code>ZoomBar</code> replaces the back link; Running now from <a href="#t08">08</a>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>More than three notes beside a turn fold into a count. <code>n</code> jumps to the next failed turn.</li>
+          <li>The small pinned chart from <a href="#t42">42</a> marks the turn you are reading; clicking it scrolls there.</li>
+        </ul>
         <p class="vf"><b>Verify</b> a test listing every session story item of the §08 checklist · component tests: each marker kind as a note; a narrow window.</p>
         <p class="dod"><b>Done when</b> a session with 30 system items reads as its turns, with the items beside them.</p>
       </div></details>
@@ -1583,6 +1796,10 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>insights</b>: a setup timeline from <code>derivations/session.rs</code> and turn facts: tool and version, app, models with the turn they changed, permission mode changes, effort when reported, branch and commit at start and end, MCP servers.</li>
           <li><b>server</b>: on the session story.</li>
           <li><b>web</b>: <code>SetupStrip.svelte</code> (<code>Chip</code>, <code>KeyValue</code>); model changes drawn on the chart from <a href="#t42">42</a> as a labelled line.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A change reads as a sentence on the strip: "Opus → Sonnet at turn 14". "Copy setup" gives the whole setup as text, for a bug report or a teammate.</li>
         </ul>
         <p class="vf"><b>Verify</b> unit tests: a <code>/model</code> switch, a mode switch, a tool that reports neither · snapshot · component test for the line on the chart.</p>
         <p class="dod"><b>Done when</b> a fixture with a <code>/model</code> switch shows it on the strip and the chart.</p>
@@ -1716,6 +1933,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>lib/projects/river.ts</code>, pure: prompts per day and stretches → the area, dividers and flags.</li>
           <li><code>ProjectRiver.svelte</code>: <code>Sparkline</code> area with chapter dividers and milestone flags (a flag links to its commit), plus lanes for branches, commits per day and spend. A chapter on the river scrolls to its card. A small variant for the Projects list (<a href="#t51">51</a>).</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Chapters are labelled on the river itself, not in a legend. Hovering a day shows prompts, commits and spend.</li>
+          <li>Dragging across the river selects a range and opens the Prompts tab on it.</li>
+        </ul>
         <p class="vf"><b>Verify</b> unit tests for <code>river.ts</code> (one day, a year, a gap of weeks) · keyboard access to chapters and flags · both themes on <code>/design</code>.</p>
         <p class="dod"><b>Done when</b> on an 18-phase project the six chapters are readable without scrolling.</p>
         <p class="warn">Dropped if the naming test fails: the cards in <a href="#t49">49</a> carry the journey on their own.</p>
@@ -1725,13 +1947,22 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <article class="tk" id="t49" data-area="web" data-size="M" data-pri="core" data-needs="t47 t16">
       <details><summary><span class="tt">Journey: cards for each stretch, and its detail</span><span class="goal">Each stretch of work says its goal and how it went, one click from its prompts, sessions and commits.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd><a href="index.html#s-b2">B2</a> cards and headline, <a href="index.html#s-b3">B3</a>, I5 (both sides)</dd></dl>
+        <dl><dt>Design</dt><dd><a href="index.html#s-b2">B2</a> cards and headline, <a href="index.html#s-b3">B3</a>, I5 (both sides), sketch below</dd></dl>
+        <figure class="mini">
+          <svg viewBox="0 0 640 128" role="img" aria-label="A stretch card. Title and dates, the goal in the words of its first prompt, one sentence on how it went, a bar of outcomes, the directories that changed most, and three links to prompts, sessions and commits."><rect class="w-card" x="12" y="10" width="616" height="108" rx="10"/><text class="t s b" x="26" y="32">Rust backend switch</text><text class="t xs m" x="170" y="32">3 – 11 Nov · 9 days</text><text class="t xs acc end" x="614" y="32">rename</text><text class="t xs m" x="26" y="50">GOAL</text><text class="t xs" x="62" y="50">"port the daemon to Rust, wire compatible, one crate per domain" ›</text><text class="t xs" x="26" y="68">412 prompts, 38 redone ($21), 64 commits, $118. One possible leak, hidden.</text><rect class="w-acc" x="26" y="78" width="300" height="8" rx="3"/><rect class="w-amber" x="328" y="78" width="46" height="8" rx="3"/><rect class="w-red" x="376" y="78" width="30" height="8" rx="3"/><text class="t xs m" x="416" y="86">finished · interrupted · failed</text><text class="t xs m" x="26" y="106">backend/crates/store · server · web/src/lib/api</text><text class="t xs acc end" x="614" y="106">Prompts ›   Sessions ›   Commits ›</text></svg>
+          <figcaption><code>OutcomeMix</code> and the figures of <code>Evolution</code>, one card per stretch. Every number is a link.</figcaption>
+        </figure>
         <h5>Do</h5>
         <ul>
           <li><code>StretchCard.svelte</code>: the goal linking to its prompt, how it went in plain sentences (prompts, redone, commits, cost, possible leaks), the phase table, the directories that changed most, and three links that open the tabs filtered to its dates. Inline rename when it is a chapter.</li>
           <li>Detail (<code>#chapter-n</code> or <code>#phase-n</code>): each prompt line carries Prompt ›, Versions › when reworded, and its commits unfolding in place; sessions with their fingerprint and Session ›.</li>
           <li>The narrative <code>StoryHeader</code>: first prompt to latest, commit count, the costliest stretch; every number a link.</li>
           <li>Replaces <code>PhaseSection</code> and <code>PhaseEntry</code> on the Journey tab; old anchors from search results still land.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Every sentence on the card is a link to what it counts. Three fixed links end the card: Prompts ›, Sessions ›, Commits ›, already filtered to its dates.</li>
+          <li>The card for the stretch you are in is open; older ones are folded to their title, dates and outcome bar.</li>
         </ul>
         <p class="vf"><b>Verify</b> a test listing every project story item of the §08 checklist · component tests for a chapter and a plain phase · old anchors tested.</p>
         <p class="dod"><b>Done when</b> the first card is within two screens on an 18-phase project, and from any commit under a prompt you reach the Commits tab row.</p>
@@ -1746,6 +1977,10 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <ul>
           <li><code>ProjectTabs</code> gains Prompts (<code>PromptList</code>, <code>QueryBar</code> and the reader, scoped by <code>project=</code>) and Sessions (the <code>SessionRow</code> list, same scope). The lists take the scope as a prop: no second list component.</li>
           <li>Stretch links set range tokens: <code>?tab=prompts&amp;from=&amp;to=</code>, through <code>links.ts</code>.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Each tab carries its count ("Prompts 412"). The project scope shows as a fixed token in the query bar, so it is clear why the list is shorter.</li>
         </ul>
         <p class="vf"><b>Verify</b> a route test: back and forward keep tab and filters · scoped counts equal the global lists filtered by the same project.</p>
         <p class="dod"><b>Done when</b> a stretch's "Prompts ›" opens the project's Prompts tab on exactly its prompts.</p>
@@ -1762,21 +1997,27 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Quiet projects (worktrees, scratchpads) fold into a counted group.</li>
           <li>The Projects headline from <code>headline.ts</code>: where effort went and which projects entered a new stretch.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>Each row answers "where did I leave it": the last prompt's first line, when, and Copy resume for its last session.</li>
+          <li>Projects are grouped Moving, Quiet and New this month; the default order is last active.</li>
+        </ul>
         <p class="vf"><b>Verify</b> a test listing every Projects item of the §08 checklist · the folded group opens by keyboard · "No projects" through <code>PanelState</code>.</p>
         <p class="dod"><b>Done when</b> the project you are working on is the first row and says where it stands.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t52" data-area="be web" data-size="S" data-pri="quality" data-needs="t49 t50 t51">
+    <article class="tk" id="t52" data-area="be web desk" data-size="S" data-pri="quality" data-needs="t49 t50 t51">
       <details><summary><span class="tt">Phase 5 clean-up: exports follow, old phase code goes</span><span class="goal">The project export tells the same story as the page, and the components the journey replaced are deleted.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd>none: the export mirrors <a href="index.html#s-b2">B2</a></dd><dt>Asks first</dt><dd>API snapshot (export), if its shape changes.</dd></dl>
+        <dl><dt>Design</dt><dd>none: the export mirrors <a href="index.html#s-b2">B2</a></dd><dt>Asks first</dt><dd>API snapshot (export), if its shape changes. <code>tauri-plugin-dialog</code>: a new dependency (<code>deny.toml</code>) and a capability.</dd></dl>
         <h5>Do</h5>
         <ul>
           <li><b>export</b> <code>build/project.rs</code>: stretches with their names, goals and links, instead of "Phase 1…18", when chapters were built.</li>
           <li>Delete <code>PhaseSection</code>, <code>PhaseEntry</code> and what else has no user left; one outcome-mix component.</li>
           <li><code>/api/stories/project</code> on the largest fixture within 20% of the baseline; cache or index only if it is not.</li>
         </ul>
+        <p class="nat"><b>Native</b> In the desktop app Export opens the system save dialog with the suggested file name, writes through the existing <code>export_to_file</code> command, and the confirmation offers "Show in Finder" through the existing <code>Opener</code>. <code>ExportButton</code> calls <code>platform.saveFile()</code> (<a href="#t11">11</a>); the browser keeps its download. A web view download has no visible destination, which is why this one is worth a plugin.</p>
         <p class="vf"><b>Verify</b> export tests updated · <code>just verify</code>, <code>just bench</code> · a search for each deleted name finds nothing.</p>
         <p class="dod"><b>Done when</b> a project exported to Markdown reads like its Journey tab.</p>
       </div></details>
@@ -1804,12 +2045,21 @@ figure.mini { margin-left: 0; margin-right: 0; }
     <article class="tk" id="t53" data-area="be web" data-size="M" data-needs="t28">
       <details><summary><span class="tt">Activity tab: hours, agent run lengths, calendar</span><span class="goal">Plan your day from when you prompt, and see how long the agent works on its own.</span></summary>
       <div class="body">
-        <dl><dt>Design</dt><dd><a href="index.html#s-a2">A2</a> Activity</dd><dt>Asks first</dt><dd>API snapshot (stats).</dd></dl>
+        <dl><dt>Design</dt><dd><a href="index.html#s-a2">A2</a> Activity, sketch below</dd><dt>Asks first</dt><dd>API snapshot (stats).</dd></dl>
+        <figure class="mini">
+          <svg viewBox="0 0 640 124" role="img" aria-label="A contribution calendar: a year of days as small squares, seven rows for the weekdays, darker for more prompts. The selected range is outlined. A readout names one day with its prompts, sessions and spend."><text class="t cap" x="12" y="16">A YEAR OF PROMPTS</text><text class="t xs m" x="12" y="38">Mon</text><text class="t xs m" x="12" y="60">Wed</text><text class="t xs m" x="12" y="82">Fri</text><rect class="w-sunk" x="40" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="40" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="40" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="40" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="40" y="72" width="9" height="9" rx="2"/><rect class="w-accmid" x="40" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="40" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="51" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="51" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="51" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="51" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="51" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="51" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="51" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="62" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="62" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="62" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="62" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="62" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="62" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="62" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="73" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="73" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="73" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="73" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="73" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="73" y="83" width="9" height="9" rx="2"/><rect class="w-accmid" x="73" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="84" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="84" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="84" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="84" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="84" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="84" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="84" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="95" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="95" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="95" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="95" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="95" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="95" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="95" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="106" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="106" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="106" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="106" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="106" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="106" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="106" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="117" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="117" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="117" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="117" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="117" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="117" y="83" width="9" height="9" rx="2"/><rect class="w-accmid" x="117" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="128" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="128" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="128" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="128" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="128" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="128" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="128" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="139" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="139" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="139" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="139" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="139" y="72" width="9" height="9" rx="2"/><rect class="w-accmid" x="139" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="139" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="150" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="150" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="150" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="150" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="150" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="150" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="150" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="161" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="161" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="161" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="161" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="161" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="161" y="83" width="9" height="9" rx="2"/><rect class="w-accmid" x="161" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="172" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="172" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="172" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="172" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="172" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="172" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="172" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="183" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="183" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="183" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="183" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="183" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="183" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="183" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="194" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="194" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="194" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="194" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="194" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="194" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="194" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="205" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="205" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="205" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="205" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="205" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="205" y="83" width="9" height="9" rx="2"/><rect class="w-accmid" x="205" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="216" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="216" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="216" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="216" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="216" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="216" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="216" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="227" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="227" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="227" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="227" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="227" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="227" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="227" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="238" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="238" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="238" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="238" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="238" y="72" width="9" height="9" rx="2"/><rect class="w-accmid" x="238" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="238" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="249" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="249" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="249" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="249" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="249" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="249" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="249" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="260" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="260" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="260" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="260" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="260" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="260" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="260" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="271" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="271" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="271" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="271" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="271" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="271" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="271" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="282" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="282" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="282" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="282" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="282" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="282" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="282" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="293" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="293" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="293" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="293" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="293" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="293" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="293" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="304" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="304" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="304" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="304" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="304" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="304" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="304" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="315" y="28" width="9" height="9" rx="2"/><rect class="w-acc" x="315" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="315" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="315" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="315" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="315" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="315" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="326" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="326" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="326" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="326" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="326" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="326" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="326" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="337" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="337" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="337" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="337" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="337" y="72" width="9" height="9" rx="2"/><rect class="w-accmid" x="337" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="337" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="348" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="348" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="348" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="348" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="348" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="348" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="348" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="359" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="359" y="39" width="9" height="9" rx="2"/><rect class="w-accmid" x="359" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="359" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="359" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="359" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="359" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="370" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="370" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="370" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="370" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="370" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="370" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="370" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="381" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="381" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="381" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="381" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="381" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="381" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="381" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="392" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="392" y="39" width="9" height="9" rx="2"/><rect class="w-sunk" x="392" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="392" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="392" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="392" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="392" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="403" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="403" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="403" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="403" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="403" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="403" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="403" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="414" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="414" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="414" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="414" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="414" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="414" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="414" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="425" y="28" width="9" height="9" rx="2"/><rect class="w-accmid" x="425" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="425" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="425" y="61" width="9" height="9" rx="2"/><rect class="w-accmid" x="425" y="72" width="9" height="9" rx="2"/><rect class="w-acc" x="425" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="425" y="94" width="9" height="9" rx="2"/><rect class="w-sunk" x="436" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="436" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="436" y="50" width="9" height="9" rx="2"/><rect class="w-accsoft" x="436" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="436" y="72" width="9" height="9" rx="2"/><rect class="w-accmid" x="436" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="436" y="94" width="9" height="9" rx="2"/><rect class="w-acc" x="447" y="28" width="9" height="9" rx="2"/><rect class="w-accsoft" x="447" y="39" width="9" height="9" rx="2"/><rect class="w-acc" x="447" y="50" width="9" height="9" rx="2"/><rect class="w-acc" x="447" y="61" width="9" height="9" rx="2"/><rect class="w-accsoft" x="447" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="447" y="83" width="9" height="9" rx="2"/><rect class="w-sunk" x="447" y="94" width="9" height="9" rx="2"/><rect class="w-accmid" x="458" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="458" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="458" y="50" width="9" height="9" rx="2"/><rect class="w-sunk" x="458" y="61" width="9" height="9" rx="2"/><rect class="w-sunk" x="458" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="458" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="458" y="94" width="9" height="9" rx="2"/><rect class="w-accsoft" x="469" y="28" width="9" height="9" rx="2"/><rect class="w-sunk" x="469" y="39" width="9" height="9" rx="2"/><rect class="w-accsoft" x="469" y="50" width="9" height="9" rx="2"/><rect class="w-accmid" x="469" y="61" width="9" height="9" rx="2"/><rect class="w-acc" x="469" y="72" width="9" height="9" rx="2"/><rect class="w-sunk" x="469" y="83" width="9" height="9" rx="2"/><rect class="w-acc" x="469" y="94" width="9" height="9" rx="2"/><rect class="s-acc" x="401" y="26" width="13" height="79" rx="3"/><text class="t xs acc mid" x="407" y="116">this week</text><rect class="w-card" x="486" y="28" width="142" height="62" rx="8"/><text class="t xs b" x="496" y="46">Thu 12 Nov</text><text class="t xs" x="496" y="60">96 prompts · 5 sessions</text><text class="t xs m" x="496" y="74">$18.40 · ↵ open the day</text><text class="t xs m" x="40" y="116">less</text><rect class="w-sunk" x="62" y="108" width="9" height="9" rx="2"/><rect class="w-accsoft" x="74" y="108" width="9" height="9" rx="2"/><rect class="w-accmid" x="86" y="108" width="9" height="9" rx="2"/><rect class="w-acc" x="98" y="108" width="9" height="9" rx="2"/><text class="t xs m" x="112" y="116">more</text></svg>
+          <figcaption>The existing <code>Heatmap</code> with weeks as columns: no new chart. The same component, smaller, heads each project's Journey (<a href="#t48">48</a>).</figcaption>
+        </figure>
         <h5>Do</h5>
         <ul>
           <li><b>insights</b>: prompts per hour with focus hours; agent run lengths (prompt to stop), the share of agent time in long runs, the longest runs.</li>
           <li><b>web</b>: <code>HourProfile.svelte</code> and <code>RunLengths.svelte</code> next to the session-length histogram; the daily bars become a contribution calendar on <code>charts/Heatmap</code> (a year, the range outlined, streaks, spend per day) with the bars one click away. The weekday × hour squares stay.</li>
           <li>Two rows added to the tab table from <a href="#t28">28</a>; the tab's takeaway uses the new numbers.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A click on a calendar day opens that day's timeline (<a href="#t41">41</a>). Hover shows prompts, sessions and spend. The selected range is outlined; the legend reads "less … more".</li>
+          <li>Focus hours are a sentence above the chart ("You prompt most Tue to Thu, 10 to 12"), so the chart confirms a statement.</li>
         </ul>
         <p class="vf"><b>Verify</b> unit tests for run lengths (an interrupted run, a run across midnight) and focus hours in two time zones · snapshot · every cell and bar links to its prompts.</p>
         <p class="dod"><b>Done when</b> the tab tells you your two best hours and your longest agent run this week.</p>
@@ -1825,6 +2075,10 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>insights</b>: commits per project and per day in the range, from the traces of <a href="#t13">13</a>.</li>
           <li><b>web</b>: <code>CommitsPanel.svelte</code> ("What did my prompts produce?") first in the tab, each project linking to its Commits tab; commit dots on <code>WeekStrip</code>.</li>
         </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>One row per project: commits, the share that followed a prompt, a sparkline, and a link to its Commits tab.</li>
+        </ul>
         <p class="vf"><b>Verify</b> unit test · snapshot · component test: a range with no commit shows <code>PanelState</code> empty with its next step.</p>
         <p class="dod"><b>Done when</b> the panel's total equals the "Commits after prompts" key figure.</p>
       </div></details>
@@ -1839,6 +2093,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><b>insights</b>: content flags per prompt (files named, links, pasted content, a way to check the result) and run length by prompt length.</li>
           <li><b>web</b> <code>WritingPanel</code>: content chips and the run-length chart. <code>ReusePanel</code>: phrases typed often enough to become commands, each with the Copy as command action from <a href="#t21">21</a>.</li>
           <li><code>SpendPanel</code>: money by project first, each split into answering you, subagents and system calls.</li>
+        </ul>
+        <h5>UI and UX</h5>
+        <ul class="ux">
+          <li>A phrase row reads "typed 14 times · about 40 words each" with Copy as command; taking it removes it from the list.</li>
+          <li>Money is a <code>BarList</code> by project; opening a row splits it into answering you, subagents and system calls. No new chart type.</li>
         </ul>
         <p class="vf"><b>Verify</b> unit tests for the content flags (a path, a URL, a pasted log, "run the tests") · snapshot · every "new" and "regrouped" Overview row of §08 ticked.</p>
         <p class="dod"><b>Done when</b> each panel answers the question in its title on your own data.</p>
@@ -1856,6 +2115,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li><code>gitprompt open &lt;link | id&gt;</code>: the desktop app when installed, else the browser on the daemon's URL.</li>
           <li>Tray, notifications and <code>why</code> switch to deep links.</li>
         </ul>
+        <p class="nat"><b>Native</b> A link that starts the app opens the window directly on its route: the Overview is never loaded first. With the app running, the link reaches the page through <code>platform.onNavigate()</code> (<a href="#t11">11</a>) and moves it with a client-side navigation, not a reload.</p>
         <p class="vf"><b>Verify</b> parser table test: each kind, an unknown kind, a malformed id, a link that tries to leave the app · by hand: a link with the app closed, and with it running.</p>
         <p class="dod"><b>Done when</b> a notification, <code>gitprompt why</code> and a pasted link all open the same turn.</p>
       </div></details>
@@ -1870,6 +2130,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Window size and position restored; overlay title bar on macOS with a drag region in <code>Sidebar</code>.</li>
           <li>App menu: ⌘1–⌘4 Overview, Projects, Sessions, Prompts; ⌘K. The web build is unaffected (platform adapter).</li>
         </ul>
+        <p class="nat"><b>Native</b> The app menu is the standard one, not a custom bar: Edit (undo, cut, copy, paste, select all; on macOS these shortcuts only work in a web view when the menu has them), View (⌘1–⌘4, ⌘K, ⌘[ and ⌘] for back and forward, zoom), ⌘, for Settings. Menu items send a route through <code>platform.onNavigate()</code> (<a href="#t11">11</a>). The menu model is data in <code>gitprompt-tauri</code>, tested; <code>apps/desktop</code> only draws it. No custom context menus, no custom scrollbars: the system ones stay.</p>
         <p class="vf"><b>Verify</b> by hand: restart, a second display removed, full screen · the web build's tests unchanged.</p>
         <p class="dod"><b>Done when</b> size and position come back after a restart, and the shortcuts appear in the menu.</p>
       </div></details>
@@ -1887,6 +2148,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
           <li>Lighthouse accessibility 95 or more on every page; a keyboard-only pass over palette, tabs, query bar, charts and timeline; both themes for contrast.</li>
           <li><code>just flaky</code> over every suite the redesign added.</li>
         </ul>
+        <p class="nat"><b>Native</b> No white flash at start: the window is built hidden with the theme's background colour and shown at the page's first paint (a 2 s fallback shows it anyway). Measured by <code>just quality desktop</code>: cold start and relaunch against the baseline, window-hidden idle CPU and memory at the baseline.</p>
         <p class="vf"><b>Verify</b> <code>just verify</code>, <code>just quality</code>, <code>just perf</code>, <code>just flaky</code> · the two stopwatch numbers from <a href="#t00">00</a>, one last time.</p>
         <p class="dod"><b>Done when</b> the quality dashboard shows every number at or better than the baseline, or each regression has its own ticket.</p>
       </div></details>
@@ -1917,7 +2179,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <tr><td>Teams</td><td>D7: a second person asks to share; then a new crate and a team server</td><td>Identity columns with their ADR (<a href="index.html#s-t1">T1</a>), publish review on the export pipeline, signed bundles, a "who" token (one row in the query bar's table) and lanes per person (<a href="index.html#s-t2">T2</a>). Changes <code>rules.rs</code>, so a design decision first.</td></tr>
         <tr><td>Open in Terminal</td><td>D4: Copy only, until resume is copied weekly and a new ADR rules on it</td><td>A small Rust command in <code>gitprompt-tauri</code> that opens the default terminal with the resume command, beside Copy. One S ticket.</td></tr>
         <tr><td>MCP server over the history</td><td>D5: CLI only, until <code>find</code> and <code>why</code> are stable and a new ADR rules on it</td><td>The <code>find</code> and <code>why</code> services exposed as tools. Close to the non-goal "adding context to prompts".</td></tr>
-        <tr><td>Parked until asked</td><td>usage counts</td><td>Compare lens on Projects, pinning a panel to the first screen, the previous period as ghost bars, custom compare ranges, the full Setup panel (<a href="index.html#s-c3">C3</a>; the strip ships in <a href="#t44">44</a>), window vibrancy, a "today" glance beyond the tray.</td></tr>
+        <tr><td>Parked until asked</td><td>usage counts</td><td>Compare lens on Projects, pinning a panel to the first screen, the previous period as ghost bars, custom compare ranges, the full Setup panel (<a href="index.html#s-c3">C3</a>; the strip ships in <a href="#t44">44</a>), window vibrancy, a "today" glance beyond the tray, native right-click menus on rows, dragging an export out of the window, an in-app updater.</td></tr>
         <tr><td>Stretch tickets that were dropped</td><td>a phase running long</td><td><a href="#t36">36</a>, <a href="#t44">44</a>, <a href="#t48">48</a>, <a href="#t51">51</a>, <a href="#t55">55</a>, <a href="#t57">57</a> move here as written. None is needed by a core ticket.</td></tr>
       </tbody>
     </table>
