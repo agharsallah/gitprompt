@@ -1,0 +1,103 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/find?q=retry\").await"
+---
+{
+  "prompts": [
+    {
+      "target": {
+        "kind": "prompt",
+        "id": 10
+      },
+      "title": null,
+      "snippet": [
+        {
+          "text": "Add a ",
+          "hit": false
+        },
+        {
+          "text": "retry",
+          "hit": true
+        },
+        {
+          "text": " to the upload client",
+          "hit": false
+        }
+      ],
+      "at": "2026-01-05T09:03:16.000000+00:00",
+      "outcome": "done"
+    },
+    {
+      "target": {
+        "kind": "prompt",
+        "id": 7
+      },
+      "title": null,
+      "snippet": [
+        {
+          "text": "Add a ",
+          "hit": false
+        },
+        {
+          "text": "retry",
+          "hit": true
+        },
+        {
+          "text": " to the upload client",
+          "hit": false
+        }
+      ],
+      "at": "2026-01-05T09:01:10.000000+00:00",
+      "outcome": "done"
+    }
+  ],
+  "sessions": [
+    {
+      "target": {
+        "kind": "session",
+        "id": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10"
+      },
+      "title": "Add a retry to the upload client",
+      "snippet": [
+        {
+          "text": "Add a ",
+          "hit": false
+        },
+        {
+          "text": "retry",
+          "hit": true
+        },
+        {
+          "text": " to the upload client",
+          "hit": false
+        }
+      ],
+      "at": "2026-01-05T09:04:05.000000+00:00",
+      "outcome": null
+    },
+    {
+      "target": {
+        "kind": "session",
+        "id": "0190a1b2-0000-7000-8000-000000000001"
+      },
+      "title": "Add a retry to the upload client",
+      "snippet": [
+        {
+          "text": "Add a ",
+          "hit": false
+        },
+        {
+          "text": "retry",
+          "hit": true
+        },
+        {
+          "text": " to the upload client",
+          "hit": false
+        }
+      ],
+      "at": "2026-01-05T09:02:20.000000+00:00",
+      "outcome": null
+    }
+  ],
+  "projects": []
+}

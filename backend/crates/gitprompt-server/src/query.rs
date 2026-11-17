@@ -17,7 +17,9 @@ use gitprompt_store::filter::{Outcome, PromptFilter};
 use gitprompt_store::store::USAGE_KEEP_DAYS;
 
 use crate::error::ApiError;
-use crate::model::{ExportQuery, PromptQuery, StatsQuery};
+use gitprompt_insights::find::{Kind, PER_KIND};
+
+use crate::model::{ExportQuery, FindQuery, PromptQuery, StatsQuery};
 
 /// `(key, value)` pairs of a raw query string, percent-decoded, in order.
 pub fn pairs(query: Option<&str>) -> Vec<(String, String)> {
@@ -150,6 +152,23 @@ fn last<'a>(pairs: &'a [(String, String)], key: &str) -> Option<&'a str> {
 pub fn prompt_query(pairs: &[(String, String)]) -> Result<PromptQuery, ApiError> {
     let limit = last(pairs, "limit").map(|v| integer("limit", v, 1..=200)).transpose()?.unwrap_or(50);
     Ok(PromptQuery { filter: prompt_filter(pairs)?, limit })
+}
+
+/// `q`, `kinds` (`prompts`, `sessions`, `projects`; comma separated and/or repeated, default all)
+/// and `limit` per kind (1..=[`PER_KIND`], default [`PER_KIND`]): `/api/find`.
+pub fn find_query(pairs: &[(String, String)]) -> Result<FindQuery, ApiError> {
+    let mut kinds: Vec<Kind> = Vec::new();
+    for (_, list) in values(pairs).filter(|(k, _)| *k == "kinds") {
+        for name in list.split(',').map(str::trim).filter(|n| !n.is_empty()) {
+            let kind = variant("kinds", name)?;
+            if !kinds.contains(&kind) {
+                kinds.push(kind);
+            }
+        }
+    }
+    let limit = last(pairs, "limit").map(|v| integer("limit", v, 1..=PER_KIND)).transpose()?.unwrap_or(PER_KIND);
+    let kinds = if kinds.is_empty() { Kind::ALL.to_vec() } else { kinds };
+    Ok(FindQuery { q: last(pairs, "q").unwrap_or_default().trim().to_owned(), kinds, limit })
 }
 
 /// Filters plus `group_by`, `split_by` (needs `group_by`), `order`, `limit` (1..=10000).
