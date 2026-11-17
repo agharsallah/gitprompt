@@ -841,7 +841,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t12" data-area="web be" data-size="S" data-pri="quality" data-needs="t06 t08 t09 t10 t11">
+    <article class="tk" id="t12" data-area="web be" data-size="S" data-pri="quality" data-needs="t06 t08 t09 t10 t11" data-status="done">
       <details><summary><span class="tt">Phase 1 clean-up: one way to find, one way to copy</span><span class="goal">Remove what the palette replaced and fix what a week of use showed, before other pages build on it.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd>none: no visible change except fixes</dd></dl>
@@ -854,6 +854,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> <code>just verify</code> · bundle size in <code>just quality</code>: the first load grew by less than 10 KB gzipped, since the palette is lazy.</p>
         <p class="dod"><b>Done when</b> no file of the old Search page is unused, and web coverage is at or above the baseline.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> No old Search component was left without a user, so nothing was deleted; <code>/api/search</code> stays (Prompts calls it when words are set). <code>lib/shared/clipboard.ts</code> is the only file that touches the clipboard (<code>clipboard.guard.test.ts</code>): <code>copyCounted</code> writes, then counts. <code>CopyButton</code> requires a <code>count</code>, and <code>CodeBlock</code> counts <code>copy.code</code>. The dead <code>copyResume</code> was removed. Three fixes, each test-first, found by review rather than a week of use: the palette keeps its highlight on the same row while results change; it marks the longest matching word; and the CLI says "1 prompt matched" and names the words when none match. Candidates for issues: clicking dead space in the palette drops focus; a backdrop click does not close it; a phrase matches as a substring; <code>find</code> compares time strings; "Copied" is announced twice; and the no-match row ignores <code>#</code> and <code>@</code>. Time ledger: 5 lines gone, none new. Web line coverage 98.01%. Initial JS +7.2 KB and CSS +1.7 KB gzipped against the baseline, summed from the build. <b>Not yet measured</b> with <code>just quality web/responsiveness</code>.</p>
       </div></details>
     </article>
   </div>
