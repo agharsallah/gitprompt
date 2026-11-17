@@ -49,10 +49,7 @@ impl Service {
             let spec = set.get(&row.row.source).map(AsRef::as_ref);
             let outcome = store.outcomes(&[id])?.get(&id).copied();
             let prompt = prompt_out(&derivations::derive(&row, &events, spec), spec, outcome);
-            let session = match row.row.fields.get("session_id").and_then(Json::as_str) {
-                Some(sid) if !sid.is_empty() => derivations::session(&store.events_for_session(sid)?),
-                _ => SessionSummary::default(),
-            };
+            let session = session_of(inner, &row, spec)?;
             let commits = commits_after(inner, &row);
             Ok(PromptDetail { prompt, raw: row.row.raw.clone(), session, commits, events })
         })
@@ -82,6 +79,19 @@ impl Service {
         })
         .await
     }
+}
+
+/// The prompt's session: every event it shares a session id with, and how to resume it when the
+/// tool's spec says (the folder is the session's first, else the prompt's own).
+fn session_of(inner: &Inner, row: &PromptView, spec: Option<&Spec>) -> gitprompt_core::Result<SessionSummary> {
+    let Some(sid) = row.row.fields.get("session_id").and_then(Json::as_str).filter(|sid| !sid.is_empty()) else {
+        return Ok(SessionSummary::default());
+    };
+    let events = inner.store.events_for_session(sid)?;
+    let mut session = derivations::session(&events);
+    let prompt_cwd = row.row.fields.get("cwd").and_then(Json::as_str);
+    session.resume = spec.and_then(|spec| derivations::resume(spec, sid, &events, prompt_cwd));
+    Ok(session)
 }
 
 /// Events grouped by the turn (prompt id) they belong to; events of no turn are left out.

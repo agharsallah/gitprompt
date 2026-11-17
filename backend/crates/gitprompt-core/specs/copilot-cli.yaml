@@ -59,6 +59,13 @@ captures:
 # and per-session metrics.
 capabilities: [prompt, cwd, turn_end, tools, subagents, origin_markers, transcript_path, session_lifecycle]
 
+# How to resume one of its sessions (docs/connectors.md "Resume commands"). The hook payload's
+# `session_id` is the folder name under ~/.copilot/session-state/, which `--resume=<session-id>`
+# takes. The `=` form: `--resume` has an optional value.
+resume:
+  command: "copilot --resume={session_id}"
+  verified: "GitHub Copilot CLI 1.0.112, 2026-11-16: `copilot --help` (examples: copilot --resume=<session-id>); a stored hook session_id equals its session-state folder"
+
 # Copilot hooks carry no prompt id: each prompt gets one from GitPrompt, and every other event joins
 # the latest prompt of its session (safe because Copilot runs hooks synchronously, in order).
 join: session

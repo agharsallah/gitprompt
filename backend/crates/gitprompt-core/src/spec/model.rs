@@ -214,6 +214,18 @@ pub struct SurfaceRef {
     pub icon: String,
 }
 
+/// How to resume one of the tool's sessions (docs/connectors.md "Resume commands").
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResumeSpec {
+    /// A shell command with `{session_id}` and `{cwd}` placeholders ([`super::RESUME_PLACEHOLDERS`]);
+    /// each value is shell-quoted when filled in.
+    pub command: String,
+    /// What the command was checked against: the tool's version and where the syntax was read.
+    #[serde(default)]
+    pub verified: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Spec {
     pub id: String,
@@ -286,6 +298,9 @@ pub struct Spec {
     pub ignored: IndexMap<String, String>,
     #[serde(default)]
     pub discard: IndexMap<String, String>,
+    /// How to resume a session of this tool; none = no resume action is shown.
+    #[serde(default)]
+    pub resume: Option<ResumeSpec>,
 }
 
 fn default_prompt_events() -> Vec<String> {
@@ -346,6 +361,12 @@ impl Spec {
         let source = format!(r"/ingest/{}(?![\w-])", fancy_regex::escape(&self.id));
         // The id is escaped, so the pattern is a literal plus a fixed look-ahead: always valid.
         Pattern::new(&source).expect("an escaped id makes a valid pattern")
+    }
+
+    /// The command that resumes a session (`resume.command` filled in, values shell-quoted); `None`
+    /// when the spec has no `resume` or the session lacks a value the command needs.
+    pub fn resume_command(&self, session_id: &str, cwd: Option<&str>) -> Option<String> {
+        super::expand::resume_command(&self.resume.as_ref()?.command, session_id, cwd)
     }
 
     /// The kind of a tool (`tool_kinds`); unmapped = `Other`.

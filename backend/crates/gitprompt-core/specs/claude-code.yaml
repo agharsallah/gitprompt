@@ -55,6 +55,12 @@ prompt_events: [UserPromptSubmit]
 # per-session metrics come from the telemetry layer. Events join their prompt by prompt_id.
 capabilities: [prompt, cwd, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
 
+# How to resume one of its sessions (docs/connectors.md "Resume commands"). The hook payload's
+# `session_id` is the id `--resume` takes.
+resume:
+  command: "claude --resume {session_id}"
+  verified: "Claude Code 2.1.326, 2026-11-16: `claude --help` (-r, --resume [value]: by session ID or name) and https://code.claude.com/docs/en/cli-reference"
+
 map:
   session_title: [session_title]
 

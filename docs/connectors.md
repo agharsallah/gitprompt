@@ -62,6 +62,39 @@ Connectors are YAML files in `backend/crates/gitprompt-core/specs/` (compiled in
 | `usage`, `capability_since` | Events that report model calls and where their tokens are; the tool version that adds a capability | [0020](adr/0020-model-call-usage-and-version-capabilities.md) |
 | `surface`, `captures`, `cannot_capture`, `event_names`, `answer`, `discard` | Which app a prompt was typed in; which apps the connector reaches; event-name mapping; where the final answer is; payload keys dropped before storing | [0022](adr/0022-surfaces-and-desktop-apps.md) |
 
+### Resume commands
+
+How to pick one of a tool's sessions up again is connector data, not code: an optional `resume` key in the spec (decision D9, [ADR 0024](adr/0024-dashboard-redesign-v3.md)). **No template, no action**: a tool without one shows nothing, because a wrong command is worse than none.
+
+```yaml
+resume:
+  command: "claude --resume {session_id}"
+  verified: "Claude Code 2.1.326, 2026-11-16: `claude --help` and https://code.claude.com/docs/en/cli-reference"
+```
+
+| Key | Meaning |
+|---|---|
+| `command` | A shell command. Placeholders between braces; any other name, an unclosed or a lone brace makes the spec invalid (`{{` and `}}` write a literal brace) |
+| `verified` | What it was checked against: the tool's version, the date and the source. Not read by the code; it says when to check again |
+
+| Placeholder | Value |
+|---|---|
+| `{session_id}` | The session's id, the `session_id` the tool's hooks send |
+| `{cwd}` | The session's working folder: the first `cwd` any event of the session carries, else the prompt's |
+
+Each value is **shell-quoted** (POSIX) when filled in: left as it is if it only has letters, digits and `_ - . / : @ % + = ,`, else in single quotes with every `'` written `'\''`, so `/Users/me/My Project` becomes `'/Users/me/My Project'` and a value can never add a second command. The template itself is yours: quote around placeholders and the result is quoted twice. If the session has no value for a placeholder the template uses (no `cwd`), there is no command rather than one with a hole in it. POSIX shells only; Windows is not supported yet.
+
+The dashboard gets `session.resume` on a prompt's detail (`{command, cwd?}`, left out when there is no command); `cwd` is the folder to `cd` to first (Claude Code looks a session up in the folder it started in).
+
+**Verifying a template for a new tool version** (do not start an interactive session):
+
+1. Run `<tool> --version` and `<tool> --help` (and the subcommand's: `codex resume --help`) and find the exact way to resume by id; read the official CLI reference for the same version.
+2. Check the id is the right one: the `session_id` in a stored hook payload (`GET /api/prompts/<id>`, `raw`) must equal what the tool itself calls the session (its transcript file name, its session folder, what its picker lists). A tool whose hooks name a different id than its resume takes gets no template.
+3. If a flag, a separator (`--resume=<id>` against `--resume <id>`) or the id kind is not confirmed, leave `resume` out and say why in a comment.
+4. Put the version, the date and the source in `verified`, and the command in `backend/crates/gitprompt-core/tests/spec_resume.rs` (`bundled_templates_are_the_verified_ones`).
+
+Checked 2026-11-16: Claude Code 2.1.326 (`claude --resume <id>`, `claude --help` and the CLI reference), Codex CLI 0.167.0 (`codex resume <id>`, `codex resume --help`), GitHub Copilot CLI 1.0.112 (`copilot --resume=<id>`, `copilot --help`). **Cursor has no template**: its CLI resumes with `agent --resume [chatId]`, but nothing confirms that id is the `conversation_id` the IDE's hooks send, and the connector captures the IDE.
+
 A spec file that can't be read is listed at the top of the Connectors page and in Settings with its error; it is skipped, every other connector (and capture) keeps working, and a broken copy of a bundled spec falls back to the bundled one.
 
 A connector is done when its conformance fixtures pass: synthetic payloads from the tool's documented examples in `backend/testdata/fixtures/<id>/`, each with the fields, origin and turn it must map to (replayed by `backend/crates/gitprompt-capture/tests/conformance.rs` and `backend/crates/gitprompt-insights/tests/conformance.rs`; `tests/coverage.rs` there fails on any payload key nobody decided about). Where every other kind of change goes: [extending.md](extending.md).

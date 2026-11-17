@@ -52,6 +52,9 @@ install:
       stop: *hook
       sessionEnd: *hook
 
+# No `resume:` on purpose (checked 2026-11-16, Cursor Agent CLI 2026.11.13-eacade1): the CLI resumes
+# with `agent --resume [chatId]`, but nothing says its chat id is the `conversation_id` the IDE's hooks
+# send, and this connector captures the IDE. A wrong command is worse than none.
 after_connect: Restart Cursor (or reload its window) so it reads the new hooks.
 
 # Cursor's camelCase events under GitPrompt's names, so the shared derivations read them. A stop

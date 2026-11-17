@@ -170,7 +170,11 @@ expression: "get(&api, &format!(\"/api/prompts/{id}\")).await"
         "agent_type": "default",
         "answer": "send() is in upload.py, line 42."
       }
-    ]
+    ],
+    "resume": {
+      "command": "codex resume 0190a1b2-0000-7000-8000-000000000001",
+      "cwd": "/work/app"
+    }
   },
   "commits": {},
   "events": [

@@ -14,7 +14,7 @@ use gitprompt_core::Json;
 use gitprompt_core::spec::ToolKind;
 use gitprompt_store::index::UsageTotals;
 
-use super::{PromptStats, SessionSummary, SubagentResult, SubagentTask, TurnError, TurnSummary};
+use super::{PromptStats, Resume, SessionSummary, SubagentResult, SubagentTask, TurnError, TurnSummary};
 
 /// Requests, tokens and cost of model calls, every count present.
 #[derive(Clone, Debug, PartialEq, Serialize, TS)]
@@ -282,6 +282,10 @@ pub struct SessionSummaryOut {
     /// Resource attributes of the latest event that carries `session.id`.
     #[serde(default, skip_serializing_if = "Blank::is_blank")]
     pub environment: gitprompt_core::JsonMap,
+    /// The command that resumes the session; left out when the tool's spec has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub resume: Option<Resume>,
 }
 
 impl From<&SessionSummary> for SessionSummaryOut {
@@ -300,6 +304,7 @@ impl From<&SessionSummary> for SessionSummaryOut {
             subagent_results: s.subagent_results.clone(),
             metric_totals: s.metric_totals.clone(),
             environment: s.environment.clone(),
+            resume: s.resume.clone(),
         }
     }
 }

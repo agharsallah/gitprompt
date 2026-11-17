@@ -22,10 +22,10 @@ use serde::{Deserialize, Serialize};
 use serde_norway::Mapping as YamlMap;
 use ts_rs::TS;
 
-pub use expand::expand;
+pub use expand::{RESUME_PLACEHOLDERS, expand, shell_quote};
 pub use model::{
-    Capability, EventName, Format, Install, Join, Origin, OriginRule, Policy, Spec, SurfaceInfo, SurfaceRef, SurfaceRule, ToolKind, Usage,
-    UsageValue, When, by_name, matches,
+    Capability, EventName, Format, Install, Join, Origin, OriginRule, Policy, ResumeSpec, Spec, SurfaceInfo, SurfaceRef, SurfaceRule,
+    ToolKind, Usage, UsageValue, When, by_name, matches,
 };
 use parse::bundled_text;
 pub use parse::{bundled_defaults, parse_spec};

@@ -1,5 +1,6 @@
 //! What deserializing a spec can't check: rule conditions, surface ids and names, injected tags.
 
+use super::expand::{Fill, fill};
 use super::{Spec, When};
 use crate::Json;
 
@@ -26,9 +27,20 @@ pub(super) fn validate(spec: &Spec) -> std::result::Result<(), String> {
     if !unknown.is_empty() {
         return Err(format!("surfaces without a name in `surfaces`: {unknown:?}"));
     }
-    match spec.injected.iter().find(|tag| !is_tag(tag)) {
-        Some(tag) => Err(format!("injected tag {tag:?} must match ^[A-Za-z][\\w:-]*$")),
-        None => Ok(()),
+    if let Some(tag) = spec.injected.iter().find(|tag| !is_tag(tag)) {
+        return Err(format!("injected tag {tag:?} must match ^[A-Za-z][\\w:-]*$"));
+    }
+    check_resume(spec)
+}
+
+/// The `resume.command` template fills with a value for every known placeholder, so what remains
+/// is an unknown placeholder or a stray brace.
+fn check_resume(spec: &Spec) -> std::result::Result<(), String> {
+    let Some(resume) = &spec.resume else { return Ok(()) };
+    match fill(&resume.command, |_| Some("x".into())) {
+        Err(Fill::Invalid(why)) => Err(why),
+        _ if resume.command.trim().is_empty() => Err("resume `command` is empty".into()),
+        _ => Ok(()),
     }
 }
 

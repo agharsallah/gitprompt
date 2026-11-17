@@ -16,6 +16,7 @@
 //! `{}`, `false` and `0` values left out, `gitprompt_core::json::compact`), and a `None` map key
 //! (a tool call without a tool name, a model call without a model) serializes as the key `"null"`.
 
+mod resume;
 pub mod serial;
 mod session;
 mod stats;
@@ -29,6 +30,8 @@ use gitprompt_core::spec::{Origin, Pattern, Spec, ToolKind, Usage};
 use gitprompt_core::{Json, JsonMap};
 use gitprompt_store::index::UsageTotals;
 use gitprompt_store::{EventRow, PromptView};
+
+pub use resume::{Resume, resume};
 
 use crate::origin::Classified;
 use crate::raw::{self, Raw, Reads};
@@ -373,6 +376,9 @@ pub struct SessionSummary {
     /// The resource attributes ([`ENVIRONMENT`] prefixes) of the latest event that carries
     /// `session.id`.
     pub environment: JsonMap,
+    /// How to resume the session, from the tool's spec ([`resume()`]); filled by the caller that has
+    /// the spec, `None` here.
+    pub resume: Option<Resume>,
 }
 
 /// Compacted, as `PromptDetail.session`.

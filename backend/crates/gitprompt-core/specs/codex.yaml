@@ -85,6 +85,12 @@ captures:
 # join no prompt. Not available: cost (no hook reports it; Codex's OpenTelemetry export only has an
 # estimate, see docs/adr/0019-codex-connector.md), and per-session metrics.
 capabilities: [prompt, cwd, model, usage, turn_end, answer, tools, subagents, origin_markers, transcript_path, session_lifecycle]
+
+# How to resume one of its sessions (docs/connectors.md "Resume commands"). The hook payload's
+# `session_id` is the UUID in the session's rollout file name, which `codex resume` takes.
+resume:
+  command: "codex resume {session_id}"
+  verified: "codex-cli 0.167.0, 2026-11-16: `codex resume --help` (Usage: codex resume [OPTIONS] [SESSION_ID] [PROMPT]); the id equals the rollout file's UUID in a stored hook payload"
 capability_since:
   usage: 0.164.0  # PostModelRequest (rust-v0.163.0 has no model-request schema, rust-v0.164.0 does)
 
