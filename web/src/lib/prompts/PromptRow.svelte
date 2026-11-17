@@ -4,6 +4,8 @@
 	import { OUTCOMES, type Outcome } from '#lib/insights/outcome.ts';
 	import { projectOf } from '#lib/insights/project.ts';
 	import { timeOfDay } from '#lib/shared/format.ts';
+	import { track } from '#lib/shared/usage.ts';
+	import CopyButton from '#lib/ui/CopyButton.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import OriginBadge from '#lib/prompts/OriginBadge.svelte';
@@ -37,52 +39,64 @@
 	const text = $derived(typedText(prompt));
 </script>
 
-<a
-	class={['row', selected && 'selected', isSystem(prompt) && 'system']}
-	{href}
-	aria-current={selected ? 'true' : undefined}
-	data-sveltekit-reset="false"
->
-	<span class={['rail', joinPrev && 'prev', joinNext && 'next']}>
-		<RailNode {outcome} />
-	</span>
-	<span class="body">
-		<span class="meta">
-			<time datetime={prompt.received_at}>{timeOfDay(prompt.received_at)}</time>
-			<ConnectorBadge connector={prompt.facts.connector} surface={prompt.facts.surface} />
-			{#if showProject}
-				<span class="project truncate">{project.name}</span>
-			{/if}
-			{#if prompt.context.git_branch}
-				<span class="branch truncate"
-					><GitBranch size={12} aria-hidden="true" />{prompt.context.git_branch}</span
-				>
-			{/if}
-			{#if prompt.summary.turn}<span class="turn">Turn {prompt.summary.turn}</span>{/if}
-			<OriginBadge {prompt} />
-			<span class="sr-only">{OUTCOMES[outcome].label}</span>
-			<span class="flags">
-				{#if secrets}
-					<span class="secret" title="Possible secret in this prompt">
-						<KeyRound size={13} aria-hidden="true" /><span class="sr-only">Possible secret</span>
-					</span>
+<!-- The copy button is beside the link, not in it: a button cannot sit inside a link. -->
+<div class="item">
+	<a
+		class={['row', selected && 'selected', isSystem(prompt) && 'system']}
+		{href}
+		aria-current={selected ? 'true' : undefined}
+		data-sveltekit-reset="false"
+	>
+		<span class={['rail', joinPrev && 'prev', joinNext && 'next']}>
+			<RailNode {outcome} />
+		</span>
+		<span class="body">
+			<span class="meta">
+				<time datetime={prompt.received_at}>{timeOfDay(prompt.received_at)}</time>
+				<ConnectorBadge connector={prompt.facts.connector} surface={prompt.facts.surface} />
+				{#if showProject}
+					<span class="project truncate">{project.name}</span>
 				{/if}
-				{#if prompt.annotation.starred}
-					<span class="star" title="Starred"
-						><Star size={13} aria-hidden="true" /><span class="sr-only">Starred</span></span
+				{#if prompt.context.git_branch}
+					<span class="branch truncate"
+						><GitBranch size={12} aria-hidden="true" />{prompt.context.git_branch}</span
 					>
 				{/if}
+				{#if prompt.summary.turn}<span class="turn">Turn {prompt.summary.turn}</span>{/if}
+				<OriginBadge {prompt} />
+				<span class="sr-only">{OUTCOMES[outcome].label}</span>
+				<span class="flags">
+					{#if secrets}
+						<span class="secret" title="Possible secret in this prompt">
+							<KeyRound size={13} aria-hidden="true" /><span class="sr-only">Possible secret</span>
+						</span>
+					{/if}
+					{#if prompt.annotation.starred}
+						<span class="star" title="Starred"
+							><Star size={13} aria-hidden="true" /><span class="sr-only">Starred</span></span
+						>
+					{/if}
+				</span>
+			</span>
+			<span class="text clamp-2">{text ?? 'No prompt text was captured'}</span>
+			<span class="foot">
+				<TurnFacts {prompt} />
+				{#each prompt.annotation.tags as tag (tag)}<span class="tag">#{tag}</span>{/each}
 			</span>
 		</span>
-		<span class="text clamp-2">{text ?? 'No prompt text was captured'}</span>
-		<span class="foot">
-			<TurnFacts {prompt} />
-			{#each prompt.annotation.tags as tag (tag)}<span class="tag">#{tag}</span>{/each}
+	</a>
+	{#if text}
+		<span class="copy">
+			<CopyButton {text} label="Copy prompt" ghost say oncopy={() => track('copy.prompt')} />
 		</span>
-	</span>
-</a>
+	{/if}
+</div>
 
 <style>
+	.item {
+		position: relative;
+	}
+
 	.row {
 		--rail-surface: var(--color-surface);
 		display: grid;
@@ -94,7 +108,7 @@
 		text-decoration: none;
 	}
 
-	.row:hover {
+	.item:hover .row {
 		--rail-surface: var(--color-surface-hover);
 		background: var(--color-surface-hover);
 	}
@@ -152,6 +166,7 @@
 
 	.meta {
 		display: flex;
+		padding-right: var(--space-8);
 		align-items: center;
 		gap: var(--space-2);
 		min-width: 0;
@@ -221,6 +236,26 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-1) var(--space-3);
+	}
+
+	/* Copy shows on hover and on keyboard focus, and always on touch screens (no hover there). */
+	.copy {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		opacity: 0;
+	}
+
+	.item:hover .copy,
+	.item:focus-within .copy,
+	.copy:has(:global(.saying)) {
+		opacity: 1;
+	}
+
+	@media (hover: none) {
+		.copy {
+			opacity: 1;
+		}
 	}
 
 	.tag {

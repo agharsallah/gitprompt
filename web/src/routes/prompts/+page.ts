@@ -29,6 +29,9 @@ import type { PageLoad } from './$types';
 // Range: `?range=`, all time without it, so a link to a session, a tag or a project finds every
 // prompt. A filter's own `since` (a day picked on the Overview) narrows it.
 //
+// With words (`q`), the same filters also go to /api/search, whose hits carry the matching words in
+// context: the page shows those in place of the plain rows (the old Search page, folded in).
+//
 // The filters are read here and returned at once; the prompts and their counts stream in.
 const PROMPTS_RANGE: RangeId = 'all';
 
@@ -61,12 +64,17 @@ export const load: PageLoad = ({ fetch, url }) => {
 		const { [key]: _, ...others } = { ...counted, ...lists, origin: origins } as PromptQuery;
 		return api.stats({ ...others, group_by: key, order: 'prompts', limit: 100 }, fetch);
 	};
+	const hits = filters.q
+		? api.search({ ...query, ...lists, origin: origins, limit }, fetch)
+		: Promise.resolve(null);
 	const listing = Promise.all([
 		api.prompts(params, fetch),
+		hits,
 		api.stats({ ...counted, ...lists, group_by: 'origin' }, fetch),
 		Promise.all(PROMPT_FACETS.map(facet))
-	]).then(([prompts, byOrigin, facets]) => ({
+	]).then(([prompts, search, byOrigin, facets]) => ({
 		prompts,
+		search,
 		originCounts: Object.fromEntries(byOrigin.groups.map((g) => [g.key, g.prompts])) as Partial<
 			Record<Origin, number>
 		>,

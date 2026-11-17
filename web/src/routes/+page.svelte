@@ -23,6 +23,7 @@
 	import { availability } from '#lib/sources/capabilities.ts';
 	import SetupSteps from '#lib/sources/SetupSteps.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
+	import { PURPOSES } from '#lib/layout/nav.ts';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import PanelSkeleton from '#lib/ui/PanelSkeleton.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
@@ -56,7 +57,7 @@
 
 <svelte:head><title>Overview · GitPrompt</title></svelte:head>
 
-<PageHeader title="Overview" description={summary}>
+<PageHeader title="Overview" purpose={PURPOSES['/']} description={summary}>
 	{#snippet actions()}
 		{#if content.value && totals?.prompts}
 			<ExportButton target={{ kind: 'overview', query: content.value.overview.query }} />

@@ -23,10 +23,10 @@ describe('pageHref', () => {
 	});
 
 	it('adds ready-made search params as they are, and nothing when they are empty', () => {
-		expect(pageHref('/search', { query: new URLSearchParams([['q', 'a b']]) })).toBe(
-			'/search?q=a+b'
+		expect(pageHref('/prompts', { query: new URLSearchParams([['q', 'a b']]) })).toBe(
+			'/prompts?q=a+b'
 		);
-		expect(pageHref('/search', { query: new URLSearchParams() })).toBe('/search');
+		expect(pageHref('/prompts', { query: new URLSearchParams() })).toBe('/prompts');
 	});
 
 	it('adds the anchor after the query', () => {

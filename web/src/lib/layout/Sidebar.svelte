@@ -9,14 +9,18 @@
 		Settings,
 		ShieldCheck,
 		TableProperties,
-		TextQuote
+		TextQuote,
+		type LucideIcon
 	} from '@lucide/svelte';
 	import { page } from '$app/state';
 	import BrandMark from '#lib/layout/BrandMark.svelte';
 	import LiveStatus from '#lib/layout/LiveStatus.svelte';
+	import { isCurrent, NAV, tooltip, type NavLink } from '#lib/layout/nav.ts';
 	import ThemeToggle from '#lib/layout/ThemeToggle.svelte';
 	import UpdateHint from '#lib/layout/UpdateHint.svelte';
 	import { updates } from '#lib/layout/updates.svelte.ts';
+	import { isMac, shortcutLabel } from '#lib/palette/keys.ts';
+	import { palette } from '#lib/palette/open.svelte.ts';
 	import { pageHref } from '#lib/shared/links.ts';
 	import { isViewPage } from '#lib/settings/views.ts';
 	import { views } from '#lib/settings/views.svelte.ts';
@@ -29,31 +33,22 @@
 	});
 	const onConnectors = $derived(page.route.id === '/sources');
 
-	const groups = [
-		{
-			label: 'Review',
-			links: [
-				{ route: '/', label: 'Overview', icon: Activity },
-				{ route: '/prompts', label: 'Prompts', icon: TextQuote },
-				{ route: '/sessions', label: 'Sessions', icon: MessagesSquare },
-				{ route: '/projects', label: 'Projects', icon: FolderGit2 },
-				{ route: '/search', label: 'Search', icon: Search }
-			]
-		},
-		{
-			label: 'Setup',
-			links: [
-				{ route: '/sources', label: 'Connectors', icon: Plug },
-				{ route: '/fields', label: 'Fields', icon: TableProperties },
-				{ route: '/settings', label: 'Settings', icon: Settings },
-				{ route: '/design', label: 'Design system', icon: Palette }
-			]
-		}
-	] as const;
-	type Route = (typeof groups)[number]['links'][number]['route'];
+	const ICONS: Partial<Record<NavLink['route'], LucideIcon>> = {
+		'/': Activity,
+		'/projects': FolderGit2,
+		'/sessions': MessagesSquare,
+		'/prompts': TextQuote,
+		'/sources': Plug,
+		'/fields': TableProperties,
+		'/settings': Settings,
+		'/design': Palette
+	};
 
 	/** A filtering page opens in the view you left it in (its kept query, lib/settings/views.ts). */
-	const href = (route: Route) => pageHref(route) + (isViewPage(route) ? views.search[route] : '');
+	const href = (route: NavLink['route']) =>
+		pageHref(route) + (isViewPage(route) ? views.search[route] : '');
+
+	const hint = shortcutLabel(isMac());
 </script>
 
 <svelte:window onfocus={() => updates.refresh()} />
@@ -64,22 +59,38 @@
 		<span class="wordmark">GitPrompt</span>
 	</a>
 
+	<!-- Find is the palette, not a page: a button, with the shortcut that does the same. -->
+	<button
+		type="button"
+		class="find"
+		onclick={() => palette.show()}
+		aria-label="Find anything"
+		aria-keyshortcuts="Control+K Meta+K"
+		title="Find anything ({hint})"
+	>
+		<Search size={16} aria-hidden="true" />
+		<span class="find-label">Find</span>
+		<kbd>{hint}</kbd>
+	</button>
+
 	<nav aria-label="Main">
-		{#each groups as group (group.label)}
+		{#each NAV as group (group.label)}
 			<div class="group">
 				<p class="group-label" id="nav-{group.label}">{group.label}</p>
 				<ul aria-labelledby="nav-{group.label}">
 					{#each group.links as link (link.route)}
+						{@const Icon = ICONS[link.route]}
 						<li>
 							<a
 								href={href(link.route)}
-								aria-current={page.route.id === link.route ||
-								(link.route !== '/' && page.route.id?.startsWith(`${link.route}/`))
-									? 'page'
-									: undefined}
+								title={tooltip(link)}
+								aria-current={isCurrent(link, page.route.id) ? 'page' : undefined}
 							>
-								<link.icon size={16} aria-hidden="true" />
-								<span>{link.label}</span>
+								{#if Icon}<Icon size={16} aria-hidden="true" />{/if}
+								<span class="text">
+									<span class="label">{link.label}</span>
+									{#if link.purpose}<span class="purpose">{link.purpose}</span>{/if}
+								</span>
 								{#if link.route === '/sources' && updates.list.length}
 									<span class="update-dot" title="Update available">
 										<span class="visually-hidden">(update available)</span>
@@ -134,6 +145,35 @@
 		letter-spacing: var(--tracking-tight);
 	}
 
+	.find {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		height: var(--control-md);
+		padding: 0 var(--space-2);
+		border-radius: var(--radius-md);
+		background: var(--color-surface-raised);
+		box-shadow: inset 0 0 0 1px var(--color-border);
+		color: var(--color-text-secondary);
+		font-weight: var(--weight-medium);
+		text-align: left;
+	}
+
+	.find:hover {
+		color: var(--color-text);
+		box-shadow: inset 0 0 0 1px var(--color-border-control);
+	}
+
+	.find-label {
+		flex: 1;
+	}
+
+	kbd {
+		color: var(--color-text-muted);
+		font-family: var(--font-mono);
+		font-size: var(--text-xs);
+	}
+
 	nav {
 		display: grid;
 		gap: var(--space-5);
@@ -156,12 +196,24 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		height: var(--control-md);
-		padding: 0 var(--space-2);
+		min-height: var(--control-md);
+		padding: var(--space-1) var(--space-2);
 		border-radius: var(--radius-md);
 		color: var(--color-text-secondary);
 		font-weight: var(--weight-medium);
 		text-decoration: none;
+	}
+
+	.text {
+		display: grid;
+		min-width: 0;
+	}
+
+	.purpose {
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-regular);
+		line-height: var(--leading-snug);
 	}
 
 	nav a :global(svg) {
@@ -173,8 +225,14 @@
 		color: var(--color-text);
 	}
 
+	/* The current page: a heavier label and a bar, so it reads without the colour. */
 	nav a[aria-current='page'] {
 		background: var(--color-accent-soft);
+		color: var(--color-accent-text);
+		font-weight: var(--weight-bold);
+	}
+
+	nav a[aria-current='page'] .purpose {
 		color: var(--color-accent-text);
 	}
 
@@ -247,6 +305,9 @@
 
 		.wordmark,
 		.group-label,
+		.purpose,
+		.find-label,
+		kbd,
 		.local,
 		.update,
 		.footer :global(.live .text) {
@@ -272,8 +333,21 @@
 			white-space: nowrap;
 		}
 
+		/* In the top bar the bar sits under the link. */
 		nav a[aria-current='page']::before {
-			display: none;
+			top: auto;
+			right: var(--space-2);
+			bottom: 0;
+			left: var(--space-2);
+			width: auto;
+			height: 3px;
+			border-radius: 3px 3px 0 0;
+		}
+
+		.find {
+			width: var(--control-md);
+			justify-content: center;
+			padding: 0;
 		}
 
 		.footer {
@@ -287,7 +361,7 @@
 
 	/* Phones: icons only, the label stays the link's accessible name (and its tooltip). */
 	@media (max-width: 40rem) {
-		nav a span:not(.update-dot, .visually-hidden) {
+		nav a .text {
 			position: absolute;
 			width: 1px;
 			height: 1px;

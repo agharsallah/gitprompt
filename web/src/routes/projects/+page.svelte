@@ -12,6 +12,7 @@
 	import { plural } from '#lib/shared/format.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
+	import { PURPOSES } from '#lib/layout/nav.ts';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
 	import type { PageProps } from './$types';
@@ -35,6 +36,7 @@
 
 <PageHeader
 	title="Projects"
+	purpose={PURPOSES['/projects']}
 	description="Where you worked with the agent: each repository or folder you sent prompts from, busiest first."
 >
 	{#snippet actions()}<RangePicker range={data.filters.range} />{/snippet}

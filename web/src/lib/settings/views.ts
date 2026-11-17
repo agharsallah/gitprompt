@@ -18,6 +18,7 @@
  */
 import { FACETS } from '#lib/insights/filters.ts';
 import { RANGES } from '#lib/insights/range.ts';
+import { carriedFilters, MOVED_PARAM } from '#lib/prompts/fromSearch.ts';
 import { pinLabel } from '#lib/prompts/pinned.ts';
 import { SORTS } from '#lib/sessions/load.ts';
 import { folder } from '#lib/shared/format.ts';
@@ -29,11 +30,13 @@ export const VIEWS = {
 	'/': { key: 'gitprompt-view-overview', label: 'Overview' },
 	'/prompts': { key: 'gitprompt-view-prompts', label: 'Prompts' },
 	'/sessions': { key: 'gitprompt-view-sessions', label: 'Sessions' },
-	'/projects': { key: 'gitprompt-view-projects', label: 'Projects' },
-	'/search': { key: 'gitprompt-view-search', label: 'Search' }
+	'/projects': { key: 'gitprompt-view-projects', label: 'Projects' }
 } as const;
 export type ViewPage = keyof typeof VIEWS;
 export const VIEW_PAGES = Object.keys(VIEWS) as ViewPage[];
+
+/** Where the old Search page kept its filters (Search became part of Prompts: `migrateSearchView`). */
+export const SEARCH_VIEW_KEY = 'gitprompt-view-search';
 
 /** The time range, shared by every page: a range id. */
 export const RANGE_KEY = 'gitprompt-view-range';
@@ -49,7 +52,7 @@ export const OLD_KEYS = [
 ];
 
 /** Parameters of one visit, not of the view: the selected prompt, how many rows are loaded. */
-const TRANSIENT = new Set(['id', 'limit']);
+const TRANSIENT = new Set(['id', 'limit', MOVED_PARAM]);
 
 export const isViewPage = (route: string | null | undefined): route is ViewPage =>
 	!!route && Object.hasOwn(VIEWS, route);
@@ -159,8 +162,22 @@ export function forgetView(page: ViewPage, storage = browserStorage()): void {
 
 export function forgetViews(storage = browserStorage()): void {
 	for (const page of VIEW_PAGES) forgetView(page, storage);
+	put(storage, SEARCH_VIEW_KEY, null);
 	forgetRange(storage);
 	dropOldKeys(storage);
+}
+
+/**
+ * Search is part of Prompts now, with the same filter names: what the Search page kept (words,
+ * project, tag, origins) becomes the Prompts page's kept filters, unless Prompts already keeps
+ * some of its own. The old key goes either way. Safe to run on every start.
+ */
+export function migrateSearchView(storage = browserStorage()): void {
+	const old = get(storage, SEARCH_VIEW_KEY);
+	if (old == null) return;
+	put(storage, SEARCH_VIEW_KEY, null);
+	if (!isRemembering(storage) || savedView('/prompts', storage)) return;
+	write(storage, VIEWS['/prompts'].key, carriedFilters(split(old).filters).toString());
 }
 
 /** Remove what the previous version kept (run once when the app starts). */

@@ -8,15 +8,7 @@ import { resolve } from '$app/paths';
 
 /** The pages that take no path parameter. */
 export type PageRoute =
-	| '/'
-	| '/prompts'
-	| '/sessions'
-	| '/projects'
-	| '/search'
-	| '/sources'
-	| '/fields'
-	| '/settings'
-	| '/design';
+	'/' | '/prompts' | '/sessions' | '/projects' | '/sources' | '/fields' | '/settings' | '/design';
 
 /**
  * Each page's SvelteKit route id, by the name the page goes by: what reads the route a page is on
@@ -29,7 +21,6 @@ export const ROUTE_IDS = {
 	session: '/sessions/[id]',
 	projects: '/projects',
 	project: '/projects/[id]',
-	search: '/search',
 	sources: '/sources',
 	fields: '/fields',
 	settings: '/settings'

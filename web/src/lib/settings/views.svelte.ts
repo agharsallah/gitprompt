@@ -6,6 +6,7 @@ import {
 	forgetView,
 	isRemembering,
 	keepView,
+	migrateSearchView,
 	setRemembering,
 	viewSearch,
 	VIEW_PAGES,
@@ -22,6 +23,7 @@ class Views {
 
 	constructor() {
 		dropOldKeys();
+		migrateSearchView();
 	}
 
 	/** Re-read every link (the range is in all of them), changing only those that differ. */

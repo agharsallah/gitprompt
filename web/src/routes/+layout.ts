@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { startView } from '#lib/settings/views.ts';
+import { migrateSearchView, startView } from '#lib/settings/views.ts';
 import type { LayoutLoad } from './$types';
 
 // Static SPA served by the local daemon: every page is a prerendered shell, data loads in the browser.
@@ -14,6 +14,7 @@ let started = false;
 export const load: LayoutLoad = ({ route, url }) => {
 	if (started) return;
 	started = true;
+	migrateSearchView();
 	const search = startView(route.id, url.search);
 	if (search) redirect(307, `${url.pathname}${search}`);
 };

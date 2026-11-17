@@ -7,21 +7,31 @@
 	import { isSystem } from '#lib/prompts/origin.ts';
 	import { shortDate, timeOfDay } from '#lib/shared/format.ts';
 	import { projectHref, promptHref, sessionHref } from '#lib/shared/links.ts';
+	import { track } from '#lib/shared/usage.ts';
+	import CopyButton from '#lib/ui/CopyButton.svelte';
 	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import OutcomeLabel from '#lib/stories/OutcomeLabel.svelte';
 	import Snippet from '#lib/stories/Snippet.svelte';
 	import { anchor, railOutcome } from '#lib/stories/story.ts';
 
-	/** One search result: where and when, the matching words in context, and doors to its stories. */
-	let { hit }: { hit: SearchHit } = $props();
+	/**
+	 * One search result: where and when, the matching words in context, and doors to its stories.
+	 * `href` opens the prompt (default: the Prompts page with it selected), `copy` is its full text.
+	 */
+	let {
+		hit,
+		href,
+		selected = false,
+		copy
+	}: { hit: SearchHit; href?: string; selected?: boolean; copy?: string } = $props();
 
 	const h = $derived(hit);
 	const system = $derived(isSystem(h));
 	const view = $derived(factsView(h.facts));
 </script>
 
-<li class={['hit', system && 'system']}>
+<li class={['hit', system && 'system', selected && 'selected']}>
 	<span class="node"><RailNode outcome={railOutcome(h.outcome)} /></span>
 	<div class="body">
 		<p class="meta">
@@ -35,7 +45,13 @@
 			{#if view.model}<span class="model" title={view.model.hint}>{view.model.name}</span>{/if}
 			{#if view.cost}<span>{view.cost}</span>{/if}
 		</p>
-		<a class="text" href={promptHref(h.id)} title="Prompt"><Snippet segments={h.snippet} /></a>
+		<a
+			class="text"
+			href={href ?? promptHref(h.id)}
+			title="Prompt"
+			aria-current={selected ? 'true' : undefined}
+			data-sveltekit-reset="false"><Snippet segments={h.snippet} /></a
+		>
 		<p class="links">
 			{#if h.session}<LinkArrow
 					href={sessionHref(h.session, { anchor: anchor(h.id) })}
@@ -47,15 +63,47 @@
 				>{/if}
 		</p>
 	</div>
+	{#if copy}
+		<span class="copy">
+			<CopyButton text={copy} label="Copy prompt" ghost say oncopy={() => track('copy.prompt')} />
+		</span>
+	{/if}
 </li>
 
 <style>
 	.hit {
+		position: relative;
 		display: grid;
 		grid-template-columns: 1.5rem minmax(0, 1fr);
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-3) var(--space-3) var(--space-2);
 		border-bottom: var(--border-hairline) solid var(--color-border-subtle);
+	}
+
+	.hit.selected {
+		border-radius: var(--radius-md);
+		background: var(--color-surface-selected);
+		box-shadow: inset 0 0 0 1px var(--color-accent-border);
+	}
+
+	/* Copy shows on hover and on keyboard focus, and always on touch screens (no hover there). */
+	.copy {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		opacity: 0;
+	}
+
+	.hit:hover .copy,
+	.hit:focus-within .copy,
+	.copy:has(:global(.saying)) {
+		opacity: 1;
+	}
+
+	@media (hover: none) {
+		.copy {
+			opacity: 1;
+		}
 	}
 
 	.hit:last-child {
@@ -80,6 +128,7 @@
 
 	.meta {
 		display: flex;
+		padding-right: var(--space-8);
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-1) var(--space-3);

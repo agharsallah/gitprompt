@@ -28,8 +28,7 @@ const PAGES: [string, () => Promise<{ load: Load }>][] = [
 	['/', () => import('./+page.ts')],
 	['/prompts/', () => import('./prompts/+page.ts')],
 	['/sessions/', () => import('./sessions/+page.ts')],
-	['/projects/', () => import('./projects/+page.ts')],
-	['/search/', () => import('./search/+page.ts')]
+	['/projects/', () => import('./projects/+page.ts')]
 ];
 
 /** The range a page's load data shows. */

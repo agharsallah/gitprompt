@@ -5,6 +5,7 @@
 	let {
 		title,
 		heading,
+		purpose,
 		description,
 		actions,
 		children
@@ -12,6 +13,8 @@
 		title: string;
 		/** Draws the heading's content itself (one you can rename); `title` stays its plain text. */
 		heading?: Snippet;
+		/** The job the page serves, in a few words (layout/nav.ts), shown right under the title. */
+		purpose?: string;
 		description?: string | Snippet;
 		actions?: Snippet;
 		/** Extra content under the description (summary chips, a status line). */
@@ -24,6 +27,7 @@
 		<h1>
 			{#if heading}{@render heading()}{:else}{title}{/if}
 		</h1>
+		{#if purpose}<p class="purpose">{purpose}</p>{/if}
 		{#if typeof description === 'string'}
 			<p class="description">{description}</p>
 		{:else if description}
@@ -49,6 +53,12 @@
 		gap: var(--space-2);
 		min-width: min(100%, 20rem);
 		flex: 1;
+	}
+
+	.purpose {
+		color: var(--color-accent-text);
+		font-size: var(--text-sm);
+		font-weight: var(--weight-medium);
 	}
 
 	.description {

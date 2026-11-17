@@ -10,26 +10,31 @@
 	import Lazy from '#lib/async/Lazy.svelte';
 	import Loading from '#lib/async/Loading.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
+	import DetailSkeleton from '#lib/prompts/DetailSkeleton.svelte';
 	import ErrorView from '#lib/errors/ErrorView.svelte';
 	import { isAll } from '#lib/prompts/originFilter.svelte.ts';
 	import { outcome, supersededIds } from '#lib/insights/outcome.ts';
 	import { eventTime } from '#lib/insights/timeline.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
 	import { plural } from '#lib/shared/format.ts';
+	import { PURPOSES } from '#lib/layout/nav.ts';
 	import ExportButton from '#lib/export/ExportButton.svelte';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
 	import Button from '#lib/ui/Button.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
-	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
+	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import PromptFilters, {
 		isQuick,
 		PREDICATES,
 		QUICK,
 		type Quick
 	} from '#lib/prompts/PromptFilters.svelte';
+	import { hitRows } from '#lib/prompts/hits.ts';
+	import PromptHits from '#lib/prompts/PromptHits.svelte';
 	import PromptList from '#lib/prompts/PromptList.svelte';
+	import SearchMoved from '#lib/prompts/SearchMoved.svelte';
 	import { MAX_LIMIT, PAGE } from '#lib/prompts/paging.ts';
 	import type { PageProps } from './$types';
 
@@ -49,6 +54,8 @@
 			(Object.keys(QUICK) as Quick[]).map((q) => [q, prompts.filter(PREDICATES[q]).length])
 		) as Record<Quick, number>
 	);
+	// With words in the filter, the rows are the search hits (the words in context) of the prompts shown.
+	const hits = $derived(hitRows(listing.value?.search?.hits ?? [], shown));
 	const superseded = $derived(supersededIds(prompts));
 	// Prompts the server-side filters keep over every page (counts from /api/stats): of any
 	// origin, and of the origins shown.
@@ -126,27 +133,13 @@
 
 <svelte:head><title>Prompts · GitPrompt</title></svelte:head>
 
-{#snippet detailSkeleton()}
-	<div class="detail-skeleton">
-		<div class="detail-head">
-			<Skeleton width="5rem" height="1.25rem" shape="block" />
-			<Skeleton width="7rem" height="0.8rem" />
-		</div>
-		<Skeleton lines={4} height="1rem" />
-		<Skeleton shape="block" height="7rem" />
-		<div class="detail-head">
-			{#each ['5rem', '6rem', '4.5rem', '5.5rem'] as width, i (i)}
-				<Skeleton {width} height="1.75rem" shape="block" />
-			{/each}
-		</div>
-		<Skeleton lines={3} />
-	</div>
-{/snippet}
+{#snippet detailSkeleton()}<DetailSkeleton />{/snippet}
 
 <div class={['page', selectedId && 'has-detail']}>
 	<div class="list-column">
 		<PageHeader
 			title="Prompts"
+			purpose={PURPOSES['/prompts']}
 			description="Everything you asked, newest first. Prompts of one session share a line; select one to see how the turn went."
 		>
 			{#snippet actions()}
@@ -159,6 +152,7 @@
 				/>
 			{/snippet}
 		</PageHeader>
+		<SearchMoved />
 		<Deferred resource={listing} label="Loading prompts" what="the prompts">
 			{#snippet pending()}
 				<div class="listing">
@@ -194,7 +188,9 @@
 				</p>
 
 				<div class="list">
-					{#if shown.length}
+					{#if hits.length}
+						<PromptHits rows={hits} {selectedId} hrefFor={(id) => url({ id: String(id) })} />
+					{:else if shown.length}
 						<PromptList prompts={shown} {selectedId} {hrefFor} />
 					{:else if filtered}
 						<EmptyState title="No prompts match these filters">
@@ -350,18 +346,6 @@
 	.filter-skeleton {
 		display: grid;
 		gap: var(--space-2);
-	}
-
-	.detail-skeleton {
-		display: grid;
-		gap: var(--space-5);
-	}
-
-	.detail-head {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-3);
 	}
 
 	.placeholder {

@@ -15,6 +15,7 @@
 	import Chip from '#lib/ui/Chip.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
+	import { PURPOSES } from '#lib/layout/nav.ts';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
@@ -43,6 +44,7 @@
 
 <PageHeader
 	title="Sessions"
+	purpose={PURPOSES['/sessions']}
 	description="Each session is one conversation with the agent: its turns in order, how long each took and how it ended."
 >
 	{#snippet actions()}<RangePicker range={data.filters.range} />{/snippet}

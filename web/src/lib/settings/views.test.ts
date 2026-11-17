@@ -7,11 +7,13 @@ import {
 	forgetViews,
 	isRemembering,
 	keepView,
+	migrateSearchView,
 	OLD_KEYS,
 	RANGE_KEY,
 	REMEMBER_KEY,
 	savedRange,
 	savedView,
+	SEARCH_VIEW_KEY,
 	setRemembering,
 	startView,
 	VIEW_PAGES,
@@ -55,7 +57,7 @@ describe('one time range for every page', () => {
 	it('the reported case: 24 hours picked on Overview, every page opens at 24 hours', () => {
 		const s = memoryStorage();
 		keepView('/', '?range=24h', s);
-		expect(VIEW_PAGES.map((p) => viewSearch(p, s))).toEqual(Array(5).fill('?range=24h'));
+		expect(VIEW_PAGES.map((p) => viewSearch(p, s))).toEqual(Array(4).fill('?range=24h'));
 	});
 
 	it('the range last picked on any page wins', () => {
@@ -87,7 +89,7 @@ describe('each page keeps its own filters', () => {
 		keepView('/', '?range=30d&model=m', s);
 		keepView('/sessions', '?range=24h&sort=longest', s);
 		keepView('/projects', '?range=all', s);
-		expect(VIEW_PAGES.map((p) => savedView(p, s))).toEqual(['model=m', '', 'sort=longest', '', '']);
+		expect(VIEW_PAGES.map((p) => savedView(p, s))).toEqual(['model=m', '', 'sort=longest', '']);
 		expect(viewSearch('/', s)).toBe('?range=all&model=m');
 	});
 
@@ -205,5 +207,55 @@ describe('in words, for Settings', () => {
 		const keys = [REMEMBER_KEY, RANGE_KEY, ...OLD_KEYS, ...VIEW_PAGES.map((p) => VIEWS[p].key)];
 		expect(new Set(keys).size).toBe(keys.length);
 		expect(keys.every((k) => k.startsWith('gitprompt-'))).toBe(true);
+	});
+});
+
+describe('the old Search page’s kept filters', () => {
+	const kept = 'q=retry+logic&repo=%2Fwork%2Fapp&tag=keep&origin=typed&origin=slash_command';
+
+	it('become the Prompts page’s kept filters, and the old key goes', () => {
+		const s = memoryStorage({ [SEARCH_VIEW_KEY]: kept });
+		migrateSearchView(s);
+		expect(savedView('/prompts', s)).toBe(kept);
+		expect(s.items.has(SEARCH_VIEW_KEY)).toBe(false);
+		// The sidebar's Prompts link then opens with them, as the Search link did.
+		keepView('/', '?range=7d', s);
+		expect(viewSearch('/prompts', s)).toBe(`?range=7d&${kept}`);
+	});
+
+	it('leave the filters Prompts already keeps alone', () => {
+		const s = memoryStorage({ [SEARCH_VIEW_KEY]: kept });
+		keepView('/prompts', '?model=m', s);
+		migrateSearchView(s);
+		expect(savedView('/prompts', s)).toBe('model=m');
+		expect(s.items.has(SEARCH_VIEW_KEY)).toBe(false);
+	});
+
+	it('keep only what Prompts reads, and nothing of one visit', () => {
+		const s = memoryStorage({ [SEARCH_VIEW_KEY]: 'q=a&limit=100&id=3&zzz=1&tag=' });
+		migrateSearchView(s);
+		expect(savedView('/prompts', s)).toBe('q=a');
+	});
+
+	it('are dropped, not moved, when this browser remembers nothing', () => {
+		const s = memoryStorage({ [SEARCH_VIEW_KEY]: kept });
+		setRemembering(false, s);
+		s.items.set(SEARCH_VIEW_KEY, kept);
+		migrateSearchView(s);
+		expect(s.items.has(SEARCH_VIEW_KEY)).toBe(false);
+		expect(savedView('/prompts', s)).toBe('');
+	});
+
+	it('do nothing when there is nothing to move, and when storage is blocked', () => {
+		const s = memoryStorage();
+		migrateSearchView(s);
+		expect(s.writes()).toBe(0);
+		expect(() => migrateSearchView(blocked)).not.toThrow();
+	});
+
+	it('are forgotten with the other views', () => {
+		const s = memoryStorage({ [SEARCH_VIEW_KEY]: kept });
+		forgetViews(s);
+		expect(s.items.has(SEARCH_VIEW_KEY)).toBe(false);
 	});
 });

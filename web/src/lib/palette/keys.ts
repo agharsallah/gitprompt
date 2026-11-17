@@ -44,3 +44,10 @@ export function keyLabel(key: ActionKey, mac: boolean): string {
 	if (key === 'mod+enter') return mac ? '⌘↵' : 'Ctrl ↵';
 	return mac ? '⌥↵' : 'Alt ↵';
 }
+
+/** Whether this is a Mac (or an iPhone, iPad): ⌘ rather than Ctrl. */
+export const isMac = (platform = typeof navigator === 'undefined' ? '' : navigator.platform) =>
+	/Mac|iPhone|iPad/i.test(platform);
+
+/** The shortcut that opens the palette, as written on a keycap: ⌘K, or Ctrl K. */
+export const shortcutLabel = (mac: boolean): string => (mac ? '⌘K' : 'Ctrl K');
