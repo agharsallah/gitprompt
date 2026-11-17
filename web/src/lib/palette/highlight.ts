@@ -9,7 +9,9 @@ export const wordsOf = (text: string): string[] => text.split(/\s+/).filter(Bool
 /** `text` cut into pieces, the ones that are one of `words` (any case) marked `hit`. */
 export function highlight(text: string, words: readonly string[]): Segment[] {
 	if (!words.length) return [{ text, hit: false }];
-	const pattern = new RegExp(`(${words.map(escape).join('|')})`, 'gi');
+	// Longest first: an alternation takes the first word that fits, so "git" would cut "gitprompt".
+	const longestFirst = [...words].sort((a, b) => b.length - a.length);
+	const pattern = new RegExp(`(${longestFirst.map(escape).join('|')})`, 'gi');
 	// Splitting on a capture group alternates between the text between matches and the matches.
 	return text
 		.split(pattern)

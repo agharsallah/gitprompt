@@ -24,6 +24,17 @@ describe('highlight', () => {
 		]);
 	});
 
+	it('marks the longest word where one word starts another (git, gitprompt)', () => {
+		expect(highlight('gitprompt', ['git', 'gitprompt'])).toEqual([
+			{ text: 'gitprompt', hit: true }
+		]);
+		expect(highlight('fixture and fix', ['fix', 'fixture'])).toEqual([
+			{ text: 'fixture', hit: true },
+			{ text: ' and ', hit: false },
+			{ text: 'fix', hit: true }
+		]);
+	});
+
 	it('splits a query into its words', () => {
 		expect(wordsOf('  fix   the test ')).toEqual(['fix', 'the', 'test']);
 		expect(wordsOf('')).toEqual([]);
