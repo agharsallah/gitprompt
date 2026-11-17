@@ -1,16 +1,3 @@
-<script lang="ts" module>
-	/** "3 files changed, 120 insertions(+), 4 deletions(-)" -> numbers. */
-	export function parseDiffstat(stat: string | undefined) {
-		if (!stat) return null;
-		const num = (re: RegExp) => Number(stat.match(re)?.[1] ?? 0);
-		return {
-			files: num(/(\d+) files? changed/),
-			insertions: num(/(\d+) insertions?\(\+\)/),
-			deletions: num(/(\d+) deletions?\(-\)/)
-		};
-	}
-</script>
-
 <script lang="ts">
 	import {
 		ArrowDown,
@@ -23,6 +10,7 @@
 		TriangleAlert
 	} from '@lucide/svelte';
 	import type { PromptDetail } from '#lib/api/types.ts';
+	import { parseDiffstat } from '#lib/prompts/diffstat.ts';
 	import { integer, plural } from '#lib/shared/format.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';

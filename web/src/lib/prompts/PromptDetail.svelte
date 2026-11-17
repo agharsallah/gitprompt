@@ -22,6 +22,7 @@
 	import TurnOverview from '#lib/prompts/TurnOverview.svelte';
 	import UsagePanel from '#lib/prompts/UsagePanel.svelte';
 	import Voice from '#lib/prompts/Voice.svelte';
+	import WhatCameOfIt from '#lib/prompts/WhatCameOfIt.svelte';
 	import YourPrompt from '#lib/prompts/YourPrompt.svelte';
 	import { availability, toolOf } from '#lib/sources/capabilities.ts';
 	import VersionsPanel from '#lib/stories/VersionsPanel.svelte';
@@ -102,6 +103,8 @@
 			<code>{typeof s.error === 'string' ? s.error : JSON.stringify(s.error)}</code>
 		</Callout>
 	{/if}
+
+	<WhatCameOfIt {prompt} id="prompt-{prompt.id}-came-of-it" />
 
 	<section class="notes" aria-label="Your notes">
 		<NotesEditor value={prompt.annotation} {save} {saved} />
