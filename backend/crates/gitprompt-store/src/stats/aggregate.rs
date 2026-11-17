@@ -167,6 +167,8 @@ fn bucket(row: &Row<'_>) -> DbResult<Bucket> {
     Ok(Bucket {
         key: text_at(row, "key")?,
         detail: text_at(row, if has("excerpt") { "excerpt" } else { "detail" })?,
+        name: None,
+        label: None,
         prompts: row.get("prompts")?,
         sessions: row.get("sessions")?,
         api_requests: row.get("api_requests")?,

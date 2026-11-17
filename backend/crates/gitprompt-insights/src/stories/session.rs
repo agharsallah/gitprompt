@@ -20,6 +20,7 @@ use super::{
     project_of, retries,
 };
 use crate::derivations::files_of;
+use crate::label::session_label;
 use crate::text::{round, truthy};
 
 /// What a marker stands for: a prompt of a system origin, or something that happened in a turn.
@@ -154,8 +155,13 @@ pub struct SessionTotals {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 pub struct SessionStory {
     pub session: String,
-    /// The first title of its prompts.
-    pub title: Option<String>,
+    /// What you called it (`PUT /api/names/session/{id}`); the server fills it, omitted when you
+    /// have not.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub name: Option<String>,
+    /// Its default name: the title its tool reported, else what you first typed ([`crate::label`]).
+    pub label: Option<String>,
     /// The first prompt's source.
     pub source: Option<String>,
     /// The first prompt's connector (from its facts).
@@ -238,7 +244,8 @@ pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commi
     }
     SessionStory {
         session: session.to_owned(),
-        title: rows.iter().find_map(|p| non_empty(p.prompt.row.title.as_deref())).map(String::from),
+        name: None,
+        label: label_of(rows),
         source: first.map(|p| p.prompt.row.source.clone()),
         connector: first.and_then(|p| p.facts.as_ref()).map(|f| f.connector.clone()),
         surface: facts().find_map(|f| f.surface.clone()),
@@ -250,6 +257,13 @@ pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commi
         totals,
         items: group_markers(items),
     }
+}
+
+/// The session's default name from its rows (oldest first): the first title any carries, else the
+/// first typed prompt with a label.
+fn label_of(rows: &[FactRow]) -> Option<String> {
+    let title = rows.iter().find_map(|p| non_empty(p.prompt.row.title.as_deref()));
+    session_label(title, rows.iter().filter(|p| is_user(p)).filter_map(|p| p.prompt.row.typed_text.as_deref()))
 }
 
 fn totals(rows: &[FactRow], items: &[SessionItem], chapters: &[&Chapter], retries: usize) -> SessionTotals {

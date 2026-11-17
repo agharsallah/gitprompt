@@ -9,6 +9,7 @@
 	import LoadingPanel from './LoadingPanel.svelte';
 	import LinksPanel from './LinksPanel.svelte';
 	import PanelStatesPanel from './PanelStatesPanel.svelte';
+	import RenamePanel from './RenamePanel.svelte';
 	import StatusPanel from './StatusPanel.svelte';
 	import TypeSection from './TypeSection.svelte';
 </script>
@@ -56,6 +57,7 @@
 	<LinksPanel />
 	<LoadingPanel />
 	<PanelStatesPanel />
+	<RenamePanel />
 </div>
 
 <style>

@@ -140,6 +140,13 @@ async fn stories_lineage_and_search() {
 }
 
 #[tokio::test]
+async fn find_prompts_sessions_and_projects() {
+    let api = loaded().await;
+    insta::assert_json_snapshot!("find", get(&api, "/api/find?q=retry").await);
+    insta::assert_json_snapshot!("find_recent", get(&api, "/api/find").await);
+}
+
+#[tokio::test]
 async fn connectors_fields_and_settings() {
     let api = loaded().await;
     insta::assert_json_snapshot!("sources", get(&api, "/api/sources").await);

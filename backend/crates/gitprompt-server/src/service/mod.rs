@@ -11,7 +11,9 @@
 
 mod data;
 mod export;
+mod find;
 mod ingest;
+mod names;
 mod prompts;
 mod settings;
 mod sources;

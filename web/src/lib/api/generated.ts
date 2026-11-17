@@ -253,6 +253,41 @@ documented: boolean,
  */
 unused: string | null, };
 
+/**
+ * One match.
+ */
+
+export type FindHit = { target: FindTarget, 
+/**
+ * What to call it: the session's title (a prompt's session, a session) or the project's name.
+ */
+title: string | null, 
+/**
+ * The matched text around the query's words, matched words marked.
+ */
+snippet: Array<Segment>, 
+/**
+ * When it was last active (a prompt: when it was sent).
+ */
+at: string, 
+/**
+ * Prompts only: how the turn ended.
+ */
+outcome: TurnOutcome | null, };
+
+/**
+ * The best matches of each kind; a kind that was not asked for is empty.
+ */
+
+export type FindResults = { prompts: Array<FindHit>, sessions: Array<FindHit>, projects: Array<FindHit>, };
+
+/**
+ * What a hit opens: the id the dashboard builds the link from, as its story route takes it (a
+ * prompt's number, a session's id, a project's id).
+ */
+
+export type FindTarget = { "kind": "prompt", id: number, } | { "kind": "session", id: string, } | { "kind": "project", id: string, };
+
 export type GroupBy = "day" | "day_hour" | "hour" | "weekday" | "weekday_hour" | "origin" | "source" | "surface" | "session" | "session_length" | "repo" | "branch" | "command" | "size" | "text" | "outcome" | "model" | "tool" | "tool_kind" | "work" | "query_source";
 
 export type Injected = { 
@@ -313,6 +348,22 @@ export type MarkerKind = "compaction" | "subagent_prompt" | "task_notification" 
  */
 
 export type ModelSource = "usage" | "hook";
+
+/**
+ * `PUT /api/names/session/{id}`: what to call it.
+ */
+
+export type NameIn = { 
+/**
+ * Trimmed, white space collapsed, 1 to 80 characters, no control characters.
+ */
+name: string, };
+
+/**
+ * The name as stored (cleaned), which may differ from what was sent.
+ */
+
+export type NameOut = { name: string, };
 
 /**
  * An event (or data) a source can't or doesn't capture, and why.
@@ -512,6 +563,22 @@ export type Removal = { source: string, event: string | null, rows: number, byte
 
 export type RemovalReason = "dropped by spec" | "expired" | "selected";
 
+/**
+ * The command that resumes a session, and the folder to run it in. Only present when the tool's
+ * spec has a `resume` template and the session has what it needs: no template, no action.
+ */
+
+export type Resume = { 
+/**
+ * A shell command, values already shell-quoted.
+ */
+command: string, 
+/**
+ * The session's working folder (where it started): `cd` there first. Absent when no event
+ * of the session said.
+ */
+cwd?: string, };
+
 export type Rotation = { reconnects: Array<Reconnect>, 
 /**
  * Connected sources that could not be reconnected (policy); applying is then refused (409).
@@ -570,7 +637,11 @@ events?: { [key in string]: number }, first_event_at?: string, last_event_at?: s
 /**
  * Resource attributes of the latest event that carries `session.id`.
  */
-environment?: { [key in string]: JsonValue }, };
+environment?: { [key in string]: JsonValue }, 
+/**
+ * The command that resumes the session; left out when the tool's spec has none.
+ */
+resume?: Resume, };
 
 /**
  * One session as a narrative.
@@ -578,9 +649,14 @@ environment?: { [key in string]: JsonValue }, };
 
 export type SessionStory = { session: string, 
 /**
- * The first title of its prompts.
+ * What you called it (`PUT /api/names/session/{id}`); the server fills it, omitted when you
+ * have not.
  */
-title: string | null, 
+name?: string, 
+/**
+ * Its default name: the title its tool reported, else what you first typed ([`crate::label`]).
+ */
+label: string | null, 
 /**
  * The first prompt's source.
  */
@@ -689,7 +765,15 @@ export type Stats = { group_by: GroupBy | null, split_by: GroupBy | null, totals
  * The measures of one bucket (totals, a group or a part). Absent measures are 0.
  */
 
-export type StatsBucket = { key: string | null, detail: string | null, prompts: number, sessions: number, api_requests: number, cost_usd: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, api_time_s: number, api_errors: number, tool_calls: number, tool_failures: number, tool_time_s: number, subagent_tool_calls: number, subagents: number, files_written: number, git_commits: number, compactions: number, denials: number, rejections: number, 
+export type StatsBucket = { key: string | null, detail: string | null, 
+/**
+ * Session groups: what you called the session (`PUT /api/names/session/{id}`); omitted without.
+ */
+name?: string, 
+/**
+ * Session groups: its default name (the server fills it, see `gitprompt_insights::label`).
+ */
+label?: string, prompts: number, sessions: number, api_requests: number, cost_usd: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, api_time_s: number, api_errors: number, tool_calls: number, tool_failures: number, tool_time_s: number, subagent_tool_calls: number, subagents: number, files_written: number, git_commits: number, compactions: number, denials: number, rejections: number, 
 /**
  * Prompts whose turn has an end.
  */

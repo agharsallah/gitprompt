@@ -4,7 +4,7 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 ---
 {
   "session": "abc123",
-  "title": null,
+  "label": "Write a function to calculate the factorial of a number",
   "source": "claude-code",
   "connector": {
     "id": "claude-code",

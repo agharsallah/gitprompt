@@ -3,8 +3,11 @@
 
 mod edits;
 mod maintenance;
+mod names;
 mod reads;
 mod writes;
+
+pub use names::{MAX_NAME_CHARS, MAX_NAMED_ID_CHARS, NameKind, clean_name};
 
 use std::path::Path;
 use std::sync::Arc;

@@ -33,11 +33,14 @@
 //! | GET    | /api/stories/project/{project}         |              | `ProjectStory`; 404             |
 //! | GET    | /api/stories/prompt/{id}               |              | `Lineage`; 404                  |
 //! | GET    | /api/search                            |              | `SearchResults`                 |
+//! | GET    | /api/find                              |              | `FindResults`; 422 kinds/limit  |
 //! | GET    | /api/export/{kind}                     |              | the file; 422 kind/id, 404 unknown id |
 //! | GET    | /api/export/{kind}/charts              |              | `[ChartInfo]`                   |
 //! | GET    | /api/usage?days=                       |              | `UsageOut`; 422 days outside 1..=366 |
 //! | POST   | /api/usage                             | X-GitPrompt  | 204; 422 a name or count that doesn't validate |
 //! | DELETE | /api/usage                             | X-GitPrompt  | 204                             |
+//! | PUT    | /api/names/session/{id}                | X-GitPrompt  | `NameOut`; 422 a name that doesn't validate, 404 unknown session or kind |
+//! | DELETE | /api/names/session/{id}                | X-GitPrompt  | 204                             |
 //! | GET    | /api/status                            |              | `StatusOut` (no secrets)        |
 //! | GET    | /healthz                               |              | `{"ok": true}`                  |
 //!
@@ -47,7 +50,9 @@ mod data;
 mod export;
 mod extract;
 mod fields;
+mod find;
 mod ingest;
+mod names;
 mod prompts;
 mod security;
 mod settings;
@@ -71,6 +76,7 @@ pub fn api(service: Service) -> Router {
         .merge(data::writes())
         .merge(security::writes())
         .merge(usage::writes())
+        .merge(names::writes())
         .route_layer(from_fn(crate::security::require_dashboard));
     let ingest = ingest::router().route_layer(axum::middleware::from_fn_with_state(service.clone(), crate::security::require_token));
     Router::new()
@@ -82,6 +88,7 @@ pub fn api(service: Service) -> Router {
         .merge(data::router())
         .merge(security::router())
         .merge(stories::router())
+        .merge(find::router())
         .merge(export::router())
         .merge(status::router())
         .merge(usage::router())

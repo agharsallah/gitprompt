@@ -18,9 +18,10 @@ use gitprompt_insights::derivations;
 use gitprompt_insights::facts::{self, FactRow};
 use gitprompt_insights::stories::{self, TurnTools};
 use gitprompt_store::stats::{AggregateQuery, GroupBy, Order};
+use gitprompt_store::store::NameKind;
 use gitprompt_store::{PromptFilter, Store};
 
-use crate::input::{ExportInput, OverviewExport, OverviewGroups, ProjectExport, PromptItem, PromptsExport, SessionExport};
+use crate::input::{ExportInput, OverviewExport, OverviewGroups, ProjectExport, PromptItem, PromptsExport, SessionExport, SessionStory};
 use crate::{ExportError, GROUP_LIMIT, MAX_PROMPTS, Request};
 
 /// Characters of a subagent brief read per turn event (Python's `turn_events` default).
@@ -92,7 +93,8 @@ fn session(store: &Store, specs: &Specs, id: &str, generated_at: String) -> Resu
             (key, value)
         })
         .collect();
-    Ok(SessionExport { generated_at, story: convert(story)?, environment })
+    let story = SessionStory { name: store.names_of(NameKind::Session, &[id.to_owned()])?.remove(id), ..convert(story)? };
+    Ok(SessionExport { generated_at, story, environment })
 }
 
 fn project(store: &Store, specs: &Specs, id: &str, generated_at: String) -> Result<ProjectExport, ExportError> {

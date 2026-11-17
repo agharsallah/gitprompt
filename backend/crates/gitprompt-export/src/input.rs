@@ -207,8 +207,10 @@ pub struct SessionTotals {
 #[serde(default)]
 pub struct SessionStory {
     pub session: String,
-    /// The session's title (a text key).
-    pub title: Option<String>,
+    /// What you called the session, if you did (a text key).
+    pub name: Option<String>,
+    /// The session's default name: its tool's title, else what you first typed (a text key).
+    pub label: Option<String>,
     pub source: Option<String>,
     pub connector: Option<Connector>,
     /// Model -> prompts, in first-seen order.

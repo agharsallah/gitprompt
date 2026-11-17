@@ -62,12 +62,16 @@ async function request<T>(path: string, init?: RequestInit, fetcher: Fetch = fet
 export const get = <T>(path: string, fetcher?: Fetch) => request<T>(path, undefined, fetcher);
 
 // Writes carry X-GitPrompt: the daemon rejects writes without it (cross-site protection).
-export const write = <T>(path: string, method: 'POST' | 'PUT', body?: unknown) =>
-	request<T>(path, {
-		method,
-		headers: { 'X-GitPrompt': '1', 'Content-Type': 'application/json' },
-		body: body === undefined ? undefined : JSON.stringify(body)
-	});
+export const write = <T>(path: string, method: 'POST' | 'PUT', body?: unknown, fetcher?: Fetch) =>
+	request<T>(
+		path,
+		{
+			method,
+			headers: { 'X-GitPrompt': '1', 'Content-Type': 'application/json' },
+			body: body === undefined ? undefined : JSON.stringify(body)
+		},
+		fetcher
+	);
 
 const source = (id: string) => `/api/sources/${encodeURIComponent(id)}`;
 

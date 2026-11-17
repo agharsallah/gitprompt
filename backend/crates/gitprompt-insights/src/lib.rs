@@ -9,10 +9,12 @@
 //! | [`surface`]     | where a prompt was typed (CLI, VS Code, a desktop app...)                 |
 //! | [`derivations`] | prompt stats, the turn summary, the session summary, [`derivations::derive`] |
 //! | [`facts`]       | the few values every page shows about a turn (ADR-0021)                   |
-//! | [`lineage`]     | similarity, word diff and outcome change between versions of a prompt     |
+//! | [`label`]      | the default name of a session: what you first typed in it                 |
+//! | [`lineage`]   | similarity, word diff and outcome change between versions of a prompt     |
 //! | [`stories`]     | session chapters, project phases, commit attribution, a prompt's versions |
 //! | [`snippets`]    | search result snippets with every match marked                            |
-//! | [`catalog`]     | the Fields page: fields seen next to the fields each tool documents       |
+//! | [`find`]        | one search over prompts, sessions and projects, ranked and grouped        |
+//! | [`catalog`]    | the Fields page: fields seen next to the fields each tool documents       |
 //! | [`coverage`]    | which payload keys are mapped, derived, shown or ignored by a spec        |
 //! | [`captures`]    | the newest prompt of each connector and surface (`gitprompt check`)       |
 //! | [`indexer`]     | keeps the prompt index in step with the raw rows                          |
@@ -34,7 +36,9 @@ pub mod catalog;
 pub mod coverage;
 pub mod derivations;
 pub mod facts;
+pub mod find;
 pub mod indexer;
+pub mod label;
 pub mod lineage;
 pub mod origin;
 pub mod snippets;

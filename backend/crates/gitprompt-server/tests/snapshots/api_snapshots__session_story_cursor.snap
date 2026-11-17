@@ -4,7 +4,7 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 ---
 {
   "session": "5f0c1a2e-0000-4000-8000-00000000c001",
-  "title": null,
+  "label": "Add a coupon field to the checkout form",
   "source": "cursor",
   "connector": {
     "id": "cursor",

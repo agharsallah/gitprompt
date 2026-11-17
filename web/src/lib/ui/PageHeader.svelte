@@ -4,11 +4,14 @@
 	/** The top of every page: what it is, one line on what it is for, and its page-wide controls. */
 	let {
 		title,
+		heading,
 		description,
 		actions,
 		children
 	}: {
 		title: string;
+		/** Draws the heading's content itself (one you can rename); `title` stays its plain text. */
+		heading?: Snippet;
 		description?: string | Snippet;
 		actions?: Snippet;
 		/** Extra content under the description (summary chips, a status line). */
@@ -18,7 +21,9 @@
 
 <header class="page-header">
 	<div class="text">
-		<h1>{title}</h1>
+		<h1>
+			{#if heading}{@render heading()}{:else}{title}{/if}
+		</h1>
 		{#if typeof description === 'string'}
 			<p class="description">{description}</p>
 		{:else if description}

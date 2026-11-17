@@ -32,7 +32,8 @@ pub fn session(data: &SessionExport, options: &Options, zone: Zone) -> (Report, 
             }
         }
     }
-    let title = present(story.title.as_deref())
+    let title = present(story.name.as_deref())
+        .or_else(|| present(story.label.as_deref()))
         .map_or_else(|| format!("Session {}", story.session.chars().take(8).collect::<String>()), str::to_string);
     let branches = story.branches.join(", ");
     let span = span(story.started_at.as_deref(), story.ended_at.as_deref(), zone);

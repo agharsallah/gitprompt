@@ -36,14 +36,20 @@ fn session_of(story_edit: impl FnOnce(&mut SessionExport)) -> (Report, Vec<Row>)
 // --- a session -----------------------------------------------------------------------------------
 
 #[test]
-fn a_session_is_titled_by_its_story_title() {
+fn a_session_is_titled_by_its_story_label() {
     let (report, _) = session_of(|_| {});
     assert_eq!((report.kind, report.title.as_str()), (Kind::Session, TITLE));
 }
 
 #[test]
+fn a_session_you_named_is_titled_by_its_name() {
+    let (report, _) = session_of(|d| d.story.name = Some("My name".into()));
+    assert_eq!(report.title, "My name");
+}
+
+#[test]
 fn a_session_without_a_title_is_named_by_the_start_of_its_id() {
-    let (report, _) = session_of(|d| d.story.title = None);
+    let (report, _) = session_of(|d| d.story.label = None);
     assert_eq!(report.title, "Session s-0001-0");
 }
 

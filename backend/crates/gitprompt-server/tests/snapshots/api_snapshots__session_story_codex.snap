@@ -4,7 +4,7 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 ---
 {
   "session": "0190a1b2-0000-7000-8000-000000000001",
-  "title": null,
+  "label": "Add a retry to the upload client",
   "source": "codex",
   "connector": {
     "id": "codex",

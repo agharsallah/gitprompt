@@ -57,7 +57,8 @@ impl Service {
                 kinds: spec.map_or(&none_kinds, |s| &s.tool_kinds),
                 tool_files: spec.map_or(&none_files, |s| &s.tool_files),
             };
-            Ok(stories::session_story(&session, &rows, tools, &commits))
+            let story = stories::session_story(&session, &rows, tools, &commits);
+            Ok(SessionStory { name: inner.name_of_session(&session)?, ..story })
         })
         .await
     }

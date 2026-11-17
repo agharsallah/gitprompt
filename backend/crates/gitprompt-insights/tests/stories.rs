@@ -479,7 +479,7 @@ fn a_session_story_names_its_project_title_branches_and_time_span() {
     let story = SessionInputs::none().story(&rows, &[]);
     assert_eq!(story.project, Some(ProjectRef { id: project_id("/r/app"), repo: "/r/app".into(), name: "acme/app".into(), git: true }));
     assert_eq!(
-        (story.title.as_deref(), story.source.as_deref(), story.branches),
+        (story.label.as_deref(), story.source.as_deref(), story.branches),
         (Some("Fix tests"), Some("claude-code"), vec!["main".to_string(), "feat".to_string()])
     );
     assert_eq!((story.started_at, story.ended_at), (Some(at(0.0)), Some("2026-03-02T09:05:00+00:00".to_string())));
@@ -488,6 +488,14 @@ fn a_session_story_names_its_project_title_branches_and_time_span() {
         (Some("claude-code".to_string()), Some(surface_ref("vscode", "VS Code", "code")))
     );
     assert_eq!(story.models, IndexMap::from([("opus".to_string(), 2), ("haiku".to_string(), 1)]));
+}
+
+#[test]
+fn a_session_story_without_a_title_is_labelled_by_the_first_prompt_you_typed_with_words() {
+    let rows =
+        [story(1, 0.0, "/clear").build(), story(2, 1.0, "/review src/lib.rs   tidy the parser").build(), story(3, 2.0, "later").build()];
+    let story = SessionInputs::none().story(&rows, &[]);
+    assert_eq!((story.label.as_deref(), story.name), (Some("tidy the parser"), None));
 }
 
 #[test]

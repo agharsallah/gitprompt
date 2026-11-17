@@ -13,6 +13,8 @@ const STORE: &str = include_str!("store.sql");
 const INDEX: &str = include_str!("index.sql");
 /// Dashboard usage counts per action and day: durable, never part of the index (see the file).
 const USAGE: &str = include_str!("usage.sql");
+/// The names you gave sessions (and later chapters): durable, never part of the index (see the file).
+const NAMES: &str = include_str!("names.sql");
 /// Rows and bytes per (source, event), kept by triggers (see the file).
 const EVENT_STATS: &str = include_str!("event_stats.sql");
 /// Recomputes `event_stats` from the event table.
@@ -43,6 +45,7 @@ pub(crate) fn create(conn: &Connection) -> DbResult<()> {
     conn.execute_batch(STORE)?;
     create_event_stats(conn)?;
     conn.execute_batch(USAGE)?;
+    conn.execute_batch(NAMES)?;
     create_index(conn)
 }
 

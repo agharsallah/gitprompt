@@ -41,7 +41,8 @@ describe('sessions', () => {
 		}),
 		prompt({ id: 20, received_at: '2026-11-05T09:00:00Z', fields: { session_id: 's2' } })
 	];
-	const [first, second] = sessions(list);
+	const names = new Map([['s1', { name: 'My login fix', label: 'Fix login' }]]);
+	const [first, second] = sessions(list, names);
 
 	it('orders sessions by when they were last active', () =>
 		expect([first.id, second.id]).toEqual(['s1', 's2']));
@@ -60,11 +61,15 @@ describe('sessions', () => {
 			failed: 1,
 			toolCalls: 2,
 			filesWritten: 2,
-			title: 'Fix login',
 			branch: 'fix/login'
 		});
 		expect(first.models).toEqual(['claude-opus-5-5']);
 		expect(first.permissionModes).toEqual(['auto']);
+	});
+
+	it('carries the name and label the daemon gave, and none for a session it did not name', () => {
+		expect([first.name, first.label]).toEqual(['My login fix', 'Fix login']);
+		expect([second.name, second.label]).toEqual([null, null]);
 	});
 
 	it('keeps a prompt without a session on its own', () => {

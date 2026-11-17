@@ -29,7 +29,12 @@ export const load: PageLoad = async ({ fetch, url }) => {
 			api.stats({ ...without(base, 'repo'), q, group_by: 'repo', limit: 100 }, fetch)
 		]);
 		const ids = list.groups.map((g) => g.key).filter((k): k is string => !!k);
-		const byId = new Map(sessions(await promptsOf(ids, base, fetch)).map((s) => [s.id, s]));
+		const names = new Map(
+			list.groups.flatMap((g) =>
+				g.key ? [[g.key, { name: g.name, label: g.label }] as const] : []
+			)
+		);
+		const byId = new Map(sessions(await promptsOf(ids, base, fetch), names).map((s) => [s.id, s]));
 		return {
 			total: list.totals.sessions,
 			sessions: ids.map((id) => byId.get(id)).filter((s) => !!s),

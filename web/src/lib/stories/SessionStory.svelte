@@ -2,13 +2,15 @@
 	import type { Snippet } from 'svelte';
 	import { Bot, FolderGit2, GitBranch } from '@lucide/svelte';
 	import type { SessionStory, StoryItem } from '#lib/api/types.ts';
-	import { duration, excerpt, integer, modelName, money, plural } from '#lib/shared/format.ts';
+	import { duration, integer, modelName, money, plural } from '#lib/shared/format.ts';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import Badge from '#lib/ui/Badge.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import { projectHref } from '#lib/shared/links.ts';
 	import LinkArrow from '#lib/ui/LinkArrow.svelte';
+	import InlineRename from '#lib/ui/InlineRename.svelte';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
+	import { saveSessionName } from '#lib/sessions/rename.ts';
 	import Chapter from '#lib/stories/Chapter.svelte';
 	import MarkerGroup from '#lib/stories/MarkerGroup.svelte';
 	import OutcomeMix from '#lib/stories/OutcomeMix.svelte';
@@ -21,7 +23,9 @@
 
 	const chapters = $derived(story.items.filter((i): i is ChapterItem => i.kind === 'chapter'));
 	const turns = $derived(new Map(chapters.map((c) => [c.id, c.turn])));
-	const title = $derived(story.title ?? (excerpt(chapters[0]?.text, 100) || 'Untitled session'));
+	/** Its default name, which an emptied name goes back to. */
+	const label = $derived(story.label ?? 'Untitled session');
+	const title = $derived(story.name ?? label);
 	const span = $derived(
 		story.started_at && story.ended_at
 			? (Date.parse(story.ended_at) - Date.parse(story.started_at)) / 1000
@@ -37,6 +41,15 @@
 </script>
 
 <PageHeader {title} {actions}>
+	{#snippet heading()}
+		<InlineRename
+			value={title}
+			fallback={label}
+			label="Session name"
+			what="the session name"
+			onsave={(next) => saveSessionName(story.session, next)}
+		/>
+	{/snippet}
 	{#snippet description()}
 		<p class="where">
 			{#if story.connector}<ConnectorBadge

@@ -183,7 +183,8 @@ pub fn marker() -> Marker {
 pub fn session_story() -> SessionStory {
     SessionStory {
         session: "s-0001-0002".into(),
-        title: Some(TITLE.into()),
+        name: None,
+        label: Some(TITLE.into()),
         source: Some("claude-code".into()),
         connector: None,
         models: IndexMap::new(),

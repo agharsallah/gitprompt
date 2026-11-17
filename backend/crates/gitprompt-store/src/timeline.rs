@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use rusqlite::Row;
 use serde::{Deserialize, Serialize};
 
-use gitprompt_core::spec::ToolKind;
+use gitprompt_core::spec::{Origin, ToolKind};
 use gitprompt_core::{Json, Result};
 
 use crate::Store;
@@ -14,7 +14,7 @@ use crate::decode::{self, text_at};
 use crate::error::{DbResult, failure};
 use crate::filter::{Outcome, PromptFilter};
 use crate::index::{IndexRow, index_row, row_columns, tool_kind};
-use crate::sql::filter::{conditions, outcome};
+use crate::sql::filter::{conditions, name, outcome};
 use crate::sql::{Sql, int, json_list};
 
 /// A prompt as stories and search see it.
@@ -41,7 +41,51 @@ pub struct TurnEvent {
     pub prompt: Option<String>,
 }
 
+/// What names a session when you have not: the title its tool reported and the first prompts you
+/// wrote in it.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Opener {
+    /// The first title any prompt of the session carries.
+    pub title: Option<String>,
+    /// The typed text of its first prompts of the origins asked for, oldest first, each cut at
+    /// [`OPENER_CHARS`] characters; prompts without text are skipped.
+    pub typed: Vec<String>,
+}
+
+/// Characters of each typed text [`Store::session_openers`] returns: room to drop a slash command
+/// or a path and still fill a label.
+pub const OPENER_CHARS: usize = 400;
+
+const OPENER_TITLES: &str = "select s.value session, (select title from prompt_index where session = s.value and coalesce(title, '') <> '' \
+    order by id limit 1) title from json_each(?1) s";
+
+const OPENER_TEXTS: &str = "select session, text from (
+  select i.session session, i.id id, substr(f.typed_text, 1, ?4) text, row_number() over (partition by i.session order by i.id) n
+  from prompt_index i join prompt_fts f on f.rowid = i.id
+  where i.session in (select value from json_each(?1)) and i.origin in (select value from json_each(?2)) and f.typed_text <> ''
+) where n <= ?3 order by session, id";
+
 impl Store {
+    /// The [`Opener`] of each of these sessions: its title, and the first `per_session` typed
+    /// texts of prompts with one of `origins`.
+    pub fn session_openers(&self, sessions: &[String], origins: &[Origin], per_session: usize) -> Result<BTreeMap<String, Opener>> {
+        let origins = origins.iter().map(name).collect::<DbResult<Vec<_>>>()?;
+        let (ids, origins) = (json_list(sessions)?, json_list(&origins)?);
+        let (titles, texts) = self.db().read(|conn| {
+            let titles = decode::all(conn, OPENER_TITLES, [&ids], |row| Ok((row.get::<_, String>("session")?, text_at(row, "title")?)))?;
+            let texts = decode::all(conn, OPENER_TEXTS, (&ids, origins, int(per_session), int(OPENER_CHARS)), |row| {
+                Ok((row.get::<_, String>("session")?, row.get::<_, String>("text")?))
+            })?;
+            Ok((titles, texts))
+        })?;
+        let mut out: BTreeMap<String, Opener> =
+            titles.into_iter().map(|(session, title)| (session, Opener { title, typed: Vec::new() })).collect();
+        for (session, text) in texts {
+            out.entry(session).or_default().typed.push(text);
+        }
+        Ok(out)
+    }
+
     /// The prompts the filter keeps, oldest first unless `newest_first` (by `received_at`, then id).
     pub fn timeline(&self, filter: &PromptFilter, limit: Option<usize>, newest_first: bool) -> Result<Vec<IndexedPrompt>> {
         let running_since = self.running_since();

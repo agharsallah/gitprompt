@@ -55,6 +55,7 @@ fn roots(c: &mut Collect<'_>) {
     c.visit::<model::ProjectStory>();
     c.visit::<model::Lineage>();
     c.visit::<model::SearchResults>();
+    c.visit::<model::FindResults>();
     c.visit::<model::Catalog>();
     // connectors
     c.visit::<model::SourceOut>();
@@ -76,6 +77,9 @@ fn roots(c: &mut Collect<'_>) {
     // local usage counts
     c.visit::<model::UsageIn>();
     c.visit::<model::UsageOut>();
+    // the names you give sessions
+    c.visit::<model::NameIn>();
+    c.visit::<model::NameOut>();
 }
 
 fn render() -> String {

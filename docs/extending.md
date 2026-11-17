@@ -93,6 +93,7 @@ A new wire format is a variant of `Format` (`spec.rs`) and an arm in `gitprompt-
 
 - About a turn: a small function in `gitprompt-insights/src/derivations/turn.rs` filling a field of `TurnSummary`, a line in its `DOCS` (the Fields page) and, if a filter or a chart needs it in SQL, a column of `IndexRow` (`gitprompt-store/src/index/`) filled in `insights::indexer::entry`. Payloads are read through `insights::raw` so the field-coverage test knows what is used.
 - About a session: `derivations/session.rs`. About the typed text: `derivations/stats.rs`.
+- A session's default name is `gitprompt-insights/src/label.rs` (its tool's title, else the first prompt you typed, cut to 60 characters). A name you give is durable user data in the store's `names` table (`gitprompt-store/src/store/names.rs`, `NameKind` is a closed enum: a new kind is a variant), kept by `gitprompt reindex`, written by `PUT`/`DELETE /api/names/{kind}/{id}`; session stats groups and stories carry `name` (yours) and `label` (the default).
 - Bump `CODE_VERSION` in `insights/src/indexer.rs` when what the index stores changes: every install rebuilds its index on next start.
 - What every page shows about a turn is its facts (`insights/src/facts.rs`) and `web/src/lib/prompts/facts.ts`.
 

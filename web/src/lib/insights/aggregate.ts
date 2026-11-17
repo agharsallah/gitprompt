@@ -54,7 +54,10 @@ export type SessionSummary = {
 	project: ProjectRef;
 	/** Oldest first, as the conversation went. */
 	prompts: Prompt[];
-	title: string | null;
+	/** What you called it (`PUT /api/names/session/{id}`). */
+	name: string | null;
+	/** Its default name, from the daemon: its tool's title, else what you first typed. */
+	label: string | null;
 	branch: string | null;
 	startedAt: string;
 	/** When the last turn ended (or was sent, if it has no end). */
@@ -71,8 +74,14 @@ export type SessionSummary = {
 const endOf = (p: Prompt) =>
 	new Date(Date.parse(p.received_at) + n(p.summary.response_s) * 1000).toISOString();
 
-/** Prompts grouped by session, most recently active first. */
-export function sessions(prompts: Prompt[]): SessionSummary[] {
+/** What the daemon says a session is called (the `name` and `label` of its /api/stats group). */
+export type SessionNames = { name?: string; label?: string };
+
+/** Prompts grouped by session, most recently active first; `names` is by session id. */
+export function sessions(
+	prompts: Prompt[],
+	names: ReadonlyMap<string, SessionNames> = new Map()
+): SessionSummary[] {
 	const groups = new Map<string, Prompt[]>();
 	for (const p of prompts) {
 		const id = p.fields.session_id ?? `prompt-${p.id}`;
@@ -92,8 +101,8 @@ export function sessions(prompts: Prompt[]): SessionSummary[] {
 				id,
 				project: ordered.map(projectOf).reduce(mergeProject),
 				prompts: ordered,
-				title:
-					[...ordered].reverse().find((p) => p.fields.session_title)?.fields.session_title ?? null,
+				name: names.get(id)?.name ?? null,
+				label: names.get(id)?.label ?? null,
 				branch: last.context.git_branch ?? null,
 				startedAt: first.received_at,
 				endedAt: endOf(last),

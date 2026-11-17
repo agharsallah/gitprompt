@@ -93,6 +93,14 @@ impl Default for AggregateQuery {
 pub struct Bucket {
     pub key: Option<String>,
     pub detail: Option<String>,
+    /// Session groups: what you called the session (`PUT /api/names/session/{id}`); omitted without.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub name: Option<String>,
+    /// Session groups: its default name (the server fills it, see `gitprompt_insights::label`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub label: Option<String>,
     pub prompts: i64,
     pub sessions: i64,
     pub api_requests: f64,

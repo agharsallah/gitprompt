@@ -9,6 +9,8 @@
 
 mod data;
 mod export;
+mod find;
+mod names;
 mod prompts;
 mod security;
 mod settings;
@@ -19,6 +21,8 @@ mod usage;
 
 pub use data::{Backup, CompactIn, DataOut, DeleteIn, RemovalOut, ReportOut, SourceEvents};
 pub use export::{ChartInfo, ExportFile, ExportFormat, ExportKind, ExportQuery};
+pub use find::{FindHit, FindQuery, FindResults, FindTarget};
+pub use names::{NameIn, NameOut};
 pub use prompts::{Annotation, Injected, PromptDetail, PromptOut, PromptQuery, Updated};
 pub use security::{Reconnect, Rotation, SecurityOut};
 pub use settings::{SettingOut, SettingsOut, SettingsSaved};

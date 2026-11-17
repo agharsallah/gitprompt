@@ -3,32 +3,25 @@
 	import type { SessionSummary } from '#lib/insights/aggregate.ts';
 	import { outcome } from '#lib/insights/outcome.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
-	import {
-		duration,
-		excerpt,
-		integer,
-		modelName,
-		money,
-		plural,
-		timeOfDay
-	} from '#lib/shared/format.ts';
+	import { duration, integer, modelName, money, plural, timeOfDay } from '#lib/shared/format.ts';
 	import { promptHref, promptListHref, sessionHref } from '#lib/shared/links.ts';
 	import Badge from '#lib/ui/Badge.svelte';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
 	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RelativeTime from '#lib/ui/RelativeTime.svelte';
 	import PromptRow from '#lib/prompts/PromptRow.svelte';
-	import { typedText } from '#lib/prompts/origin.ts';
+	import { saveSessionName } from '#lib/sessions/rename.ts';
 	import TurnStrip from '#lib/sessions/TurnStrip.svelte';
+	import InlineRename from '#lib/ui/InlineRename.svelte';
 
 	/** One conversation: what it was about, where, how long, what it cost, and every turn. */
 	let { session }: { session: SessionSummary } = $props();
 
 	const s = $derived(session);
 	const span = $derived((Date.parse(s.endedAt) - Date.parse(s.startedAt)) / 1000);
-	const title = $derived(
-		s.title ?? (excerpt(s.prompts[0] && typedText(s.prompts[0]), 110) || 'Untitled session')
-	);
+	/** Its default name, which an emptied name goes back to. */
+	const label = $derived(s.label ?? 'Untitled session');
+	const title = $derived(s.name ?? label);
 	const lastId = $derived(s.prompts.at(-1)?.id);
 	const real = $derived(!s.id.startsWith('prompt-'));
 </script>
@@ -36,9 +29,22 @@
 <article class="session" id="session-{s.id}" aria-labelledby="session-{s.id}-title">
 	<header>
 		<div class="heading">
-			<h2 id="session-{s.id}-title" class="title">
-				{#if real}<a href={sessionHref(s.id)} title="Session › {title}">{title}</a
-					>{:else}{title}{/if}
+			<h2 class="title">
+				{#if real}
+					<InlineRename
+						value={title}
+						fallback={label}
+						label="Session name"
+						what="the session name"
+						onsave={(next) => saveSessionName(s.id, next)}
+					>
+						{#snippet display(text)}<a
+								id="session-{s.id}-title"
+								href={sessionHref(s.id)}
+								title="Session › {text}">{text}</a
+							>{/snippet}
+					</InlineRename>
+				{:else}<span id="session-{s.id}-title">{title}</span>{/if}
 			</h2>
 			<p class="where">
 				<span class="project">{s.project.name}</span>

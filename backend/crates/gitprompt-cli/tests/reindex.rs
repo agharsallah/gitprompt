@@ -17,6 +17,7 @@
 mod common;
 
 use common::{home, stdout};
+use gitprompt_store::store::NameKind;
 use serde_json::json;
 
 fn indexed(out: &str) -> Option<(String, String)> {
@@ -49,6 +50,20 @@ fn reindex_keeps_the_usage_counts() {
     let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
     let counts = store.usage_between("2026-11-03", "2026-11-03").unwrap();
     assert_eq!(counts.iter().map(|c| (c.action.as_str(), c.n)).collect::<Vec<_>>(), [("reader.tab.events", 4)]);
+}
+
+#[test]
+fn reindex_keeps_the_session_names() {
+    let home = home();
+    let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
+    store.set_name(NameKind::Session, "s-1", "My session").unwrap();
+    drop(store);
+
+    home.cmd(&["reindex"]).assert().success();
+
+    let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
+    let names = store.names_of(NameKind::Session, &["s-1".to_string()]).unwrap();
+    assert_eq!(names.get("s-1").map(String::as_str), Some("My session"));
 }
 
 #[test]

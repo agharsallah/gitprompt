@@ -4,7 +4,7 @@ expression: "get(&api, &format!(\"/api/stories/session/{session}\")).await"
 ---
 {
   "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-  "title": null,
+  "label": "Add a retry to the upload client",
   "source": "copilot-cli",
   "connector": {
     "id": "copilot-cli",
