@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toasts } from '#lib/ui/toast.svelte.ts';
 import { copiedMessage, copyText, type CopyDeps } from '#lib/palette/copy.ts';
+
+const tracked = vi.hoisted(() => [] as string[]);
+vi.mock('#lib/shared/usage.ts', () => ({ track: (action: string) => tracked.push(action) }));
 
 function deps(write: CopyDeps['write'] = async () => {}) {
 	const log: string[] = [];
@@ -52,5 +56,20 @@ describe('copying from the palette', () => {
 		const { d, log } = deps(() => Promise.reject(new Error('denied')));
 		expect(await copyText('hello', d)).toBe(false);
 		expect(log).toEqual(['write 5', 'error: Could not copy: the browser refused clipboard access']);
+	});
+});
+
+describe('copying with the page own clipboard, toasts and counts', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		toasts.items = [];
+		tracked.length = 0;
+	});
+
+	it('says it in a toast and counts palette.copy', async () => {
+		vi.stubGlobal('navigator', { clipboard: { writeText: () => Promise.resolve() } });
+		expect(await copyText('hello')).toBe(true);
+		expect(toasts.items.map((t) => t.message)).toEqual(['Copied · 5 characters']);
+		expect(tracked).toEqual(['palette.copy']);
 	});
 });

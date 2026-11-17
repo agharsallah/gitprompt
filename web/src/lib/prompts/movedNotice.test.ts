@@ -36,4 +36,10 @@ describe('the "Search now lives here" line', () => {
 		expect(shouldShow(fromSearch, storage)).toBe(true);
 		expect(() => markSeen(storage)).not.toThrow();
 	});
+
+	it('works without a storage of its own: the browser storage, or none where there is none', () => {
+		expect(wasSeen()).toBe(false);
+		expect(() => markSeen()).not.toThrow();
+		expect(shouldShow(plain)).toBe(false);
+	});
 });
