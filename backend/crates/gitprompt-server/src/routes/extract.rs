@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use gitprompt_store::filter::PromptFilter;
 
 use crate::error::ApiError;
-use crate::model::{ExportQuery, FindQuery, PromptQuery, StatsQuery};
+use crate::model::{CommitQuery, ExportQuery, FindQuery, PromptQuery, StatsQuery};
 use crate::query;
 
 fn pairs(parts: &Parts) -> Vec<(String, String)> {
@@ -45,6 +45,16 @@ impl<S: Send + Sync> FromRequestParts<S> for Find {
     type Rejection = ApiError;
     fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
         ready(query::find_query(&pairs(parts)).map(Find))
+    }
+}
+
+/// `q` and `group` (`/api/stories/project/{id}/commits`).
+pub(super) struct Commits(pub CommitQuery);
+
+impl<S: Send + Sync> FromRequestParts<S> for Commits {
+    type Rejection = ApiError;
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::commit_query(&pairs(parts)).map(Commits))
     }
 }
 

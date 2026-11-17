@@ -31,6 +31,7 @@
 //! | POST   | /api/security/rotate-token?dry_run=true| X-GitPrompt  | `Rotation`; 409 blocked         |
 //! | GET    | /api/stories/session/{session}         |              | `SessionStory`; 404             |
 //! | GET    | /api/stories/project/{project}         |              | `ProjectStory`; 404             |
+//! | GET    | /api/stories/project/{project}/commits?q=&group= | | `ProjectCommits`; 404, 422 group |
 //! | GET    | /api/stories/prompt/{id}               |              | `Lineage`; 404                  |
 //! | GET    | /api/search                            |              | `SearchResults`                 |
 //! | GET    | /api/find                              |              | `FindResults`; 422 kinds/limit  |

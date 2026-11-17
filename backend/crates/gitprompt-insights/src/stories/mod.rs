@@ -9,6 +9,8 @@
 //! Times are ISO-8601 with an offset or `Z`. A prompt's turn *ends* at `received_at + response_s`
 //! (no `response_s`: at `received_at`).
 
+mod commit_list;
+mod commits;
 mod ids;
 mod project;
 mod session;
@@ -26,6 +28,8 @@ use gitprompt_core::spec::Origin;
 use crate::facts::FactRow;
 use crate::lineage::Shingles;
 use crate::time::Instant;
+pub use commit_list::{CommitGroup, CommitGrouping, CommitQuery, ProjectCommits, TraceCounts, project_commits};
+pub use commits::{CommitTrace, TraceHow, TracePrompt, attribute_commits, commit_traces};
 pub use project::{Measures, ProjectEntry, ProjectPhase, ProjectStory, project_story};
 pub use session::{
     Chapter, Marker, MarkerKind, SessionItem, SessionStory, SessionTotals, StoryItem, TurnTools, group_markers, session_story,
@@ -44,6 +48,9 @@ pub const RETRY_WINDOW: usize = 30;
 pub const COMMIT_GRACE_S: i64 = 120;
 /// Seconds of commits read after the last turn of a story ended.
 pub const LOG_TAIL_S: i64 = 2 * 3600;
+/// Seconds of commits a project's commit list reads before its first prompt: work you did by hand
+/// just before you started prompting.
+pub const LOG_LEAD_S: i64 = 2 * 3600;
 /// Typed text shown in a session chapter.
 pub const CHAPTER_CHARS: usize = 4000;
 /// Text shown in a marker or a project story entry.
@@ -92,6 +99,13 @@ pub fn project_of(rows: &[FactRow]) -> Option<ProjectRef> {
         name,
         git: rows.iter().any(|r| non_empty(r.prompt.row.branch.as_deref()).is_some()),
     })
+}
+
+/// The project of the typed prompts `user` (else of every row); with no row naming a repo: `repo`
+/// as id source, name and repo, `git: false`.
+fn project_ref(repo: &str, rows: &[FactRow], user: &[FactRow]) -> ProjectRef {
+    let source = if user.is_empty() { rows } else { user };
+    project_of(source).unwrap_or_else(|| ProjectRef { id: project_id(repo), repo: repo.into(), name: repo.into(), git: false })
 }
 
 /// The last segment of a path, a trailing `/` ignored.
@@ -218,29 +232,6 @@ pub fn retries(prompts: &[FactRow], window: usize) -> BTreeMap<i64, i64> {
     out
 }
 
-/// prompt id -> the commits made after it, in the commits' order. A commit belongs to the latest
-/// prompt (by `received_at`) sent at or before its time, unless a turn that ran `git commit`
-/// (`git_commits > 0`) was still going, or had ended at most [`COMMIT_GRACE_S`] earlier, when it was
-/// made: then to the latest such turn. That keeps parallel sessions apart. Commits before every
-/// prompt, or whose time can't be parsed, belong to none.
-pub fn attribute_commits(prompts: &[FactRow], commits: &[Commit]) -> BTreeMap<i64, Vec<Commit>> {
-    // (id, sent, ended, committed) by time sent; prompts whose time can't be read can own nothing.
-    let mut ordered: Vec<(i64, Instant, Instant, bool)> =
-        prompts.iter().filter_map(|p| Some((p.prompt.row.id, sent(p)?, ended(p)?, p.prompt.row.git_commits > 0))).collect();
-    ordered.sort_by_key(|(_, at, _, _)| at.at);
-    let mut out: BTreeMap<i64, Vec<Commit>> = BTreeMap::new();
-    for commit in commits {
-        let Some(at) = Instant::parse(&commit.time) else { continue };
-        let before = ordered.get(..ordered.partition_point(|(_, sent, _, _)| sent.at <= at.at)).unwrap_or_default();
-        let committing =
-            before.iter().rev().find(|(_, _, ended, committed)| *committed && at.at <= ended.plus_seconds(COMMIT_GRACE_S as f64).at);
-        if let Some((owner, ..)) = committing.or_else(|| before.last()) {
-            out.entry(*owner).or_default().push(commit.clone());
-        }
-    }
-    out
-}
-
 /// Commits, files, insertions and deletions summed.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct Diffstat {
@@ -273,6 +264,15 @@ pub fn log_window(prompts: &[FactRow]) -> Option<(String, String)> {
     let first = prompts.first()?;
     let last = latest_end(prompts)?;
     Some((first.prompt.row.received_at.clone(), last.plus_seconds(LOG_TAIL_S as f64).isoformat()))
+}
+
+/// `(since, until)` of the commits a project's commit list reads: [`log_window`], starting
+/// [`LOG_LEAD_S`] before the first prompt was sent. `None` without prompts, or when the first
+/// one's time can't be read.
+pub fn trace_window(prompts: &[FactRow]) -> Option<(String, String)> {
+    let since = sent(prompts.first()?)?.plus_seconds(-(LOG_LEAD_S as f64));
+    let (_, until) = log_window(prompts)?;
+    Some((since.isoformat(), until))
 }
 
 /// The latest turn end (by instant, in the offset that prompt was written in).

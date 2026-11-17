@@ -53,6 +53,7 @@ fn roots(c: &mut Collect<'_>) {
     c.visit::<model::Telemetry>();
     c.visit::<model::SessionStory>();
     c.visit::<model::ProjectStory>();
+    c.visit::<model::ProjectCommits>();
     c.visit::<model::Lineage>();
     c.visit::<model::SearchResults>();
     c.visit::<model::FindResults>();

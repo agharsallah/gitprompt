@@ -137,6 +137,50 @@ async fn a_project_story_has_phases_split_by_a_long_gap() {
     assert!(texts.iter().all(|t| !t.starts_with("<task-notification>")), "{texts:?}");
 }
 
+/// A commit of `file` with `message`, committed at `when`.
+fn commit_file(repo: &std::path::Path, file: &str, message: &str, when: &str) {
+    std::fs::write(repo.join(file), message).expect("write");
+    git(repo, &["add", "."], None);
+    git(repo, &["commit", "-m", message], Some(when));
+}
+
+#[tokio::test]
+async fn the_commit_list_traces_each_commit_of_the_repository_once() {
+    let (api, repo) = data().await;
+    commit_file(&repo, "notes.txt", "Notes by hand", "2026-03-02T08:30:00+00:00");
+    commit_file(&repo, "later.txt", "Later fix", "2026-03-03T10:00:00+00:00");
+    let ids = row_ids(&api).await;
+    let path = format!("/api/stories/project/{}/commits", project_id(repo.to_str().expect("utf-8")));
+    let list = api.json(&path).await;
+    let traces: Vec<(Value, Value, Value)> = list["groups"]
+        .as_array()
+        .expect("groups")
+        .iter()
+        .flat_map(|g| g["commits"].as_array().expect("commits"))
+        .map(|t| (t["commit"]["subject"].clone(), t["prompt"]["id"].clone(), t["how"].clone()))
+        .collect();
+    assert_eq!(
+        traces,
+        [
+            (json!("Later fix"), ids["p3"].clone(), json!("likely")),
+            (json!("Add parser tests"), ids["p3"].clone(), json!("traced")),
+            (json!("Notes by hand"), Value::Null, json!("by_hand")),
+        ]
+    );
+    assert_eq!(list["counts"], json!({"total": 3, "traced": 1, "likely": 1, "by_hand": 1}));
+    let found = api.json(&format!("{path}?q=b.txt&group=branch")).await;
+    assert_eq!((&found["matched"], &found["groups"][0]["key"]), (&json!(1), &json!("main")));
+}
+
+#[tokio::test]
+async fn a_commit_list_with_an_unknown_grouping_is_422_and_of_an_unknown_project_404() {
+    let (api, repo) = data().await;
+    let path = format!("/api/stories/project/{}/commits", project_id(repo.to_str().expect("utf-8")));
+    let unknown = format!("/api/stories/project/{}/commits", project_id("/nowhere"));
+    let statuses = (api.get(&format!("{path}?group=week")).send().await.status, api.get(&unknown).send().await.status);
+    assert_eq!(statuses, (422, 404));
+}
+
 #[tokio::test]
 async fn unknown_stories_are_404() {
     let (api, _) = data().await;

@@ -28,7 +28,7 @@ pub use security::{Reconnect, Rotation, SecurityOut};
 pub use settings::{SettingOut, SettingsOut, SettingsSaved};
 pub use sources::{CapturedSurface, Change, Enabled, HOURS, ProjectRef, RecentCapture, SourceOut, SpecFileOut, SpecProblemOut, SpecText};
 pub use stats::{Stats, StatsQuery, Telemetry};
-pub use stories::{Lineage, ProjectStory, SearchHit, SearchResults, SessionStory};
+pub use stories::{CommitQuery, Lineage, ProjectCommits, ProjectStory, SearchHit, SearchResults, SessionStory};
 pub use usage::{UsageDay, UsageHit, UsageIn, UsageOut};
 
 /// What every page shows about a turn (insights facts, ADR-0021), and its parts.

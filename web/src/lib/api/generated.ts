@@ -96,6 +96,41 @@ export type CommandUse = { command: string, source: string | null, uses: number,
 export type Commit = { hash: string, subject: string, author: string, time: string, };
 
 /**
+ * Commits sharing a phase, a branch or a day.
+ */
+
+export type CommitGroup = { 
+/**
+ * The phase's 1-based index, the branch or the day (`YYYY-MM-DD`); `None`: commits without
+ * one (made by hand, for a phase or a branch).
+ */
+key: string | null, count: number, 
+/**
+ * Newest first.
+ */
+commits: Array<CommitTrace>, };
+
+/**
+ * What the commits are grouped by.
+ */
+
+export type CommitGrouping = "phase" | "branch" | "day";
+
+/**
+ * A commit and the prompt behind it.
+ */
+
+export type CommitTrace = { commit: StoryCommit, 
+/**
+ * `None` when made by hand.
+ */
+prompt: TracePrompt | null, 
+/**
+ * The prompt's session.
+ */
+session: string | null, how: TraceHow, };
+
+/**
  * Commits made after a prompt.
  */
 
@@ -452,6 +487,36 @@ disabled_sources: Array<string>,
  * The desktop app's recall shortcut (`shortcut` module spelling, such as `CmdOrCtrl+Alt+P`).
  */
 recall_shortcut: string, };
+
+/**
+ * A project's commits while you worked on it, each with the prompt behind it.
+ */
+
+export type ProjectCommits = { group: CommitGrouping, 
+/**
+ * Every commit, whatever `q` matched.
+ */
+counts: TraceCounts, 
+/**
+ * Commits matching `q`: those in `groups`.
+ */
+matched: number, 
+/**
+ * Newest first: a group comes where its newest commit does.
+ */
+groups: Array<CommitGroup>, 
+/**
+ * [`project_id`] of `repo`.
+ */
+id: string, repo: string, 
+/**
+ * The first `repo_name` (owner/name) of the rows, else the last segment of `repo`.
+ */
+name: string, 
+/**
+ * Some row has a branch: it is a git repository.
+ */
+git: boolean, };
 
 /**
  * How a project got built, prompt by prompt.
@@ -958,6 +1023,28 @@ commands: Array<CommandUse>, };
  */
 
 export type ToolKind = "read" | "write" | "shell" | "web" | "mcp" | "agent" | "other";
+
+/**
+ * How many commits followed a prompt, and how surely.
+ */
+
+export type TraceCounts = { total: number, traced: number, likely: number, by_hand: number, };
+
+/**
+ * How sure a commit's trace is.
+ */
+
+export type TraceHow = "traced" | "likely" | "by_hand";
+
+/**
+ * The prompt a commit followed, as a trace names it.
+ */
+
+export type TracePrompt = { id: number, received_at: string, branch: string | null, 
+/**
+ * The typed text clipped to [`EXCERPT_CHARS`].
+ */
+text: string, clipped: boolean, outcome: TurnOutcome, };
 
 /**
  * An error the tool reported during the turn ([`ERROR_EVENTS`]). Serialized compacted.

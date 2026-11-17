@@ -301,6 +301,7 @@ fn check_stories(check: &mut RouteCheck<'_>, id: i64) {
     let story = check.object("/api/stories/session/abc123", &[("session", "string"), ("project", "object")]);
     let project = story["project"]["id"].as_str().unwrap_or_default();
     check.object(&format!("/api/stories/project/{project}"), &[("repo", "string"), ("totals", "object"), ("phases", "array")]);
+    check.object(&format!("/api/stories/project/{project}/commits"), &[("counts", "object"), ("groups", "array")]);
     let path = format!("/api/stories/prompt/{id}");
     let lineage = check.fetch(&path);
     if !lineage.is_object() {

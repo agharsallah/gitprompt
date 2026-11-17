@@ -20,7 +20,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use common::{DATE, Repo, git, git_output, repo};
-use gitprompt_core::git::{Commit, CommitsAfter, GitCache, Shortstat, commits, git_context, history, shortstat};
+use gitprompt_core::git::{Changes, Commit, CommitsAfter, GitCache, Shortstat, commits, git_context, history, numstat};
 use gitprompt_core::{Json, JsonMap};
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -293,15 +293,31 @@ fn commits_outside_a_repository_are_empty() {
     assert_eq!(found, CommitsAfter { commits: vec![], diffstat: None, until: "HEAD".into() });
 }
 
-// --- shortstat / history --------------------------------------------------------------------
+// --- numstat / history ----------------------------------------------------------------------
 
 #[test]
-fn shortstat_reads_each_part() {
-    assert_eq!(shortstat(" 3 files changed, 10 insertions(+), 1 deletion(-)"), Shortstat { files: 3, insertions: 10, deletions: 1 });
-    assert_eq!(shortstat(" 1 file changed, 2 deletions(-)"), Shortstat { files: 1, insertions: 0, deletions: 2 });
-    assert_eq!(shortstat(" 1 file changed, 1 insertion(+)"), Shortstat { files: 1, insertions: 1, deletions: 0 });
-    assert_eq!(shortstat(""), Shortstat::default());
-    assert_eq!(shortstat("nothing to see"), Shortstat::default());
+fn numstat_sums_each_file_and_keeps_its_path() {
+    let found = numstat("10\t1\tsrc/a.rs\n3\t0\tREADME.md\n");
+    let expected =
+        Changes { stat: Shortstat { files: 2, insertions: 13, deletions: 1 }, paths: vec!["src/a.rs".into(), "README.md".into()] };
+    assert_eq!(found, expected);
+}
+
+#[test]
+fn numstat_counts_a_binary_file_without_lines() {
+    assert_eq!(numstat("-\t-\tlogo.png").stat, Shortstat { files: 1, insertions: 0, deletions: 0 });
+}
+
+#[test]
+fn numstat_names_the_new_path_of_a_rename() {
+    let paths = numstat("1\t1\told.rs => new.rs\n0\t0\tsrc/{spool.rs => spool/mod.rs}\n0\t0\ta/{b => }/c.rs").paths;
+    assert_eq!(paths, ["new.rs", "src/spool/mod.rs", "a/c.rs"]);
+}
+
+#[test]
+fn numstat_skips_what_is_not_a_file_line() {
+    assert_eq!(numstat(""), Changes::default());
+    assert_eq!(numstat("nothing to see\n"), Changes::default());
 }
 
 /// Commits a, b, c on main, one per day from 2026-01-01T10:00, each adding two lines.
@@ -329,7 +345,8 @@ fn history_lists_commits_of_a_window_with_their_diffstat() {
             time: String::new(),
             files: 1,
             insertions: 2,
-            deletions: 0
+            deletions: 0,
+            paths: vec!["b.txt".into()],
         }
     );
     assert_eq!((found[1].time.as_str(), found[1].hash.len() >= 7), ("2026-01-03T10:00:00+02:00", true));

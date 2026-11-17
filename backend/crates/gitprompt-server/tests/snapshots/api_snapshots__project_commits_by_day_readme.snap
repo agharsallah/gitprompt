@@ -1,0 +1,61 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"{path}?group=day&q=readme\")).await"
+---
+{
+  "id": "L3dvcmsvYXBw",
+  "repo": "/work/app",
+  "name": "app",
+  "git": true,
+  "group": "day",
+  "counts": {
+    "total": 4,
+    "traced": 2,
+    "likely": 1,
+    "by_hand": 1
+  },
+  "matched": 2,
+  "groups": [
+    {
+      "key": "2026-01-05",
+      "count": 2,
+      "commits": [
+        {
+          "commit": {
+            "hash": "d4d4d4d",
+            "subject": "Fix a typo in the README",
+            "author": "t",
+            "time": "2026-01-05T09:30:00+00:00",
+            "files": 1,
+            "insertions": 3,
+            "deletions": 1
+          },
+          "prompt": {
+            "id": 11,
+            "received_at": "2026-01-05T09:03:51.000000+00:00",
+            "branch": "main",
+            "text": "/review the staged changes",
+            "clipped": false,
+            "outcome": "superseded"
+          },
+          "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+          "how": "likely"
+        },
+        {
+          "commit": {
+            "hash": "a1a1a1a",
+            "subject": "Scaffold the app",
+            "author": "t",
+            "time": "2026-01-05T08:15:00+00:00",
+            "files": 2,
+            "insertions": 3,
+            "deletions": 1
+          },
+          "prompt": null,
+          "session": null,
+          "how": "by_hand"
+        }
+      ]
+    }
+  ]
+}

@@ -219,6 +219,11 @@ pub struct Commit {
     pub insertions: u64,
     #[serde(default)]
     pub deletions: u64,
+    /// The paths it changed (a rename: the new path), for finding a commit by file. `history` only;
+    /// never on the wire, where a big commit's list would outweigh everything else.
+    #[serde(skip)]
+    #[ts(skip)]
+    pub paths: Vec<String>,
 }
 
 /// Commits made after a prompt.
@@ -288,41 +293,59 @@ pub struct Shortstat {
     pub deletions: u64,
 }
 
-/// `{files, insertions, deletions}` from a `--shortstat` line; missing parts are 0.
-pub fn shortstat(line: &str) -> Shortstat {
-    let mut stat = Shortstat::default();
-    for part in line.split(',') {
-        let mut words = part.split_whitespace();
-        let (Some(Ok(count)), Some(word)) = (words.next().map(str::parse::<u64>), words.next()) else { continue };
-        match word.trim_end_matches(|c: char| !c.is_ascii_alphabetic()) {
-            "file" | "files" => stat.files = count,
-            "insertion" | "insertions" => stat.insertions = count,
-            "deletion" | "deletions" => stat.deletions = count,
-            _ => {}
-        }
+/// What a commit changed, read from its `--numstat` lines.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Changes {
+    /// Files, and the lines added and removed (a binary file counts as a file, with no lines).
+    pub stat: Shortstat,
+    /// The paths, in git's order; a rename names its new path.
+    pub paths: Vec<String>,
+}
+
+/// The [`Changes`] of `--numstat` lines (`added TAB deleted TAB path`, `-` for a binary file's
+/// counts); other lines are skipped.
+pub fn numstat(lines: &str) -> Changes {
+    let mut changes = Changes::default();
+    for line in lines.lines() {
+        let mut fields = line.splitn(3, '\t');
+        let (Some(added), Some(deleted), Some(path)) = (fields.next(), fields.next(), fields.next()) else { continue };
+        changes.stat.files += 1;
+        changes.stat.insertions += added.parse::<u64>().unwrap_or(0);
+        changes.stat.deletions += deleted.parse::<u64>().unwrap_or(0);
+        changes.paths.push(renamed_to(path));
     }
-    stat
+    changes
+}
+
+/// The new path of a `--numstat` rename (`old => new`, or `dir/{old => new}/file`); any other path
+/// as it is.
+fn renamed_to(path: &str) -> String {
+    let Some((before, after)) = path.split_once(" => ") else { return path.to_owned() };
+    match (before.rsplit_once('{'), after.split_once('}')) {
+        (Some((prefix, _)), Some((new, suffix))) => format!("{prefix}{new}{suffix}").replace("//", "/"),
+        _ => after.to_owned(),
+    }
 }
 
 /// Commits on local branches with a commit time in `[since, until]`, oldest first, each with its
-/// diffstat: one git call for a whole story. `[]` outside a repository or if git fails.
+/// diffstat and paths: one git call for a whole story. `[]` outside a repository or if git fails.
 pub fn history(root: &Path, since: &str, until: &str) -> Vec<Commit> {
     let (since, until) = (format!("--since={since}"), format!("--until={until}"));
     let format = format!("--format={RECORD}%h{SEP}%s{SEP}%an{SEP}%cI");
-    let log = git(root, &["log", "--branches", &since, &until, &format, "--shortstat"]).unwrap_or_default();
+    let log = git(root, &["log", "--branches", &since, &until, &format, "--numstat"]).unwrap_or_default();
     let mut found: Vec<Commit> = log.split(RECORD).filter_map(history_record).collect();
     found.reverse();
     found
 }
 
-/// A header line, then (after a blank line) its `--shortstat` line, if the commit changed files.
+/// A header line, then (after a blank line) its `--numstat` lines, if the commit changed files.
 fn history_record(record: &str) -> Option<Commit> {
     let (header, rest) = record.trim().split_once('\n').unwrap_or_else(|| (record.trim(), ""));
     if header.is_empty() {
         return None;
     }
-    let Shortstat { files, insertions, deletions } = shortstat(rest);
-    Some(Commit { files, insertions, deletions, ..commit_header(header) })
+    let Changes { stat: Shortstat { files, insertions, deletions }, paths } = numstat(rest);
+    Some(Commit { files, insertions, deletions, paths, ..commit_header(header) })
 }
 
 /// [`git_context`] memoized per directory for `ttl`. Thread-safe.

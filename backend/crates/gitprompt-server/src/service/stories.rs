@@ -13,7 +13,7 @@ use gitprompt_store::filter::PromptFilter;
 
 use super::{Inner, Service};
 use crate::error::{ApiError, ApiResult};
-use crate::model::{Lineage, ProjectStory, PromptQuery, SearchHit, SearchResults, SessionStory};
+use crate::model::{CommitQuery, Lineage, ProjectCommits, ProjectStory, PromptQuery, SearchHit, SearchResults, SessionStory};
 
 /// Characters of a subagent brief in a session story (Python's `timeline.turn_events` default).
 const BRIEF_CHARS: usize = 600;
@@ -27,12 +27,40 @@ impl Inner {
 
     /// Commits in the story's repository while it lasted (one git call); `[]` without one.
     fn log(&self, rows: &[FactRow]) -> Vec<Commit> {
-        let Some((since, until)) = stories::log_window(rows) else { return Vec::new() };
+        self.log_in(rows, stories::log_window(rows))
+    }
+
+    /// Commits in the repository of `rows` within `window` (one git call); `[]` without either.
+    fn log_in(&self, rows: &[FactRow], window: Option<(String, String)>) -> Vec<Commit> {
+        let Some((since, until)) = window else { return Vec::new() };
         let filled = |v: &Option<String>| v.as_deref().is_some_and(|v| !v.is_empty());
         let repo =
             rows.iter().find(|r| filled(&r.prompt.row.branch) && filled(&r.prompt.row.repo)).and_then(|r| r.prompt.row.repo.as_deref());
         repo.map_or_else(Vec::new, |repo| self.options.git.history(Path::new(repo), &since, &until))
     }
+
+    /// The repo a project id names, the prompts you typed in it (oldest first) and how many prompts
+    /// it has in all; not found when the id doesn't decode or the project has no prompt.
+    fn project_rows(&self, set: &SpecSet, project: &str) -> ApiResult<ProjectRows> {
+        let not_found = || ApiError::from(Error::NotFound("project not found".into()));
+        let repo = stories::project_repo(project).ok_or_else(not_found)?;
+        let every = PromptFilter { repo: Some(repo.clone()), ..PromptFilter::default() };
+        let typed = PromptFilter { origin: USER_ORIGINS.to_vec(), ..every.clone() };
+        let rows = self.timeline(set, &typed, None, false)?;
+        let total = self.store.count(&every)?;
+        if rows.is_empty() && total == 0 {
+            return Err(not_found());
+        }
+        Ok(ProjectRows { repo, rows, total })
+    }
+}
+
+/// A project's typed prompts ([`Inner::project_rows`]).
+struct ProjectRows {
+    repo: String,
+    rows: Vec<FactRow>,
+    /// Prompts of every origin.
+    total: i64,
 }
 
 impl Service {
@@ -73,19 +101,24 @@ impl Service {
         let project = project.to_owned();
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let not_found = || ApiError::from(Error::NotFound("project not found".into()));
-            let repo = stories::project_repo(&project).ok_or_else(not_found)?;
-            let every = PromptFilter { repo: Some(repo.clone()), ..PromptFilter::default() };
-            let typed = PromptFilter { origin: USER_ORIGINS.to_vec(), ..every.clone() };
-            let rows = inner.timeline(&set, &typed, None, false)?;
-            let total = inner.store.count(&every)?;
-            if rows.is_empty() && total == 0 {
-                return Err(not_found());
-            }
+            let ProjectRows { repo, rows, total } = inner.project_rows(&set, &project)?;
             let system = total - i64::try_from(rows.len()).unwrap_or(i64::MAX);
             let commits = inner.log(&rows);
             let tool_kinds = inner.store.tool_kinds(&rows.iter().map(|r| r.prompt.row.id).collect::<Vec<_>>())?;
             Ok(stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
+        })
+        .await
+    }
+
+    /// A project's commits while you worked on it ([`stories::trace_window`]), each with the prompt
+    /// behind it, matched against `query.q` and grouped by `query.group`.
+    pub async fn project_commits(&self, project: &str, query: CommitQuery) -> ApiResult<ProjectCommits> {
+        let project = project.to_owned();
+        self.run(move |inner| {
+            let (set, _) = inner.indexed()?;
+            let ProjectRows { repo, rows, .. } = inner.project_rows(&set, &project)?;
+            let commits = inner.log_in(&rows, stories::trace_window(&rows));
+            Ok(stories::project_commits(&repo, &rows, &commits, &query))
         })
         .await
     }

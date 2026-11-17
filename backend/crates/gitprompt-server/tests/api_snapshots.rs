@@ -24,13 +24,16 @@
 
 mod common;
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use gitprompt_server::ManualClock;
-use jiff::SignedDuration;
+use gitprompt_core::JsonMap;
+use gitprompt_core::git::{Commit, CommitsAfter};
+use gitprompt_server::{GitProvider, ManualClock, NoGit};
+use jiff::{SignedDuration, Timestamp};
 use serde_json::Value;
 
-use common::{Api, harness, project_id};
+use common::{Api, Harness, harness, project_id};
 
 /// The tools whose fixtures are ingested, in this order (ids follow it).
 const TOOLS: &[&str] = &["claude-code", "codex", "copilot-cli", "cursor"];
@@ -61,8 +64,13 @@ const STEP: SignedDuration = SignedDuration::from_secs(7);
 /// An app holding every fixture of every tool, each arriving [`STEP`] after the previous one on a
 /// clock the test moves, so every `received_at` and duration between arrivals is the same each run.
 async fn loaded() -> Api {
+    loaded_with(harness()).await
+}
+
+/// [`loaded`], on an app built from `harness`.
+async fn loaded_with(harness: Harness) -> Api {
     let clock = ManualClock::new(START.parse().expect("instant"));
-    let api = harness().moving_clock(&clock).start();
+    let api = harness.moving_clock(&clock).start();
     for tool in TOOLS {
         for payload in payloads(tool) {
             clock.advance(STEP);
@@ -137,6 +145,88 @@ async fn stories_lineage_and_search() {
     let project = project_id(Path::new("/work/app").to_str().expect("utf-8"));
     insta::assert_json_snapshot!("project_story", get(&api, &format!("/api/stories/project/{project}")).await);
     insta::assert_json_snapshot!("search", get(&api, "/api/search?q=retry").await);
+}
+
+/// Every folder a git repository on `main`, whose history is [`FIXTURE_COMMITS`] (within the
+/// window asked for, as `git log --since --until` would answer).
+struct FixtureGit;
+
+/// `(hash, subject, time, paths)` around the `/work/app` prompts (09:00:07 to 09:03:51, the turns
+/// of prompts 1 and 9 run 09:00:07–09:00:21 and 09:02:20–09:02:48): one by hand before the first
+/// prompt, two made during a turn, one half an hour after the last prompt.
+const FIXTURE_COMMITS: &[(&str, &str, &str, &[&str])] = &[
+    ("a1a1a1a", "Scaffold the app", "2026-01-05T08:15:00+00:00", &["Cargo.toml", "README.md"]),
+    ("b2b2b2b", "Add the retry loop", "2026-01-05T09:00:15+00:00", &["src/upload.rs"]),
+    ("c3c3c3c", "Wire the uploader", "2026-01-05T09:02:40+00:00", &["src/main.rs", "src/upload.rs"]),
+    ("d4d4d4d", "Fix a typo in the README", "2026-01-05T09:30:00+00:00", &["README.md"]),
+];
+
+impl GitProvider for FixtureGit {
+    fn context(&self, cwd: Option<&Path>) -> JsonMap {
+        let Some(cwd) = cwd else { return JsonMap::new() };
+        let mut context = JsonMap::new();
+        context.insert("git_root".into(), cwd.to_string_lossy().into());
+        context.insert("git_branch".into(), "main".into());
+        context
+    }
+    fn commits(&self, root: &Path, start: Option<&str>, end: &str, since: &str) -> CommitsAfter {
+        NoGit.commits(root, start, end, since)
+    }
+    fn history(&self, _root: &Path, since: &str, until: &str) -> Vec<Commit> {
+        let instant = |text: &str| text.parse::<Timestamp>().expect("instant");
+        let window = instant(since)..=instant(until);
+        FIXTURE_COMMITS
+            .iter()
+            .filter(|(_, _, time, _)| window.contains(&instant(time)))
+            .map(|&(hash, subject, time, paths)| Commit {
+                hash: hash.into(),
+                subject: subject.into(),
+                author: "t".into(),
+                time: time.into(),
+                files: paths.len() as u64,
+                insertions: 3,
+                deletions: 1,
+                paths: paths.iter().map(|p| (*p).to_owned()).collect(),
+            })
+            .collect()
+    }
+}
+
+/// The hashes of a commit list, in its groups' order.
+fn listed(commits: &Value) -> Vec<&str> {
+    let groups = commits["groups"].as_array().expect("groups");
+    groups.iter().flat_map(|g| g["commits"].as_array().expect("commits")).map(|t| text(t, &["commit", "hash"])).collect()
+}
+
+#[tokio::test]
+async fn commits_with_the_prompt_behind_each() {
+    let api = loaded_with(harness().git(FixtureGit)).await;
+    let path = format!("/api/stories/project/{}/commits", project_id("/work/app"));
+    let commits = get(&api, &path).await;
+    // Every commit of the project exactly once, newest first.
+    assert_eq!(listed(&commits), ["d4d4d4d", "c3c3c3c", "b2b2b2b", "a1a1a1a"]);
+    // The project story gives each prompt the same commits the list traces back to it.
+    let story = get(&api, &format!("/api/stories/project/{}", project_id("/work/app"))).await;
+    assert_eq!(owners_in_story(&story), owners_in_list(&commits));
+    insta::assert_json_snapshot!("project_commits", commits);
+    insta::assert_json_snapshot!("project_commits_by_day_readme", get(&api, &format!("{path}?group=day&q=readme")).await);
+}
+
+/// hash -> prompt id, from the prompts' side (a project story).
+fn owners_in_story(story: &Value) -> BTreeMap<String, i64> {
+    let entries = story["phases"].as_array().expect("phases").iter().flat_map(|p| p["items"].as_array().expect("items"));
+    entries
+        .flat_map(|e| {
+            e["commits"].as_array().expect("commits").iter().map(move |c| (text(c, &["hash"]).to_owned(), e["id"].as_i64().expect("id")))
+        })
+        .collect()
+}
+
+/// hash -> prompt id, from the commits' side (a commit list), commits made by hand left out.
+fn owners_in_list(commits: &Value) -> BTreeMap<String, i64> {
+    let groups = commits["groups"].as_array().expect("groups");
+    let traces = groups.iter().flat_map(|g| g["commits"].as_array().expect("commits"));
+    traces.filter_map(|t| Some((text(t, &["commit", "hash"]).to_owned(), t["prompt"]["id"].as_i64()?))).collect()
 }
 
 #[tokio::test]

@@ -15,7 +15,7 @@ use gitprompt_core::spec::ToolKind;
 
 use super::{
     BRANCH_RUN, EXCERPT_CHARS, FactRow, GAP_S, ProjectRef, RETRY_WINDOW, attribute_commits, clip, diffstat_of, is_user, non_empty, phases,
-    project_id, project_of, retries,
+    project_ref, retries,
 };
 use crate::text::round;
 
@@ -147,10 +147,7 @@ pub(super) fn story(
             }
         })
         .collect();
-    let source = if user.is_empty() { rows } else { &user };
-    let project =
-        project_of(source).unwrap_or_else(|| ProjectRef { id: project_id(repo), repo: repo.into(), name: repo.into(), git: false });
-    ProjectStory { project, system, totals: measures(&entries, &user), phases }
+    ProjectStory { project: project_ref(repo, rows, &user), system, totals: measures(&entries, &user), phases }
 }
 
 fn entry(p: &FactRow, tools: BTreeMap<ToolKind, i64>, commits: Vec<Commit>, retry_of: Option<i64>) -> ProjectEntry {

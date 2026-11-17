@@ -1,0 +1,109 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: commits
+---
+{
+  "id": "L3dvcmsvYXBw",
+  "repo": "/work/app",
+  "name": "app",
+  "git": true,
+  "group": "phase",
+  "counts": {
+    "total": 4,
+    "traced": 2,
+    "likely": 1,
+    "by_hand": 1
+  },
+  "matched": 4,
+  "groups": [
+    {
+      "key": "1",
+      "count": 3,
+      "commits": [
+        {
+          "commit": {
+            "hash": "d4d4d4d",
+            "subject": "Fix a typo in the README",
+            "author": "t",
+            "time": "2026-01-05T09:30:00+00:00",
+            "files": 1,
+            "insertions": 3,
+            "deletions": 1
+          },
+          "prompt": {
+            "id": 11,
+            "received_at": "2026-01-05T09:03:51.000000+00:00",
+            "branch": "main",
+            "text": "/review the staged changes",
+            "clipped": false,
+            "outcome": "superseded"
+          },
+          "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
+          "how": "likely"
+        },
+        {
+          "commit": {
+            "hash": "c3c3c3c",
+            "subject": "Wire the uploader",
+            "author": "t",
+            "time": "2026-01-05T09:02:40+00:00",
+            "files": 2,
+            "insertions": 3,
+            "deletions": 1
+          },
+          "prompt": {
+            "id": 9,
+            "received_at": "2026-01-05T09:02:20.000000+00:00",
+            "branch": "main",
+            "text": "Summarise this log",
+            "clipped": false,
+            "outcome": "interrupted"
+          },
+          "session": "0190a1b2-0000-7000-8000-000000000001",
+          "how": "traced"
+        },
+        {
+          "commit": {
+            "hash": "b2b2b2b",
+            "subject": "Add the retry loop",
+            "author": "t",
+            "time": "2026-01-05T09:00:15+00:00",
+            "files": 1,
+            "insertions": 3,
+            "deletions": 1
+          },
+          "prompt": {
+            "id": 1,
+            "received_at": "2026-01-05T09:00:07.000000+00:00",
+            "branch": "main",
+            "text": "Write a function to calculate the factorial of a number",
+            "clipped": false,
+            "outcome": "done"
+          },
+          "session": "abc123",
+          "how": "traced"
+        }
+      ]
+    },
+    {
+      "key": null,
+      "count": 1,
+      "commits": [
+        {
+          "commit": {
+            "hash": "a1a1a1a",
+            "subject": "Scaffold the app",
+            "author": "t",
+            "time": "2026-01-05T08:15:00+00:00",
+            "files": 2,
+            "insertions": 3,
+            "deletions": 1
+          },
+          "prompt": null,
+          "session": null,
+          "how": "by_hand"
+        }
+      ]
+    }
+  ]
+}

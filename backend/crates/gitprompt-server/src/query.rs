@@ -19,7 +19,7 @@ use gitprompt_store::store::USAGE_KEEP_DAYS;
 use crate::error::ApiError;
 use gitprompt_insights::find::{Kind, PER_KIND};
 
-use crate::model::{ExportQuery, FindQuery, PromptQuery, StatsQuery};
+use crate::model::{CommitQuery, ExportQuery, FindQuery, PromptQuery, StatsQuery};
 
 /// `(key, value)` pairs of a raw query string, percent-decoded, in order.
 pub fn pairs(query: Option<&str>) -> Vec<(String, String)> {
@@ -169,6 +169,13 @@ pub fn find_query(pairs: &[(String, String)]) -> Result<FindQuery, ApiError> {
     let limit = last(pairs, "limit").map(|v| integer("limit", v, 1..=PER_KIND)).transpose()?.unwrap_or(PER_KIND);
     let kinds = if kinds.is_empty() { Kind::ALL.to_vec() } else { kinds };
     Ok(FindQuery { q: last(pairs, "q").unwrap_or_default().trim().to_owned(), kinds, limit })
+}
+
+/// `q` (words to find in a commit's subject, paths or hash; empty: all) and `group` (`phase`,
+/// `branch` or `day`; default `phase`): `/api/stories/project/{id}/commits`.
+pub fn commit_query(pairs: &[(String, String)]) -> Result<CommitQuery, ApiError> {
+    let group = last(pairs, "group").map(|v| variant("group", v)).transpose()?.unwrap_or_default();
+    Ok(CommitQuery { q: last(pairs, "q").unwrap_or_default().trim().to_owned(), group })
 }
 
 /// Filters plus `group_by`, `split_by` (needs `group_by`), `order`, `limit` (1..=10000).
