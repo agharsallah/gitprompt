@@ -90,8 +90,15 @@ struct Candidate {
 
 // --- the kinds ---------------------------------------------------------------------------------
 
-/// Prompts the store already matched on their typed text (`q` as the prompt filter), best first.
+/// Prompts the store already matched on their typed text (`q` as the prompt filter), best first,
+/// at most [`PER_KIND`].
 pub fn prompt_hits(rows: &[IndexedPrompt], q: &str, limit: usize) -> Vec<Hit> {
+    prompt_hits_up_to(rows, q, limit.min(PER_KIND))
+}
+
+/// [`prompt_hits`] with the caller's own bound: a list that is read in full (the terminal's
+/// `gitprompt find`) wants more than the palette's few.
+pub fn prompt_hits_up_to(rows: &[IndexedPrompt], q: &str, limit: usize) -> Vec<Hit> {
     let ranked_by_outcome = !q.trim().is_empty();
     let candidates = rows.iter().map(|r| {
         let text = r.row.typed_text.clone().unwrap_or_default();
@@ -114,6 +121,7 @@ pub fn prompt_hits(rows: &[IndexedPrompt], q: &str, limit: usize) -> Vec<Hit> {
 /// Sessions (the groups of a statistics read grouped by session, named) matched on the best of
 /// [`session_texts`], and called by [`session_title`].
 pub fn session_hits(groups: &[Bucket], q: &str, limit: usize) -> Vec<Hit> {
+    let limit = limit.min(PER_KIND);
     let candidates = groups.iter().filter_map(|g| {
         let id = g.key.clone().filter(|k| !k.is_empty())?;
         let (score, text) = session_texts(g).filter_map(|text| Some((text_score(text, q)?, text))).max_by_key(|(score, _)| *score)?;
@@ -133,6 +141,7 @@ pub fn session_hits(groups: &[Bucket], q: &str, limit: usize) -> Vec<Hit> {
 
 /// Projects (the groups of a statistics read grouped by repo) matched on their name.
 pub fn project_hits(groups: &[Bucket], q: &str, limit: usize) -> Vec<Hit> {
+    let limit = limit.min(PER_KIND);
     let candidates = groups.iter().filter_map(|g| {
         let repo = g.key.clone().filter(|k| !k.is_empty())?;
         let name = g.detail.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| folder_name(&repo));
@@ -168,11 +177,11 @@ fn named(target: Target, text: String, at: Option<String>, q: &str) -> Option<Ca
 
 // --- ranking -----------------------------------------------------------------------------------
 
-/// The best `limit` candidates (at most [`PER_KIND`]) as hits: best text match, then best outcome,
-/// then newest; the sort is stable, so equal ones keep the order they came in.
+/// The best `limit` candidates as hits: best text match, then best outcome, then newest; the sort
+/// is stable, so equal ones keep the order they came in.
 fn rank(mut candidates: Vec<Candidate>, q: &str, limit: usize) -> Vec<Hit> {
     candidates.sort_by(|a, b| b.score.cmp(&a.score).then(a.outcome_rank.cmp(&b.outcome_rank)).then_with(|| b.at.cmp(&a.at)));
-    candidates.truncate(limit.min(PER_KIND));
+    candidates.truncate(limit);
     candidates
         .into_iter()
         .map(|c| Hit { snippet: highlight(Some(&c.text), Some(q), WIDTH), target: c.target, title: c.title, at: c.at, outcome: c.outcome })

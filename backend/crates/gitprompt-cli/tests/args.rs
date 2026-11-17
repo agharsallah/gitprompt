@@ -90,3 +90,17 @@ fn one_shot_commands_log_only_warnings_unless_asked() {
     let verbose = Env::from_pairs([("GITPROMPT_LOG_LEVEL", "debug")]);
     assert_ne!(log_config(&Cli::parse_from(["gitprompt", "check"]), &verbose).filter, "warn");
 }
+
+#[test]
+fn find_and_resume_take_their_arguments() {
+    let find = Cli::try_parse_from(["gitprompt", "find", "auth", "bug", "--project", "api", "--limit", "20", "--json"]).expect("parses");
+    let Some(Command::Find(args)) = find.command else { panic!("{find:?}") };
+    assert_eq!(
+        (args.words, args.project.as_deref(), args.limit, args.print, args.json),
+        (vec!["auth".into(), "bug".into()], Some("api"), 20, None, true)
+    );
+    let latest = Cli::try_parse_from(["gitprompt", "find"]).expect("parses");
+    assert!(matches!(latest.command, Some(Command::Find(args)) if args.words.is_empty() && args.limit == 10));
+    let resume = Cli::try_parse_from(["gitprompt", "resume", "--last"]).expect("parses");
+    assert!(matches!(resume.command, Some(Command::Resume(args)) if args.last && args.session.is_none()));
+}

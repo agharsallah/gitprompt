@@ -10,7 +10,9 @@
 
 use pretty_assertions::assert_eq;
 
-use gitprompt_insights::find::{Hit, PER_KIND, Target, project_hits, prompt_hits, session_hits, session_texts, session_title};
+use gitprompt_insights::find::{
+    Hit, PER_KIND, Target, project_hits, prompt_hits, prompt_hits_up_to, session_hits, session_texts, session_title,
+};
 use gitprompt_insights::stories::project_id;
 use gitprompt_store::filter::Outcome;
 use gitprompt_store::index::IndexRow;
@@ -87,6 +89,13 @@ fn at_most_five_hits_per_kind_whatever_the_limit() {
     assert_eq!(prompt_ids(&prompt_hits(&rows, "parser", 2)), vec![9, 8]);
     let sessions: Vec<Bucket> = (1..=9).map(|i| group(&format!("s{i}"), "parser work", &format!("2026-01-0{i}T00:00:00+00:00"))).collect();
     assert_eq!(session_hits(&sessions, "parser", 50).len(), PER_KIND);
+}
+
+#[test]
+fn a_list_read_in_full_is_not_held_to_the_palettes_five() {
+    let rows: Vec<IndexedPrompt> = (1..=9).map(|i| prompt(i, "parser", Outcome::Done, &format!("2026-01-0{i}T00:00:00+00:00"))).collect();
+    assert_eq!(prompt_ids(&prompt_hits_up_to(&rows, "parser", 7)), vec![9, 8, 7, 6, 5, 4, 3]);
+    assert_eq!(prompt_ids(&prompt_hits_up_to(&rows, "parser", 50)).len(), 9);
 }
 
 #[test]

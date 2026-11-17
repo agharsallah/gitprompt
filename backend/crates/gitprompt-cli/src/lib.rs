@@ -7,6 +7,10 @@
 //! gitprompt reindex                           rebuild the prompt index
 //! gitprompt check                             per connector and app: the newest captured prompt
 //! gitprompt doctor [--json]                   everything needed to debug an install; exit 1 on problems
+//! gitprompt find [words] [--project P] [--limit N] [--print N] [--json]
+//!                                             the prompts matching the words (none: the latest)
+//! gitprompt resume <session id or name> | --last [--json]
+//!                                             print the command that resumes a session
 //! gitprompt hook <source>                     forward one hook payload (stdin) to the daemon
 //! gitprompt spool drain                       deliver payloads spooled while the daemon was down
 //! ```
@@ -18,10 +22,13 @@
 mod commands;
 mod doctor;
 mod http;
+mod lookup;
+mod print;
 
-use std::io::{Read, Write};
+use std::io::{IsTerminal, Read, Write};
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
+use jiff::Timestamp;
 
 use gitprompt_core::{Env, Settings};
 
@@ -64,6 +71,16 @@ pub enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Find a past prompt: the prompts whose text has all the words, best first (the same search
+    /// as the dashboard's ⌘K). Without words, the latest prompts. Exits 0 when something matched,
+    /// 1 when nothing did.
+    #[command(after_help = FIND_EXAMPLES)]
+    Find(FindArgs),
+    /// Print the command that resumes a session (`cd <folder> && <command>`); it is never run.
+    /// Exits 0 when a command was printed, 1 when there is none: no such session, a name that
+    /// matches several sessions, or a tool that cannot resume from the command line.
+    #[command(after_help = RESUME_EXAMPLES)]
+    Resume(ResumeArgs),
     /// Forward one hook payload read from stdin to the running daemon, for `source`. Never prints,
     /// always exits 0 (a tool must never see a failing hook); when the daemon is down or doesn't
     /// answer within 2 s, the payload is spooled and delivered later. Input that is not JSON is
@@ -74,6 +91,49 @@ pub enum Command {
         #[command(subcommand)]
         command: SpoolCommand,
     },
+}
+
+const FIND_EXAMPLES: &str = "\
+Examples:
+  gitprompt find auth                    the latest prompts about auth, numbered
+  gitprompt find auth --print 2 | pbcopy copy the full text of match 2 (xclip, wl-copy or clip.exe elsewhere)
+  gitprompt find --project api --json    the latest prompts of the project api, for scripts";
+
+const RESUME_EXAMPLES: &str = "\
+Examples:
+  gitprompt resume --last | pbcopy       copy the command that resumes the latest session
+  gitprompt resume \"release prep\"        the session you named so (or its id)
+  gitprompt resume 7f3a9c1e --json       the command, folder and tool as JSON";
+
+#[derive(Debug, Args)]
+pub struct FindArgs {
+    /// Words to look for in what you typed (all of them, any order, ignoring case).
+    pub words: Vec<String>,
+    /// Only prompts of this project: its folder name, its path or its name.
+    #[arg(long, value_name = "PROJECT")]
+    pub project: Option<String>,
+    /// How many matches to list (1 to 100).
+    #[arg(long, value_name = "N", default_value = "10", value_parser = limit)]
+    pub limit: usize,
+    /// Print the full text of match N, and nothing else, ready to pipe to the clipboard.
+    #[arg(long, value_name = "N", value_parser = limit, conflicts_with = "json")]
+    pub print: Option<usize>,
+    /// Print the matches as JSON (an empty list, and exit 1, when none match).
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct ResumeArgs {
+    /// The session's id, or the name you gave it (or its label).
+    #[arg(required_unless_present = "last", conflicts_with = "last")]
+    pub session: Option<String>,
+    /// The most recent session.
+    #[arg(long)]
+    pub last: bool,
+    /// Print the command, folder and tool as JSON.
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -90,11 +150,21 @@ pub fn days(value: &str) -> Result<i64, String> {
     if days < 1 { Err("must be at least 1".into()) } else { Ok(days) }
 }
 
-/// Where a command reads and writes.
+/// `value_parser` of `--limit` and `--print`: a whole number from 1 to 100.
+pub fn limit(value: &str) -> Result<usize, String> {
+    let n: usize = value.trim().parse().map_err(|_| format!("{value:?} is not a whole number"))?;
+    if (1..=100).contains(&n) { Ok(n) } else { Err("must be from 1 to 100".into()) }
+}
+
+/// Where a command reads and writes, and what it knows of the outside: the time it runs at (the
+/// entry point reads the clock once, so printing is deterministic in tests) and whether stdout is
+/// a terminal (colour and a final newline only then).
 pub struct Io<'a> {
     pub stdin: &'a mut dyn Read,
     pub stdout: &'a mut dyn Write,
     pub stderr: &'a mut dyn Write,
+    pub now: Timestamp,
+    pub tty: bool,
 }
 
 impl std::fmt::Debug for Io<'_> {
@@ -131,6 +201,8 @@ pub fn run(cli: &Cli, env: Env, io: &mut Io<'_>) -> u8 {
         Some(Command::Serve { port }) => commands::serve(settings, port.or(cli.port), io),
         Some(Command::Compact { apply, events_older_than }) => commands::compact(&settings, *apply, *events_older_than, io),
         Some(Command::Reindex) => commands::reindex(&settings, io),
+        Some(Command::Find(args)) => lookup::find(&settings, args, io),
+        Some(Command::Resume(args)) => lookup::resume(&settings, args, io),
         Some(Command::Check) => commands::check(&settings, io),
         Some(Command::Doctor { json }) => doctor::run(&settings, *json, io),
         Some(Command::Spool { command: SpoolCommand::Drain }) => commands::drain(&settings, io),
@@ -165,6 +237,7 @@ pub fn main_entry() -> std::process::ExitCode {
         let _ = gitprompt_server::logging::init(&log_config(&cli, &env));
     }
     let (mut stdin, mut stdout, mut stderr) = (std::io::stdin(), std::io::stdout(), std::io::stderr());
-    let mut io = Io { stdin: &mut stdin, stdout: &mut stdout, stderr: &mut stderr };
+    let tty = stdout.is_terminal();
+    let mut io = Io { stdin: &mut stdin, stdout: &mut stdout, stderr: &mut stderr, now: Timestamp::now(), tty };
     std::process::ExitCode::from(run(&cli, env, &mut io))
 }

@@ -95,7 +95,7 @@ pub fn project_of(rows: &[FactRow]) -> Option<ProjectRef> {
 }
 
 /// The last segment of a path, a trailing `/` ignored.
-pub(crate) fn folder_name(repo: &str) -> String {
+pub fn folder_name(repo: &str) -> String {
     let trimmed = repo.trim_end_matches('/');
     trimmed.rsplit('/').next().unwrap_or(trimmed).to_owned()
 }

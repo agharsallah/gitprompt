@@ -19,6 +19,7 @@ use gitprompt_store::{Store, housekeeping};
 
 use crate::Io;
 use crate::http::HttpTransport;
+use crate::print::ago;
 
 /// Why a command failed: one line on stderr, exit 1.
 pub(crate) struct Failure(String);
@@ -35,7 +36,7 @@ impl<E: std::error::Error> From<E> for Failure {
     }
 }
 
-type Outcome = Result<u8, Failure>;
+pub(crate) type Outcome = Result<u8, Failure>;
 
 /// `n` with thousands separators (Python's `{:,}`).
 fn grouped(n: u64) -> String {
@@ -129,17 +130,6 @@ pub(crate) fn reindex(settings: &Settings, io: &mut Io<'_>) -> Outcome {
     store.rebuild_event_stats()?;
     writeln!(io.stdout, "Indexed {} prompts in {:.1} s.", grouped(count as u64), start.elapsed().as_secs_f64())?;
     Ok(0)
-}
-
-/// `<n> <unit> ago`, the largest unit that fits.
-fn ago(now: Timestamp, iso: &str) -> String {
-    let seconds = iso.parse::<Timestamp>().map_or(0, |at| (now - at).get_seconds().max(0));
-    for (unit, size) in [("d", 86_400), ("h", 3600), ("min", 60)] {
-        if seconds >= size {
-            return format!("{} {unit} ago", seconds / size);
-        }
-    }
-    format!("{seconds} s ago")
 }
 
 pub(crate) fn check(settings: &Settings, io: &mut Io<'_>) -> Outcome {

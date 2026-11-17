@@ -87,10 +87,10 @@ fn session_of(inner: &Inner, row: &PromptView, spec: Option<&Spec>) -> gitprompt
     let Some(sid) = row.row.fields.get("session_id").and_then(Json::as_str).filter(|sid| !sid.is_empty()) else {
         return Ok(SessionSummary::default());
     };
-    let events = inner.store.events_for_session(sid)?;
-    let mut session = derivations::session(&events);
     let prompt_cwd = row.row.fields.get("cwd").and_then(Json::as_str);
-    session.resume = spec.and_then(|spec| derivations::resume(spec, sid, &events, prompt_cwd));
+    let (events, resume) = inner.session_with_resume(sid, spec, prompt_cwd)?;
+    let mut session = derivations::session(&events);
+    session.resume = resume;
     Ok(session)
 }
 

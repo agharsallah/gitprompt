@@ -191,12 +191,34 @@ Environment-only: `GITPROMPT_HOME` (data folder, default `~/.gitprompt`), `GITPR
 | Command | What it does |
 |---|---|
 | `gitprompt serve` | Run the receiver and dashboard (the default command; `--port N` overrides the port) |
+| `gitprompt find [words]` | Find a past prompt: numbered matches with when, project and first line (the same search as the dashboard's ⌘K). Without words, the latest prompts. `--project`, `--limit`, `--print N`, `--json` |
+| `gitprompt resume <session>` | Print the command that resumes a session, `cd <folder> && <command>`; never runs it. The session is an id or the name you gave it; `--last` is the latest session |
 | `gitprompt check` | Per connector and app: the newest captured prompt and how it was attributed |
 | `gitprompt doctor` | Paths, daemon and lock, database and index, each connector, spool, preferences; then a one-line fix per problem. Changes nothing |
 | `gitprompt compact` | Remove stored events the specs no longer keep, then `VACUUM` (dry run unless `--apply`) |
 | `gitprompt reindex` | Rebuild the prompt index (filters, search, statistics), e.g. after restoring a backup |
 | `gitprompt spool` | Inspect the queue of hook payloads not yet delivered |
 | `gitprompt hook` | The forwarder your tools call; you never run it yourself |
+
+### Find and resume from the terminal
+
+```bash
+gitprompt find auth                      # numbered matches: when, project, first line
+gitprompt find auth --print 2 | pbcopy   # the full text of match 2 onto the clipboard
+gitprompt find --project api --json      # without words: the latest prompts; JSON for scripts
+gitprompt resume --last | pbcopy         # the command that resumes your latest session
+gitprompt resume "release prep"          # a session by the name you gave it (or its id)
+```
+
+`pbcopy` is macOS; use `xclip -selection clipboard` or `wl-copy` on Linux and `clip.exe` on Windows. GitPrompt has no clipboard code of its own. `--print` writes the text exactly as you typed it, so a paste never ends in Enter.
+
+`gitprompt resume` prints the command and never runs it: a name that matches several sessions lists them and asks for an id, and a tool that cannot resume from the command line (Cursor) says so. Both commands read the local database, in colour only on a terminal and never when `NO_COLOR` is set.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | `find`: something matched. `resume`: a command was printed |
+| `1` | `find`: nothing matched (`--json` still prints `[]`). `resume`: no such session, a name that matches several, a tool without a resume command. Both: no database yet |
+| `2` | Wrong arguments |
 
 ### Keeping the database small
 
