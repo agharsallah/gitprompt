@@ -4,6 +4,7 @@ import type {
 	Catalog,
 	Change,
 	ConfigAction,
+	FindResults,
 	Lineage,
 	ProjectStory,
 	Prompt,
@@ -73,6 +74,16 @@ export const write = <T>(path: string, method: 'POST' | 'PUT', body?: unknown, f
 		fetcher
 	);
 
+/** What `find` can be limited to: the keys of its answer. */
+export type FindKind = keyof FindResults;
+
+function findParams(q: string, kinds: readonly FindKind[]): URLSearchParams {
+	const params = new URLSearchParams();
+	if (q) params.set('q', q);
+	if (kinds.length) params.set('kinds', kinds.join(','));
+	return params;
+}
+
 const source = (id: string) => `/api/sources/${encodeURIComponent(id)}`;
 
 export const api = {
@@ -100,6 +111,10 @@ export const api = {
 	/** Full-text search over typed text, with snippets; takes the prompt filters. */
 	search: (query: StatsQuery, fetcher?: Fetch) =>
 		get<SearchResults>(`/api/search?${queryParams(query)}`, fetcher),
+
+	/** The best few prompts, sessions and projects for some words (none: the most recent). */
+	find: (q: string, kinds: readonly FindKind[] = [], fetcher?: Fetch) =>
+		get<FindResults>(`/api/find?${findParams(q, kinds)}`, fetcher),
 
 	sources: (fetcher?: Fetch) => get<Source[]>('/api/sources', fetcher),
 	/** Connect or disconnect; with `dryRun`, only returns the diff that would be written. */

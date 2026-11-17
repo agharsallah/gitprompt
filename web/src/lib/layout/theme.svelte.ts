@@ -6,6 +6,15 @@
 export type Theme = 'system' | 'light' | 'dark';
 export const THEME_KEY = 'gitprompt-theme';
 
+/**
+ * The theme a toggle switches to: the opposite of the one in effect (`prefersDark` tells which
+ * that is while the theme follows the system).
+ */
+export function nextTheme(current: Theme, prefersDark: boolean): Theme {
+	const dark = current === 'system' ? prefersDark : current === 'dark';
+	return dark ? 'light' : 'dark';
+}
+
 /** The theme pinned in storage, or 'system' when none is (or storage is unavailable). */
 export function storedTheme(): Theme {
 	try {

@@ -7,13 +7,19 @@
 	import '#lib/design/base.css';
 	import { setLucideProps } from '@lucide/svelte';
 	import { navigating, page } from '$app/state';
+	import Lazy from '#lib/async/Lazy.svelte';
 	import Boundary from '#lib/errors/Boundary.svelte';
 	import Sidebar from '#lib/layout/Sidebar.svelte';
+	// Every feature's palette commands register themselves when this is imported (one file each).
+	import '#lib/palette/features.ts';
+	import { isShortcut } from '#lib/palette/keys.ts';
+	import { palette } from '#lib/palette/open.svelte.ts';
 	import { isViewPage } from '#lib/settings/views.ts';
 	import { views } from '#lib/settings/views.svelte.ts';
 	import { forgetSeen } from '#lib/shared/seen.ts';
 	import { track } from '#lib/shared/usage.ts';
 	import { PageWatch } from '#lib/shared/usage-page.ts';
+	import ToastHost from '#lib/ui/ToastHost.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -31,12 +37,21 @@
 		if (isViewPage(route)) views.keep(route, page.url);
 	});
 
+	// ⌘K (Ctrl K) opens the palette from any page, even from a text field.
+	function onkeydown(event: KeyboardEvent) {
+		if (!isShortcut(event)) return;
+		event.preventDefault();
+		palette.toggle();
+	}
+
 	setLucideProps({ size: 16, strokeWidth: 1.75 });
 </script>
 
 <svelte:head>
 	<title>GitPrompt</title>
 </svelte:head>
+
+<svelte:window {onkeydown} />
 
 <a class="skip" href="#main">Skip to content</a>
 
@@ -54,6 +69,20 @@
 		{/key}
 	</main>
 </div>
+
+<!-- The palette's code is fetched the first time it is opened, so pages pay nothing before. -->
+{#if palette.loaded}
+	<Lazy
+		load={() => import('#lib/palette/Palette.svelte')}
+		props={{ palette }}
+		label="Opening the palette"
+		what="the palette"
+	>
+		{#snippet pending()}{/snippet}
+	</Lazy>
+{/if}
+
+<ToastHost />
 
 <style>
 	.shell {

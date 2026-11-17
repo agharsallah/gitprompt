@@ -3,6 +3,7 @@
 	import type { Component } from 'svelte';
 	import type { ExportTarget } from '#lib/export/export.ts';
 	import { describeError } from '#lib/errors/describe.ts';
+	import { registerCommand } from '#lib/palette/commands.ts';
 	import { track } from '#lib/shared/usage.ts';
 	import Button from '#lib/ui/Button.svelte';
 
@@ -28,6 +29,16 @@
 		);
 		return pending;
 	}
+
+	// The palette's "Export this view" exists while this page has something to export.
+	$effect(() =>
+		registerCommand({
+			id: 'export.open',
+			title: 'Export this view',
+			keywords: ['download', 'save', 'report', 'html', 'csv', 'markdown', 'json'],
+			run: show
+		})
+	);
 
 	async function show() {
 		track('export.open');

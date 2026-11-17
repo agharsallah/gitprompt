@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { THEME_KEY, storedTheme, theme } from '#lib/layout/theme.svelte.ts';
+import { THEME_KEY, nextTheme, storedTheme, theme } from '#lib/layout/theme.svelte.ts';
 import { blockedStorage, memoryStorage } from '#lib/testing/storage.ts';
 
 // One import of the module for the whole file: re-importing it (vi.resetModules) evaluates the
@@ -36,5 +36,17 @@ describe('theme', () => {
 		vi.stubGlobal('localStorage', blockedStorage());
 		theme.value = 'dark';
 		expect([theme.value, root.dataset.theme]).toEqual(['dark', 'dark']);
+	});
+});
+
+describe('nextTheme', () => {
+	it('switches to the opposite of the theme in effect', () => {
+		expect(nextTheme('dark', false)).toBe('light');
+		expect(nextTheme('light', true)).toBe('dark');
+	});
+
+	it('reads the system preference while the theme follows the system', () => {
+		expect(nextTheme('system', true)).toBe('light');
+		expect(nextTheme('system', false)).toBe('dark');
 	});
 });
