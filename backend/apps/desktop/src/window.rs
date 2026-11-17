@@ -48,6 +48,30 @@ fn reveal<R: Runtime>(window: &tauri::WebviewWindow<R>) {
     let _ = window.set_focus();
 }
 
+/// Hide a window. When it was the app's last visible one, a Mac app hides too, so the keyboard
+/// goes back to the app the user came from (the recall window opens over another app, and the
+/// text it copied is pasted there).
+pub(crate) fn dismiss<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+    if let Err(e) = window.hide() {
+        tracing::warn!(error = %e, "could not hide the window");
+        return;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let app = window.app_handle();
+        let any_visible = app.webview_windows().values().any(|w| w.is_visible().unwrap_or(false));
+        if !any_visible && let Err(e) = app.hide() {
+            tracing::warn!(error = %e, "could not hand the keyboard back");
+        }
+    }
+}
+
+/// The dashboard's `platform.hideWindow()`: hide the window that asked.
+#[tauri::command]
+pub(crate) async fn hide_window(window: tauri::WebviewWindow) {
+    dismiss(&window);
+}
+
 /// Closing the main window hides it; the app (and capture) keep running in the tray.
 pub(crate) fn on_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     if let WindowEvent::CloseRequested { api, .. } = event

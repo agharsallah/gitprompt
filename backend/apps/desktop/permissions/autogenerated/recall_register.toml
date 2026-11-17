@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-recall-register"
+description = "Enables the recall_register command without any pre-configured scope."
+commands.allow = ["recall_register"]
+
+[[permission]]
+identifier = "deny-recall-register"
+description = "Denies the recall_register command without any pre-configured scope."
+commands.deny = ["recall_register"]

@@ -13,7 +13,8 @@ export const DEFAULTS: Preferences = {
 	week_start: 'monday',
 	event_retention_days: null,
 	hide_secrets_on_ingest: false,
-	disabled_sources: []
+	disabled_sources: [],
+	recall_shortcut: 'CmdOrCtrl+Alt+P'
 };
 
 /** The effective value of every preference. */

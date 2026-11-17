@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-recall-status"
+description = "Enables the recall_status command without any pre-configured scope."
+commands.allow = ["recall_status"]
+
+[[permission]]
+identifier = "deny-recall-status"
+description = "Denies the recall_status command without any pre-configured scope."
+commands.deny = ["recall_status"]

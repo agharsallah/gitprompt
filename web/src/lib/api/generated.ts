@@ -447,7 +447,11 @@ hide_secrets_on_ingest: boolean,
 /**
  * Connectors turned off in GitPrompt: what they send is discarded. Env: comma-separated ids.
  */
-disabled_sources: Array<string>, };
+disabled_sources: Array<string>, 
+/**
+ * The desktop app's recall shortcut (`shortcut` module spelling, such as `CmdOrCtrl+Alt+P`).
+ */
+recall_shortcut: string, };
 
 /**
  * How a project got built, prompt by prompt.

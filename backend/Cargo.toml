@@ -57,6 +57,7 @@ tauri-build = "2.7"
 tauri-plugin = "2.7"
 tauri-plugin-single-instance = "2.5"
 tauri-plugin-autostart = "2.7"
+tauri-plugin-global-shortcut = "2.4"
 # tests
 tempfile = "3"
 pretty_assertions = "1"

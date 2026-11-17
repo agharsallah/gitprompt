@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { recent, results, hit } from '#lib/palette/fixtures.ts';
+import { wordsFor } from '#lib/palette/mode.ts';
 import { parseQuery } from '#lib/palette/query.ts';
 import PaletteView from '#lib/palette/PaletteView.svelte';
 import { buildView, type View } from '#lib/palette/rows.ts';
@@ -22,6 +23,7 @@ function draw({ query = '', view, active = 0, status = READY }: Props) {
 				{ key: '⌘↵', label: 'copy' }
 			],
 			queryText: parseQuery(query).text,
+			commandMode: parseQuery(query).mode === 'commands',
 			onkeydown: noop,
 			oninput: noop,
 			onpick: noop,
@@ -31,6 +33,30 @@ function draw({ query = '', view, active = 0, status = READY }: Props) {
 }
 
 const withRows = () => buildView(parseQuery('rust'), recent, true, []);
+
+describe('the palette in recall mode', () => {
+	it('names the job in its own words, and has no command prefix to explain', () => {
+		const html = render(PaletteView, {
+			props: {
+				query: '',
+				view: { groups: [], noMatch: false },
+				active: -1,
+				status: READY,
+				keys: [{ key: '↵', label: 'copy' }],
+				queryText: '',
+				words: wordsFor('recall'),
+				onkeydown: () => {},
+				oninput: () => {},
+				onpick: () => {},
+				onhover: () => {}
+			}
+		}).body;
+		expect(html).toContain('placeholder="Find a prompt to copy"');
+		expect(html).toContain('No prompt captured yet.');
+		expect(html).toContain('<kbd class="svelte-lr5bpx">↵</kbd> copy');
+		expect(html).not.toContain('for commands');
+	});
+});
 
 describe('the palette as a screen reader meets it', () => {
 	it('is a combobox over a listbox, with a name, and every reference resolves', () => {

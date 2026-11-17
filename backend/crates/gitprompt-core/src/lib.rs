@@ -15,6 +15,7 @@ pub mod profile;
 mod random;
 pub mod secrets;
 pub mod settings;
+pub mod shortcut;
 pub mod spec;
 
 pub use blank::Blank;

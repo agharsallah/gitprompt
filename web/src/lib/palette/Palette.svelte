@@ -4,14 +4,24 @@
 	import type { FindResults } from '#lib/api/types.ts';
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import { describeError } from '#lib/errors/describe.ts';
-	import { actionsFor, perform, type ActionContext } from '#lib/palette/actions.ts';
+	import { perform, type ActionContext } from '#lib/palette/actions.ts';
 	import { commands } from '#lib/palette/commands.ts';
 	import { copyText } from '#lib/palette/copy.ts';
-	import { intentOf, keyLabel, moveActive } from '#lib/palette/keys.ts';
+	import { intentOf, isMac, keyLabel, moveActive } from '#lib/palette/keys.ts';
+	import {
+		actionKeyIn,
+		actionsIn,
+		copyThenDone,
+		kindsIn,
+		parseFor,
+		restrict,
+		wordsFor,
+		type PaletteMode
+	} from '#lib/palette/mode.ts';
 	import type { PaletteState } from '#lib/palette/open.svelte.ts';
 	import PaletteView from '#lib/palette/PaletteView.svelte';
-	import { kindsFor, parseQuery } from '#lib/palette/query.ts';
 	import { buildView, rowsOf } from '#lib/palette/rows.ts';
+	import { platform } from '#lib/platform/index.ts';
 	import { READY, type PanelState } from '#lib/ui/panelState.ts';
 	import { toasts } from '#lib/ui/toast.svelte.ts';
 
@@ -19,12 +29,17 @@
 	 * ⌘K: find a prompt, session or project, or run a command. A modal dialog (the page behind it is
 	 * inert and focus cannot leave it; Esc closes it and focus goes back where it was) around one
 	 * combobox. Loaded only when first opened (layout/+layout.svelte).
+	 *
+	 * `mode="recall"` is the desktop recall window (palette/mode.ts): prompts only, ↵ copies, and
+	 * the window hides whenever the dialog closes (Esc, or a copy that went through).
 	 */
-	let { palette }: { palette: PaletteState } = $props();
+	let { palette, mode = 'full' }: { palette: PaletteState; mode?: PaletteMode } = $props();
+	const recall = $derived(mode === 'recall');
+	const words = $derived(wordsFor(mode));
 
 	/** How long typing pauses before the words are searched. */
 	const DEBOUNCE_MS = 120;
-	const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform);
+	const mac = isMac();
 
 	let dialog = $state<HTMLDialogElement>();
 	let input = $state<HTMLInputElement>();
@@ -37,9 +52,9 @@
 	function search(): Promise<FindResults | null> {
 		void palette.opened;
 		void attempt;
-		const { mode, text } = parseQuery(settled);
-		const kinds = kindsFor(mode);
-		return kinds.length ? api.find(text, kinds) : Promise.resolve(null);
+		const parsed = parseFor(mode, settled);
+		const kinds = kindsIn(mode, parsed);
+		return kinds.length ? api.find(parsed.text, kinds) : Promise.resolve(null);
 	}
 	const found = new Resource<FindResults | null>(search);
 
@@ -50,14 +65,22 @@
 		return () => clearTimeout(timer);
 	});
 
-	const parsed = $derived(parseQuery(query));
+	const parsed = $derived(parseFor(mode, query));
 	const view = $derived(
-		buildView(parsed, found.value ?? undefined, settled === query && !found.loading, commands())
+		restrict(
+			mode,
+			buildView(
+				parsed,
+				found.value ?? undefined,
+				settled === query && !found.loading,
+				recall ? [] : commands()
+			)
+		)
 	);
 	const rows = $derived(rowsOf(view.groups));
 	const current = $derived(rows.length ? Math.min(active, rows.length - 1) : -1);
 	const keys = $derived(
-		(rows[current] ? actionsFor(rows[current].item.kind) : []).map((a) => ({
+		(rows[current] ? actionsIn(mode, rows[current].item.kind) : []).map((a) => ({
 			key: keyLabel(a.key, mac),
 			label: a.label
 		}))
@@ -70,13 +93,16 @@
 				: READY
 	);
 
+	const copyInRecall = copyThenDone(copyText, () => palette.hide());
 	const ctx: ActionContext = {
 		close: () => palette.hide(),
 		navigate: (href) => {
 			palette.hide();
 			return goto(href);
 		},
+		// Recall keeps its window until the text is on the clipboard (closing it hides the window).
 		copy: (text) => {
+			if (recall) return copyInRecall(text);
 			palette.hide();
 			return copyText(text);
 		},
@@ -92,7 +118,7 @@
 		if (!intent) return;
 		event.preventDefault();
 		if (intent.type === 'move') active = moveActive(current, intent.delta, rows.length);
-		else if (rows[current]) void perform(rows[current].item, intent.key, ctx);
+		else if (rows[current]) void perform(rows[current].item, actionKeyIn(mode, intent.key), ctx);
 	}
 
 	// Open and close follow the shared state; each opening starts from an empty box.
@@ -114,9 +140,14 @@
 
 <dialog
 	bind:this={dialog}
-	class="palette"
-	aria-label="Find or run a command"
-	onclose={() => palette.hide()}
+	class={['palette', recall && 'recall']}
+	aria-label={words.dialog}
+	onclose={() => {
+		palette.hide();
+		// The recall window has nothing else to show: closing the dialog is leaving (unless the
+		// window lost focus first, which has already sent it away).
+		if (recall && document.hasFocus()) void platform.hideWindow();
+	}}
 >
 	<PaletteView
 		bind:query
@@ -126,6 +157,8 @@
 		{status}
 		{keys}
 		queryText={parsed.text}
+		commandMode={parsed.mode === 'commands'}
+		{words}
 		{onkeydown}
 		oninput={() => (active = 0)}
 		onpick={(index) => rows[index] && void perform(rows[index].item, 'enter', ctx)}
@@ -143,6 +176,18 @@
 		background: var(--color-surface-raised);
 		color: var(--color-text);
 		box-shadow: var(--shadow-overlay);
+	}
+
+	/* The recall window is the dialog: it fills the window, with no page behind it. */
+	dialog.palette.recall {
+		--palette-max-height: 100dvh;
+		width: 100%;
+		max-width: none;
+		height: 100dvh;
+		margin: 0;
+		border: 0;
+		border-radius: 0;
+		box-shadow: none;
 	}
 
 	dialog.palette::backdrop {

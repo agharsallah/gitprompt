@@ -70,6 +70,7 @@ fn defaults_without_a_file() {
         ("event_retention_days", json!(null)),
         ("hide_secrets_on_ingest", json!(false)),
         ("disabled_sources", json!([])),
+        ("recall_shortcut", json!("CmdOrCtrl+Alt+P")),
     ]
     .into_iter()
     .map(|(key, value)| Resolved {
@@ -109,6 +110,7 @@ fn env_wins_over_file_wins_over_default() {
         ("event_retention_days".to_string(), json!(14), ValueSource::Env, true), // parsed from text
         ("hide_secrets_on_ingest".to_string(), json!(false), ValueSource::Default, false),
         ("disabled_sources".to_string(), json!([]), ValueSource::Default, false),
+        ("recall_shortcut".to_string(), json!("CmdOrCtrl+Alt+P"), ValueSource::Default, false),
     ];
     assert_eq!(summary, expected);
     let current = file.current().unwrap();
@@ -390,4 +392,16 @@ fn keys_not_locked_by_env_can_still_be_changed() {
     let file = prefs_with_env(&dir, &[("GITPROMPT_EVENT_RETENTION_DAYS", "7")]);
     assert_eq!(file.update(&changes(json!({"week_start": "sunday"}))).unwrap(), ["week_start"]);
     assert_eq!(resolved(&file, "event_retention_days").value, json!(7));
+}
+
+#[test]
+fn the_recall_shortcut_is_saved_in_its_canonical_spelling_and_a_bad_one_is_refused() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = prefs(&dir);
+    let changed = file.update(&changes(json!({"recall_shortcut": "option + cmd + k"}))).unwrap();
+    assert_eq!(changed, ["recall_shortcut"]);
+    assert_eq!(file.current().unwrap().recall_shortcut, "Alt+Super+K");
+    let refused = file.update(&changes(json!({"recall_shortcut": "K"}))).unwrap_err().to_string();
+    assert!(refused.contains("recall_shortcut") && refused.contains("start with a modifier"), "{refused}");
+    assert_eq!(file.current().unwrap().recall_shortcut, "Alt+Super+K", "nothing was written");
 }

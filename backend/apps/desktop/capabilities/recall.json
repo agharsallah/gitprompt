@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "recall",
+  "description": "The recall window shows the dashboard's palette over prompts; it may only hide itself (it listens to focus events through core:default). It cannot use the global-shortcut plugin: the shortcut is set from Rust.",
+  "windows": ["recall"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*/*", "http://localhost:*/*"]
+  },
+  "permissions": ["core:default", "allow-hide-window"]
+}

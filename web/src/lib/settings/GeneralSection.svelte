@@ -3,7 +3,9 @@
 	import { RANGES, type RangeId } from '#lib/insights/range.ts';
 	import type { WeekStart } from '#lib/insights/week.ts';
 	import ThemeToggle from '#lib/layout/ThemeToggle.svelte';
+	import { platform } from '#lib/platform/index.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
+	import RecallShortcutRow from '#lib/settings/RecallShortcutRow.svelte';
 	import { views } from '#lib/settings/views.svelte.ts';
 	import SettingRow from '#lib/settings/SettingRow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
@@ -56,6 +58,8 @@
 			]}
 		/>
 	</SettingRow>
+
+	{#if platform.desktop}<RecallShortcutRow {prefs} {editor} />{/if}
 
 	<SettingRow
 		label="Week starts on"

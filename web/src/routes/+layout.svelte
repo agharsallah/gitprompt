@@ -13,20 +13,27 @@
 	// Every feature's palette commands register themselves when this is imported (one file each).
 	import '#lib/palette/features.ts';
 	import { isShortcut } from '#lib/palette/keys.ts';
+	import { isRecall } from '#lib/palette/mode.ts';
 	import { palette } from '#lib/palette/open.svelte.ts';
 	import { isViewPage } from '#lib/settings/views.ts';
 	import { views } from '#lib/settings/views.svelte.ts';
 	import { forgetSeen } from '#lib/shared/seen.ts';
 	import { track } from '#lib/shared/usage.ts';
 	import { PageWatch } from '#lib/shared/usage-page.ts';
+	import RecallHost from '#lib/palette/RecallHost.svelte';
 	import ToastHost from '#lib/ui/ToastHost.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
+	// The desktop recall window (`/?recall=1`) is the palette alone: no page, no sidebar, and what
+	// it is opened at is not a visit to the Overview.
+	const recall = $derived(isRecall(page.url));
+
 	// Counted here, once, for every page: the page opened, and the filters changed on it.
 	const watch = new PageWatch(forgetSeen);
 	$effect(() => {
+		if (recall) return;
 		for (const action of watch.visit(page.route.id, page.url)) track(action);
 	});
 
@@ -34,12 +41,12 @@
 	// never in a load (links preloaded on hover run loads too).
 	$effect(() => {
 		const route = page.route.id;
-		if (isViewPage(route)) views.keep(route, page.url);
+		if (!recall && isViewPage(route)) views.keep(route, page.url);
 	});
 
 	// ⌘K (Ctrl K) opens the palette from any page, even from a text field.
 	function onkeydown(event: KeyboardEvent) {
-		if (!isShortcut(event)) return;
+		if (recall || !isShortcut(event)) return;
 		event.preventDefault();
 		palette.toggle();
 	}
@@ -53,36 +60,44 @@
 
 <svelte:window {onkeydown} />
 
-<a class="skip" href="#main">Skip to content</a>
-
-{#if navigating.to}<div class="progress" aria-hidden="true"></div>{/if}
-
-<div class="shell">
-	<!-- Each part fails on its own: a crash in the page leaves the sidebar to navigate away, and the
-	     page's boundary starts afresh on the next page. -->
-	<div class="sidebar">
-		<Boundary what="the navigation"><Sidebar /></Boundary>
-	</div>
-	<main id="main" tabindex="-1" class={[navigating.to && 'loading']}>
-		{#key page.url.pathname}
-			<Boundary what="this page" variant="page">{@render children()}</Boundary>
-		{/key}
-	</main>
-</div>
-
-<!-- The palette's code is fetched the first time it is opened, so pages pay nothing before. -->
-{#if palette.loaded}
-	<Lazy
-		load={() => import('#lib/palette/Palette.svelte')}
-		props={{ palette }}
-		label="Opening the palette"
-		what="the palette"
-	>
-		{#snippet pending()}{/snippet}
-	</Lazy>
+{#if recall}
+	<RecallHost />
+{:else}
+	{@render dashboard()}
 {/if}
 
-<ToastHost />
+{#snippet dashboard()}
+	<a class="skip" href="#main">Skip to content</a>
+
+	{#if navigating.to}<div class="progress" aria-hidden="true"></div>{/if}
+
+	<div class="shell">
+		<!-- Each part fails on its own: a crash in the page leaves the sidebar to navigate away, and the
+	     page's boundary starts afresh on the next page. -->
+		<div class="sidebar">
+			<Boundary what="the navigation"><Sidebar /></Boundary>
+		</div>
+		<main id="main" tabindex="-1" class={[navigating.to && 'loading']}>
+			{#key page.url.pathname}
+				<Boundary what="this page" variant="page">{@render children()}</Boundary>
+			{/key}
+		</main>
+	</div>
+
+	<!-- The palette's code is fetched the first time it is opened, so pages pay nothing before. -->
+	{#if palette.loaded}
+		<Lazy
+			load={() => import('#lib/palette/Palette.svelte')}
+			props={{ palette }}
+			label="Opening the palette"
+			what="the palette"
+		>
+			{#snippet pending()}{/snippet}
+		</Lazy>
+	{/if}
+
+	<ToastHost />
+{/snippet}
 
 <style>
 	.shell {

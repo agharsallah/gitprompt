@@ -44,6 +44,14 @@ expression: "get(&api, \"/api/settings\").await"
       "env": "GITPROMPT_DISABLED_SOURCES",
       "locked": false,
       "applies": "now"
+    },
+    "recall_shortcut": {
+      "value": "CmdOrCtrl+Alt+P",
+      "default": "CmdOrCtrl+Alt+P",
+      "source": "default",
+      "env": "GITPROMPT_RECALL_SHORTCUT",
+      "locked": false,
+      "applies": "now"
     }
   }
 }

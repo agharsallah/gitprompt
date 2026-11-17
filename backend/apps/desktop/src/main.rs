@@ -6,12 +6,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod perf;
+mod recall;
 mod tray;
 mod window;
 
 use tauri_plugin_autostart::MacosLauncher;
 
-use gitprompt_core::{Env, Settings};
+use gitprompt_core::preferences::PreferenceFile;
+use gitprompt_core::{Env, Settings, shortcut};
 use gitprompt_server::logging::{LogConfig, desktop_log_file};
 use gitprompt_tauri::{PluginConfig, sidecar_next_to_exe};
 
@@ -30,6 +32,10 @@ fn main() {
         std::process::exit(2);
     });
     let hidden = std::env::args().any(|arg| arg == HIDDEN_ARG) && perf.is_none();
+    let performance_run = perf.is_some();
+    let recall_shortcut = settings
+        .as_ref()
+        .map_or_else(|| shortcut::DEFAULT.to_owned(), |s| PreferenceFile::new(&s.home, s.env.clone()).effective().recall_shortcut);
     let mut builder = tauri::Builder::default();
     if let Some(perf) = perf {
         builder = builder.manage(perf);
@@ -40,16 +46,24 @@ fn main() {
     }
     let app = builder
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![HIDDEN_ARG])))
+        .plugin(recall::plugin())
         .plugin(gitprompt_tauri::init(config))
+        // The dashboard's native calls beyond the plugin's: `platform.hideWindow()` and the recall
+        // shortcut (permissions: `capabilities/`, names in `build.rs`).
+        .invoke_handler(tauri::generate_handler![window::hide_window, recall::recall_register, recall::recall_status])
         .setup(move |app| {
             perf::mark(app.handle(), "setup");
             tray::build(app.handle())?;
+            recall::setup(app.handle(), &recall_shortcut, !performance_run);
             if !hidden {
                 window::show(app.handle());
             }
             Ok(())
         })
-        .on_window_event(window::on_event)
+        .on_window_event(|window, event| {
+            window::on_event(window, event);
+            recall::on_event(window, event);
+        })
         .build(tauri::generate_context!());
     match app {
         Ok(app) => app.run(|app, event| {

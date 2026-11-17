@@ -229,7 +229,8 @@ export function settingsState(values: Preferences): SettingsState {
 			week_start: setting('week_start'),
 			event_retention_days: setting('event_retention_days'),
 			hide_secrets_on_ingest: setting('hide_secrets_on_ingest'),
-			disabled_sources: setting('disabled_sources')
+			disabled_sources: setting('disabled_sources'),
+			recall_shortcut: setting('recall_shortcut')
 		}
 	};
 }

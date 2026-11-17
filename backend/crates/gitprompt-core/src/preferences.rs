@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::files::atomic_write;
+use crate::shortcut;
 use crate::{Env, Error, Json, JsonMap, Result};
 
 pub const ENV_PREFIX: &str = "GITPROMPT_";
@@ -37,7 +38,7 @@ pub enum WeekStart {
     Sunday,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(deny_unknown_fields, default)]
 pub struct Preferences {
     /// Time window the insight pages open with.
@@ -50,10 +51,26 @@ pub struct Preferences {
     pub hide_secrets_on_ingest: bool,
     /// Connectors turned off in GitPrompt: what they send is discarded. Env: comma-separated ids.
     pub disabled_sources: Vec<String>,
+    /// The desktop app's recall shortcut (`shortcut` module spelling, such as `CmdOrCtrl+Alt+P`).
+    pub recall_shortcut: String,
+}
+
+impl Default for Preferences {
+    fn default() -> Self {
+        Preferences {
+            default_range: RangeId::default(),
+            week_start: WeekStart::default(),
+            event_retention_days: None,
+            hide_secrets_on_ingest: false,
+            disabled_sources: Vec::new(),
+            recall_shortcut: shortcut::DEFAULT.to_owned(),
+        }
+    }
 }
 
 /// Every preference key, in declaration order.
-pub const KEYS: &[&str] = &["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources"];
+pub const KEYS: &[&str] =
+    &["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut"];
 
 /// Keys that need a daemon restart to take effect (none today).
 pub const APPLIES_AT_START: &[&str] = &[];
@@ -248,6 +265,7 @@ fn normalize(key: &str, value: &Json) -> std::result::Result<Json, String> {
         "event_retention_days" => retention_days(value),
         "hide_secrets_on_ingest" => boolean(value).map(Json::Bool),
         "disabled_sources" => string_list(value),
+        "recall_shortcut" => recall_shortcut(value),
         _ => Err("unknown setting".into()),
     }
 }
@@ -298,6 +316,11 @@ fn string_list(value: &Json) -> std::result::Result<Json, String> {
         Json::Array(items) if items.iter().all(Json::is_string) => Ok(value.clone()),
         _ => Err(format!("must be a list of connector ids, got {value}")),
     }
+}
+
+fn recall_shortcut(value: &Json) -> std::result::Result<Json, String> {
+    let text = value.as_str().ok_or_else(|| format!("must be a shortcut such as {}, got {value}", shortcut::DEFAULT))?;
+    shortcut::normalize(text).map(Json::String).map_err(|e| e.to_string())
 }
 
 /// A whole `f64` already checked to lie within ±1e15, as `i64`: exact, since 1e15 < 2^53 < `i64::MAX`.

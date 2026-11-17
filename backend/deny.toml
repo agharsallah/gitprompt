@@ -92,6 +92,9 @@ skip = [
     { crate = "hashbrown@0.12", reason = "indexmap 1 (schemars 0.8 via tauri-utils)" },
     { crate = "miniz_oxide@0.8", reason = "png 0.18.1 (latest, via tauri-codegen/muda/tray-icon) depends on it directly while its flate2 1.1.11 uses 0.9" },
     { crate = "roxmltree@0.20", reason = "fontconfig-parser 0.5.8 (latest, via resvg's fontdb); usvg 0.50 uses 0.21" },
+    # tauri-plugin-global-shortcut (the recall shortcut): global-hotkey 0.8.0 is its latest and pins both.
+    { crate = "keyboard-types@0.7", reason = "global-hotkey 0.8.0 (latest, via tauri-plugin-global-shortcut); muda 0.20 (tauri) uses 0.8" },
+    { crate = "windows-sys@0.59", reason = "global-hotkey 0.8.0 (latest, via tauri-plugin-global-shortcut); the rest of the tree is on 0.61" },
     # Linux only: wry's webkit2gtk 2.0 / gtk-rs 0.18 stack and its build scripts and proc macros.
     { crate = "bitflags@1", reason = "webkit2gtk 2.0.2 and javascriptcore-rs 1.1 (wry on Linux)" },
     { crate = "thiserror@1", reason = "gtk-rs 0.18 (glib, gio, cairo-rs) via wry/tao on Linux" },

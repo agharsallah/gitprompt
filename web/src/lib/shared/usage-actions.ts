@@ -44,7 +44,6 @@ export const PAGES = [
 	'session',
 	'projects',
 	'project',
-	'search',
 	'sources',
 	'fields',
 	'settings'

@@ -10,6 +10,7 @@
 	import type { Component } from 'svelte';
 	import type { Attachment } from 'svelte/attachments';
 	import type { Kind } from '#lib/palette/actions.ts';
+	import { wordsFor, type Words } from '#lib/palette/mode.ts';
 	import { firstIndexes, type View } from '#lib/palette/rows.ts';
 	import PanelState from '#lib/ui/PanelState.svelte';
 	import type { PanelState as State } from '#lib/ui/panelState.ts';
@@ -27,6 +28,8 @@
 		status,
 		keys,
 		queryText,
+		commandMode = false,
+		words = wordsFor('full'),
 		input = $bindable(),
 		onkeydown,
 		oninput,
@@ -43,6 +46,10 @@
 		keys: { key: string; label: string }[];
 		/** The words typed after any prefix, for the empty and no-match lines. */
 		queryText: string;
+		/** The query starts with `>`: no match means no command. */
+		commandMode?: boolean;
+		/** What the box and the empty line say (the mode's). */
+		words?: Words;
 		input?: HTMLInputElement;
 		onkeydown: (event: KeyboardEvent) => void;
 		oninput: () => void;
@@ -96,12 +103,12 @@
 			bind:value={query}
 			type="text"
 			role="combobox"
-			aria-label="Find a prompt, session or project. Start with > for commands."
+			aria-label={words.label}
 			aria-autocomplete="list"
 			aria-expanded={hasRows}
 			aria-controls={hasRows ? 'palette-list' : undefined}
 			aria-activedescendant={hasRows && active >= 0 ? optionId(active) : undefined}
-			placeholder="Find anything, or type > for commands"
+			placeholder={words.placeholder}
 			autocomplete="off"
 			autocapitalize="off"
 			spellcheck="false"
@@ -117,11 +124,11 @@
 				<p class="note">Nothing matches “{queryText}”.</p>
 			{:else if !hasRows}
 				<p class="note">
-					{query.trimStart().startsWith('>')
+					{commandMode
 						? `No command matches “${queryText}”.`
 						: queryText
 							? `Nothing matches “${queryText}”.`
-							: 'Nothing captured yet.'}
+							: words.empty}
 				</p>
 			{/if}
 			{#if hasRows}
@@ -168,7 +175,7 @@
 	.palette {
 		display: flex;
 		flex-direction: column;
-		max-height: min(32rem, 80dvh);
+		max-height: var(--palette-max-height, min(32rem, 80dvh));
 	}
 
 	.search {

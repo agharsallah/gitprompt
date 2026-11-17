@@ -36,7 +36,10 @@ async fn each_setting_reports_its_value_default_source_and_variable() {
 async fn every_preference_key_is_listed_in_order() {
     let api = api();
     let keys: Vec<String> = api.json("/api/settings").await["settings"].as_object().expect("settings").keys().cloned().collect();
-    assert_eq!(keys, ["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources"]);
+    assert_eq!(
+        keys,
+        ["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut"]
+    );
 }
 
 #[tokio::test]
@@ -72,6 +75,16 @@ async fn an_out_of_range_value_or_an_unknown_key_is_422() {
     let api = api();
     assert_eq!(api.put("/api/settings").dashboard().json(json!({"default_range": "1y"})).send().await.status, 422);
     assert_eq!(api.put("/api/settings").dashboard().json(json!({"nope": 1})).send().await.status, 422);
+}
+
+#[tokio::test]
+async fn the_recall_shortcut_is_saved_canonical_and_one_without_a_modifier_is_422() {
+    let api = api();
+    let saved = api.put("/api/settings").dashboard().json(json!({"recall_shortcut": "option+cmd+k"})).send().await.json();
+    assert_eq!(saved["settings"]["recall_shortcut"]["value"], "Alt+Super+K");
+    let refused = api.put("/api/settings").dashboard().json(json!({"recall_shortcut": "K"})).send().await;
+    assert_eq!(refused.status, 422);
+    assert!(refused.text().contains("start with a modifier"), "{}", refused.text());
 }
 
 #[tokio::test]
