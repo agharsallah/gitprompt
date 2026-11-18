@@ -22,6 +22,9 @@
 	import { PageWatch } from '#lib/shared/usage-page.ts';
 	import RecallHost from '#lib/palette/RecallHost.svelte';
 	import ToastHost from '#lib/ui/ToastHost.svelte';
+	import { toasts } from '#lib/ui/toast.svelte.ts';
+	import { live } from '#lib/api/live.svelte.ts';
+	import { showNotification } from '#lib/shared/notifications.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -42,6 +45,13 @@
 	$effect(() => {
 		const route = page.route.id;
 		if (!recall && isViewPage(route)) views.keep(route, page.url);
+	});
+
+	// What the daemon decided deserves a notification, as a toast while the dashboard is open
+	// (not in the recall window, which is opened for one quick search).
+	$effect(() => {
+		if (recall) return;
+		return live.onNotification((notification) => showNotification(toasts, notification));
 	});
 
 	// ⌘K (Ctrl K) opens the palette from any page, even from a text field.

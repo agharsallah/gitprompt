@@ -350,7 +350,12 @@ export function settingsState(values: Preferences): SettingsState {
 			hide_secrets_on_ingest: setting('hide_secrets_on_ingest'),
 			disabled_sources: setting('disabled_sources'),
 			recall_shortcut: setting('recall_shortcut'),
-			leak_allow: setting('leak_allow')
+			leak_allow: setting('leak_allow'),
+			notify_long_turn: setting('notify_long_turn'),
+			notify_long_turn_minutes: setting('notify_long_turn_minutes'),
+			notify_leaks: setting('notify_leaks'),
+			notify_quiet_connector: setting('notify_quiet_connector'),
+			notify_quiet_connector_minutes: setting('notify_quiet_connector_minutes')
 		}
 	};
 }

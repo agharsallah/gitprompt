@@ -7,6 +7,7 @@
 //! |-----------------|---------------------------------------------------------------------------|
 //! | [`attention`]   | what needs you: sessions to pick up, things worth a look (one feed, every reader) |
 //! | [`target`]      | where an item or a notification opens in the dashboard                   |
+//! | [`notify`]      | what deserves a notification (rules per kind, a rate limit per kind)      |
 //! | [`origin`]      | who produced a prompt, the text the user typed, the injected context      |
 //! | [`surface`]     | where a prompt was typed (CLI, VS Code, a desktop app...)                 |
 //! | [`derivations`] | prompt stats, the turn summary, the session summary, [`derivations::derive`] |
@@ -48,6 +49,7 @@ pub mod indexer;
 pub mod label;
 pub mod leaks;
 pub mod lineage;
+pub mod notify;
 pub mod origin;
 pub mod redone;
 pub mod snippets;

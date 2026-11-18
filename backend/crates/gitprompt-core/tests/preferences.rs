@@ -72,6 +72,11 @@ fn defaults_without_a_file() {
         ("disabled_sources", json!([])),
         ("recall_shortcut", json!("CmdOrCtrl+Alt+P")),
         ("leak_allow", json!([])),
+        ("notify_long_turn", json!(true)),
+        ("notify_long_turn_minutes", json!(10)),
+        ("notify_leaks", json!(true)),
+        ("notify_quiet_connector", json!(true)),
+        ("notify_quiet_connector_minutes", json!(30)),
     ]
     .into_iter()
     .map(|(key, value)| Resolved {
@@ -113,6 +118,11 @@ fn env_wins_over_file_wins_over_default() {
         ("disabled_sources".to_string(), json!([]), ValueSource::Default, false),
         ("recall_shortcut".to_string(), json!("CmdOrCtrl+Alt+P"), ValueSource::Default, false),
         ("leak_allow".to_string(), json!([]), ValueSource::Default, false),
+        ("notify_long_turn".to_string(), json!(true), ValueSource::Default, false),
+        ("notify_long_turn_minutes".to_string(), json!(10), ValueSource::Default, false),
+        ("notify_leaks".to_string(), json!(true), ValueSource::Default, false),
+        ("notify_quiet_connector".to_string(), json!(true), ValueSource::Default, false),
+        ("notify_quiet_connector_minutes".to_string(), json!(30), ValueSource::Default, false),
     ];
     assert_eq!(summary, expected);
     let current = file.current().unwrap();
@@ -406,4 +416,24 @@ fn the_recall_shortcut_is_saved_in_its_canonical_spelling_and_a_bad_one_is_refus
     let refused = file.update(&changes(json!({"recall_shortcut": "K"}))).unwrap_err().to_string();
     assert!(refused.contains("recall_shortcut") && refused.contains("start with a modifier"), "{refused}");
     assert_eq!(file.current().unwrap().recall_shortcut, "Alt+Super+K", "nothing was written");
+}
+
+#[test]
+fn notification_switches_and_thresholds_are_saved_and_read() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = prefs_with_env(&dir, &[("GITPROMPT_NOTIFY_LEAKS", "off")]);
+    let change = json!({"notify_long_turn": "no", "notify_long_turn_minutes": "25", "notify_quiet_connector_minutes": 1440});
+    let changed = file.update(&changes(change)).unwrap();
+    assert_eq!(changed, ["notify_long_turn", "notify_long_turn_minutes", "notify_quiet_connector_minutes"]);
+    let current = file.current().unwrap();
+    let read = (current.notify_long_turn, current.notify_long_turn_minutes, current.notify_leaks, current.notify_quiet_connector_minutes);
+    assert_eq!(read, (false, 25, false, 1440));
+}
+
+#[test]
+fn a_notification_threshold_outside_one_minute_to_a_day_is_refused() {
+    for minutes in [json!(0), json!(1441), json!(-5), json!("soon"), json!(2.5)] {
+        assert_refused(json!({"notify_long_turn_minutes": minutes.clone()}));
+        assert_refused(json!({"notify_quiet_connector_minutes": minutes}));
+    }
 }

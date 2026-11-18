@@ -60,6 +60,46 @@ expression: "get(&api, \"/api/settings\").await"
       "env": "GITPROMPT_LEAK_ALLOW",
       "locked": false,
       "applies": "now"
+    },
+    "notify_long_turn": {
+      "value": true,
+      "default": true,
+      "source": "default",
+      "env": "GITPROMPT_NOTIFY_LONG_TURN",
+      "locked": false,
+      "applies": "now"
+    },
+    "notify_long_turn_minutes": {
+      "value": 10,
+      "default": 10,
+      "source": "default",
+      "env": "GITPROMPT_NOTIFY_LONG_TURN_MINUTES",
+      "locked": false,
+      "applies": "now"
+    },
+    "notify_leaks": {
+      "value": true,
+      "default": true,
+      "source": "default",
+      "env": "GITPROMPT_NOTIFY_LEAKS",
+      "locked": false,
+      "applies": "now"
+    },
+    "notify_quiet_connector": {
+      "value": true,
+      "default": true,
+      "source": "default",
+      "env": "GITPROMPT_NOTIFY_QUIET_CONNECTOR",
+      "locked": false,
+      "applies": "now"
+    },
+    "notify_quiet_connector_minutes": {
+      "value": 30,
+      "default": 30,
+      "source": "default",
+      "env": "GITPROMPT_NOTIFY_QUIET_CONNECTOR_MINUTES",
+      "locked": false,
+      "applies": "now"
     }
   }
 }

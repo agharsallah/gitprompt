@@ -19,4 +19,6 @@ pub enum Target {
     Session { id: String },
     /// The possible leaks of the Overview.
     Leaks,
+    /// One connector's card on the Connectors page.
+    Source { id: String },
 }

@@ -35,6 +35,9 @@ pub use stats::{Stats, StatsQuery, Telemetry};
 pub use stories::{CommitLookup, CommitQuery, FoundCommit, Lineage, ProjectCommits, ProjectStory, SearchHit, SearchResults, SessionStory};
 pub use usage::{UsageDay, UsageHit, UsageIn, UsageOut};
 
+/// What the live stream sends as `event: notification` (decided by insights, sent by the notifier).
+pub use gitprompt_insights::notify::{Kind as NotificationKind, Notification};
+
 /// What every page shows about a turn (insights facts, ADR-0021), and its parts.
 pub use gitprompt_insights::facts::{Connector, Facts, ModelSource, Tokens};
 

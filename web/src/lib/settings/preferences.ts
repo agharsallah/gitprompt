@@ -15,7 +15,12 @@ export const DEFAULTS: Preferences = {
 	hide_secrets_on_ingest: false,
 	disabled_sources: [],
 	recall_shortcut: 'CmdOrCtrl+Alt+P',
-	leak_allow: []
+	leak_allow: [],
+	notify_long_turn: true,
+	notify_long_turn_minutes: 10,
+	notify_leaks: true,
+	notify_quiet_connector: true,
+	notify_quiet_connector_minutes: 30
 };
 
 /** The effective value of every preference. */

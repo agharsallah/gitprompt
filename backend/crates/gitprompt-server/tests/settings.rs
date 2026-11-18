@@ -45,7 +45,12 @@ async fn every_preference_key_is_listed_in_order() {
             "hide_secrets_on_ingest",
             "disabled_sources",
             "recall_shortcut",
-            "leak_allow"
+            "leak_allow",
+            "notify_long_turn",
+            "notify_long_turn_minutes",
+            "notify_leaks",
+            "notify_quiet_connector",
+            "notify_quiet_connector_minutes"
         ]
     );
 }

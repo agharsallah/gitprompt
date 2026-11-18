@@ -19,6 +19,7 @@ mod homes;
 mod ingest;
 mod leaks;
 mod names;
+mod notify;
 mod prompts;
 mod redone;
 mod resume;
@@ -49,6 +50,7 @@ use crate::query::iso;
 use crate::status::{self, StatusOut};
 
 pub use find::PromptMatch;
+pub use notify::Watch;
 pub use resume::{SessionPick, SessionResume, session_id};
 
 /// The OTLP signal of `/ingest/{source}/v1/{signal}`.

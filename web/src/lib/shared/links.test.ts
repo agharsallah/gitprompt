@@ -115,6 +115,9 @@ describe('targetHref', () => {
 		expect(targetHref({ page: 'prompt', id: 7 })).toBe('/prompts?id=7');
 		expect(targetHref({ page: 'session', id: 's1' })).toBe('/sessions/s1');
 		expect(targetHref({ page: 'leaks' })).toBe('/#leaks');
+		expect(targetHref({ page: 'source', id: 'claude-code-otel' })).toBe(
+			sourcesHref({ tool: 'claude-code-otel' })
+		);
 	});
 
 	it('leads the possible leaks to their panel on the Overview', () => {

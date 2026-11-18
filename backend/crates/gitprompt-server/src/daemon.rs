@@ -7,7 +7,8 @@
 //! spooled while it was down are drained (a backlog of thousands takes seconds; the dashboard
 //! shows what is already stored meanwhile; a `gitprompt spool drain` waits for it;
 //! [`Daemon::spool_drained`]), and retention repeats every [`DaemonOptions::retention_every`],
-//! health samples every [`DaemonOptions::health_every`].
+//! health samples every [`DaemonOptions::health_every`]. From then on the notifier ([`crate::notify`])
+//! checks what deserves a notification after each capture.
 
 use std::fs::{File, OpenOptions, TryLockError};
 use std::io::Write;
@@ -27,6 +28,7 @@ use gitprompt_core::Settings;
 use crate::app::App;
 use crate::error::{ApiError, ApiResult};
 use crate::health::{Limits, Monitor, ProcessSampler, SAMPLE_EVERY};
+use crate::notify::{self, Notifier};
 use crate::options::AppOptions;
 use crate::service::Service;
 
@@ -160,17 +162,20 @@ struct Drain {
     drained: CancellationToken,
 }
 
-/// The work after the listener is up, until `stop`: deliver the hook spool (then cancel
-/// `drained`), then retention and health samples on their schedules. The health rules' clock
-/// starts after the drain, which is busy by nature.
+/// The work after the listener is up, until `stop`: deliver the hook spool, start the notifier
+/// (so what the spool held is never notified, and it listens before `drained` is cancelled), then
+/// retention and health samples on their schedules and notifications after each capture. The
+/// health rules' clock starts after the drain, which is busy by nature.
 async fn background(service: Service, options: DaemonOptions, stop: CancellationToken, drain: Drain) {
     if let Some(spool) = drain.spool {
         drain_spool(&service, spool, &stop).await;
     }
+    let notifier = Notifier::start(service.clone()).await;
     drain.drained.cancel();
     tokio::join!(
         repeat_retention(service.clone(), options.retention_every, stop.clone()),
-        repeat_health(service, options.health_every, options.health_limits, stop),
+        repeat_health(service, options.health_every, options.health_limits, stop.clone()),
+        notify::run(notifier, stop),
     );
 }
 

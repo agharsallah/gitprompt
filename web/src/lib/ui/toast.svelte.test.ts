@@ -25,4 +25,12 @@ describe('toasts', () => {
 		toasts.dismiss(toasts.items[0].id);
 		expect(toasts.items).toEqual([]);
 	});
+
+	it('carries a detail line and a link when given', () => {
+		const toasts = new Toasts();
+		toasts.show('A possible leak', { detail: 'OpenAI API key sk-…y6Hd', href: '/#leaks' });
+		expect(toasts.items.map(({ message, detail, href }) => [message, detail, href])).toEqual([
+			['A possible leak', 'OpenAI API key sk-…y6Hd', '/#leaks']
+		]);
+	});
 });

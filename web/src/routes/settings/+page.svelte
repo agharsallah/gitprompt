@@ -8,6 +8,7 @@
 	import DataSection from '#lib/settings/DataSection.svelte';
 	import DeveloperSection from '#lib/settings/DeveloperSection.svelte';
 	import GeneralSection from '#lib/settings/GeneralSection.svelte';
+	import NotificationsSection from '#lib/settings/NotificationsSection.svelte';
 	import PrivacySection from '#lib/settings/PrivacySection.svelte';
 	import SecuritySection from '#lib/settings/SecuritySection.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
@@ -25,6 +26,7 @@
 		['connectors', 'Connectors'],
 		['capture', 'Capture'],
 		['privacy', 'Privacy'],
+		['notifications', 'Notifications'],
 		['data', 'Data'],
 		['security', 'Security'],
 		['browser', 'This browser'],
@@ -80,6 +82,9 @@
 				</div>
 				<div id="privacy">
 					<Boundary what="the privacy settings"><PrivacySection {prefs} /></Boundary>
+				</div>
+				<div id="notifications">
+					<Boundary what="the notification settings"><NotificationsSection {prefs} /></Boundary>
 				</div>
 			{/if}
 			<div id="data">

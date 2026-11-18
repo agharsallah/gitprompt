@@ -10,7 +10,10 @@ use axum::{Json, Router};
 use tokio_stream::Stream;
 use tokio_stream::wrappers::ReceiverStream;
 
+use gitprompt_insights::notify::Notification;
+
 use super::extract::{Body, Params, Prompts};
+use crate::bus::Notice;
 use crate::error::ApiResult;
 use crate::model::{Annotation, PromptDetail, PromptOut, Updated};
 use crate::service::Service;
@@ -39,24 +42,36 @@ async fn redact(State(service): State<Service>, Params(id): Params<i64>) -> ApiR
     service.redact(id).await.map(Json)
 }
 
-/// `data: {"prompts": n, "events": m}` per capture, until the client goes or the server stops.
+/// `data: {"prompts": n, "events": m}` per capture, and `event: notification` with a
+/// [`Notification`] as `data` per notification the daemon decided on, until the client goes or the
+/// server stops.
 async fn stream(State(service): State<Service>) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let mut notices = service.bus().subscribe(); // subscribed before the response is returned
+    // Subscribed before the response is returned.
+    let (mut notices, mut notifications) = (service.bus().subscribe(), service.bus().notifications());
     let closing = service.closing();
     let (tx, rx) = tokio::sync::mpsc::channel(16);
     tokio::spawn(async move {
         loop {
-            let notice = tokio::select! {
+            let event = tokio::select! {
                 () = closing.cancelled() => break,
                 () = tx.closed() => break,
-                notice = notices.next() => notice,
+                notice = notices.next() => notice.map(notice_event),
+                notification = notifications.next() => notification.as_ref().map(notification_event),
             };
-            let Some(notice) = notice else { break };
-            let data = format!(r#"{{"prompts":{},"events":{}}}"#, notice.prompts, notice.events);
-            if tx.send(Ok(Event::default().data(data))).await.is_err() {
+            let Some(event) = event else { break };
+            if tx.send(Ok(event)).await.is_err() {
                 break;
             }
         }
     });
     Sse::new(ReceiverStream::new(rx)).keep_alive(KeepAlive::default())
+}
+
+fn notice_event(notice: Notice) -> Event {
+    Event::default().data(format!(r#"{{"prompts":{},"events":{}}}"#, notice.prompts, notice.events))
+}
+
+fn notification_event(notification: &Notification) -> Event {
+    // A plain struct of strings and enums: it always serializes.
+    Event::default().event("notification").data(serde_json::to_string(notification).unwrap_or_default())
 }

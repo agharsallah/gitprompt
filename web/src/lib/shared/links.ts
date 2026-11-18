@@ -123,7 +123,7 @@ export const LEAKS_ANCHOR = 'leaks';
 /** The possible leaks: they have no page of their own, they are a panel of the Overview. */
 export const leaksHref = () => pageHref('/', { anchor: LEAKS_ANCHOR });
 
-/** Where an attention item leads (Overview, Worth a look). */
+/** Where an attention item or a notification leads (Overview, Worth a look, a toast). */
 export function targetHref(target: AttentionTarget): string {
 	switch (target.page) {
 		case 'prompts':
@@ -134,6 +134,8 @@ export function targetHref(target: AttentionTarget): string {
 			return sessionHref(target.id);
 		case 'leaks':
 			return leaksHref();
+		case 'source':
+			return sourcesHref({ tool: target.id });
 		default:
 			return pageHref('/');
 	}

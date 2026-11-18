@@ -24,6 +24,7 @@ use std::time::Duration;
 use axum::body::Body;
 use axum::http::Request;
 use common::{Api, api, harness, hook_payload, num, otlp, with};
+use gitprompt_server::model::{Notification, NotificationKind, Target};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use tower::ServiceExt;
@@ -104,13 +105,15 @@ struct Stream {
     content_type: Option<String>,
     body: Body,
     buffer: String,
+    /// The `event:` name of the last event read (`None`: a plain `data:` notice).
+    last_event: Option<String>,
 }
 
 async fn open_stream(api: &Api) -> Stream {
     let request = Request::get("/api/prompts/stream").header("host", common::HOST).body(Body::empty()).expect("request");
     let response = api.router.clone().oneshot(request).await.expect("router");
     let content_type = response.headers().get("content-type").map(|v| v.to_str().expect("ascii").to_string());
-    Stream { status: response.status().as_u16(), content_type, body: response.into_body(), buffer: String::new() }
+    Stream { status: response.status().as_u16(), content_type, body: response.into_body(), buffer: String::new(), last_event: None }
 }
 
 impl Stream {
@@ -134,6 +137,7 @@ impl Stream {
         while let Some(end) = self.buffer.find("\n\n") {
             let event: String = self.buffer.drain(..end + 2).collect();
             if let Some(data) = event.lines().find_map(|l| l.strip_prefix("data:")) {
+                self.last_event = event.lines().find_map(|l| l.strip_prefix("event:")).map(|name| name.trim().to_owned());
                 return Some(serde_json::from_str(data.trim()).expect("notice is JSON"));
             }
         }
@@ -160,6 +164,19 @@ async fn the_stream_announces_each_capture_with_its_counts() {
     assert_eq!(stream.next_notice().await, json!({"prompts": 1, "events": 0}));
     api.ingest("claude-code", with(&hook_payload(&api.root()), json!({"hook_event_name": "Stop"}))).await;
     assert_eq!(stream.next_notice().await, json!({"prompts": 0, "events": 1}));
+}
+
+#[tokio::test]
+async fn a_notification_is_a_named_event_between_the_notices() {
+    let api = api();
+    let mut stream = open_stream(&api).await;
+    let notification =
+        Notification { kind: NotificationKind::PossibleLeak, title: "A possible leak".into(), body: "b".into(), target: Target::Leaks };
+    api.app.bus().notify(notification);
+    api.ingest("claude-code", hook_payload(&api.root())).await;
+    let expected = json!({"kind": "possible_leak", "title": "A possible leak", "body": "b", "target": {"page": "leaks"}});
+    assert_eq!((stream.next_notice().await, stream.last_event.as_deref()), (expected, Some("notification")));
+    assert_eq!((stream.next_notice().await, stream.last_event.as_deref()), (json!({"prompts": 1, "events": 0}), None));
 }
 
 #[tokio::test]

@@ -32,7 +32,7 @@ worth_a_look: Array<WorthItem>,
  */
 nothing_needs_you: boolean, };
 
-export type AttentionTarget = { "page": "overview" } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, } | { "page": "leaks" };
+export type AttentionTarget = { "page": "overview" } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, } | { "page": "leaks" } | { "page": "source", id: string, };
 
 export type Backup = { name: string, path: string, bytes: number, modified: string, };
 
@@ -590,6 +590,18 @@ export type NameOut = { name: string, };
 export type NotCaptured = { source: string, event: string, reason: string, };
 
 /**
+ * One notification: what the desktop shell shows and the dashboard receives on its live stream.
+ */
+
+export type Notification = { kind: NotificationKind, title: string, body: string, 
+/**
+ * Where clicking it leads.
+ */
+target: AttentionTarget, };
+
+export type NotificationKind = "long_turn" | "possible_leak" | "quiet_connector";
+
+/**
  * Who produced a prompt's text (ADR-0010).
  */
 
@@ -690,7 +702,27 @@ recall_shortcut: string,
  * Values that are never a possible leak (your other addresses, a shared test account), on top
  * of your git email. Env: comma-separated.
  */
-leak_allow: Array<string>, };
+leak_allow: Array<string>, 
+/**
+ * Notify when a turn that ran at least `notify_long_turn_minutes` finishes or fails.
+ */
+notify_long_turn: boolean, 
+/**
+ * How long a turn runs before its end is worth a notification (1..=1440 minutes).
+ */
+notify_long_turn_minutes: number, 
+/**
+ * Notify when a new possible leak is found in what was captured.
+ */
+notify_leaks: boolean, 
+/**
+ * Notify when a connector that was sending goes quiet while its tool is still in use.
+ */
+notify_quiet_connector: boolean, 
+/**
+ * How long a connector sends nothing before it counts as quiet (1..=1440 minutes).
+ */
+notify_quiet_connector_minutes: number, };
 
 /**
  * The period before the requested one: its span, its totals, and the key figures compared.

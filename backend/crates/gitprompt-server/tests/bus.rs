@@ -17,6 +17,7 @@
 
 use std::time::Duration;
 
+use gitprompt_server::model::{Notification, NotificationKind, Target};
 use gitprompt_server::{Bus, Notice};
 use pretty_assertions::assert_eq;
 
@@ -69,4 +70,17 @@ async fn publishing_without_subscribers_does_nothing() {
 #[tokio::test]
 async fn a_notice_serializes_as_the_streams_payload() {
     assert_eq!(serde_json::to_value(Notice { prompts: 1, events: 2 }).expect("json"), serde_json::json!({"prompts": 1, "events": 2}));
+}
+
+#[tokio::test]
+async fn notifications_reach_their_own_subscribers_and_never_the_notices() {
+    let bus = Bus::new(10);
+    let (mut notices, mut notifications) = (bus.subscribe(), bus.notifications());
+    let leak = Notification { kind: NotificationKind::PossibleLeak, title: "t".into(), body: "b".into(), target: Target::Leaks };
+    bus.notify(leak.clone());
+    bus.publish(notice(1));
+    assert_eq!(notifications.next().await, Some(leak));
+    assert_eq!(notices.next().await, Some(notice(1)), "the notices see only the notice");
+    assert_eq!((notices.try_next(), notifications.try_next()), (None, None));
+    assert_eq!(bus.subscribers(), 1, "notices only");
 }

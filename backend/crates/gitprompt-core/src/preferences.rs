@@ -56,7 +56,22 @@ pub struct Preferences {
     /// Values that are never a possible leak (your other addresses, a shared test account), on top
     /// of your git email. Env: comma-separated.
     pub leak_allow: Vec<String>,
+    /// Notify when a turn that ran at least `notify_long_turn_minutes` finishes or fails.
+    pub notify_long_turn: bool,
+    /// How long a turn runs before its end is worth a notification (1..=1440 minutes).
+    pub notify_long_turn_minutes: u32,
+    /// Notify when a new possible leak is found in what was captured.
+    pub notify_leaks: bool,
+    /// Notify when a connector that was sending goes quiet while its tool is still in use.
+    pub notify_quiet_connector: bool,
+    /// How long a connector sends nothing before it counts as quiet (1..=1440 minutes).
+    pub notify_quiet_connector_minutes: u32,
 }
+
+/// Default of `notify_long_turn_minutes`.
+pub const LONG_TURN_MINUTES: u32 = 10;
+/// Default of `notify_quiet_connector_minutes`.
+pub const QUIET_CONNECTOR_MINUTES: u32 = 30;
 
 impl Default for Preferences {
     fn default() -> Self {
@@ -68,13 +83,30 @@ impl Default for Preferences {
             disabled_sources: Vec::new(),
             recall_shortcut: shortcut::DEFAULT.to_owned(),
             leak_allow: Vec::new(),
+            notify_long_turn: true,
+            notify_long_turn_minutes: LONG_TURN_MINUTES,
+            notify_leaks: true,
+            notify_quiet_connector: true,
+            notify_quiet_connector_minutes: QUIET_CONNECTOR_MINUTES,
         }
     }
 }
 
 /// Every preference key, in declaration order.
-pub const KEYS: &[&str] =
-    &["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut", "leak_allow"];
+pub const KEYS: &[&str] = &[
+    "default_range",
+    "week_start",
+    "event_retention_days",
+    "hide_secrets_on_ingest",
+    "disabled_sources",
+    "recall_shortcut",
+    "leak_allow",
+    "notify_long_turn",
+    "notify_long_turn_minutes",
+    "notify_leaks",
+    "notify_quiet_connector",
+    "notify_quiet_connector_minutes",
+];
 
 /// Keys that need a daemon restart to take effect (none today).
 pub const APPLIES_AT_START: &[&str] = &[];
@@ -267,7 +299,8 @@ fn normalize(key: &str, value: &Json) -> std::result::Result<Json, String> {
         "default_range" => one_of(value, &["24h", "7d", "30d", "all"]),
         "week_start" => one_of(value, &["monday", "sunday"]),
         "event_retention_days" => retention_days(value),
-        "hide_secrets_on_ingest" => boolean(value).map(Json::Bool),
+        "hide_secrets_on_ingest" | "notify_long_turn" | "notify_leaks" | "notify_quiet_connector" => boolean(value).map(Json::Bool),
+        "notify_long_turn_minutes" | "notify_quiet_connector_minutes" => minutes(value),
         "disabled_sources" | "leak_allow" => string_list(value),
         "recall_shortcut" => recall_shortcut(value),
         _ => Err("unknown setting".into()),
@@ -283,16 +316,32 @@ fn one_of(value: &Json, allowed: &[&str]) -> std::result::Result<Json, String> {
 
 fn retention_days(value: &Json) -> std::result::Result<Json, String> {
     const RANGE: std::ops::RangeInclusive<i64> = 1..=3650;
-    let days = match value {
-        Json::Null => return Ok(Json::Null),
-        Json::Number(n) => n.as_i64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0 && f.abs() < 1e15).map(whole_f64_to_i64)),
-        Json::String(text) => text.trim().parse::<i64>().ok(),
-        _ => None,
-    };
-    match days {
+    if value.is_null() {
+        return Ok(Json::Null);
+    }
+    match whole_number(value) {
         Some(days) if RANGE.contains(&days) => Ok(Json::from(days)),
         Some(_) => Err(format!("must be between {} and {} days, got {value}", RANGE.start(), RANGE.end())),
         None => Err(format!("must be a whole number of days or null, got {value}")),
+    }
+}
+
+/// A threshold in minutes, up to a day.
+fn minutes(value: &Json) -> std::result::Result<Json, String> {
+    const RANGE: std::ops::RangeInclusive<i64> = 1..=1440;
+    match whole_number(value) {
+        Some(minutes) if RANGE.contains(&minutes) => Ok(Json::from(minutes)),
+        Some(_) => Err(format!("must be between {} and {} minutes, got {value}", RANGE.start(), RANGE.end())),
+        None => Err(format!("must be a whole number of minutes, got {value}")),
+    }
+}
+
+/// A whole number given as a number (`3` or `3.0`) or as text.
+fn whole_number(value: &Json) -> Option<i64> {
+    match value {
+        Json::Number(n) => n.as_i64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0 && f.abs() < 1e15).map(whole_f64_to_i64)),
+        Json::String(text) => text.trim().parse::<i64>().ok(),
+        _ => None,
     }
 }
 

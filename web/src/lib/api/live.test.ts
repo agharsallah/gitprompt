@@ -13,6 +13,7 @@ class FakeSource {
 	onopen: (() => void) | null = null;
 	onerror: (() => void) | null = null;
 	onmessage: (() => void) | null = null;
+	named = new Map<string, (event: Event) => void>();
 
 	constructor(readonly url: string) {
 		FakeSource.opened.push(this);
@@ -21,6 +22,15 @@ class FakeSource {
 	close() {
 		this.closed = true;
 		this.readyState = FakeSource.CLOSED;
+	}
+
+	addEventListener(name: string, listener: (event: Event) => void) {
+		this.named.set(name, listener);
+	}
+
+	/** A named event (`event: <name>`) with `data`. */
+	emit(name: string, data: string) {
+		this.named.get(name)?.(new MessageEvent(name, { data }));
 	}
 
 	/** The server answered with an error: the browser gives up on this source. */
@@ -91,6 +101,40 @@ describe('live', () => {
 		stop();
 		vi.advanceTimersByTime(RETRY_MS);
 		expect([FakeSource.opened.length, live.state]).toEqual([1, 'closed']);
+	});
+});
+
+describe('notifications', () => {
+	const sent = {
+		kind: 'possible_leak',
+		title: 'A possible leak',
+		body: 'OpenAI API key sk-…y6Hd was captured',
+		target: { page: 'leaks' }
+	};
+
+	it('hands each notification to its listeners, and never to the notice listeners', () => {
+		const heard: unknown[] = [];
+		const notices = vi.fn();
+		const stop = [live.onNotification((n) => heard.push(n)), live.subscribe(notices)];
+		expect(FakeSource.opened).toHaveLength(1);
+		latest()?.emit('notification', JSON.stringify(sent));
+		latest()?.emit('notification', 'not a notification');
+		expect(heard).toEqual([sent]);
+		expect(notices).not.toHaveBeenCalled();
+		stop.forEach((s) => s());
+		expect(latest()?.closed).toBe(true);
+	});
+
+	it('keeps the stream open while a notification listener is left', () => {
+		const notices = live.subscribe(() => {});
+		const notifications = live.onNotification(() => {});
+		notices();
+		expect(latest()?.closed).toBe(false);
+		latest()?.fail();
+		vi.advanceTimersByTime(RETRY_MS);
+		expect(FakeSource.opened).toHaveLength(2);
+		notifications();
+		expect([latest()?.closed, live.state]).toEqual([true, 'closed']);
 	});
 });
 

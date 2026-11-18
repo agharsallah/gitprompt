@@ -1,4 +1,6 @@
 import { STREAM_URL } from '#lib/api/client.ts';
+import { parseNotification } from '#lib/api/notification.ts';
+import type { Notification } from '#lib/api/types.ts';
 
 /** How long to wait before reopening a stream the server closed for good (an HTTP error). */
 export const RETRY_MS = 5_000;
@@ -9,6 +11,7 @@ export type StreamState = 'connecting' | 'open' | 'reconnecting' | 'closed';
 /**
  * The daemon's "something was captured" stream, shared by the whole dashboard: one EventSource,
  * opened while anything listens. `state` and `lastNotice` are reactive (the sidebar shows them).
+ * The same stream carries the notifications the daemon decided on, as named events.
  */
 class Live {
 	state = $state<StreamState>('closed');
@@ -18,6 +21,11 @@ class Live {
 	#source: EventSource | null = null;
 	#retry: ReturnType<typeof setTimeout> | undefined;
 	#listeners = new Set<() => void>();
+	#notified = new Set<(notification: Notification) => void>();
+
+	get #listening() {
+		return this.#listeners.size + this.#notified.size > 0;
+	}
 
 	#open() {
 		if (this.#source || typeof EventSource === 'undefined') return;
@@ -34,7 +42,7 @@ class Live {
 			if (this.#source === source) this.#source = null;
 			clearTimeout(this.#retry);
 			this.#retry = setTimeout(() => {
-				if (this.#listeners.size) this.#open();
+				if (this.#listening) this.#open();
 			}, RETRY_MS);
 		};
 		source.onmessage = () => {
@@ -42,6 +50,12 @@ class Live {
 			this.lastNotice = Date.now();
 			for (const listener of this.#listeners) listener();
 		};
+		source.addEventListener('notification', (event) => {
+			const notification =
+				event instanceof MessageEvent ? parseNotification(String(event.data)) : null;
+			if (!notification) return;
+			for (const listener of this.#notified) listener(notification);
+		});
 		this.#source = source;
 	}
 
@@ -58,7 +72,17 @@ class Live {
 		this.#open();
 		return () => {
 			this.#listeners.delete(listener);
-			if (!this.#listeners.size) this.#close();
+			if (!this.#listening) this.#close();
+		};
+	}
+
+	/** Call `listener` on every notification; returns the unsubscribe function. */
+	onNotification(listener: (notification: Notification) => void): () => void {
+		this.#notified.add(listener);
+		this.#open();
+		return () => {
+			this.#notified.delete(listener);
+			if (!this.#listening) this.#close();
 		};
 	}
 }
