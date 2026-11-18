@@ -6,6 +6,7 @@ import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
 import { dayWindow } from '#lib/sessions/day.ts';
 import { isSort, promptsOf, SESSION_PAGE, SORTS } from '#lib/sessions/load.ts';
 import { preferences } from '#lib/settings/preferences.ts';
+import { clock } from '#lib/shared/clock.svelte.ts';
 import type { PageLoad } from './$types';
 
 // URL: ?range=, ?q= (sessions with a prompt matching every word), ?project= (a repo filter value),
@@ -22,7 +23,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const limit = Math.min(500, Math.max(SESSION_PAGE, Number(params.get('limit')) || SESSION_PAGE));
 	const span = dayWindow(params.get('day'));
 	const day = span ? (params.get('day') ?? undefined) : undefined;
-	const base = { ...toQuery(filters, Date.now()), repo: project, ...span };
+	const base = { ...toQuery(filters, clock.now), repo: project, ...span };
 
 	const content = (async () => {
 		const [list, projects] = await Promise.all([
