@@ -936,7 +936,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
   </div>
 
   <div class="tickets">
-    <article class="tk" id="t13" data-area="be" data-size="M" data-pri="core" data-needs="">
+    <article class="tk" id="t13" data-area="be" data-size="M" data-pri="core" data-needs="" data-status="done">
       <details><summary><span class="tt">Commit traces: one rule, read both ways</span><span class="goal">Any commit that followed a prompt leads to that prompt, and a commit made by hand says so.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-b4">B4</a>, I2</dd><dt>Asks first</dt><dd>API snapshot.</dd></dl>
@@ -949,10 +949,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <h5>Builds on</h5><p><code>gitprompt-insights/src/stories/</code> (<code>attribute_commits</code>), <code>gitprompt-core/src/git.rs</code> (<code>Commit</code>).</p>
         <p class="vf"><b>Verify</b> a property test: for any fixture, the forward map and the backward map agree · snapshot with traced and by-hand commits · read time on the largest fixture noted (<code>just bench</code>).</p>
         <p class="dod"><b>Done when</b> the snapshot is reviewed and the endpoint lists every commit of the fixture project exactly once.</p>
+        <p class="shipped"><b>Shipped 2026-11-17.</b> <code>commit_traces</code> and <code>attribute_commits</code> ask one rule (<code>Owners::owner</code>, now in <code>stories/owners.rs</code>), so a prompt's commits and a commit's prompt cannot disagree; a 256-case proptest checks it. <code>GET /api/stories/project/{id}/commits?q=&amp;group=</code> searches subject, path or hash and groups by phase, branch or day, with counts. git history reads <code>--numstat</code>, so commits carry their paths (never on the wire). The list reads from two hours before the first prompt up to now (a follow-up fix: it first ended two hours after the last finished turn, which hid commits made during a running turn). Read p95 4.3 ms on the 2000-prompt bench, without git time.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t14" data-area="be" data-size="M" data-pri="quality" data-needs="t13">
+    <article class="tk" id="t14" data-area="be" data-size="M" data-pri="quality" data-needs="t13" data-status="partial">
       <details><summary><span class="tt">Trace accuracy on real repositories</span><span class="goal">The trace is right in the cases real work produces, and says "likely" when it cannot be sure.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-b4">B4</a> "by hand" mark; the "likely" mark is new here</dd></dl>
@@ -965,6 +966,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> one test per case above · the 20-commit check repeated after the fixes.</p>
         <p class="dod"><b>Done when</b> at most 1 commit in 20 is wrong on your repository, and none of the wrong ones is shown as certain.</p>
+        <p class="shipped"><b>Partly shipped 2026-11-18.</b> A typed prompt's work lasts through the turns its session runs without you (subagents, task notices); commits are placed at their author time; two candidate works give <code>likely</code> naming the other (<code>CommitTrace.alternative</code>); a commit more than <code>LIKELY_S</code> (3 h, = <code>GAP_S</code>) from any work is by hand. One test per case (amend, rebase, two sessions, by hand between prompts, worktree, subagent); rule paragraph in <code>docs/architecture.md</code>. On this repository: 92 traced / 115 likely / 0 by hand became 175 / 29 / 4; the 20-commit sample scores 19/20. <b>Open:</b> one wrong trace is still shown as certain (<code>aaf36cb</code>, prompts captured on 7 Nov under a worktree folder, before worktrees resolved): G2 waits for your check of the table.</p>
       </div></details>
     </article>
 
@@ -977,7 +979,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       <p class="stop"><b>Stop if</b> accuracy is below that: the Commits tab, <code>why</code> and the pull request block would all repeat the error. Fix the rule first; 16 can continue against the fixture meanwhile.</p>
     </div>
 
-    <article class="tk" id="t15" data-area="be desk" data-size="S" data-needs="t13">
+    <article class="tk" id="t15" data-area="be desk" data-size="S" data-needs="t13" data-status="done">
       <details><summary><span class="tt">A commit by its hash, on the remote, and in Find</span><span class="goal">A hash from anywhere (the terminal, ⌘K, a link) finds its trace, and opens on GitHub, GitLab or Bitbucket when there is a remote.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a> commits in results, <a href="index.html#s-b4">B4</a> remote link</dd><dt>Asks first</dt><dd>API snapshots. <code>tauri-plugin-opener</code>: a new dependency (<code>deny.toml</code>) and a capability.</dd></dl>
@@ -991,10 +993,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         <p class="nat"><b>Native</b> The window loads the dashboard from the daemon, so today a link to GitHub would replace the dashboard inside the app window, with no way back. One <code>on_navigation</code> rule in <code>backend/apps/desktop/src/window.rs</code>: the daemon's own origin stays in the window, every other URL opens in the default browser. The decision is a pure function in <code>gitprompt-tauri</code> (table test: daemon URL, another port, https, a <code>javascript:</code> URL refused). It covers every external link in the app at once; the web code changes nothing.</p>
         <p class="vf"><b>Verify</b> table test for <code>commit_url</code> (each host, both URL forms, an unknown host gives none) · route tests: full hash, prefix, ambiguous, unknown · find snapshot with a commit hit.</p>
         <p class="dod"><b>Done when</b> ⌘K finds a commit by the first words of its subject and by seven characters of its hash.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>git::commit_url</code> (pure) for GitHub, GitLab and Bitbucket in https, ssh and scp forms. <code>GET /api/commits/{hash}</code> takes 4+ hex digits: one, the candidates, 404 or 400; it reads projects the way the Commits tab does. ⌘K has a Commits group (subject words or 7 characters of the hash) that opens the row; find searches the 10 most recent projects. No <code>commit_prompt</code> table (4.3 ms p95). The desktop window keeps only the daemon's origin: other web pages open in the browser, other schemes are refused, through the plugin's existing opener, so no new dependency. Each commit in the list now carries its forge <code>url</code> (one helper, <code>CommitTrace::on_remote</code>).</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t16" data-area="web" data-size="M" data-pri="core" data-needs="t13 t02 t03">
+    <article class="tk" id="t16" data-area="web" data-size="M" data-pri="core" data-needs="t13 t02 t03" data-status="done">
       <details><summary><span class="tt">Project page tabs and the Commits tab</span><span class="goal">On today's project page, every commit is listed with the prompt that produced it, one tab away from the journey.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd>I2, <a href="index.html#s-b4">B4</a>, <a href="index.html#s-b2">B2</a> state "Not a git repository"</dd></dl>
@@ -1013,10 +1016,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> component tests: grouping, search, the three row kinds · a route test: the tab survives reload and back · <code>PanelState</code> for empty and "not a git repository".</p>
         <p class="dod"><b>Done when</b> from any commit row you reach its prompt in one click, and a palette commit result lands on its row.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> The project page has tabs in <code>?tab=</code>: Journey (unchanged) and Commits. Commits opens on "N commits · N followed a prompt · N by hand", each part a filter; search and grouping come from the 13 endpoint. A row reads hash, subject, change, then the prompt with its outcome, Prompt › and Session ›; likely names the other candidate; by hand is muted and tagged. <code>#commit-&lt;hash&gt;</code> lands on its row; ↑ ↓ ↵, and ⌘↵ opens the commit on the forge. The usage tracker now sends reports in chunks of 64 actions. Search and grouping are not kept in the URL. Not checked in a browser.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t17" data-area="web" data-size="S" data-needs="t13">
+    <article class="tk" id="t17" data-area="web" data-size="S" data-needs="t13" data-status="done">
       <details><summary><span class="tt">"What came of it" in the prompt reader</span><span class="goal">The reader says what a turn produced: files, lines, commits and cost, with every commit linked.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-d1">D1</a> step 4</dd></dl>
@@ -1032,10 +1036,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> component tests: a turn with commits, one without ("No commit followed"), a tool that reports no cost.</p>
         <p class="dod"><b>Done when</b> a commit in the reader opens its row on the project's Commits tab.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>WhatCameOfIt</code> after the answer: "Wrote 6 files (+212 −40), 2 commits, $1.84", the first five files and "and N more", each commit linked to its Commits-tab row; "Nothing was written or committed" for an empty turn; no cost part when the tool reports none. No new endpoint; one diffstat parser shared with the Repository tab. Files are in the order written, not by lines changed (the API sends no per-file counts); line counts are those of the commits after the turn.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t18" data-area="cli" data-size="S" data-pri="core" data-needs="t15">
+    <article class="tk" id="t18" data-area="cli" data-size="S" data-pri="core" data-needs="t15" data-status="partial">
       <details><summary><span class="tt">gitprompt why &lt;commit&gt;</span><span class="goal">In the terminal, a commit hash answers "which prompt made this, and in which session?".</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-r1">R1</a></dd></dl>
@@ -1051,10 +1056,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> command tests: traced, likely, by hand, unknown, ambiguous, not a repository.</p>
         <p class="dod"><b>Done when</b> <code>gitprompt why HEAD</code> in this repository names the prompt behind the last commit.</p>
+        <p class="shipped"><b>Partly shipped 2026-11-18.</b> <code>gitprompt why &lt;commit&gt;</code>: the verdict first (<code>a1b2c3d ← "…" · session NAME · 12 Nov</code>), likely and by hand in words, then the prompt, its Commits-tab row and the forge page; HEAD and other revisions resolve with git in the current folder (<code>git::resolve_revision</code>), a hash works anywhere; ambiguous prefixes list candidates; <code>--json</code>; the <code>git why</code> alias in the help. One <code>why</code> command with <code>--branch</code> (19). 10 command tests over real repositories. <b>Open:</b> on a copy of your database older commits answered correctly but HEAD did not, since the list stopped two hours after the last finished turn; that is fixed since, but <code>gitprompt why HEAD</code> has not been run again against a live daemon.</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t19" data-area="be web" data-size="M" data-pri="core" data-needs="t13 t16">
+    <article class="tk" id="t19" data-area="be web" data-size="M" data-pri="core" data-needs="t13 t16" data-status="partial">
       <details><summary><span class="tt">"The prompts behind this branch" as Markdown</span><span class="goal">Paste the prompts that built a branch into a pull request with one copy, with nothing private in it.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-r1">R1</a>, I2, sketch below</dd><dt>Asks first</dt><dd>API snapshot.</dd></dl>
@@ -1078,6 +1084,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> export tests: a fixture with a key in a prompt is masked, absolute paths become relative, an empty branch gives a clear message · snapshot · pasted once into a real GitHub pull request.</p>
         <p class="dod"><b>Done when</b> the block renders cleanly in a pull request and holds nothing the redaction defaults would hide elsewhere.</p>
+        <p class="shipped"><b>Partly shipped 2026-11-18.</b> One builder (<code>build/branch.rs</code>, <code>markdown::paste</code>) behind <code>GET /api/export/branch</code>, "Copy prompts behind this branch" on the Commits tab (and on each branch heading), a palette command and <code>gitprompt why --branch</code>. A summary line, each typed prompt folded in <code>&lt;details&gt;</code> with its commits, the privacy footer; prompts are the typed ones recorded on the branch, their commits from <code>attribute_commits</code>. Prompt text is on (the block is the prompts), clipped at 280 characters, no per-prompt times. Privacy tests for md, html, csv and json. <b>Open:</b> pasting it once into a real GitHub pull request.</p>
       </div></details>
     </article>
   </div>
