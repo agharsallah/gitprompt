@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { FolderGit2, Folder, GitBranch } from '@lucide/svelte';
+	import { Bot, FolderGit2, Folder, GitBranch } from '@lucide/svelte';
+	import { FROM_AGENTS_HINT } from '#lib/prompts/origin.ts';
 	import type { ProjectSummary } from '#lib/projects/summary.ts';
 	import { KIND_INFO } from '#lib/insights/tools.ts';
 	import { projectId } from '#lib/stories/story.ts';
@@ -10,8 +11,15 @@
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import Sparkline from '#lib/ui/charts/Sparkline.svelte';
 
-	/** One project: how much you worked in it, when, on which branches, and what the agent did there. */
-	let { summary, share }: { summary: ProjectSummary; /** of all prompts, 0..1 */ share: number } =
+	/**
+	 * One project: how much you worked in it (and how much of it agents sent), when, on which
+	 * branches, and what the agent did there. `range`: the list's, carried into the project's link.
+	 */
+	let {
+		summary,
+		share,
+		range
+	}: { summary: ProjectSummary; /** of all prompts, 0..1 */ share: number; range?: string } =
 		$props();
 
 	const p = $derived(summary);
@@ -26,7 +34,7 @@
 			/>{/if}
 		<div class="titles">
 			<h2 id="project-{p.key}">
-				<a href={projectHref(projectId(p.key))} title="Project › {p.name}">{p.name}</a>
+				<a href={projectHref(projectId(p.key), { range })} title="Project › {p.name}">{p.name}</a>
 			</h2>
 			<p class="path mono" title={p.key}>{relativePath(p.key)}</p>
 		</div>
@@ -49,6 +57,9 @@
 		>
 			<span style:width="{share * 100}%"></span>
 		</div>
+		{#if p.fromAgents}<p class="origins" title={FROM_AGENTS_HINT}>
+				{integer(p.typed)} typed · <Bot size={12} aria-hidden="true" />{integer(p.fromAgents)} from agents
+			</p>{/if}
 	</div>
 
 	<dl class="facts">
@@ -191,6 +202,17 @@
 	a.n:hover {
 		color: var(--color-accent-text);
 		text-decoration: underline;
+	}
+
+	/* The typed / from agents split, so the count matches the project page's at a glance. */
+	.origins {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
+		white-space: nowrap;
+		cursor: help;
 	}
 
 	.share {

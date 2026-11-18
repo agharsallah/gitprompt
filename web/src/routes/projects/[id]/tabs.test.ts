@@ -32,6 +32,17 @@ describe('the project page’s tabs', () => {
 		expect(tabOf(at(go.mock.calls[0][0]))).toBe('commits');
 	});
 
+	it('switching tabs keeps the range the page was opened on', () => {
+		expect(tabHref(ID, 'commits', '24h')).toBe(projectHref(ID, { tab: 'commits', range: '24h' }));
+		expect(tabHref(ID, 'journey', '24h')).toBe(projectHref(ID, { range: '24h' }));
+		const go = vi.fn();
+		openTab(ID, 'commits', go, '24h');
+		expect(go).toHaveBeenCalledWith(tabHref(ID, 'commits', '24h'), {
+			replace: false,
+			reset: false
+		});
+	});
+
 	it('a link to a commit’s row opens the Commits tab, even without naming it', () => {
 		expect(tabOf(at(projectHref(ID, { anchor: commitAnchor('a9f0971') })))).toBe('commits');
 		expect(tabOf(at(projectHref(ID, { anchor: 'prompt-7' })))).toBe('journey');

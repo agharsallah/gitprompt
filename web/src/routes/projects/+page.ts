@@ -6,7 +6,7 @@ import { preferences } from '#lib/settings/preferences.ts';
 import type { PageLoad } from './$types';
 
 // Every project of the window, from the daemon's statistics (no cap): one grouping by project,
-// split by day (the sparkline), tool kind and branch. Origins: the remembered choice. The
+// split by day (the sparkline), tool kind, branch and origin (typed vs. sent by agents). Origins: the remembered choice. The
 // statistics stream in.
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range } = await preferences(fetch);
@@ -16,7 +16,8 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const stats = Promise.all([
 		api.stats({ ...query, split_by: 'day' }, fetch),
 		api.stats({ ...query, split_by: 'tool_kind' }, fetch),
-		api.stats({ ...query, split_by: 'branch' }, fetch)
-	]).then(([byDay, byKind, byBranch]) => ({ byDay, byKind, byBranch }));
+		api.stats({ ...query, split_by: 'branch' }, fetch),
+		api.stats({ ...query, split_by: 'origin' }, fetch)
+	]).then(([byDay, byKind, byBranch, byOrigin]) => ({ byDay, byKind, byBranch, byOrigin }));
 	return { filters, now, stats: defer(stats) };
 };

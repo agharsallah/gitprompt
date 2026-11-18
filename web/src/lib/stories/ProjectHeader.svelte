@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { FolderGit2, Folder } from '@lucide/svelte';
+	import { Bot, FolderGit2, Folder } from '@lucide/svelte';
+	import { FROM_AGENTS_HINT } from '#lib/prompts/origin.ts';
 	import type { ProjectStory } from '#lib/api/types.ts';
-	import { integer, money, plural, relativePath } from '#lib/shared/format.ts';
+	import { integer, money, relativePath } from '#lib/shared/format.ts';
 	import { promptListHref, sessionsHref } from '#lib/shared/links.ts';
 	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import { diffstatText, span } from '#lib/stories/story.ts';
@@ -35,6 +36,11 @@
 				<a href={promptListHref({ repo: story.repo })} title="Prompts › {story.name}"
 					>{integer(t.prompts)}</a
 				>
+				{#if story.system}<span class="unit agents" title={FROM_AGENTS_HINT}
+						>+ <Bot size={12} aria-hidden="true" />{integer(story.system)} from agents · {integer(
+							t.prompts + story.system
+						)} in all</span
+					>{/if}
 			</dd>
 		</div>
 		<div>
@@ -58,9 +64,6 @@
 				<dd>{money(t.cost_usd)}</dd>
 			</div>{/if}
 	</dl>
-	{#if story.system}<p class="muted note">
-			Not shown: {plural(story.system, 'prompt')} sent by the tool or other agents here.
-		</p>{/if}
 </section>
 
 <style>
@@ -115,7 +118,11 @@
 		font-weight: var(--weight-regular);
 	}
 
-	.note {
-		font-size: var(--text-sm);
+	/* Agents' prompts beside yours: the list counts both, this page shows only yours. */
+	.agents {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		cursor: help;
 	}
 </style>

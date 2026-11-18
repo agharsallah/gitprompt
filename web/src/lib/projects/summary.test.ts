@@ -30,9 +30,7 @@ describe('projectSummaries', () => {
 			bucket({ key: '/r/app', parts: [bucket({ key: 'main' }), bucket({ key: null })] })
 		];
 		const [app, notes] = projectSummaries(
-			byDay,
-			byKind,
-			byBranch,
+			{ byDay, byKind, byBranch, byOrigin: [] },
 			['2026-11-02', '2026-11-03', '2026-11-04'].map(slot)
 		);
 		expect(app).toMatchObject({
@@ -48,5 +46,28 @@ describe('projectSummaries', () => {
 			{ kind: 'shell', count: 4 }
 		]);
 		expect(notes).toMatchObject({ name: 'notes', git: false, kinds: [], daily: [0, 0, 0] });
+	});
+
+	it('splits the prompts you typed from the ones agents sent, as the project page counts them', () => {
+		const byDay = [bucket({ key: '/r/app', prompts: 95, parts: [] })];
+		const byOrigin = [
+			bucket({
+				key: '/r/app',
+				parts: [
+					bucket({ key: 'typed', prompts: 70 }),
+					bucket({ key: 'slash_command', prompts: 3 }),
+					bucket({ key: 'agent_message', prompts: 20 }),
+					bucket({ key: 'task_notification', prompts: 2 })
+				]
+			})
+		];
+		const [app] = projectSummaries({ byDay, byKind: [], byBranch: [], byOrigin }, []);
+		expect(app).toMatchObject({ prompts: 95, typed: 73, fromAgents: 22 });
+	});
+
+	it('counts every prompt as typed when the origins were not split', () => {
+		const byDay = [bucket({ key: '/r/app', prompts: 5, parts: [] })];
+		const [app] = projectSummaries({ byDay, byKind: [], byBranch: [], byOrigin: [] }, []);
+		expect(app).toMatchObject({ prompts: 5, typed: 5, fromAgents: 0 });
 	});
 });

@@ -21,14 +21,20 @@
 	$effect(() => liveUpdates(refreshAll, 3000));
 
 	const stats = new Resource(() => data.stats);
-	const summarize = ({ byDay, byKind, byBranch }: NonNullable<typeof stats.value>) => {
+	const summarize = ({ byDay, byKind, byBranch, byOrigin }: NonNullable<typeof stats.value>) => {
 		const start = chartStart(
 			rangeStart(data.filters.range, data.now),
 			byDay.totals.first_at,
 			data.now
 		);
 		const slots = timeSlots([], start, new Date(data.now), false);
-		return projectSummaries(byDay.groups, byKind.groups, byBranch.groups, slots);
+		const groups = {
+			byDay: byDay.groups,
+			byKind: byKind.groups,
+			byBranch: byBranch.groups,
+			byOrigin: byOrigin.groups
+		};
+		return projectSummaries(groups, slots);
 	};
 </script>
 
@@ -54,7 +60,11 @@
 		{#if list.length}
 			<div class="list">
 				{#each list as summary (summary.key)}
-					<ProjectRow {summary} share={summary.prompts / s.byDay.totals.prompts} />
+					<ProjectRow
+						{summary}
+						share={summary.prompts / s.byDay.totals.prompts}
+						range={data.filters.range.id}
+					/>
 				{/each}
 			</div>
 		{:else}

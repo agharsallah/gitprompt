@@ -62,6 +62,13 @@ export const ORIGINS: Record<Origin, OriginInfo> = {
 	}
 };
 
+/**
+ * What "from agents" means wherever a count splits typed prompts from the rest (the Projects list,
+ * a project's header): the tooltip that keeps the two counts from looking like an error.
+ */
+export const FROM_AGENTS_HINT =
+	'Sent by the tool or other agents (task notifications, agent messages, subagents), not typed by you. A project’s page shows only the prompts you typed; these are counted apart.';
+
 /** Older daemons send no origin: treat those prompts as typed. */
 export const originOf = (p: Pick<Prompt, 'origin'>): OriginInfo =>
 	ORIGINS[p.origin] ?? ORIGINS.typed;

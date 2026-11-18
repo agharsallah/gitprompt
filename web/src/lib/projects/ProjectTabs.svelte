@@ -20,7 +20,7 @@
 
 	function select(id: ProjectTab) {
 		if (id === 'commits') track('tab.project.commits');
-		openTab(project, id, goto);
+		openTab(project, id, goto, page.url.searchParams.get('range') ?? undefined);
 	}
 </script>
 

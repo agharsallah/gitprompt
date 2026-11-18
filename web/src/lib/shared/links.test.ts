@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	pageHref,
 	projectHref,
+	projectsHref,
 	promptHref,
 	promptListHref,
 	sessionHref,
@@ -71,6 +72,20 @@ describe('projectHref', () => {
 		expect(
 			projectHref('p1', { tab: 'commits', from: '2026-01-01', to: '2026-02-01', anchor: 'a' })
 		).toBe('/projects/p1?tab=commits&from=2026-01-01&to=2026-02-01#a');
+	});
+
+	it('carries the range the list was on, so the way back opens the same days', () => {
+		expect(projectHref('p1', { range: '24h' })).toBe('/projects/p1?range=24h');
+		expect(projectHref('p1', { tab: 'commits', range: '30d' })).toBe(
+			'/projects/p1?tab=commits&range=30d'
+		);
+	});
+});
+
+describe('projectsHref', () => {
+	it('opens the Projects list, on a range when one is given', () => {
+		expect(projectsHref()).toBe('/projects');
+		expect(projectsHref({ range: '24h' })).toBe('/projects?range=24h');
 	});
 });
 

@@ -31,9 +31,12 @@ export function tabOf(url: {
 	return url.hash.startsWith(`#${COMMIT_ANCHOR}`) ? 'commits' : DEFAULT_TAB;
 }
 
-/** The URL of a project's tab. The default tab is left out of the URL, as the page opens on it. */
-export const tabHref = (project: string, tab: ProjectTab): string =>
-	projectHref(project, { tab: tab === DEFAULT_TAB ? undefined : tab });
+/**
+ * The URL of a project's tab. The default tab is left out of the URL, as the page opens on it. The
+ * Projects list's `range` stays on, so the way back opens the same days from any tab.
+ */
+export const tabHref = (project: string, tab: ProjectTab, range?: string): string =>
+	projectHref(project, { tab: tab === DEFAULT_TAB ? undefined : tab, range });
 
 /** SvelteKit's `goto`, as far as a tab uses it. */
 type Navigate = (href: string, options: { replace: boolean; reset: boolean }) => unknown;
@@ -42,5 +45,5 @@ type Navigate = (href: string, options: { replace: boolean; reset: boolean }) =>
  * Open a tab: a new history entry (never a replaced one), so Back returns to the tab before. The
  * scroll position and focus stay where they are (`reset: false`), as with any tab.
  */
-export const openTab = (project: string, tab: ProjectTab, go: Navigate) =>
-	go(tabHref(project, tab), { replace: false, reset: false });
+export const openTab = (project: string, tab: ProjectTab, go: Navigate, range?: string) =>
+	go(tabHref(project, tab, range), { replace: false, reset: false });

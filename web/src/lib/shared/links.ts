@@ -69,14 +69,26 @@ export function sessionHref(id: string, { anchor }: { anchor?: string } = {}): s
 
 /**
  * A project's story. `tab` names one of its tabs, `from`/`to` bound the time window shown
- * (ISO dates) and `anchor` is an element id in it.
+ * (ISO dates), `range` is the Projects list's range (a RangeId), carried so the way back opens the
+ * same days, and `anchor` is an element id in it.
  */
 export function projectHref(
 	id: string,
-	{ tab, anchor, from, to }: { tab?: string; anchor?: string; from?: string; to?: string } = {}
+	{
+		tab,
+		anchor,
+		from,
+		to,
+		range
+	}: { tab?: string; anchor?: string; from?: string; to?: string; range?: string } = {}
 ): string {
-	return `${resolve('/projects/[id]', { id })}${queryString({ tab, from, to })}${hashOf(anchor)}`;
+	const query = queryString({ tab, from, to, range });
+	return `${resolve('/projects/[id]', { id })}${query}${hashOf(anchor)}`;
 }
+
+/** The Projects list, on a range (a RangeId) when one is given. */
+export const projectsHref = ({ range }: { range?: string } = {}) =>
+	pageHref('/projects', { query: { range } });
 
 /** The Sessions list: narrowed to a project, or scrolled to a session's card. */
 export function sessionsHref({ project, session }: { project?: string; session?: string } = {}) {
