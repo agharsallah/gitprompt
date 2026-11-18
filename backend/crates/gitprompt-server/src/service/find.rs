@@ -54,11 +54,8 @@ impl Inner {
     /// The repos (git roots or folders) that `project` names: the path itself, the folder's name
     /// or the project's name, ignoring case.
     fn repos_named(&self, project: &str) -> Result<Vec<String>> {
-        let named = |text: &str| text.eq_ignore_ascii_case(project);
         let repos = self.recent_groups(GroupBy::Repo)?.into_iter();
-        Ok(repos
-            .filter_map(|g| g.key.filter(|repo| named(repo) || named(&folder_name(repo)) || g.detail.as_deref().is_some_and(named)))
-            .collect())
+        Ok(repos.filter(|g| names_repo(project, g)).filter_map(|g| g.key).collect())
     }
 
     /// The most recent groups of a grouping, newest activity first.
@@ -133,6 +130,13 @@ impl Service {
         })
         .await
     }
+}
+
+/// Whether `project` names a repo group: its path, its folder's name or the project's name
+/// (`owner/name`), ignoring case.
+pub(super) fn names_repo(project: &str, group: &Bucket) -> bool {
+    let named = |text: &str| text.eq_ignore_ascii_case(project);
+    group.key.as_deref().is_some_and(|repo| named(repo) || named(&folder_name(repo))) || group.detail.as_deref().is_some_and(named)
 }
 
 /// The hit joined with the row it came from.

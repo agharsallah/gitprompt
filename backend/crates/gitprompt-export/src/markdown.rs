@@ -1,7 +1,8 @@
 //! A report as Markdown (GitHub flavoured): charts become tables of their values; text placed in a
 //! sentence has its Markdown escaped, and quoted prompt text goes in a fence long enough to hold
-//! it, so its links and images stay inert. Port of `export/markdown.py`.
+//! it, so its links and images stay inert. Port of `export/markdown.py`, plus [`paste`].
 
+use crate::escape;
 use crate::report::{Block, Chart, Figures, Items, Paragraph, Quote, Report, Section, Table, Voice};
 
 /// The report as one Markdown document: `# title`, subtitle, sections (`##`/`###`), then a `---`
@@ -19,6 +20,33 @@ pub fn markdown(report: &Report) -> String {
     lines.join("\n") + "\n"
 }
 
+/// The report as a block to paste into a pull request or an issue: a `###` title (the page around
+/// it has its own headings), the subtitle, each section folded in `<details>` (a long list does
+/// not flood the page), then the notes on one line. Ends with a newline.
+pub fn paste(report: &Report) -> String {
+    let mut lines = vec![format!("### {}", inline(&report.title)), String::new()];
+    if !report.subtitle.is_empty() {
+        lines.extend([inline(&report.subtitle), String::new()]);
+    }
+    for section in &report.sections {
+        push_folded(&mut lines, section);
+    }
+    if !report.notes.is_empty() {
+        lines.push(format!("_{}_", inline(&report.notes.join(" · "))));
+    }
+    lines.join("\n") + "\n"
+}
+
+/// A section in `<details>`, its title and subtitle as the `<summary>`. Those lines are an HTML
+/// block, where Markdown is not read, so the summary is HTML-escaped; the blank line after it lets
+/// the blocks be Markdown again.
+fn push_folded(lines: &mut Vec<String>, section: &Section) {
+    let summary = if section.subtitle.is_empty() { section.title.clone() } else { format!("{} · {}", section.title, section.subtitle) };
+    lines.extend(["<details>".to_string(), format!("<summary>{}</summary>", escape::html(&summary)), String::new()]);
+    push_blocks(lines, &section.blocks);
+    lines.extend(["</details>".to_string(), String::new()]);
+}
+
 fn push_section(lines: &mut Vec<String>, section: &Section) {
     let hashes = match section.level {
         crate::report::Level::Two => "##",
@@ -28,7 +56,12 @@ fn push_section(lines: &mut Vec<String>, section: &Section) {
     if !section.subtitle.is_empty() {
         lines.extend([format!("_{}_", inline(&section.subtitle)), String::new()]);
     }
-    for block in &section.blocks {
+    push_blocks(lines, &section.blocks);
+}
+
+/// Each block's lines, a blank line after each block that has some.
+fn push_blocks(lines: &mut Vec<String>, blocks: &[Block]) {
+    for block in blocks {
         let out = block_lines(block);
         if !out.is_empty() {
             lines.extend(out);

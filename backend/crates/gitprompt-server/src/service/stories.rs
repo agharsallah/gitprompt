@@ -39,6 +39,18 @@ impl Inner {
         repo.map_or_else(Vec::new, |repo| self.options.git.history(Path::new(repo), &since, &until))
     }
 
+    /// A project's story (its typed prompts in phases, each with its commits); not found as
+    /// [`Inner::project_rows`] says.
+    pub(super) fn project_story(&self, project: &str) -> ApiResult<ProjectStory> {
+        let (set, _) = self.indexed()?;
+        let ProjectRows { repo, rows } = self.project_rows(&set, project)?;
+        let typed: Vec<i64> = rows.iter().filter(|r| stories::is_user(r)).map(|r| r.prompt.row.id).collect();
+        let system = i64::try_from(rows.len() - typed.len()).unwrap_or(i64::MAX);
+        let commits = self.log(&rows);
+        let tool_kinds = self.store.tool_kinds(&typed)?;
+        Ok(stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
+    }
+
     /// The repo a project id names and its prompts of every origin, oldest first (the ones you did
     /// not type carry a prompt's work on, `stories::commit_traces`); not found when the id doesn't
     /// decode or the project has no prompt.
@@ -101,16 +113,7 @@ impl Service {
 
     pub async fn project_story(&self, project: &str) -> ApiResult<ProjectStory> {
         let project = project.to_owned();
-        self.run(move |inner| {
-            let (set, _) = inner.indexed()?;
-            let ProjectRows { repo, rows } = inner.project_rows(&set, &project)?;
-            let typed: Vec<i64> = rows.iter().filter(|r| stories::is_user(r)).map(|r| r.prompt.row.id).collect();
-            let system = i64::try_from(rows.len() - typed.len()).unwrap_or(i64::MAX);
-            let commits = inner.log(&rows);
-            let tool_kinds = inner.store.tool_kinds(&typed)?;
-            Ok(stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
-        })
-        .await
+        self.run(move |inner| inner.project_story(&project)).await
     }
 
     /// A project's commits while you worked on it ([`stories::trace_window`]), each with the prompt

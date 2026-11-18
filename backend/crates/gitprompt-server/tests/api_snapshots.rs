@@ -218,6 +218,15 @@ async fn commits_with_the_prompt_behind_each() {
     insta::assert_json_snapshot!("project_commits_by_day_readme", get(&api, &format!("{path}?group=day&q=readme")).await);
 }
 
+#[tokio::test]
+async fn the_prompts_behind_a_branch() {
+    let api = loaded_with(harness().git(FixtureGit)).await;
+    let project = project_id("/work/app");
+    let response = api.get("/api/export/branch").query(&[("project", project.as_str()), ("branch", "main")]).send().await;
+    assert_eq!(response.status, 200, "{}", response.text());
+    insta::assert_snapshot!("export_branch", response.text().replace(&*api.root().to_string_lossy(), "[root]"));
+}
+
 /// hash -> prompt id, from the prompts' side (a project story).
 fn owners_in_story(story: &Value) -> BTreeMap<String, i64> {
     let entries = story["phases"].as_array().expect("phases").iter().flat_map(|p| p["items"].as_array().expect("items"));

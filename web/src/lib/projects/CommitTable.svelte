@@ -6,6 +6,8 @@
 	import type { CommitGrouping, CommitTrace } from '#lib/api/types.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
+	import { copyBranch } from '#lib/projects/branch.ts';
+	import BranchPrompts from '#lib/projects/BranchPrompts.svelte';
 	import CommitGroups from '#lib/projects/CommitGroups.svelte';
 	import CommitSummary from '#lib/projects/CommitSummary.svelte';
 	import {
@@ -28,9 +30,10 @@
 	/**
 	 * Every commit of a project with the prompt it followed: searched by subject, file or hash,
 	 * grouped by phase, branch or day. ↑ ↓ move between rows, ↵ opens the prompt, ⌘↵ the commit on
-	 * the `remote` (the hash is plain text without one).
+	 * the `remote` (the hash is plain text without one). The prompts behind `branch` (the project's
+	 * current one) copy as Markdown for a pull request; by branch, each group copies its own.
 	 */
-	let { project, remote }: { project: string; remote?: string } = $props();
+	let { project, remote, branch }: { project: string; remote?: string; branch?: string } = $props();
 
 	const GROUPINGS: { value: CommitGrouping; label: string }[] = [
 		{ value: 'phase', label: 'Phase' },
@@ -123,9 +126,16 @@
 	{#snippet children(data)}
 		{@const groups = showing(data.groups, show)}
 		{#if data.git && data.counts.total}<CommitSummary counts={data.counts} bind:show />{/if}
+		{#if data.git && branch}<BranchPrompts {project} {branch} />{/if}
 		<PanelState state={commitsState(data, groups.length, q)}>
 			<div bind:this={list}>
-				<CommitGroups {groups} by={data.group} {remote} {now} />
+				<CommitGroups
+					{groups}
+					by={data.group}
+					{remote}
+					{now}
+					copy={(b) => void copyBranch(project, b)}
+				/>
 			</div>
 		</PanelState>
 	{/snippet}

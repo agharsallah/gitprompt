@@ -1,4 +1,4 @@
-//! `--help` of `find` and `resume` shows lines to copy, and says what the exit codes mean.
+//! `--help` of `find`, `resume` and `why` shows lines to copy, and says what the exit codes mean.
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -36,8 +36,20 @@ fn resume_help_has_three_example_lines_and_the_exit_codes() {
 }
 
 #[test]
+fn why_help_has_example_lines_and_the_exit_codes() {
+    home()
+        .cmd(&["why", "--help"])
+        .assert()
+        .success()
+        .stdout(contains("gitprompt why --branch timing-ledger | pbcopy"))
+        .stdout(contains("gitprompt why --branch main --project api"))
+        .stdout(contains("Exits 0 when the block was printed, 1 when no prompt you typed was recorded"));
+}
+
+#[test]
 fn the_binary_exits_1_with_a_note_before_there_is_a_database() {
     let home = home();
     home.cmd(&["find", "x"]).assert().code(1).stderr(contains("No database yet"));
     home.cmd(&["resume", "--last"]).assert().code(1).stderr(contains("No database yet"));
+    home.cmd(&["why", "--branch", "main"]).assert().code(1).stderr(contains("No database yet"));
 }

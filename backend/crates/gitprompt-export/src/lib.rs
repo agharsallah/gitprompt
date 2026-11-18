@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use gitprompt_core::JsonMap;
 use gitprompt_insights::Specs;
+use gitprompt_insights::stories::ProjectStory;
 use gitprompt_store::{PromptFilter, Store};
 
 pub mod build;
@@ -50,18 +51,21 @@ pub enum Kind {
     Project,
     Overview,
     Prompts,
+    /// The prompts behind a branch, a block for a pull request ([`branch_export`]).
+    Branch,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 4] = [Kind::Session, Kind::Project, Kind::Overview, Kind::Prompts];
+    pub const ALL: [Kind; 5] = [Kind::Session, Kind::Project, Kind::Overview, Kind::Prompts, Kind::Branch];
 
-    /// `session`, `project`, `overview`, `prompts`.
+    /// `session`, `project`, `overview`, `prompts`, `branch`.
     pub fn as_str(self) -> &'static str {
         match self {
             Kind::Session => "session",
             Kind::Project => "project",
             Kind::Overview => "overview",
             Kind::Prompts => "prompts",
+            Kind::Branch => "branch",
         }
     }
 
@@ -157,6 +161,8 @@ enum Body {
 /// The one place a format is dispatched to its renderer: a new format is a new module and one arm.
 fn body(export: &Export, format: Format, chart: Option<&str>) -> Result<Body, ExportError> {
     Ok(match format {
+        // The prompts behind a branch are always the block for a pull request.
+        Format::Markdown if export.report.kind == Kind::Branch => Body::Text(markdown::paste(&export.report)),
         Format::Markdown => Body::Text(markdown::markdown(&export.report)),
         Format::Html => Body::Text(html::html(&export.report)),
         Format::Csv => Body::Text(tabular::csv(export)),
@@ -248,4 +254,22 @@ pub fn build_from_store_with(
 ) -> Result<Export, ExportError> {
     let input = collect_with(store, specs, request, !options.drop_raw, generated_at)?;
     prepare(&input, options, context)
+}
+
+/// The prompts behind `branch`, from the project's `story` (`generated_at`: the caller's clock).
+///
+/// Which prompts: those of the story whose recorded branch is `branch`. A story holds only the
+/// prompts you typed, so what the tool sent on its own is left out. Their commits are the ones the
+/// story gives them, [`gitprompt_insights::stories::attribute_commits`]: the rule the Commits tab
+/// reads backward ([`gitprompt_insights::stories::commit_traces`]), so the block and the tab agree.
+/// Git does not record the branch a commit was made on: a commit is on the branch through the
+/// prompt whose work made it.
+pub fn branch_input(story: &ProjectStory, branch: &str, generated_at: &str) -> Result<ExportInput, ExportError> {
+    collect::branch(story, branch, generated_at).map(ExportInput::Branch)
+}
+
+/// [`branch_input`] prepared with [`build::BRANCH_OPTIONS`]: render it as [`Format::Markdown`] for
+/// the block to paste into a pull request ([`markdown::paste`]).
+pub fn branch_export(story: &ProjectStory, branch: &str, context: &Context, generated_at: &str) -> Result<Export, ExportError> {
+    prepare(&branch_input(story, branch, generated_at)?, &build::BRANCH_OPTIONS, context)
 }

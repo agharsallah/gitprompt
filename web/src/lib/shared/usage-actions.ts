@@ -75,6 +75,7 @@ export type UsageAction =
 	| 'copy.prompt'
 	| 'copy.resume'
 	| 'copy.code'
+	| 'copy.branch'
 	| 'export.open'
 	| 'palette.open'
 	| 'palette.copy'
@@ -94,6 +95,7 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	'copy.prompt',
 	'copy.resume',
 	'copy.code',
+	'copy.branch',
 	'export.open',
 	'palette.open',
 	'palette.copy',

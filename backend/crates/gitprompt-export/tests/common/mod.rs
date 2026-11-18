@@ -13,9 +13,9 @@ use serde_json::json;
 
 use gitprompt_core::spec::Origin;
 use gitprompt_export::input::{
-    Chapter, Commit, Connector, Diffstat, ExportInput, Facts, Marker, Measures, OverviewExport, OverviewGroups, Phase, PhaseReason,
-    ProjectExport, ProjectPrompt, ProjectRef, ProjectStory, PromptItem, PromptsExport, SessionExport, SessionStory, SessionTotals,
-    StoryItem, Surface, Tokens,
+    BranchExport, Chapter, Commit, Connector, Diffstat, ExportInput, Facts, Marker, Measures, OverviewExport, OverviewGroups, Phase,
+    PhaseReason, ProjectExport, ProjectPrompt, ProjectRef, ProjectStory, PromptItem, PromptsExport, SessionExport, SessionStory,
+    SessionTotals, StoryItem, Surface, Tokens,
 };
 use gitprompt_export::report::{Bar, Block, Chart, ChartKind, Level, Report, Section};
 use gitprompt_export::{Context, Export, Kind, Options, Zone};
@@ -308,6 +308,35 @@ pub fn project_export() -> ProjectExport {
     ProjectExport { generated_at: "2026-03-03T10:00:00+00:00".into(), story: project_story() }
 }
 
+// --- a branch ------------------------------------------------------------------------------------
+
+pub const BRANCH: &str = "timing-ledger";
+
+/// Two prompts typed on [`BRANCH`]: the planted one with one commit, then a rewording of it that
+/// made two.
+pub fn branch_export() -> BranchExport {
+    let first = ProjectPrompt { branch: Some(BRANCH.into()), ..project_prompt() };
+    let commits = vec![
+        Commit { hash: "d3b1663aa".into(), subject: "Add the ledger".into(), ..commit() },
+        Commit { hash: "a08db20bb".into(), subject: "Block the flaky kinds".into(), ..commit() },
+    ];
+    let second = ProjectPrompt {
+        id: 12,
+        received_at: "2026-03-02T10:00:00+00:00".into(),
+        text: Some("Block the flaky kinds in CI\nreport the rest".into()),
+        response_s: Some(3000.0),
+        retry_of: Some(11),
+        commits,
+        ..first.clone()
+    };
+    BranchExport {
+        generated_at: "2026-03-03T10:00:00+00:00".into(),
+        branch: BRANCH.into(),
+        repo: Some(REPO.into()),
+        prompts: vec![first, second],
+    }
+}
+
 // --- the overview --------------------------------------------------------------------------------
 
 pub fn bucket(key: Option<&str>, prompts: i64) -> Bucket {
@@ -414,6 +443,7 @@ pub fn planted(kind: Kind) -> ExportInput {
         Kind::Project => ExportInput::Project(project_export()),
         Kind::Overview => ExportInput::Overview(overview_export()),
         Kind::Prompts => ExportInput::Prompts(prompts_export()),
+        Kind::Branch => ExportInput::Branch(branch_export()),
     }
 }
 

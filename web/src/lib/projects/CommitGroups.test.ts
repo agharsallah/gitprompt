@@ -92,3 +92,20 @@ describe('the opening sentence', () => {
 		expect(html).toMatch(/aria-pressed="true"[^>]*>25 by hand/);
 	});
 });
+
+describe('copying the prompts behind a branch', () => {
+	const copy = () => {};
+	const drawWith = (groups: CommitGroup[], by: CommitGrouping) =>
+		render(CommitGroups, { props: { groups, by, now: NOW, copy } }).body;
+
+	it('is offered on each branch heading, not on commits made by hand', () => {
+		const groups = [group('feat/x', [trace('traced')]), group(null, [trace('by_hand')])];
+		const html = drawWith(groups, 'branch');
+		expect(html).toContain('Copy prompts behind feat/x');
+		expect(html.match(/Copy prompts behind/g)).toHaveLength(1);
+	});
+
+	it('is not offered when the commits are grouped by phase', () => {
+		expect(drawWith([group('1', [trace('traced')])], 'phase')).not.toContain('Copy prompts');
+	});
+});

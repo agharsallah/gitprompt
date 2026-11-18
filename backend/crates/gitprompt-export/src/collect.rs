@@ -21,7 +21,9 @@ use gitprompt_store::stats::{AggregateQuery, GroupBy, Order};
 use gitprompt_store::store::NameKind;
 use gitprompt_store::{PromptFilter, Store};
 
-use crate::input::{ExportInput, OverviewExport, OverviewGroups, ProjectExport, PromptItem, PromptsExport, SessionExport, SessionStory};
+use crate::input::{
+    BranchExport, ExportInput, OverviewExport, OverviewGroups, ProjectExport, PromptItem, PromptsExport, SessionExport, SessionStory,
+};
 use crate::{ExportError, GROUP_LIMIT, MAX_PROMPTS, Request};
 
 /// Characters of a subagent brief read per turn event (Python's `turn_events` default).
@@ -111,6 +113,13 @@ fn project(store: &Store, specs: &Specs, id: &str, generated_at: String) -> Resu
     let tool_kinds = store.tool_kinds(&typed)?;
     let story = stories::project_story(&repo, &rows, &tool_kinds, &log(&rows), system);
     Ok(ProjectExport { generated_at, story: convert(story)? })
+}
+
+/// The prompts of a project story sent on `branch`, oldest first (see [`crate::branch_input`]).
+pub(crate) fn branch(story: &stories::ProjectStory, branch: &str, generated_at: &str) -> Result<BranchExport, ExportError> {
+    let story: crate::input::ProjectStory = convert(story)?;
+    let prompts = story.phases.into_iter().flat_map(|phase| phase.items).filter(|p| p.branch.as_deref() == Some(branch)).collect();
+    Ok(BranchExport { generated_at: generated_at.to_string(), branch: branch.to_string(), repo: story.repo, prompts })
 }
 
 /// The groupings of an Overview, as [`crate::build::OVERVIEW_GROUPS`] names them.

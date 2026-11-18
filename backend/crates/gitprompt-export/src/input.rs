@@ -28,6 +28,7 @@ pub enum ExportInput {
     Project(ProjectExport),
     Overview(OverviewExport),
     Prompts(PromptsExport),
+    Branch(BranchExport),
 }
 
 impl ExportInput {
@@ -37,6 +38,7 @@ impl ExportInput {
             ExportInput::Project(_) => Kind::Project,
             ExportInput::Overview(_) => Kind::Overview,
             ExportInput::Prompts(_) => Kind::Prompts,
+            ExportInput::Branch(_) => Kind::Branch,
         }
     }
 }
@@ -323,6 +325,18 @@ pub struct ProjectStory {
 pub struct ProjectExport {
     pub generated_at: String,
     pub story: ProjectStory,
+}
+
+/// The prompts behind a branch ([`crate::branch_input`]): the prompts of a project story sent on it,
+/// oldest first, each with its commits.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BranchExport {
+    pub generated_at: String,
+    pub branch: String,
+    /// The project folder (a root key: paths inside it become relative).
+    pub repo: Option<String>,
+    pub prompts: Vec<ProjectPrompt>,
 }
 
 // --- statistics ----------------------------------------------------------------------------------

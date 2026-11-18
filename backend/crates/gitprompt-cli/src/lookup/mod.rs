@@ -1,12 +1,14 @@
-//! `gitprompt find` and `gitprompt resume`: the palette's questions asked from the terminal. Both
-//! open the same [`Service`] the dashboard uses, so a match here is a match in ⌘K; this module only
-//! asks and prints (nothing here is run: a resume command is printed, never executed).
+//! `gitprompt find`, `gitprompt resume` and `gitprompt why`: the dashboard's questions asked from
+//! the terminal. Each opens the same [`Service`] the dashboard uses, so a match here is a match in
+//! ⌘K and a block here is the one the Commits tab copies; this module only asks and prints
+//! (nothing here is run: a resume command is printed, never executed).
 //!
 //! Exit codes: 0 when something matched (or a command was printed), 1 when nothing did or the
 //! answer could not be given (no database, an ambiguous name, a tool without a resume command).
 
 mod find;
 mod resume;
+mod why;
 
 use std::sync::Arc;
 
@@ -18,6 +20,7 @@ use crate::commands::Failure;
 
 pub(crate) use find::find;
 pub(crate) use resume::resume;
+pub(crate) use why::why;
 
 /// The service over this home's database, its clock the entry point's `now`; `None` (and a note on
 /// stderr) before the database exists, which is never created here.

@@ -1,0 +1,89 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "response.text().replace(&*api.root().to_string_lossy(), \"[root]\")"
+---
+### Prompts behind main
+
+6 prompts · 3 commits · 2 min of agent time
+
+<details>
+<summary>1. Write a function to calculate the factorial of a number · b2b2b2b</summary>
+
+_worked 14 s_
+
+You typed:
+
+```text
+Write a function to calculate the factorial of a number
+```
+
+- `b2b2b2b Add the retry loop (+3 −1)`
+
+</details>
+
+<details>
+<summary>2. Explain this</summary>
+
+You typed:
+
+```text
+Explain this
+```
+
+</details>
+
+<details>
+<summary>3. Add a retry to the upload client</summary>
+
+_worked 1 min_
+
+You typed:
+
+```text
+Add a retry to the upload client
+```
+
+</details>
+
+<details>
+<summary>4. Summarise this log · c3c3c3c</summary>
+
+_worked 28 s_
+
+You typed:
+
+```text
+Summarise this log
+```
+
+- `c3c3c3c Wire the uploader (+3 −1)`
+
+</details>
+
+<details>
+<summary>5. Add a retry to the upload client</summary>
+
+_worked 28 s_
+
+You typed:
+
+```text
+Add a retry to the upload client
+```
+
+</details>
+
+<details>
+<summary>6. /review the staged changes · d4d4d4d</summary>
+
+You typed:
+
+```text
+/review the staged changes
+```
+
+- `d4d4d4d Fix a typo in the README (+3 −1)`
+
+</details>
+
+_Secrets masked · paths relative · made by GitPrompt, on this machine_

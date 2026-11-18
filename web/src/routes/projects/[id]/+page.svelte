@@ -4,6 +4,7 @@
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import ExportButton from '#lib/export/ExportButton.svelte';
+	import { currentBranch } from '#lib/projects/branch.ts';
 	import ProjectTabs from '#lib/projects/ProjectTabs.svelte';
 	import ProjectHeader from '#lib/stories/ProjectHeader.svelte';
 	import ProjectStory from '#lib/stories/ProjectStory.svelte';
@@ -30,7 +31,7 @@
 				<ExportButton target={{ kind: 'project', id: story.id }} />
 			{/snippet}
 		</ProjectHeader>
-		<ProjectTabs project={story.id}>
+		<ProjectTabs project={story.id} branch={currentBranch(story)}>
 			{#snippet journey()}<ProjectStory {story} />{/snippet}
 		</ProjectTabs>
 	{/snippet}

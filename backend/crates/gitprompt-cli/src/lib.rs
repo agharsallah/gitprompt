@@ -11,6 +11,7 @@
 //!                                             the prompts matching the words (none: the latest)
 //! gitprompt resume <session id or name> | --last [--json]
 //!                                             print the command that resumes a session
+//! gitprompt why --branch <name> [--project P] the prompts behind a branch, as Markdown
 //! gitprompt hook <source>                     forward one hook payload (stdin) to the daemon
 //! gitprompt spool drain                       deliver payloads spooled while the daemon was down
 //! ```
@@ -81,6 +82,12 @@ pub enum Command {
     /// matches several sessions, or a tool that cannot resume from the command line.
     #[command(after_help = RESUME_EXAMPLES)]
     Resume(ResumeArgs),
+    /// Print the prompts behind a branch as Markdown to paste into a pull request: each prompt you
+    /// typed on it, folded, with the commits its work made (the block the dashboard's Commits tab
+    /// copies; secrets masked, paths relative). Exits 0 when the block was printed, 1 when no
+    /// prompt you typed was recorded on that branch.
+    #[command(after_help = WHY_EXAMPLES)]
+    Why(WhyArgs),
     /// Forward one hook payload read from stdin to the running daemon, for `source`. Never prints,
     /// always exits 0 (a tool must never see a failing hook); when the daemon is down or doesn't
     /// answer within 2 s, the payload is spooled and delivered later. Input that is not JSON is
@@ -104,6 +111,11 @@ Examples:
   gitprompt resume --last | pbcopy       copy the command that resumes the latest session
   gitprompt resume \"release prep\"        the session you named so (or its id)
   gitprompt resume 7f3a9c1e --json       the command, folder and tool as JSON";
+
+const WHY_EXAMPLES: &str = "\
+Examples:
+  gitprompt why --branch timing-ledger | pbcopy     copy the prompts behind a branch for its pull request
+  gitprompt why --branch main --project api         the branch of one project (its folder name, path or name)";
 
 #[derive(Debug, Args)]
 pub struct FindArgs {
@@ -134,6 +146,19 @@ pub struct ResumeArgs {
     /// Print the command, folder and tool as JSON.
     #[arg(long)]
     pub json: bool,
+}
+
+/// What `gitprompt why` explains. Today a branch; each question is one more argument here and one
+/// more module in `lookup::why`.
+#[derive(Debug, Args)]
+pub struct WhyArgs {
+    /// The branch whose prompts to print (as recorded when you typed them).
+    #[arg(long, value_name = "BRANCH")]
+    pub branch: String,
+    /// The project the branch is in: its folder name, its path or its name. Default: the project
+    /// where you last typed a prompt on that branch.
+    #[arg(long, value_name = "PROJECT")]
+    pub project: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -203,6 +228,7 @@ pub fn run(cli: &Cli, env: Env, io: &mut Io<'_>) -> u8 {
         Some(Command::Reindex) => commands::reindex(&settings, io),
         Some(Command::Find(args)) => lookup::find(&settings, args, io),
         Some(Command::Resume(args)) => lookup::resume(&settings, args, io),
+        Some(Command::Why(args)) => lookup::why(&settings, args, io),
         Some(Command::Check) => commands::check(&settings, io),
         Some(Command::Doctor { json }) => doctor::run(&settings, *json, io),
         Some(Command::Spool { command: SpoolCommand::Drain }) => commands::drain(&settings, io),

@@ -20,7 +20,7 @@ mod stories;
 mod usage;
 
 pub use data::{Backup, CompactIn, DataOut, DeleteIn, RemovalOut, ReportOut, SourceEvents};
-pub use export::{ChartInfo, ExportFile, ExportFormat, ExportKind, ExportQuery};
+pub use export::{BranchQuery, ChartInfo, ExportFile, ExportFormat, ExportKind, ExportQuery};
 pub use find::{FindHit, FindQuery, FindResults, FindTarget};
 pub use names::{NameIn, NameOut};
 pub use prompts::{Annotation, Injected, PromptDetail, PromptOut, PromptQuery, Updated};

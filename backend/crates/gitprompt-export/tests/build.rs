@@ -342,6 +342,6 @@ fn build_runs_the_builder_of_the_inputs_kind() {
 
 #[test]
 fn an_input_knows_its_kind() {
-    let kinds = [Kind::Session, Kind::Project, Kind::Overview, Kind::Prompts].map(|k| planted(k).kind());
+    let kinds = [Kind::Session, Kind::Project, Kind::Overview, Kind::Prompts, Kind::Branch].map(|k| planted(k).kind());
     assert_eq!(kinds, Kind::ALL);
 }

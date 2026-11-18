@@ -56,6 +56,14 @@ impl Default for ExportQuery {
     }
 }
 
+/// The prompts behind a branch (`/api/export/branch`): both required (else 422).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BranchQuery {
+    /// The project id.
+    pub project: String,
+    pub branch: String,
+}
+
 /// A rendered export. HTTP: `Content-Type: media_type`, `Content-Disposition: <inline|attachment>;
 /// filename="<filename>"`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, and for
 /// HTML `Content-Security-Policy: <csp>`.

@@ -19,7 +19,7 @@ use gitprompt_store::store::USAGE_KEEP_DAYS;
 use crate::error::ApiError;
 use gitprompt_insights::find::{Kind, PER_KIND};
 
-use crate::model::{CommitQuery, ExportQuery, FindQuery, PromptQuery, StatsQuery};
+use crate::model::{BranchQuery, CommitQuery, ExportQuery, FindQuery, PromptQuery, StatsQuery};
 
 /// `(key, value)` pairs of a raw query string, percent-decoded, in order.
 pub fn pairs(query: Option<&str>) -> Vec<(String, String)> {
@@ -207,6 +207,12 @@ pub fn export_query(pairs: &[(String, String)]) -> Result<ExportQuery, ApiError>
         }
     }
     Ok(q)
+}
+
+/// `project` (its id) and `branch`, both required: `/api/export/branch`.
+pub fn branch_query(pairs: &[(String, String)]) -> Result<BranchQuery, ApiError> {
+    let required = |key: &str| last(pairs, key).map(str::to_owned).ok_or_else(|| ApiError::Unprocessable(format!("{key}: required")));
+    Ok(BranchQuery { project: required("project")?, branch: required("branch")? })
 }
 
 /// `days` of `/api/usage` (1 to the days the store keeps, default 7).

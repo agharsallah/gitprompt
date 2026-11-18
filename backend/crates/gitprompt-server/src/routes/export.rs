@@ -1,5 +1,5 @@
 //! Exports as files: the dashboard's preview and the download are the same response (port of
-//! `api/routes/export.py`).
+//! `api/routes/export.py`), and the prompts behind a branch as Markdown for a pull request.
 
 use axum::extract::State;
 use axum::http::{HeaderName, HeaderValue, header};
@@ -7,13 +7,21 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 
-use super::extract::{ExportParams, Params};
+use super::extract::{Branch, ExportParams, Params};
 use crate::error::{ApiError, ApiResult};
 use crate::model::{ChartInfo, ExportFile, ExportKind};
 use crate::service::Service;
 
 pub(super) fn router() -> Router<Service> {
-    Router::new().route("/api/export/{kind}", get(render)).route("/api/export/{kind}/charts", get(charts))
+    Router::new()
+        .route("/api/export/branch", get(branch))
+        .route("/api/export/{kind}", get(render))
+        .route("/api/export/{kind}/charts", get(charts))
+}
+
+/// Always Markdown, with the redaction defaults (and the prompt text): the block is pasted as is.
+async fn branch(State(service): State<Service>, Branch(query): Branch) -> ApiResult<Response> {
+    service.export_branch(query).await.map(file)
 }
 
 async fn render(

@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use gitprompt_store::filter::PromptFilter;
 
 use crate::error::ApiError;
-use crate::model::{CommitQuery, ExportQuery, FindQuery, PromptQuery, StatsQuery};
+use crate::model::{BranchQuery, CommitQuery, ExportQuery, FindQuery, PromptQuery, StatsQuery};
 use crate::query;
 
 fn pairs(parts: &Parts) -> Vec<(String, String)> {
@@ -76,6 +76,16 @@ impl<S: Send + Sync> FromRequestParts<S> for ExportParams {
     fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
         let pairs = pairs(parts);
         ready(query::export_query(&pairs).and_then(|export| Ok(ExportParams(export, query::prompt_filter(&pairs)?))))
+    }
+}
+
+/// `project` and `branch` (`/api/export/branch`).
+pub(super) struct Branch(pub BranchQuery);
+
+impl<S: Send + Sync> FromRequestParts<S> for Branch {
+    type Rejection = ApiError;
+    fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, ApiError>> + Send {
+        ready(query::branch_query(&pairs(parts)).map(Branch))
     }
 }
 

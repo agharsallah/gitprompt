@@ -8,9 +8,10 @@
 //!
 //! ```text
 //! read      reading values: labels, numbers, times, facts, charts, filters, notes
-//! session   project   overview   prompts      one builder per kind
+//! session   project   overview   prompts   branch      one builder per kind
 //! ```
 
+mod branch;
 mod overview;
 mod project;
 mod prompts;
@@ -26,6 +27,7 @@ use crate::redact::Options;
 use crate::report::{Block, Figure, Level, Report, Section};
 use crate::{Kind, Row, Zone};
 
+pub use branch::{BRANCH_OPTIONS, EMPTY as EMPTY_BRANCH, branch};
 pub use overview::overview;
 pub use project::project;
 pub use prompts::prompts;
@@ -94,6 +96,7 @@ pub fn build(input: &ExportInput, options: &Options, zone: Zone) -> (Report, Vec
         ExportInput::Project(data) => project(data, options, zone),
         ExportInput::Overview(data) => overview(data, options, zone),
         ExportInput::Prompts(data) => prompts(data, options, zone),
+        ExportInput::Branch(data) => branch(data, options, zone),
     }
 }
 

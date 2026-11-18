@@ -56,6 +56,8 @@ mod defaults_leave_out_secrets_emails_identity_home_paths_and_text {
         overview_json => (Overview, Json), overview_svg => (Overview, Svg),
         prompts_md => (Prompts, Markdown), prompts_html => (Prompts, Html), prompts_csv => (Prompts, Csv),
         prompts_json => (Prompts, Json), prompts_svg => (Prompts, Svg),
+        branch_md => (Branch, Markdown), branch_html => (Branch, Html), branch_csv => (Branch, Csv),
+        branch_json => (Branch, Json),
     );
 }
 
@@ -76,6 +78,8 @@ mod with_prompt_text_and_payloads_secrets_emails_and_homes_stay_hidden {
         overview_json => (Overview, Json),
         prompts_md => (Prompts, Markdown), prompts_html => (Prompts, Html), prompts_csv => (Prompts, Csv),
         prompts_json => (Prompts, Json),
+        branch_md => (Branch, Markdown), branch_html => (Branch, Html), branch_csv => (Branch, Csv),
+        branch_json => (Branch, Json),
     );
 }
 
@@ -361,8 +365,8 @@ fn render_returns_the_text_formats_as_utf8_bytes() {
 
 #[test]
 fn kinds_are_named_by_their_path_segment() {
-    assert_eq!(Kind::ALL.map(Kind::as_str), ["session", "project", "overview", "prompts"]);
-    assert_eq!(["session", "project", "overview", "prompts"].map(Kind::parse), Kind::ALL.map(Some));
+    assert_eq!(Kind::ALL.map(Kind::as_str), ["session", "project", "overview", "prompts", "branch"]);
+    assert_eq!(["session", "project", "overview", "prompts", "branch"].map(Kind::parse), Kind::ALL.map(Some));
 }
 
 #[test]
