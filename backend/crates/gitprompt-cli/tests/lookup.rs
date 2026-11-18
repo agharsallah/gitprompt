@@ -24,34 +24,18 @@ use jiff::{SignedDuration, Timestamp};
 use pretty_assertions::assert_eq;
 use serde_json::{Value, json};
 
+use common::inprocess::{Call, Ran, run_cli, seed_with};
 use common::{Home, home};
-use gitprompt_cli::{Cli, Io, run};
-use gitprompt_core::Env;
+use gitprompt_cli::Cli;
 use gitprompt_server::{App, AppOptions, FixedClock};
 
 fn t0() -> Timestamp {
     "2026-11-17T12:00:00Z".parse().unwrap()
 }
 
-struct Ran {
-    code: u8,
-    out: String,
-    err: String,
-}
-
 /// Seed `home` as if `ingest` ran at `at`: each payload, then each `(session, name)`.
 fn seed(home: &Home, at: Timestamp, payloads: Vec<(&str, Value)>, names: &[(&str, &str)]) {
-    let options = AppOptions { clock: Arc::new(FixedClock(at)), ..home.options() };
-    let service = App::new(home.settings.clone(), options).expect("app").service();
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-    runtime.block_on(async {
-        for (source, payload) in payloads {
-            service.ingest(source, payload).await.expect("ingest");
-        }
-        for (session, name) in names {
-            service.set_name("session", session, name).await.expect("name");
-        }
-    });
+    seed_with(home, AppOptions { clock: Arc::new(FixedClock(at)), ..home.options() }, payloads, names);
 }
 
 fn claude(session: &str, prompt_id: &str, cwd: &str, text: &str) -> (&'static str, Value) {
@@ -65,18 +49,7 @@ fn cursor(session: &str, prompt_id: &str, cwd: &str, text: &str) -> (&'static st
 }
 
 fn run_in(home: &Home, args: &[&str], tty: bool, no_color: bool) -> Ran {
-    let cli = Cli::try_parse_from(std::iter::once("gitprompt").chain(args.iter().copied())).expect("parses");
-    let mut env = Env::from_pairs([
-        ("HOME", home.settings.user_home.display().to_string()),
-        ("GITPROMPT_HOME", home.settings.home.display().to_string()),
-    ]);
-    if no_color {
-        env.set("NO_COLOR", "1");
-    }
-    let (mut stdin, mut out, mut err) = (std::io::empty(), Vec::new(), Vec::new());
-    let now = t0() + SignedDuration::from_mins(90);
-    let code = run(&cli, env, &mut Io { stdin: &mut stdin, stdout: &mut out, stderr: &mut err, now, tty });
-    Ran { code, out: String::from_utf8(out).unwrap(), err: String::from_utf8(err).unwrap() }
+    run_cli(home, args, Call { tty, no_color, ..Call::at(t0() + SignedDuration::from_mins(90)) })
 }
 
 fn run_plain(home: &Home, args: &[&str]) -> Ran {

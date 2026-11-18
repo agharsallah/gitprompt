@@ -70,6 +70,31 @@ fn git(cwd: &Path, args: &[&str]) -> Option<String> {
     (status.success() && !text.is_empty()).then_some(text)
 }
 
+/// What a revision (`HEAD`, `HEAD~2`, a branch, a hash) names in the repository around a folder.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Revision {
+    /// The full hash of the commit it names.
+    Commit(String),
+    /// The folder is in a repository, which has no such commit.
+    Unknown,
+    /// The folder is not in a git repository (or git is missing).
+    NoRepository,
+}
+
+/// `rev` resolved to a commit with `git rev-parse` in the repository around `cwd` (read-only, so
+/// `gitprompt why HEAD~2` reads like git). A revision starting with `-` would be read as an option:
+/// it names nothing.
+pub fn resolve_revision(cwd: &Path, rev: &str) -> Revision {
+    if git(cwd, &["rev-parse", "--git-dir"]).is_none() {
+        return Revision::NoRepository;
+    }
+    if rev.is_empty() || rev.starts_with('-') {
+        return Revision::Unknown;
+    }
+    let commit = format!("{rev}^{{commit}}");
+    git(cwd, &["rev-parse", "--verify", "--quiet", &commit]).map_or(Revision::Unknown, Revision::Commit)
+}
+
 /// Everything a reader yields until EOF, or `None` when that takes longer than `timeout`. Read on
 /// its own thread, so a full pipe never blocks the command.
 fn read_with_timeout(mut reader: impl Read + Send + 'static, timeout: Duration) -> Option<Vec<u8>> {

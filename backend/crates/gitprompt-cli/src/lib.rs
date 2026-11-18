@@ -11,6 +11,7 @@
 //!                                             the prompts matching the words (none: the latest)
 //! gitprompt resume <session id or name> | --last [--json]
 //!                                             print the command that resumes a session
+//! gitprompt why <commit> [--json]             the prompt behind a commit (a hash, HEAD, HEAD~2...)
 //! gitprompt why --branch <name> [--project P] the prompts behind a branch, as Markdown
 //! gitprompt hook <source>                     forward one hook payload (stdin) to the daemon
 //! gitprompt spool drain                       deliver payloads spooled while the daemon was down
@@ -27,6 +28,7 @@ mod lookup;
 mod print;
 
 use std::io::{IsTerminal, Read, Write};
+use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use jiff::Timestamp;
@@ -82,10 +84,15 @@ pub enum Command {
     /// matches several sessions, or a tool that cannot resume from the command line.
     #[command(after_help = RESUME_EXAMPLES)]
     Resume(ResumeArgs),
-    /// Print the prompts behind a branch as Markdown to paste into a pull request: each prompt you
-    /// typed on it, folded, with the commits its work made (the block the dashboard's Commits tab
-    /// copies; secrets masked, paths relative). Exits 0 when the block was printed, 1 when no
-    /// prompt you typed was recorded on that branch.
+    /// What made the code. `why <commit>`: which prompt made a commit, and in which session; the
+    /// first line is the verdict (traced, likely or made by hand), then the prompt's first lines
+    /// and its place in the dashboard. A revision (HEAD, HEAD~2, a branch) resolves with git in
+    /// the current folder; a hash works anywhere. Exits 0 when the commit was found, 1 when not,
+    /// or when a prefix names several. `why --branch <name>`: the prompts behind a branch as
+    /// Markdown to paste into a pull request: each prompt you typed on it, folded, with the
+    /// commits its work made (the block the dashboard's Commits tab copies; secrets masked, paths
+    /// relative). Exits 0 when the block was printed, 1 when no prompt you typed was recorded on
+    /// that branch.
     #[command(after_help = WHY_EXAMPLES)]
     Why(WhyArgs),
     /// Forward one hook payload read from stdin to the running daemon, for `source`. Never prints,
@@ -114,8 +121,11 @@ Examples:
 
 const WHY_EXAMPLES: &str = "\
 Examples:
+  gitprompt why HEAD                                the prompt behind the last commit
+  gitprompt why a1b2c3d --json                      the commit, its trace and its project as JSON
   gitprompt why --branch timing-ledger | pbcopy     copy the prompts behind a branch for its pull request
-  gitprompt why --branch main --project api         the branch of one project (its folder name, path or name)";
+  gitprompt why --branch main --project api         the branch of one project (its folder name, path or name)
+  git config alias.why '!gitprompt why'             then `git why HEAD~2` works (--global: in every repository)";
 
 #[derive(Debug, Args)]
 pub struct FindArgs {
@@ -148,16 +158,22 @@ pub struct ResumeArgs {
     pub json: bool,
 }
 
-/// What `gitprompt why` explains. Today a branch; each question is one more argument here and one
-/// more module in `lookup::why`.
+/// What `gitprompt why` explains: a commit, or a branch. Each question is one more argument here
+/// and one more module in `lookup::why`.
 #[derive(Debug, Args)]
 pub struct WhyArgs {
-    /// The branch whose prompts to print (as recorded when you typed them).
-    #[arg(long, value_name = "BRANCH")]
-    pub branch: String,
+    /// The commit: a hash or a prefix of one (at least 4 hex digits), or a revision git resolves
+    /// here (HEAD, HEAD~2, a branch).
+    pub commit: Option<String>,
+    /// Print the commit's lookup as JSON: the commit, its trace and its project, or the candidates.
+    #[arg(long, conflicts_with = "branch")]
+    pub json: bool,
+    /// The branch whose prompts to print (as recorded when you typed them), instead of a commit.
+    #[arg(long, value_name = "BRANCH", required_unless_present = "commit", conflicts_with = "commit")]
+    pub branch: Option<String>,
     /// The project the branch is in: its folder name, its path or its name. Default: the project
     /// where you last typed a prompt on that branch.
-    #[arg(long, value_name = "PROJECT")]
+    #[arg(long, value_name = "PROJECT", conflicts_with = "commit")]
     pub project: Option<String>,
 }
 
@@ -182,13 +198,15 @@ pub fn limit(value: &str) -> Result<usize, String> {
 }
 
 /// Where a command reads and writes, and what it knows of the outside: the time it runs at (the
-/// entry point reads the clock once, so printing is deterministic in tests) and whether stdout is
-/// a terminal (colour and a final newline only then).
+/// entry point reads the clock once, so printing is deterministic in tests), the folder it runs in
+/// (where `why` resolves a revision) and whether stdout is a terminal (colour and a final newline
+/// only then).
 pub struct Io<'a> {
     pub stdin: &'a mut dyn Read,
     pub stdout: &'a mut dyn Write,
     pub stderr: &'a mut dyn Write,
     pub now: Timestamp,
+    pub cwd: PathBuf,
     pub tty: bool,
 }
 
@@ -264,6 +282,8 @@ pub fn main_entry() -> std::process::ExitCode {
     }
     let (mut stdin, mut stdout, mut stderr) = (std::io::stdin(), std::io::stdout(), std::io::stderr());
     let tty = stdout.is_terminal();
-    let mut io = Io { stdin: &mut stdin, stdout: &mut stdout, stderr: &mut stderr, now: Timestamp::now(), tty };
+    // A folder that is gone (deleted under the shell) resolves no revision; a hash still works.
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let mut io = Io { stdin: &mut stdin, stdout: &mut stdout, stderr: &mut stderr, now: Timestamp::now(), cwd, tty };
     std::process::ExitCode::from(run(&cli, env, &mut io))
 }

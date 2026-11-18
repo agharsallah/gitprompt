@@ -4,6 +4,8 @@
 #![allow(dead_code, reason = "each test binary uses a different subset of these helpers")]
 
 pub mod binary;
+pub mod inprocess;
+pub mod repo;
 
 use std::net::{SocketAddr, TcpListener};
 use std::path::PathBuf;

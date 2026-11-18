@@ -193,6 +193,7 @@ Environment-only: `GITPROMPT_HOME` (data folder, default `~/.gitprompt`), `GITPR
 | `gitprompt serve` | Run the receiver and dashboard (the default command; `--port N` overrides the port) |
 | `gitprompt find [words]` | Find a past prompt: numbered matches with when, project and first line (the same search as the dashboard's ⌘K). Without words, the latest prompts. `--project`, `--limit`, `--print N`, `--json` |
 | `gitprompt resume <session>` | Print the command that resumes a session, `cd <folder> && <command>`; never runs it. The session is an id or the name you gave it; `--last` is the latest session |
+| `gitprompt why <commit>` | Which prompt made a commit, and in which session: the first line is the verdict (`a1b2c3d ← "add retry to the uploader" · session Rust switch · 12 Nov`), "likely" and "made by hand" said in words, then the prompt's first lines and the commit's row in the dashboard. A hash works anywhere; `HEAD`, `HEAD~2` or a branch resolve with git in the current folder. `--json` for scripts. `git config alias.why '!gitprompt why'` makes it `git why HEAD~2` |
 | `gitprompt why --branch <name>` | Print the prompts behind a branch as Markdown for its pull request: each prompt you typed on it, folded, with its commits; secrets masked, paths relative (the block the Commits tab copies). `--project` when the branch name is in several projects |
 | `gitprompt check` | Per connector and app: the newest captured prompt and how it was attributed |
 | `gitprompt doctor` | Paths, daemon and lock, database and index, each connector, spool, preferences; then a one-line fix per problem. Changes nothing |
@@ -209,6 +210,7 @@ gitprompt find auth --print 2 | pbcopy   # the full text of match 2 onto the cli
 gitprompt find --project api --json      # without words: the latest prompts; JSON for scripts
 gitprompt resume --last | pbcopy         # the command that resumes your latest session
 gitprompt resume "release prep"          # a session by the name you gave it (or its id)
+gitprompt why HEAD                       # the prompt behind the last commit, and its session
 gitprompt why --branch timing-ledger | pbcopy   # the prompts behind a branch, for its pull request
 ```
 
@@ -218,8 +220,8 @@ gitprompt why --branch timing-ledger | pbcopy   # the prompts behind a branch, f
 
 | Exit code | Meaning |
 |---|---|
-| `0` | `find`: something matched. `resume`: a command was printed. `why`: the block was printed |
-| `1` | `find`: nothing matched (`--json` still prints `[]`). `resume`: no such session, a name that matches several, a tool without a resume command. `why`: no prompt you typed on that branch. All: no database yet |
+| `0` | `find`: something matched. `resume`: a command was printed. `why`: the commit was found, or the block was printed |
+| `1` | `find`: nothing matched (`--json` still prints `[]`). `resume`: no such session, a name that matches several, a tool without a resume command. `why`: no project has the commit, a prefix that names several (listed), a revision outside a repository, no prompt you typed on that branch. All: no database yet |
 | `2` | Wrong arguments |
 
 ### Keeping the database small

@@ -20,7 +20,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use common::{DATE, Repo, git, git_dated, git_output, repo};
-use gitprompt_core::git::{Changes, Commit, CommitsAfter, GitCache, Shortstat, commits, git_context, history, numstat};
+use gitprompt_core::git::{
+    Changes, Commit, CommitsAfter, GitCache, Revision, Shortstat, commits, git_context, history, numstat, resolve_revision,
+};
 use gitprompt_core::{Json, JsonMap};
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -469,4 +471,32 @@ fn commits_after_a_prompt_serialize_without_diffstat_counts() {
             "until": "def5678"
         })
     );
+}
+
+// --- resolve_revision -----------------------------------------------------------------------
+
+#[test]
+fn a_revision_resolves_to_the_full_hash_of_its_commit() {
+    let repo = committed();
+    repo.commit("b.txt", "b\n", "second", DATE);
+    let (head, parent) = (repo.git(&["rev-parse", "HEAD"]), repo.git(&["rev-parse", "HEAD~1"]));
+    assert_eq!(resolve_revision(&repo.root, "HEAD"), Revision::Commit(head.clone()));
+    assert_eq!(resolve_revision(&repo.root, "HEAD~1"), Revision::Commit(parent));
+    assert_eq!(resolve_revision(&repo.root, "main"), Revision::Commit(head.clone()));
+    assert_eq!(resolve_revision(&repo.root.join("."), &head[..7]), Revision::Commit(head), "a short hash");
+}
+
+#[test]
+fn a_revision_the_repository_lacks_is_unknown_and_an_option_is_never_passed() {
+    let repo = committed();
+    for rev in ["HEAD~5", "nope", "--all", ""] {
+        assert_eq!(resolve_revision(&repo.root, rev), Revision::Unknown, "{rev:?}");
+    }
+    assert_eq!(resolve_revision(&common::repo().root, "HEAD"), Revision::Unknown, "no commit yet");
+}
+
+#[test]
+fn outside_a_repository_nothing_resolves() {
+    let dir = tempfile::tempdir().unwrap();
+    assert_eq!(resolve_revision(dir.path(), "HEAD"), Revision::NoRepository);
 }

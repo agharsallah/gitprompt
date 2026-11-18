@@ -43,7 +43,10 @@ fn why_help_has_example_lines_and_the_exit_codes() {
         .success()
         .stdout(contains("gitprompt why --branch timing-ledger | pbcopy"))
         .stdout(contains("gitprompt why --branch main --project api"))
-        .stdout(contains("Exits 0 when the block was printed, 1 when no prompt you typed was recorded"));
+        .stdout(contains("Exits 0 when the block was printed, 1 when no prompt you typed was recorded"))
+        .stdout(contains("gitprompt why HEAD"))
+        .stdout(contains("git config alias.why '!gitprompt why'"))
+        .stdout(contains("Exits 0 when the commit was found, 1 when not"));
 }
 
 #[test]
