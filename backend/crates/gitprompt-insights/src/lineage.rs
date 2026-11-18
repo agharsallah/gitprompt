@@ -28,27 +28,48 @@ pub fn normalize(text: &str) -> String {
 }
 
 /// A text's normalized form, character trigrams and words, computed once per text (a story compares
-/// one text against many).
+/// one text against many; redone work compares every prompt with the next).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Shingles {
     pub normal: String,
-    /// Every 3-character window of `normal` (a 1- or 2-character text is its own single shingle;
-    /// none for an empty text).
-    pub trigrams: BTreeSet<String>,
+    /// Every 3-character window of `normal`, each as an exact code ([`trigram_code`]), sorted and
+    /// without duplicates (a 1- or 2-character text is its own single shingle; none for an empty
+    /// text). Numbers, not strings: one allocation per text instead of one per window.
+    pub trigrams: Vec<u64>,
     pub words: BTreeSet<String>,
+}
+
+/// Bits of one character in a trigram code: every `char` is below 2^21.
+const CHAR_BITS: u32 = 21;
+/// Pads a 1- or 2-character shingle: above every `char`, so it never equals a real character.
+const PAD: u64 = 0x1F_FFFF;
+
+/// Up to three characters as one number, the first in the high bits; distinct windows give
+/// distinct codes.
+fn trigram_code(window: &[char]) -> u64 {
+    (0..3).fold(0, |code, at| (code << CHAR_BITS) | window.get(at).map_or(PAD, |&c| u64::from(c)))
 }
 
 impl Shingles {
     pub fn new(text: &str) -> Self {
         let normal = normalize(text);
         let chars: Vec<char> = normal.chars().collect();
-        let trigrams = match chars.len() {
-            0 => BTreeSet::new(),
-            1..=3 => BTreeSet::from([normal.clone()]),
-            _ => chars.windows(3).map(|w| w.iter().collect()).collect(),
+        let mut trigrams: Vec<u64> = match chars.len() {
+            0 => Vec::new(),
+            1..=3 => vec![trigram_code(&chars)],
+            _ => chars.windows(3).map(trigram_code).collect(),
         };
+        trigrams.sort_unstable();
+        trigrams.dedup();
         let words = words(&normal).map(String::from).collect();
         Shingles { normal, trigrams, words }
+    }
+
+    /// The trigrams as text, in code order (for reading them, e.g. in tests).
+    pub fn trigram_texts(&self) -> Vec<String> {
+        let mask = (1 << CHAR_BITS) - 1;
+        let char_at = |code: u64, at: u32| char::from_u32(u32::try_from((code >> (CHAR_BITS * (2 - at))) & mask).ok()?);
+        self.trigrams.iter().map(|&code| (0..3).filter_map(|at| char_at(code, at)).collect()).collect()
     }
 
     /// 0..=1, rounded to 3 decimals: the mean of the trigram and the word Jaccard indexes. 1 for equal
@@ -65,7 +86,9 @@ impl Shingles {
         if a.min(b) / a.max(b) < LENGTH_RATIO {
             return 0.0;
         }
-        crate::text::round(f64::midpoint(jaccard(&self.trigrams, &other.trigrams), jaccard(&self.words, &other.words)), 3)
+        let trigrams = ratio(shared_sorted(&self.trigrams, &other.trigrams), self.trigrams.len(), other.trigrams.len());
+        let words = ratio(self.words.intersection(&other.words).count(), self.words.len(), other.words.len());
+        crate::text::round(f64::midpoint(trigrams, words), 3)
     }
 
     /// `similarity >= THRESHOLD`.
@@ -74,9 +97,26 @@ impl Shingles {
     }
 }
 
-fn jaccard(a: &BTreeSet<String>, b: &BTreeSet<String>) -> f64 {
-    let shared = a.intersection(b).count();
-    let union = a.len() + b.len() - shared;
+/// Values two sorted, duplicate-free lists share (one merge pass).
+fn shared_sorted(a: &[u64], b: &[u64]) -> usize {
+    let (mut i, mut j, mut shared) = (0, 0, 0);
+    while let (Some(x), Some(y)) = (a.get(i), b.get(j)) {
+        match x.cmp(y) {
+            std::cmp::Ordering::Less => i += 1,
+            std::cmp::Ordering::Greater => j += 1,
+            std::cmp::Ordering::Equal => {
+                shared += 1;
+                i += 1;
+                j += 1;
+            }
+        }
+    }
+    shared
+}
+
+/// The Jaccard index of two sets of these sizes sharing `shared` values.
+fn ratio(shared: usize, a: usize, b: usize) -> f64 {
+    let union = a + b - shared;
     if union == 0 { 0.0 } else { shared as f64 / union as f64 }
 }
 

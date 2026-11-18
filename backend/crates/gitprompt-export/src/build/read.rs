@@ -7,6 +7,7 @@ use jiff::civil::{Date, DateTime, Time};
 use jiff::tz::TimeZone;
 use serde::Serialize;
 
+use gitprompt_core::numbers::{self, thousands, whole};
 use gitprompt_store::PromptFilter;
 
 use super::{DASH, TOP, json, present};
@@ -68,44 +69,14 @@ fn serde_name(value: impl Serialize) -> String {
 
 // --- numbers -------------------------------------------------------------------------------------
 
-/// `digits` (ASCII, no sign) with a comma every three digits from the right.
-fn group(digits: &str) -> String {
-    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
-    for (i, c) in digits.chars().enumerate() {
-        if i > 0 && (digits.len() - i).is_multiple_of(3) {
-            out.push(',');
-        }
-        out.push(c);
-    }
-    out
-}
-
-/// A whole number with thousands separators.
-fn thousands(n: i64) -> String {
-    let sign = if n < 0 { "-" } else { "" };
-    format!("{sign}{}", group(&n.unsigned_abs().to_string()))
-}
-
-/// Python's `round`: halves to even. The cast saturates, which no count reaches.
-#[expect(clippy::cast_possible_truncation, reason = "saturates, which no count reaches")]
-fn round(n: f64) -> i64 {
-    n.round_ties_even() as i64
-}
-
 /// A count, rounded, with thousands separators; `None` is `0`.
 pub fn integer(n: Option<f64>) -> String {
-    thousands(round(n.unwrap_or(0.0)))
+    thousands(whole(n.unwrap_or(0.0)))
 }
 
 /// `$1,234.57`; `<$0.01` for a cost under a cent but not zero; `None` and zero are `$0.00`.
 pub fn money(usd: Option<f64>) -> String {
-    let usd = usd.unwrap_or(0.0);
-    if usd != 0.0 && usd < 0.01 {
-        return "<$0.01".to_string();
-    }
-    let fixed = format!("{usd:.2}");
-    let (whole, cents) = fixed.split_once('.').unwrap_or((&fixed, "00"));
-    format!("${}.{cents}", group(whole))
+    numbers::money(usd.unwrap_or(0.0))
 }
 
 /// A cost the tool reported, or [`DASH`] when it reported none (not `$0.00`).
@@ -133,20 +104,9 @@ pub fn changes(diffstat: Option<&Diffstat>) -> String {
     }
 }
 
-/// A duration as read: `42 s`, `3 min` (whole minutes, rounded down), `2 h 5 min`, `12 h` (minutes
-/// shown under 10 h only), `1 h` (no `0 min`); [`DASH`] for `None`.
+/// A duration as read (`gitprompt_core::numbers::duration`); [`DASH`] for `None`.
 pub fn duration(seconds: Option<f64>) -> String {
-    let Some(seconds) = seconds else { return DASH.to_string() };
-    let s = round(seconds);
-    if s < 60 {
-        return format!("{s} s");
-    }
-    let minutes = s.div_euclid(60);
-    if s < 3600 {
-        return format!("{minutes} min");
-    }
-    let (h, m) = (minutes.div_euclid(60), minutes.rem_euclid(60));
-    if m != 0 && h < 10 { format!("{h} h {m} min") } else { format!("{h} h") }
+    seconds.map_or_else(|| DASH.to_string(), numbers::duration)
 }
 
 // --- time ----------------------------------------------------------------------------------------

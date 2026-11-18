@@ -86,6 +86,16 @@ fn spec_set_get_finds_a_spec_by_id() {
 // --- user specs -----------------------------------------------------------------------------
 
 #[test]
+fn a_tool_has_a_capability_itself_or_through_a_layer() {
+    use gitprompt_core::spec::Capability;
+    let set = load_spec_set(&sandbox().settings);
+    assert!(set.tool_has("claude-code", Capability::Cost), "through its telemetry layer");
+    assert!(set.tool_has("claude-code", Capability::TurnEnd), "itself");
+    assert!(!set.tool_has("copilot-cli", Capability::Cost));
+    assert!(!set.tool_has("unknown", Capability::Prompt));
+}
+
+#[test]
 fn a_user_spec_adds_a_source() {
     let sb = sandbox();
     sb.user_spec("mytool.yaml", MINIMAL);

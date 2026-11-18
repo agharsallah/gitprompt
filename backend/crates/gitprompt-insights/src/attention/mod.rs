@@ -7,6 +7,7 @@
 //! [`SOURCES`]; a new reader only reads [`Attention`].
 
 mod pick_up;
+mod redone_turn;
 mod repeated;
 
 use jiff::Timestamp;
@@ -16,6 +17,7 @@ use ts_rs::TS;
 pub use pick_up::{PICK_UP, PICK_UP_WITHIN, PickUp, Presence, RUNNING_WINDOW, SessionState, pick_up};
 pub use repeated::{COMMAND_MIN_CHARS, COMMAND_MIN_SENDS, COMMAND_MIN_SESSIONS, RepeatedText, command_name};
 
+use crate::redone::RedoneWork;
 use crate::target::Target;
 
 /// Items Worth a look shows at most.
@@ -27,6 +29,8 @@ pub const WORTH_A_LOOK: usize = 3;
 #[serde(rename_all = "snake_case")]
 #[ts(rename = "WorthKind")]
 pub enum Kind {
+    /// The redone turn that cost the most.
+    RedoneTurn,
     /// A prompt you send often enough to become a slash command.
     RepeatedPrompt,
 }
@@ -39,6 +43,8 @@ pub enum Kind {
 pub enum Action {
     /// Copy a ready command file: save `text` as `<name>.md` among the tool's commands.
     CopyCommand { name: String, text: String },
+    /// Open this turn in the reader.
+    OpenTurn { prompt_id: i64 },
 }
 
 /// One row of Worth a look: one sentence and one action.
@@ -59,13 +65,15 @@ pub struct Inputs {
     pub sessions: Vec<SessionState>,
     /// Typed texts sent more than once in the range, most sent first.
     pub repeated: Vec<RepeatedText>,
+    /// The range's redone work.
+    pub redone: Option<RedoneWork>,
 }
 
 /// A source of Worth a look: at most one item from the inputs.
 pub type Source = fn(&Inputs) -> Option<Item>;
 
 /// Every source, in the order their kinds are shown.
-pub const SOURCES: &[Source] = &[repeated::source];
+pub const SOURCES: &[Source] = &[redone_turn::source, repeated::source];
 
 /// `GET /api/attention`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]

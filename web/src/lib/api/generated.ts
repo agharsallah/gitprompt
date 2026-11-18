@@ -214,6 +214,20 @@ label: string,
  */
 assistant: string, };
 
+/**
+ * The redone turn that cost the most (money where reported, else agent time).
+ */
+
+export type CostliestTurn = { 
+/**
+ * The prompt id of the turn.
+ */
+id: number, reason: RedoneReason, agent_time_s: number, cost_usd?: number, 
+/**
+ * The first words you typed, when it was typed.
+ */
+text?: string, };
+
 export type DataInfo = { home: string, db_path: string, db_bytes: number, receiver: string, 
 /**
  * Stored raw events per source, largest first.
@@ -420,8 +434,7 @@ export type Join = "prompt_id" | "session";
 export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]: JsonValue } | null;
 
 /**
- * The key figures the Overview leads with, each against the period before. Phase 3 adds redone
- * work and possible leaks here.
+ * The key figures the Overview leads with, each against the period before.
  */
 
 export type KeyChanges = { prompts: Delta, sessions: Delta, cost_usd: Delta, 
@@ -432,7 +445,15 @@ agent_time_s: Delta,
 /**
  * Commits made during the turns.
  */
-git_commits: Delta, };
+git_commits: Delta, 
+/**
+ * Agent time of the turns you redid, seconds; with `key_figures`.
+ */
+redone_agent_time_s?: Delta, 
+/**
+ * Their cost; only where tools report cost now.
+ */
+redone_cost_usd?: Delta, };
 
 export type Lineage = { id: number, 
 /**
@@ -611,7 +632,11 @@ since: string,
 /**
  * UTC, exclusive: where the requested period starts.
  */
-until: string, totals: StatsBucket, changes: KeyChanges, };
+until: string, totals: StatsBucket, 
+/**
+ * With `key_figures`.
+ */
+redone?: RedoneWork, changes: KeyChanges, };
 
 /**
  * A project's commits while you worked on it, each with the prompt behind it.
@@ -752,6 +777,32 @@ export type Reconnect = { source: string, name: string,
  * The diff shows `<new token>` in a dry run.
  */
 change: Change, };
+
+/**
+ * The redone turns of one reason, or of all.
+ */
+
+export type RedonePart = { turns: number, agent_time_s: number, 
+/**
+ * Absent when no tool in the range reports cost.
+ */
+cost_usd?: number, };
+
+/**
+ * Why a turn was done again, in the order a turn is counted under.
+ */
+
+export type RedoneReason = "failed" | "interrupted" | "reworded";
+
+/**
+ * What the turns you redid cost, split by why.
+ */
+
+export type RedoneWork = { failed: RedonePart, interrupted: RedonePart, reworded: RedonePart, costliest?: CostliestTurn, turns: number, agent_time_s: number, 
+/**
+ * Absent when no tool in the range reports cost.
+ */
+cost_usd?: number, };
 
 export type Removal = { source: string, event: string | null, rows: number, bytes: number, why: RemovalReason, before: string | null, };
 
@@ -969,6 +1020,10 @@ export type SpecText = { file: SpecFile, text: string, };
  */
 
 export type Stats = { group_by: GroupBy | null, split_by: GroupBy | null, 
+/**
+ * With `key_figures=true`: what the turns you redid cost.
+ */
+redone?: RedoneWork, 
 /**
  * With `previous=true` and a `since`: the period of equal length before, its totals and the
  * key figures compared. Omitted otherwise (all time has no period before).
@@ -1315,7 +1370,7 @@ export type WeekStart = "monday" | "sunday";
  * or runs anything.
  */
 
-export type WorthAction = { "type": "copy_command", name: string, text: string, };
+export type WorthAction = { "type": "copy_command", name: string, text: string, } | { "type": "open_turn", prompt_id: number, };
 
 /**
  * One row of Worth a look: one sentence and one action.
@@ -1332,4 +1387,4 @@ target: AttentionTarget, };
  * not know as a plain link to its target.
  */
 
-export type WorthKind = "repeated_prompt";
+export type WorthKind = "redone_turn" | "repeated_prompt";

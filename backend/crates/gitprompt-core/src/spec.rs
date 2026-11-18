@@ -88,6 +88,14 @@ impl SpecSet {
     pub fn get(&self, id: &str) -> Option<&Arc<Spec>> {
         self.specs.get(id)
     }
+
+    /// Whether the tool `tool` (a main spec id) can report `capability`, itself or through one of
+    /// its layers (`part_of`): Claude Code's cost comes from its telemetry layer.
+    pub fn tool_has(&self, tool: &str, capability: Capability) -> bool {
+        self.specs
+            .values()
+            .any(|spec| (spec.id == tool || spec.part_of.as_deref() == Some(tool)) && spec.capabilities.contains(&capability))
+    }
 }
 
 /// The text of a spec file (bundled contents, or the user file read from disk).

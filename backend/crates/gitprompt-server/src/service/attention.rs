@@ -18,7 +18,8 @@ impl Service {
     pub async fn attention(&self, filter: PromptFilter) -> ApiResult<Attention> {
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let inputs = Inputs { sessions: inner.recent_sessions(&set)?, repeated: inner.repeated_texts(filter)? };
+            let redone = Some(inner.redone_work(&set, &filter)?);
+            let inputs = Inputs { sessions: inner.recent_sessions(&set)?, repeated: inner.repeated_texts(filter)?, redone };
             Ok(attention(&inputs, inner.now()))
         })
         .await

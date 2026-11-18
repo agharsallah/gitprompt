@@ -1,6 +1,6 @@
 ---
 source: crates/gitprompt-server/tests/api_snapshots.rs
-expression: "get(&api, &format!(\"/api/stats?previous=true&since={since}\")).await"
+expression: "get(&api,\n&format!(\"/api/stats?previous=true&key_figures=true&since={since}\")).await"
 ---
 {
   "group_by": null,
@@ -46,6 +46,28 @@ expression: "get(&api, &format!(\"/api/stats?previous=true&since={since}\")).awa
     "parts": null
   },
   "groups": [],
+  "redone": {
+    "turns": 3,
+    "agent_time_s": 14.0,
+    "failed": {
+      "turns": 1,
+      "agent_time_s": 7.0
+    },
+    "interrupted": {
+      "turns": 2,
+      "agent_time_s": 7.0
+    },
+    "reworded": {
+      "turns": 0,
+      "agent_time_s": 0.0
+    },
+    "costliest": {
+      "id": 14,
+      "reason": "interrupted",
+      "agent_time_s": 7.0,
+      "text": "/review the coupon change"
+    }
+  },
   "previous": {
     "since": "2025-12-29T09:06:11.000000+00:00",
     "until": "2026-01-05T09:06:11.000000+00:00",
@@ -89,6 +111,28 @@ expression: "get(&api, &format!(\"/api/stats?previous=true&since={since}\")).awa
       "span_s": null,
       "parts": null
     },
+    "redone": {
+      "turns": 1,
+      "agent_time_s": 28.0,
+      "failed": {
+        "turns": 0,
+        "agent_time_s": 0.0
+      },
+      "interrupted": {
+        "turns": 1,
+        "agent_time_s": 28.0
+      },
+      "reworded": {
+        "turns": 0,
+        "agent_time_s": 0.0
+      },
+      "costliest": {
+        "id": 9,
+        "reason": "interrupted",
+        "agent_time_s": 28.0,
+        "text": "Summarise this log"
+      }
+    },
     "changes": {
       "prompts": {
         "now": 6.0,
@@ -112,6 +156,11 @@ expression: "get(&api, &format!(\"/api/stats?previous=true&since={since}\")).awa
       "git_commits": {
         "now": 0.0,
         "before": 0.0
+      },
+      "redone_agent_time_s": {
+        "now": 14.0,
+        "before": 28.0,
+        "change": -0.5
       }
     }
   }

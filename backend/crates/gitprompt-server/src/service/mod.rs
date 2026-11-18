@@ -19,6 +19,7 @@ mod homes;
 mod ingest;
 mod names;
 mod prompts;
+mod redone;
 mod resume;
 mod settings;
 mod sources;

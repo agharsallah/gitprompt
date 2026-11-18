@@ -122,7 +122,7 @@ impl Bench {
             read("prompts (limit=50)", "/api/prompts?limit=50".into(), true),
             read("prompt detail", format!("/api/prompts/{id}"), true),
             read("stats by day", "/api/stats?group_by=day".into(), true),
-            read("stats with the period before", format!("/api/stats?previous=true&since={since}"), true),
+            read("stats with the period before", format!("/api/stats?previous=true&key_figures=true&since={since}"), true),
             read("stats by model", "/api/stats?group_by=model".into(), false),
             read("stats by tool", "/api/stats?group_by=tool".into(), false),
             read("sources", "/api/sources".into(), true),

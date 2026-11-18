@@ -15,6 +15,7 @@
 //! | [`label`]      | the default name of a session: what you first typed in it                 |
 //! | [`lineage`]   | similarity, word diff and outcome change between versions of a prompt     |
 //! | [`stories`]     | session chapters, project phases, commit attribution, a prompt's versions |
+//! | [`redone`]      | what the turns you had to redo cost (failed, interrupted, reworded)     |
 //! | [`snippets`]    | search result snippets with every match marked                            |
 //! | [`find`]        | one search over prompts, sessions and projects, ranked and grouped        |
 //! | [`catalog`]    | the Fields page: fields seen next to the fields each tool documents       |
@@ -46,6 +47,7 @@ pub mod indexer;
 pub mod label;
 pub mod lineage;
 pub mod origin;
+pub mod redone;
 pub mod snippets;
 pub mod stories;
 pub mod surface;

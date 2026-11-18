@@ -164,3 +164,20 @@ fn an_empty_feed_says_nothing_needs_you() {
     let busy = Inputs { sessions: vec![session("s", HOUR, Outcome::Done)], ..Inputs::default() };
     assert!(!attention(&busy, now()).nothing_needs_you);
 }
+
+#[test]
+fn the_costliest_redone_turn_comes_before_a_repeated_prompt_and_opens_the_turn() {
+    use gitprompt_insights::redone::{CostliestTurn, Reason, RedoneWork};
+    let costliest = |cost_usd| CostliestTurn { id: 7, reason: Reason::Failed, agent_time_s: 4320.0, cost_usd, text: None };
+    let inputs = |cost| Inputs {
+        repeated: vec![repeated("run just verify and fix", 14, 6)],
+        redone: Some(RedoneWork { costliest: Some(costliest(cost)), ..RedoneWork::default() }),
+        ..Inputs::default()
+    };
+    let feed = attention(&inputs(Some(9.2)), now());
+    assert_eq!(feed.worth_a_look[0].text, "Costliest redone turn: $9.20");
+    assert_eq!(feed.worth_a_look[0].action, Action::OpenTurn { prompt_id: 7 });
+    assert_eq!(feed.worth_a_look[0].target, Target::Prompt { id: 7 });
+    assert_eq!(feed.worth_a_look[1].kind, Kind::RepeatedPrompt);
+    assert_eq!(attention(&inputs(None), now()).worth_a_look[0].text, "Costliest redone turn: 1 h 12 min of agent time");
+}

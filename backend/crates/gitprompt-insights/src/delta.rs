@@ -10,6 +10,8 @@ use ts_rs::TS;
 use gitprompt_core::numbers::round;
 use gitprompt_store::stats::{Bucket, Period};
 
+use crate::redone::RedoneWork;
+
 /// One figure now and in the period before.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 pub struct Delta {
@@ -33,8 +35,14 @@ impl Delta {
     }
 }
 
-/// The key figures the Overview leads with, each against the period before. Phase 3 adds redone
-/// work and possible leaks here.
+/// What a period's key figures are read from: its totals and, when asked for, its redone work.
+#[derive(Clone, Copy, Debug)]
+pub struct Figures<'a> {
+    pub totals: &'a Bucket,
+    pub redone: Option<&'a RedoneWork>,
+}
+
+/// The key figures the Overview leads with, each against the period before.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, TS)]
 pub struct KeyChanges {
     pub prompts: Delta,
@@ -44,6 +52,14 @@ pub struct KeyChanges {
     pub agent_time_s: Delta,
     /// Commits made during the turns.
     pub git_commits: Delta,
+    /// Agent time of the turns you redid, seconds; with `key_figures`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub redone_agent_time_s: Option<Delta>,
+    /// Their cost; only where tools report cost now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub redone_cost_usd: Option<Delta>,
 }
 
 /// Whole-number counts as figures.
@@ -54,15 +70,21 @@ fn count(n: i64) -> f64 {
 
 impl KeyChanges {
     /// The figures of `now` against `before`; `before` holding no prompt counts as no "before".
-    pub fn between(now: &Bucket, before: &Bucket) -> KeyChanges {
-        let had = before.prompts > 0;
-        let delta = |figure: fn(&Bucket) -> f64| Delta::new(figure(now), had.then(|| figure(before)));
+    pub fn between(now: Figures<'_>, before: Figures<'_>) -> KeyChanges {
+        let had = before.totals.prompts > 0;
+        let delta = |figure: fn(&Bucket) -> f64| Delta::new(figure(now.totals), had.then(|| figure(before.totals)));
+        let redone = |figure: fn(&RedoneWork) -> Option<f64>| {
+            let value = figure(now.redone?)?;
+            Some(Delta::new(value, if had { before.redone.and_then(figure) } else { None }))
+        };
         KeyChanges {
             prompts: delta(|b| count(b.prompts)),
             sessions: delta(|b| count(b.sessions)),
             cost_usd: delta(|b| b.cost_usd),
             agent_time_s: delta(|b| b.agent_time_s),
             git_commits: delta(|b| b.git_commits),
+            redone_agent_time_s: redone(|r| Some(r.total.agent_time_s)),
+            redone_cost_usd: redone(|r| r.total.cost_usd),
         }
     }
 }
@@ -76,12 +98,17 @@ pub struct Previous {
     /// UTC, exclusive: where the requested period starts.
     pub until: String,
     pub totals: Bucket,
+    /// With `key_figures`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub redone: Option<RedoneWork>,
     pub changes: KeyChanges,
 }
 
 impl Previous {
-    pub fn new(period: Period, now: &Bucket, totals: Bucket) -> Previous {
-        let changes = KeyChanges::between(now, &totals);
-        Previous { since: period.since, until: period.until, totals, changes }
+    /// The period before, its totals and redone work, compared with `now`.
+    pub fn new(period: Period, now: Figures<'_>, totals: Bucket, redone: Option<RedoneWork>) -> Previous {
+        let changes = KeyChanges::between(now, Figures { totals: &totals, redone: redone.as_ref() });
+        Previous { since: period.since, until: period.until, totals, redone, changes }
     }
 }

@@ -107,10 +107,10 @@ fn long_texts_are_compared_on_their_start() {
 fn shingles_hold_trigrams_and_words_and_a_short_text_is_its_own_shingle() {
     let fix = Shingles::new("Fix it");
     assert_eq!(fix.normal, "fix it");
-    assert_eq!(fix.trigrams.iter().map(String::as_str).collect::<Vec<_>>(), vec![" it", "fix", "ix ", "x i"]);
+    assert_eq!(fix.trigram_texts(), vec![" it", "fix", "ix ", "x i"]);
     assert_eq!(fix.words.iter().map(String::as_str).collect::<Vec<_>>(), vec!["fix", "it"]);
-    assert_eq!(Shingles::new("ab").trigrams.iter().map(String::as_str).collect::<Vec<_>>(), vec!["ab"]);
-    assert!(Shingles::new("!!").trigrams.is_empty());
+    assert_eq!(Shingles::new("ab").trigram_texts(), vec!["ab"]);
+    assert_eq!(Shingles::new("!!").trigrams, Vec::<u64>::new());
 }
 
 #[test]

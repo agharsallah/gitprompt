@@ -75,12 +75,14 @@ async fn worth_a_look_follows_the_range_but_pick_up_does_not() {
     clock.set(at("2026-11-12T08:00:00Z"));
 
     let all = api.json("/api/attention").await;
-    assert_eq!(all["worth_a_look"][0]["kind"], "repeated_prompt");
+    // Sending the same text again in a session redoes the turn before: that comes first.
+    assert_eq!(all["worth_a_look"][0]["kind"], "redone_turn");
+    assert_eq!(all["worth_a_look"][1]["kind"], "repeated_prompt");
     assert_eq!(
-        all["worth_a_look"][0]["action"],
+        all["worth_a_look"][1]["action"],
         json!({"type": "copy_command", "name": "run-just-verify-and", "text": "run just verify and fix"})
     );
-    assert_eq!(all["worth_a_look"][0]["target"], json!({"page": "prompts", "q": "run just verify and fix"}));
+    assert_eq!(all["worth_a_look"][1]["target"], json!({"page": "prompts", "q": "run just verify and fix"}));
 
     let today = api.json_with("/api/attention", &[("since", "2026-11-12T00:00:00Z")]).await;
     assert_eq!(today["worth_a_look"], json!([]), "nothing repeated today");

@@ -41,6 +41,18 @@ expression: "get(&api, \"/api/attention\").await"
   ],
   "worth_a_look": [
     {
+      "kind": "redone_turn",
+      "text": "Costliest redone turn: 28 s of agent time",
+      "action": {
+        "type": "open_turn",
+        "prompt_id": 9
+      },
+      "target": {
+        "page": "prompt",
+        "id": 9
+      }
+    },
+    {
       "kind": "repeated_prompt",
       "text": "“run just verify and fix what fails” sent 5×",
       "action": {

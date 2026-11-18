@@ -151,7 +151,7 @@ async fn stats_with_the_week_before() {
         }
     }
     let since = clock_now(&clock) - SignedDuration::from_hours(7 * 24);
-    insta::assert_json_snapshot!("stats_previous", get(&api, &format!("/api/stats?previous=true&since={since}")).await);
+    insta::assert_json_snapshot!("stats_previous", get(&api, &format!("/api/stats?previous=true&key_figures=true&since={since}")).await);
 }
 
 /// The clock's instant (a `ManualClock` is a `Clock`).
