@@ -953,7 +953,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t14" data-area="be" data-size="M" data-pri="quality" data-needs="t13" data-status="partial">
+    <article class="tk" id="t14" data-area="be" data-size="M" data-pri="quality" data-needs="t13" data-status="done">
       <details><summary><span class="tt">Trace accuracy on real repositories</span><span class="goal">The trace is right in the cases real work produces, and says "likely" when it cannot be sure.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-b4">B4</a> "by hand" mark; the "likely" mark is new here</dd></dl>
@@ -966,7 +966,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> one test per case above · the 20-commit check repeated after the fixes.</p>
         <p class="dod"><b>Done when</b> at most 1 commit in 20 is wrong on your repository, and none of the wrong ones is shown as certain.</p>
-        <p class="shipped"><b>Partly shipped 2026-11-18.</b> A typed prompt's work lasts through the turns its session runs without you (subagents, task notices); commits are placed at their author time; two candidate works give <code>likely</code> naming the other (<code>CommitTrace.alternative</code>); a commit more than <code>LIKELY_S</code> (3 h, = <code>GAP_S</code>) from any work is by hand. One test per case (amend, rebase, two sessions, by hand between prompts, worktree, subagent); rule paragraph in <code>docs/architecture.md</code>. On this repository: 92 traced / 115 likely / 0 by hand became 175 / 29 / 4; the 20-commit sample scores 19/20. <b>Open:</b> one wrong trace is still shown as certain (<code>aaf36cb</code>, prompts captured on 7 Nov under a worktree folder, before worktrees resolved): G2 waits for your check of the table.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> A typed prompt's work lasts through the turns its session runs without you (subagents, task notices); commits are placed at their author time; two candidate works give <code>likely</code> naming the other (<code>CommitTrace.alternative</code>); a commit more than <code>LIKELY_S</code> (3 h, = <code>GAP_S</code>) from any work is by hand. One test per case (amend, rebase, two sessions, by hand between prompts, worktree, subagent); rule paragraph in <code>docs/architecture.md</code>. On this repository: 92 traced / 115 likely / 0 by hand became 175 / 29 / 4; the 20-commit sample scores 19/20. <b>Gate G2 passed, with one accepted exception:</b> the one wrong trace still shown as certain (<code>aaf36cb</code>) names an earlier firing of the same <code>/loop</code> in the same session; the true prompt is one of 3 rows the old Python daemon stored under an agent worktree folder on 7 Nov, before worktrees resolved to the main repository. The rule is right; new captures cannot repeat it; the rows were left as they are.</p>
       </div></details>
     </article>
 
@@ -1040,7 +1040,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t18" data-area="cli" data-size="S" data-pri="core" data-needs="t15" data-status="partial">
+    <article class="tk" id="t18" data-area="cli" data-size="S" data-pri="core" data-needs="t15" data-status="done">
       <details><summary><span class="tt">gitprompt why &lt;commit&gt;</span><span class="goal">In the terminal, a commit hash answers "which prompt made this, and in which session?".</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-r1">R1</a></dd></dl>
@@ -1056,11 +1056,11 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> command tests: traced, likely, by hand, unknown, ambiguous, not a repository.</p>
         <p class="dod"><b>Done when</b> <code>gitprompt why HEAD</code> in this repository names the prompt behind the last commit.</p>
-        <p class="shipped"><b>Partly shipped 2026-11-18.</b> <code>gitprompt why &lt;commit&gt;</code>: the verdict first (<code>a1b2c3d ← "…" · session NAME · 12 Nov</code>), likely and by hand in words, then the prompt, its Commits-tab row and the forge page; HEAD and other revisions resolve with git in the current folder (<code>git::resolve_revision</code>), a hash works anywhere; ambiguous prefixes list candidates; <code>--json</code>; the <code>git why</code> alias in the help. One <code>why</code> command with <code>--branch</code> (19). 10 command tests over real repositories. <b>Open:</b> on a copy of your database older commits answered correctly but HEAD did not, since the list stopped two hours after the last finished turn; that is fixed since, but <code>gitprompt why HEAD</code> has not been run again against a live daemon.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>gitprompt why &lt;commit&gt;</code>: the verdict first (<code>a1b2c3d ← "…" · session NAME · 12 Nov</code>), likely and by hand in words, then the prompt, its Commits-tab row and the forge page; HEAD and other revisions resolve with git in the current folder (<code>git::resolve_revision</code>), a hash works anywhere; ambiguous prefixes list candidates; <code>--json</code>; the <code>git why</code> alias in the help. One <code>why</code> command with <code>--branch</code> (19). 10 command tests over real repositories. The commit list first stopped two hours after the last finished turn, so HEAD in an active session found nothing; it now reads up to the clock's now (<code>1a374cb</code>). Run on a copy of your database, <code>gitprompt why HEAD</code> in this repository names the prompt behind the last commit (<code>d0e3879</code>, likely, with its session, row and forge links).</p>
       </div></details>
     </article>
 
-    <article class="tk" id="t19" data-area="be web" data-size="M" data-pri="core" data-needs="t13 t16" data-status="partial">
+    <article class="tk" id="t19" data-area="be web" data-size="M" data-pri="core" data-needs="t13 t16" data-status="done">
       <details><summary><span class="tt">"The prompts behind this branch" as Markdown</span><span class="goal">Paste the prompts that built a branch into a pull request with one copy, with nothing private in it.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-r1">R1</a>, I2, sketch below</dd><dt>Asks first</dt><dd>API snapshot.</dd></dl>
@@ -1084,7 +1084,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> export tests: a fixture with a key in a prompt is masked, absolute paths become relative, an empty branch gives a clear message · snapshot · pasted once into a real GitHub pull request.</p>
         <p class="dod"><b>Done when</b> the block renders cleanly in a pull request and holds nothing the redaction defaults would hide elsewhere.</p>
-        <p class="shipped"><b>Partly shipped 2026-11-18.</b> One builder (<code>build/branch.rs</code>, <code>markdown::paste</code>) behind <code>GET /api/export/branch</code>, "Copy prompts behind this branch" on the Commits tab (and on each branch heading), a palette command and <code>gitprompt why --branch</code>. A summary line, each typed prompt folded in <code>&lt;details&gt;</code> with its commits, the privacy footer; prompts are the typed ones recorded on the branch, their commits from <code>attribute_commits</code>. Prompt text is on (the block is the prompts), clipped at 280 characters, no per-prompt times. Privacy tests for md, html, csv and json. <b>Open:</b> pasting it once into a real GitHub pull request.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> One builder (<code>build/branch.rs</code>, <code>markdown::paste</code>) behind <code>GET /api/export/branch</code>, "Copy prompts behind this branch" on the Commits tab (and on each branch heading), a palette command and <code>gitprompt why --branch</code>. A summary line, each typed prompt folded in <code>&lt;details&gt;</code> with its commits, the privacy footer; prompts are the typed ones recorded on the branch, their commits from <code>attribute_commits</code>. Prompt text is on (the block is the prompts), clipped at 280 characters, no per-prompt times. Privacy tests for md, html, csv and json. The fixture block, rendered by GitHub's own GFM renderer (<code>POST /markdown</code>, the pipeline pull requests use), folds into 8 <code>&lt;details&gt;</code> with their summaries, code blocks, commit lists and the footer, with every planted secret masked.</p>
       </div></details>
     </article>
   </div>
