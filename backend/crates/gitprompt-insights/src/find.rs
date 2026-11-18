@@ -1,6 +1,7 @@
-//! Find: the best matches of each kind (prompts, sessions, projects) for one query, ranked the same
-//! way for every kind. Pure: callers pass what the store read ([`IndexedPrompt`] rows, the session
-//! and project groups of a statistics read); nothing here reads a database.
+//! Find: the best matches of each kind (prompts, sessions, projects, commits) for one query, ranked
+//! the same way for every kind. Pure: callers pass what the store read ([`IndexedPrompt`] rows, the
+//! session and project groups of a statistics read) and the projects' traced commits; nothing here
+//! reads a database or runs git.
 //!
 //! Ranking, best first (an empty query skips the first two: the most recent of each kind):
 //!
@@ -10,8 +11,8 @@
 //! 3. recency: the newest first; equal times keep the order the caller read them in
 //!
 //! At most [`PER_KIND`] hits per kind. A kind is one small function returning `Vec<Hit>` over its
-//! own candidates ([`prompt_hits`], [`session_hits`], [`project_hits`]); a new kind (commits,
-//! chapters) adds a function and a [`Kind`] and never touches `rank`.
+//! own candidates ([`prompt_hits`], [`session_hits`], [`project_hits`], [`commit_hits`]); a new kind
+//! (chapters) adds a function and a [`Kind`] and never touches `rank`.
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -21,7 +22,7 @@ use gitprompt_store::stats::Bucket;
 use gitprompt_store::timeline::IndexedPrompt;
 
 use crate::snippets::{Segment, WIDTH, highlight};
-use crate::stories::{folder_name, project_id};
+use crate::stories::{MIN_HASH, ProjectTraces, folder_name, names_hash, project_id};
 use crate::text::words;
 
 /// Hits per kind, at most.
@@ -34,14 +35,16 @@ pub enum Kind {
     Prompts,
     Sessions,
     Projects,
+    Commits,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 3] = [Kind::Prompts, Kind::Sessions, Kind::Projects];
+    pub const ALL: [Kind; 4] = [Kind::Prompts, Kind::Sessions, Kind::Projects, Kind::Commits];
 }
 
 /// What a hit opens: the id the dashboard builds the link from, as its story route takes it (a
-/// prompt's number, a session's id, a project's id).
+/// prompt's number, a session's id, a project's id; a commit: its project's id and its hash, the
+/// row of the project's Commits tab).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, TS)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 #[ts(rename = "FindTarget")]
@@ -49,6 +52,7 @@ pub enum Target {
     Prompt { id: i64 },
     Session { id: String },
     Project { id: String },
+    Commit { project: String, hash: String },
 }
 
 /// One match.
@@ -56,7 +60,8 @@ pub enum Target {
 #[ts(rename = "FindHit")]
 pub struct Hit {
     pub target: Target,
-    /// What to call it: the session's title (a prompt's session, a session) or the project's name.
+    /// What to call it: the session's title (a prompt's session, a session), the project's name, or
+    /// a commit's project's name.
     pub title: Option<String>,
     /// The matched text around the query's words, matched words marked.
     pub snippet: Vec<Segment>,
@@ -73,6 +78,7 @@ pub struct FindResults {
     pub prompts: Vec<Hit>,
     pub sessions: Vec<Hit>,
     pub projects: Vec<Hit>,
+    pub commits: Vec<Hit>,
 }
 
 /// A thing that matched, with what ranking needs.
@@ -148,6 +154,34 @@ pub fn project_hits(groups: &[Bucket], q: &str, limit: usize) -> Vec<Hit> {
         named(Target::Project { id: project_id(&repo) }, name, g.last_at.clone(), q)
     });
     rank(candidates.collect(), q, limit)
+}
+
+/// Commits (the projects' traced commits) matched on their subject, or by a hash: a single word of
+/// at least [`MIN_HASH`] characters that names it ([`names_hash`]) matches as well as the subject
+/// itself would. Called by their project's name.
+pub fn commit_hits(projects: &[ProjectTraces], q: &str, limit: usize) -> Vec<Hit> {
+    let limit = limit.min(PER_KIND);
+    let candidates = projects.iter().flat_map(|p| {
+        p.traces.iter().filter_map(move |t| {
+            let score = if is_hash_of(&t.commit.hash, q) { 3 } else { text_score(&t.commit.subject, q)? };
+            Some(Candidate {
+                target: Target::Commit { project: p.project.id.clone(), hash: t.commit.hash.clone() },
+                title: Some(p.project.name.clone()).filter(|name| !name.is_empty()),
+                text: t.commit.subject.clone(),
+                at: t.commit.time.clone(),
+                outcome: None,
+                score,
+                outcome_rank: 0,
+            })
+        })
+    });
+    rank(candidates.collect(), q, limit)
+}
+
+/// Whether the query is one word that names the commit `hash`.
+fn is_hash_of(hash: &str, q: &str) -> bool {
+    let q = q.trim();
+    q.chars().count() >= MIN_HASH && !q.contains(char::is_whitespace) && names_hash(hash, q)
 }
 
 /// The texts a session is matched on, in the order it is called by: the name you gave it, its

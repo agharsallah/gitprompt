@@ -20,5 +20,5 @@ export function parseQuery(raw: string): Parsed {
 export function kindsFor(mode: Mode): FindKind[] {
 	if (mode === 'projects') return ['projects'];
 	if (mode === 'sessions') return ['sessions'];
-	return mode === 'commands' ? [] : ['prompts', 'sessions', 'projects'];
+	return mode === 'commands' ? [] : ['prompts', 'sessions', 'projects', 'commits'];
 }

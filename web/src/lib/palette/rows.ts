@@ -31,16 +31,36 @@ const LABELS: Record<Kind, string> = {
 	session: 'Sessions',
 	prompt: 'Prompts',
 	project: 'Projects',
+	commit: 'Commits',
 	command: 'Commands',
 	page: 'Not here?'
 };
 
 /** The kinds the API finds, and the key of its answer that holds each. */
-const FOUND = { prompt: 'prompts', session: 'sessions', project: 'projects' } as const;
+const FOUND = {
+	prompt: 'prompts',
+	session: 'sessions',
+	project: 'projects',
+	commit: 'commits'
+} as const;
 type Found = keyof typeof FOUND;
+type CommitTarget = Extract<FindHit['target'], { kind: 'commit' }>;
+
+/** A commit: its hash then its subject (both marked), in its project. */
+function commitRow(hit: FindHit, target: CommitTarget, words: string[]): Row {
+	return {
+		key: `commit:${target.project}:${target.hash}`,
+		item: target,
+		glyph: 'commit',
+		title: [...highlight(target.hash, words), { text: ' ', hit: false }, ...hit.snippet],
+		context: hit.title ?? '',
+		at: hit.at
+	};
+}
 
 function rowOf(hit: FindHit, words: string[]): Row {
 	const target = hit.target;
+	if (target.kind === 'commit') return commitRow(hit, target, words);
 	const item: Item =
 		target.kind === 'prompt'
 			? { kind: 'prompt', id: target.id }
@@ -70,7 +90,9 @@ function commandRows(text: string, all?: readonly Command[]): Row[] {
 
 /** Empty, your last sessions come first; searching, the words' best prompts do. */
 const order = (searching: boolean): Found[] =>
-	searching ? ['prompt', 'session', 'project'] : ['session', 'prompt', 'project'];
+	searching
+		? ['prompt', 'commit', 'session', 'project']
+		: ['session', 'prompt', 'project', 'commit'];
 
 function foundGroups(parsed: Parsed, results: FindResults): Group[] {
 	const wanted = new Set<string>(kindsFor(parsed.mode));

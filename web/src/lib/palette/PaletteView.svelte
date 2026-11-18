@@ -2,6 +2,7 @@
 	import {
 		ArrowRight,
 		FolderGit2,
+		GitCommitHorizontal,
 		MessagesSquare,
 		Search,
 		SquareTerminal,
@@ -61,6 +62,7 @@
 		prompt: TextQuote,
 		session: MessagesSquare,
 		project: FolderGit2,
+		commit: GitCommitHorizontal,
 		command: SquareTerminal,
 		page: ArrowRight
 	};

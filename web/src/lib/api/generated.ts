@@ -117,6 +117,12 @@ commits: Array<CommitTrace>, };
 export type CommitGrouping = "phase" | "branch" | "day";
 
 /**
+ * What a hash names.
+ */
+
+export type CommitLookup = { "found": "one", commit: FoundCommit, } | { "found": "many", candidates: Array<FoundCommit>, };
+
+/**
  * A commit and the prompt behind it.
  */
 
@@ -298,7 +304,8 @@ unused: string | null, };
 
 export type FindHit = { target: FindTarget, 
 /**
- * What to call it: the session's title (a prompt's session, a session) or the project's name.
+ * What to call it: the session's title (a prompt's session, a session), the project's name, or
+ * a commit's project's name.
  */
 title: string | null, 
 /**
@@ -318,14 +325,41 @@ outcome: TurnOutcome | null, };
  * The best matches of each kind; a kind that was not asked for is empty.
  */
 
-export type FindResults = { prompts: Array<FindHit>, sessions: Array<FindHit>, projects: Array<FindHit>, };
+export type FindResults = { prompts: Array<FindHit>, sessions: Array<FindHit>, projects: Array<FindHit>, commits: Array<FindHit>, };
 
 /**
  * What a hit opens: the id the dashboard builds the link from, as its story route takes it (a
- * prompt's number, a session's id, a project's id).
+ * prompt's number, a session's id, a project's id; a commit: its project's id and its hash, the
+ * row of the project's Commits tab).
  */
 
-export type FindTarget = { "kind": "prompt", id: number, } | { "kind": "session", id: string, } | { "kind": "project", id: string, };
+export type FindTarget = { "kind": "prompt", id: number, } | { "kind": "session", id: string, } | { "kind": "project", id: string, } | { "kind": "commit", project: string, hash: string, };
+
+/**
+ * A commit found by its hash.
+ */
+
+export type FoundCommit = { 
+/**
+ * The project whose commits list it.
+ */
+project: StoryProject, 
+/**
+ * Its page on GitHub, GitLab or Bitbucket (`git::commit_url`); left out without such a remote.
+ */
+url?: string, commit: StoryCommit, 
+/**
+ * `None` when made by hand.
+ */
+prompt: TracePrompt | null, 
+/**
+ * The prompt's session.
+ */
+session: string | null, how: TraceHow, 
+/**
+ * The other prompt that could own it; only on a [`TraceHow::Likely`] trace.
+ */
+alternative?: TraceAlternative, };
 
 export type GroupBy = "day" | "day_hour" | "hour" | "weekday" | "weekday_hour" | "origin" | "source" | "surface" | "session" | "session_length" | "repo" | "branch" | "command" | "size" | "text" | "outcome" | "model" | "tool" | "tool_kind" | "work" | "query_source";
 

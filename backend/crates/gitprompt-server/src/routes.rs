@@ -35,6 +35,7 @@
 //! | GET    | /api/stories/prompt/{id}               |              | `Lineage`; 404                  |
 //! | GET    | /api/search                            |              | `SearchResults`                 |
 //! | GET    | /api/find                              |              | `FindResults`; 422 kinds/limit  |
+//! | GET    | /api/commits/{hash}                    |              | `CommitLookup`; 400 not a hash, 404 |
 //! | GET    | /api/export/{kind}                     |              | the file; 422 kind/id, 404 unknown id |
 //! | GET    | /api/export/{kind}/charts              |              | `[ChartInfo]`                   |
 //! | GET    | /api/usage?days=                       |              | `UsageOut`; 422 days outside 1..=366 |
@@ -47,6 +48,7 @@
 //!
 //! Every request also passes the Host check (400). Errors are `{"detail": "..."}`.
 
+mod commits;
 mod data;
 mod export;
 mod extract;
@@ -90,6 +92,7 @@ pub fn api(service: Service) -> Router {
         .merge(security::router())
         .merge(stories::router())
         .merge(find::router())
+        .merge(commits::router())
         .merge(export::router())
         .merge(status::router())
         .merge(usage::router())

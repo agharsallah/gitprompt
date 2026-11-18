@@ -1,4 +1,4 @@
-//! One search over prompts, sessions and projects.
+//! One search over prompts, sessions, projects and commits.
 
 use axum::extract::State;
 use axum::routing::get;

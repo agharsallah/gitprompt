@@ -21,7 +21,7 @@ describe('parseQuery', () => {
 	});
 
 	it('asks the API for the kinds of the mode, and for none for commands', () => {
-		expect(kindsFor('all')).toEqual(['prompts', 'sessions', 'projects']);
+		expect(kindsFor('all')).toEqual(['prompts', 'sessions', 'projects', 'commits']);
 		expect(kindsFor('projects')).toEqual(['projects']);
 		expect(kindsFor('sessions')).toEqual(['sessions']);
 		expect(kindsFor('commands')).toEqual([]);

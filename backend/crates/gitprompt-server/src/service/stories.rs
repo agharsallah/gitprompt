@@ -31,7 +31,7 @@ impl Inner {
     }
 
     /// Commits in the repository of `rows` within `window` (one git call); `[]` without either.
-    fn log_in(&self, rows: &[FactRow], window: Option<(String, String)>) -> Vec<Commit> {
+    pub(super) fn log_in(&self, rows: &[FactRow], window: Option<(String, String)>) -> Vec<Commit> {
         let Some((since, until)) = window else { return Vec::new() };
         let filled = |v: &Option<String>| v.as_deref().is_some_and(|v| !v.is_empty());
         let repo =
@@ -45,6 +45,12 @@ impl Inner {
     fn project_rows(&self, set: &SpecSet, project: &str) -> ApiResult<ProjectRows> {
         let not_found = || ApiError::from(Error::NotFound("project not found".into()));
         let repo = stories::project_repo(project).ok_or_else(not_found)?;
+        self.repo_rows(set, repo)
+    }
+
+    /// [`Self::project_rows`] of the repo itself (a git root or folder).
+    pub(super) fn repo_rows(&self, set: &SpecSet, repo: String) -> ApiResult<ProjectRows> {
+        let not_found = || ApiError::from(Error::NotFound("project not found".into()));
         let rows = self.timeline(set, &PromptFilter { repo: Some(repo.clone()), ..PromptFilter::default() }, None, false)?;
         if rows.is_empty() {
             return Err(not_found());
@@ -54,9 +60,9 @@ impl Inner {
 }
 
 /// A project's prompts of every origin ([`Inner::project_rows`]).
-struct ProjectRows {
-    repo: String,
-    rows: Vec<FactRow>,
+pub(super) struct ProjectRows {
+    pub(super) repo: String,
+    pub(super) rows: Vec<FactRow>,
 }
 
 impl Service {

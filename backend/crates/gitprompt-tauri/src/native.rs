@@ -1,6 +1,7 @@
 //! Opening folders and revealing files in the OS file manager, behind [`Opener`] so tests never
-//! open a Finder window.
+//! open a Finder window; the same opener opens web pages in the browser.
 
+use std::ffi::OsStr;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
@@ -30,7 +31,13 @@ impl Opener for SystemOpener {
     }
 }
 
-fn open_command(path: &Path) -> Command {
+/// Open a URL with the platform's opener (its default app for the scheme: the browser for a web
+/// page). The caller decides which URLs may be opened.
+pub(crate) fn open_url(url: &str) -> io::Result<()> {
+    run(open_command(url))
+}
+
+fn open_command(target: impl AsRef<OsStr>) -> Command {
     let program = if cfg!(target_os = "macos") {
         "open"
     } else if cfg!(windows) {
@@ -39,7 +46,7 @@ fn open_command(path: &Path) -> Command {
         "xdg-open"
     };
     let mut command = Command::new(program);
-    command.arg(path);
+    command.arg(target);
     command
 }
 

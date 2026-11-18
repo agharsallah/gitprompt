@@ -13,6 +13,7 @@ export const results = (parts: Partial<FindResults> = {}): FindResults => ({
 	prompts: [],
 	sessions: [],
 	projects: [],
+	commits: [],
 	...parts
 });
 

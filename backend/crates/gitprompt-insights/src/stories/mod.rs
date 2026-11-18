@@ -10,6 +10,7 @@
 //! (no `response_s`: at `received_at`).
 
 mod commit_list;
+mod commit_lookup;
 mod commits;
 mod ids;
 mod owners;
@@ -29,8 +30,11 @@ use gitprompt_core::spec::Origin;
 use crate::facts::FactRow;
 use crate::lineage::Shingles;
 use crate::time::Instant;
-pub use commit_list::{CommitGroup, CommitGrouping, CommitQuery, ProjectCommits, TraceCounts, project_commits};
-pub use commits::{CommitTrace, TraceAlternative, TraceHow, TracePrompt, attribute_commits, commit_traces};
+pub use commit_list::{
+    CommitGroup, CommitGrouping, CommitQuery, ProjectCommits, ProjectTraces, TraceCounts, project_commits, project_traces,
+};
+pub use commit_lookup::{CommitLookup, FoundCommit, lookup_commit};
+pub use commits::{CommitTrace, MIN_HASH, TraceAlternative, TraceHow, TracePrompt, attribute_commits, commit_traces, names_hash};
 pub use project::{Measures, ProjectEntry, ProjectPhase, ProjectStory, project_story};
 pub use session::{
     Chapter, Marker, MarkerKind, SessionItem, SessionStory, SessionTotals, StoryItem, TurnTools, group_markers, session_story,

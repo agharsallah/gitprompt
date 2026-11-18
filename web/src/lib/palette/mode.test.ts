@@ -32,7 +32,12 @@ describe('what recall asks for', () => {
 
 	it('leaves the full palette as it was: prefixes narrow, every kind is searched', () => {
 		expect(parseFor('full', '@ s-1')).toEqual(parseQuery('@ s-1'));
-		expect(kindsIn('full', parseFor('full', 'rust'))).toEqual(['prompts', 'sessions', 'projects']);
+		expect(kindsIn('full', parseFor('full', 'rust'))).toEqual([
+			'prompts',
+			'sessions',
+			'projects',
+			'commits'
+		]);
 		expect(kindsIn('full', parseFor('full', '#x'))).toEqual(['projects']);
 	});
 });
@@ -48,7 +53,7 @@ describe('what recall lists', () => {
 	});
 
 	it('offers no way out to the Prompts page: a search without a match says so', () => {
-		const none = { prompts: [], sessions: [], projects: [] };
+		const none = { prompts: [], sessions: [], projects: [], commits: [] };
 		const nothing = buildView(parseQuery('zzz'), none, true, []);
 		expect(nothing.noMatch).toBe(true);
 		expect(restrict('recall', nothing)).toEqual({ groups: [], noMatch: true });

@@ -1,10 +1,11 @@
-//! Find: the best prompts, sessions and projects for one query. The store answers each kind with
-//! reads that already exist (the prompt filter on the typed-text index, statistics grouped by
-//! session and by repo); `gitprompt_insights::find` ranks them. Sessions carry their names and
+//! Find: the best prompts, sessions, projects and commits for one query. The store answers each
+//! kind with reads that already exist (the prompt filter on the typed-text index, statistics grouped
+//! by session and by repo; commits as the Commits tab reads them); `gitprompt_insights::find` ranks
+//! them. Sessions carry their names and
 //! default labels (ticket 09) first, so find matches what the dashboard calls them.
 
 use gitprompt_core::Result;
-use gitprompt_insights::find::{Kind, matches, project_hits, prompt_hits, prompt_hits_up_to, session_hits};
+use gitprompt_insights::find::{Kind, commit_hits, matches, project_hits, prompt_hits, prompt_hits_up_to, session_hits};
 use gitprompt_insights::stories::{USER_ORIGINS, folder_name};
 use gitprompt_store::PromptFilter;
 use gitprompt_store::stats::{AggregateQuery, Bucket, GroupBy, Order};
@@ -20,6 +21,9 @@ use crate::model::{FindHit, FindQuery, FindResults, FindTarget};
 /// and projects are matched here, so one older than the pool is found only by a name you gave it
 /// (`named_beyond`) or through one of its prompts.
 const POOL: usize = 200;
+/// Projects whose commits find matches: the most recently active ones (each costs a git call). An
+/// older project's commit is found by its hash (`GET /api/commits/{hash}`) or in its Commits tab.
+const COMMIT_PROJECTS: usize = 10;
 
 /// A prompt that matched, as the terminal tells it: the hit plus where it was typed and the whole
 /// text (the palette's hit carries only a marked snippet).
@@ -86,7 +90,7 @@ impl Service {
     /// stay empty.
     pub async fn find(&self, query: FindQuery) -> ApiResult<FindResults> {
         self.run(move |inner| {
-            inner.indexed()?;
+            let (set, _) = inner.indexed()?;
             let wants = |kind| query.kinds.contains(&kind);
             let (q, limit) = (query.q.as_str(), query.limit);
             let mut found = FindResults::default();
@@ -102,6 +106,9 @@ impl Service {
             }
             if wants(Kind::Projects) {
                 found.projects = project_hits(&inner.recent_groups(GroupBy::Repo)?, q, limit);
+            }
+            if wants(Kind::Commits) {
+                found.commits = commit_hits(&inner.recent_traces(&set, COMMIT_PROJECTS)?, q, limit);
             }
             Ok(found)
         })

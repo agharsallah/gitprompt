@@ -10,7 +10,9 @@ use ts_rs::TS;
 
 use gitprompt_core::git::Commit;
 
-use super::{BRANCH_RUN, CommitTrace, FactRow, GAP_S, ProjectRef, TraceHow, commit_traces, is_user, non_empty, phases, project_ref};
+use super::{
+    BRANCH_RUN, CommitTrace, FactRow, GAP_S, ProjectRef, TraceHow, commit_traces, is_user, names_hash, non_empty, phases, project_ref,
+};
 use crate::time::Instant;
 
 /// What the commits are grouped by.
@@ -68,36 +70,47 @@ pub struct ProjectCommits {
     pub groups: Vec<CommitGroup>,
 }
 
+/// A project's commits, each traced to the prompt you typed that it followed: the one read behind
+/// its Commits tab, a commit found by its hash, and the commits find matches.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProjectTraces {
+    pub project: ProjectRef,
+    /// In the commits' order.
+    pub traces: Vec<CommitTrace>,
+}
+
 /// The commits of a project (oldest first, as `git::history` lists them), each traced to the
 /// prompt you typed that it followed (rows of every origin, oldest first: the others carry a
-/// prompt's work on, [`commit_traces`]), counted, then
-/// those matching `query.q` (each word in the subject, a path or the hash, ignoring case) grouped,
-/// newest first by commit time.
-pub fn project_commits(repo: &str, rows: &[FactRow], commits: &[Commit], query: &CommitQuery) -> ProjectCommits {
+/// prompt's work on, [`commit_traces`]).
+pub fn project_traces(repo: &str, rows: &[FactRow], commits: &[Commit]) -> ProjectTraces {
+    traced(repo, rows, commits).1
+}
+
+/// [`project_traces`], and the prompts you typed.
+fn traced(repo: &str, rows: &[FactRow], commits: &[Commit]) -> (Vec<FactRow>, ProjectTraces) {
     let user: Vec<FactRow> = rows.iter().filter(|p| is_user(p)).cloned().collect();
-    let traces = commit_traces(rows, commits);
+    let traces = ProjectTraces { project: project_ref(repo, rows, &user), traces: commit_traces(rows, commits) };
+    (user, traces)
+}
+
+/// The commits of a project ([`project_traces`]), counted, then those matching `query.q` (each
+/// word in the subject, a path or the hash, ignoring case) grouped, newest first by commit time.
+pub fn project_commits(repo: &str, rows: &[FactRow], commits: &[Commit], query: &CommitQuery) -> ProjectCommits {
+    let (user, ProjectTraces { project, traces }) = traced(repo, rows, commits);
     let words: Vec<String> = query.q.split_whitespace().map(str::to_lowercase).collect();
     let mut matched: Vec<CommitTrace> = traces.iter().rev().filter(|t| matches(&t.commit, &words)).cloned().collect();
     // Newest first even where git's order is not by date (a commit dated earlier than its parent).
     matched.sort_by_key(|t| Reverse(Instant::parse(&t.commit.time).map(|time| time.at)));
     let phase_of = phase_index(&user);
     let key = |trace: &CommitTrace| group_key(trace, query.group, &phase_of);
-    ProjectCommits {
-        project: project_ref(repo, rows, &user),
-        group: query.group,
-        counts: counts(&traces),
-        matched: count(matched.len()),
-        groups: group(matched, key),
-    }
+    ProjectCommits { project, group: query.group, counts: counts(&traces), matched: count(matched.len()), groups: group(matched, key) }
 }
 
-/// Whether every word is in the subject or a path, or names the hash (either is a prefix of the
-/// other, so a full hash finds the short one).
+/// Whether every word is in the subject or a path, or names the hash ([`names_hash`]).
 fn matches(commit: &Commit, words: &[String]) -> bool {
-    let hash = commit.hash.to_lowercase();
-    let names_hash = |word: &str| !hash.is_empty() && (hash.starts_with(word) || word.starts_with(&hash));
     let contains = |text: &str, word: &str| text.to_lowercase().contains(word);
-    words.iter().all(|word| names_hash(word) || contains(&commit.subject, word) || commit.paths.iter().any(|path| contains(path, word)))
+    let names = |word: &str| names_hash(&commit.hash, word) || contains(&commit.subject, word);
+    words.iter().all(|word| names(word) || commit.paths.iter().any(|path| contains(path, word)))
 }
 
 /// prompt id -> the 1-based index of its phase ([`phases`] with the default rules).

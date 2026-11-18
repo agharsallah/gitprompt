@@ -128,7 +128,7 @@ describe('endpoints', () => {
 describe('find', () => {
 	it('asks for the most recent with no words, and for the kinds named', async () => {
 		const { fetch, calls } = fakeFetch(() => ({
-			body: { prompts: [], sessions: [], projects: [] }
+			body: { prompts: [], sessions: [], projects: [], commits: [] }
 		}));
 		await api.find('', [], fetch);
 		await api.find('fix the test', ['sessions', 'projects'], fetch);

@@ -1,0 +1,46 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/commits/c3c3c3c\").await"
+---
+{
+  "found": "one",
+  "commit": {
+    "commit": {
+      "hash": "c3c3c3c",
+      "subject": "Wire the uploader",
+      "author": "t",
+      "time": "2026-01-05T09:02:40+00:00",
+      "files": 2,
+      "insertions": 3,
+      "deletions": 1
+    },
+    "prompt": {
+      "id": 9,
+      "received_at": "2026-01-05T09:02:20.000000+00:00",
+      "branch": "main",
+      "text": "Summarise this log",
+      "clipped": false,
+      "outcome": "interrupted"
+    },
+    "session": "0190a1b2-0000-7000-8000-000000000001",
+    "how": "likely",
+    "alternative": {
+      "prompt": {
+        "id": 7,
+        "received_at": "2026-01-05T09:01:10.000000+00:00",
+        "branch": "main",
+        "text": "Add a retry to the upload client",
+        "clipped": false,
+        "outcome": "done"
+      },
+      "session": "0190a1b2-0000-7000-8000-000000000001"
+    },
+    "project": {
+      "id": "L3dvcmsvYXBw",
+      "repo": "/work/app",
+      "name": "app",
+      "git": true
+    },
+    "url": "https://github.com/acme/app/commit/c3c3c3c"
+  }
+}

@@ -1,15 +1,15 @@
-//! `GET /api/find`: one search over prompts, sessions and projects.
+//! `GET /api/find`: one search over prompts, sessions, projects and commits.
 
 use serde::{Deserialize, Serialize};
 
 use gitprompt_insights::find::{Kind, PER_KIND};
 
-/// The best matches of each kind, grouped: `{prompts, sessions, projects}`, each a list of hits with
+/// The best matches of each kind, grouped: `{prompts, sessions, projects, commits}`, each a list of hits with
 /// a snippet and the id the dashboard links to.
 pub use gitprompt_insights::find::{FindResults, Hit as FindHit, Target as FindTarget};
 
 /// Query of `GET /api/find`: `q` (empty: the most recent of each kind), `kinds` (`prompts`,
-/// `sessions`, `projects`, comma separated or repeated; default all) and `limit` per kind
+/// `sessions`, `projects`, `commits`, comma separated or repeated; default all) and `limit` per kind
 /// (1..=[`PER_KIND`], default [`PER_KIND`]).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindQuery {

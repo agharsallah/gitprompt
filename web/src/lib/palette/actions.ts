@@ -15,6 +15,7 @@
  */
 import type { Command } from '#lib/palette/commands.ts';
 import type { Pending } from '#lib/shared/clipboard.ts';
+import { commitAnchor } from '#lib/projects/commits.ts';
 import { projectHref, promptHref, sessionHref } from '#lib/shared/links.ts';
 
 /** The result kinds, with what each carries to its actions. `page` is the "no match" way out. */
@@ -22,6 +23,7 @@ type Items = {
 	prompt: { id: number };
 	session: { id: string };
 	project: { id: string };
+	commit: { project: string; hash: string };
 	command: { command: Command };
 	page: { href: string };
 };
@@ -130,6 +132,12 @@ registerAction('project', {
 	key: 'enter',
 	label: 'open',
 	run: (i, ctx) => ctx.navigate(projectHref(i.id))
+});
+registerAction('commit', {
+	key: 'enter',
+	label: 'open',
+	run: (i, ctx) =>
+		ctx.navigate(projectHref(i.project, { tab: 'commits', anchor: commitAnchor(i.hash) }))
 });
 registerAction('page', { key: 'enter', label: 'open', run: (i, ctx) => ctx.navigate(i.href) });
 registerAction('command', {

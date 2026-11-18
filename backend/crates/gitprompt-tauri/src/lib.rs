@@ -13,6 +13,8 @@
 //!   [`STATUS_EVENT`].
 //! * Native commands (`plugin:gitprompt|<name>`, see [`COMMANDS`]) are thin over
 //!   [`gitprompt_server::Service`]; errors serialize as `{status, detail}` ([`CommandError`]).
+//! * [`navigation`] decides where a link clicked in the window goes: the daemon's own pages stay,
+//!   other web pages open in the browser ([`open_in_browser`]), anything else is refused.
 //! * On `RunEvent::Exit` the daemon shuts down gracefully.
 //!
 //! When another process (a CLI `gitprompt serve`) already holds the data directory's lock, the
@@ -25,6 +27,7 @@ mod config;
 mod error;
 mod lifecycle;
 mod native;
+mod navigation;
 mod state;
 
 use tauri::plugin::{Builder, TauriPlugin};
@@ -36,6 +39,7 @@ pub use config::{PluginConfig, sidecar_next_to_exe};
 pub use error::CommandError;
 pub use lifecycle::{CAPTURED_EVENT, STATUS_EVENT};
 pub use native::{Opener, SystemOpener};
+pub use navigation::{Navigation, navigation, open_in_browser};
 pub use state::{DaemonStatus, GitPrompt};
 
 /// The plugin's name: commands are invoked as `plugin:gitprompt|<command>`, permissions are

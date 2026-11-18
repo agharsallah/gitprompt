@@ -9,6 +9,7 @@
 //! This file holds the shared state and the service's lifecycle; each group of routes is one
 //! submodule adding its methods to [`Service`].
 
+mod commits;
 mod data;
 mod export;
 mod find;

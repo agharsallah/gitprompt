@@ -33,6 +33,28 @@ describe('the rows of the palette', () => {
 		expect(prompt?.at).toBe('2026-11-16T10:00:00Z');
 	});
 
+	it('shows a commit by its hash then its subject, in its project, after the prompts', () => {
+		const commits = [
+			hit({
+				target: { kind: 'commit', project: 'cHJq', hash: 'a1b2c3d' },
+				title: 'gitprompt',
+				snippet: [{ text: 'Add the retry loop', hit: false }]
+			})
+		];
+		const found = results({ ...recent, commits });
+		expect(view('a1b2c3d', found).groups.map((g) => g.kind)).toEqual([
+			'prompt',
+			'commit',
+			'session',
+			'project'
+		]);
+		const row = rowsOf(view('a1b2c3d', found).groups).find((r) => r.glyph === 'commit');
+		expect(row?.title.map((s) => s.text).join('')).toBe('a1b2c3d Add the retry loop');
+		expect(row?.title[0]).toEqual({ text: 'a1b2c3d', hit: true });
+		expect(row?.context).toBe('gitprompt');
+		expect(row?.item).toEqual({ kind: 'commit', project: 'cHJq', hash: 'a1b2c3d' });
+	});
+
 	it('marks the typed words in a name', () => {
 		const row = rowsOf(view('port').groups).find((r) => r.glyph === 'session');
 		expect(row?.title[0]).toEqual({ text: 'Port', hit: true });

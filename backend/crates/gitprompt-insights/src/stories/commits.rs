@@ -109,6 +109,16 @@ fn trace(rows: &[FactRow], owners: &Owners, commit: &Commit) -> CommitTrace {
     CommitTrace { prompt: Some(trace_prompt(prompt)), session: prompt.prompt.row.session.clone(), how: owner.how, alternative, ..by_hand }
 }
 
+/// The fewest characters of a hash that name a commit (git's own minimum).
+pub const MIN_HASH: usize = 4;
+
+/// Whether `word` names the commit `hash`, ignoring case: either is a prefix of the other, so a
+/// full hash finds the short one git printed, and a prefix finds the commit.
+pub fn names_hash(hash: &str, word: &str) -> bool {
+    let (hash, word) = (hash.to_lowercase(), word.to_lowercase());
+    !hash.is_empty() && !word.is_empty() && (hash.starts_with(&word) || word.starts_with(&hash))
+}
+
 fn trace_prompt(prompt: &FactRow) -> TracePrompt {
     let row = &prompt.prompt.row;
     let (text, clipped) = clip(row.typed_text.as_deref(), EXCERPT_CHARS);

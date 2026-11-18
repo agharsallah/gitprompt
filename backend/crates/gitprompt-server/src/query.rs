@@ -154,7 +154,7 @@ pub fn prompt_query(pairs: &[(String, String)]) -> Result<PromptQuery, ApiError>
     Ok(PromptQuery { filter: prompt_filter(pairs)?, limit })
 }
 
-/// `q`, `kinds` (`prompts`, `sessions`, `projects`; comma separated and/or repeated, default all)
+/// `q`, `kinds` (`prompts`, `sessions`, `projects`, `commits`; comma separated and/or repeated, default all)
 /// and `limit` per kind (1..=[`PER_KIND`], default [`PER_KIND`]): `/api/find`.
 pub fn find_query(pairs: &[(String, String)]) -> Result<FindQuery, ApiError> {
     let mut kinds: Vec<Kind> = Vec::new();

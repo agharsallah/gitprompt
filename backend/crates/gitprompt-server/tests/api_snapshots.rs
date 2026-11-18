@@ -147,8 +147,9 @@ async fn stories_lineage_and_search() {
     insta::assert_json_snapshot!("search", get(&api, "/api/search?q=retry").await);
 }
 
-/// Every folder a git repository on `main`, whose history is [`FIXTURE_COMMITS`] (within the
-/// window asked for, as `git log --since --until` would answer).
+/// Every folder a git repository on `main` with a GitHub `origin`; `/work/app`'s history is
+/// [`FIXTURE_COMMITS`] (within the window asked for, as `git log --since --until` would answer),
+/// the others have none, so a hash names one project's commit.
 struct FixtureGit;
 
 /// `(hash, subject, time, paths)` around the `/work/app` prompts (09:00:07 to 09:03:51, the turns
@@ -167,12 +168,16 @@ impl GitProvider for FixtureGit {
         let mut context = JsonMap::new();
         context.insert("git_root".into(), cwd.to_string_lossy().into());
         context.insert("git_branch".into(), "main".into());
+        context.insert("git_remote".into(), "https://github.com/acme/app.git".into());
         context
     }
     fn commits(&self, root: &Path, start: Option<&str>, end: &str, since: &str) -> CommitsAfter {
         NoGit.commits(root, start, end, since)
     }
-    fn history(&self, _root: &Path, since: &str, until: &str) -> Vec<Commit> {
+    fn history(&self, root: &Path, since: &str, until: &str) -> Vec<Commit> {
+        if root != Path::new("/work/app") {
+            return Vec::new();
+        }
         let instant = |text: &str| text.parse::<Timestamp>().expect("instant");
         let window = instant(since)..=instant(until);
         FIXTURE_COMMITS
@@ -235,6 +240,13 @@ async fn find_prompts_sessions_and_projects() {
     let api = loaded().await;
     insta::assert_json_snapshot!("find", get(&api, "/api/find?q=retry").await);
     insta::assert_json_snapshot!("find_recent", get(&api, "/api/find").await);
+}
+
+#[tokio::test]
+async fn a_commit_by_its_hash_and_in_find() {
+    let api = loaded_with(harness().git(FixtureGit)).await;
+    insta::assert_json_snapshot!("commit", get(&api, "/api/commits/c3c3c3c").await);
+    insta::assert_json_snapshot!("find_commits", get(&api, "/api/find?q=retry").await);
 }
 
 #[tokio::test]

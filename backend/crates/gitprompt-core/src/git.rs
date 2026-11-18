@@ -2,6 +2,10 @@
 //! timeout each). Port of `core/git.py`, plus a short-lived cache: a burst of prompts from one repo
 //! runs git once (new in the Rust port).
 
+mod forge;
+
+pub use forge::commit_url;
+
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};

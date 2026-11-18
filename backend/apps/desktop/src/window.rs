@@ -3,7 +3,7 @@
 
 use tauri::{AppHandle, Manager, Runtime, Url, WebviewUrl, WebviewWindowBuilder, Window, WindowEvent};
 
-use gitprompt_tauri::{DaemonStatus, GitPromptExt};
+use gitprompt_tauri::{DaemonStatus, GitPromptExt, Navigation, navigation, open_in_browser};
 
 use crate::perf;
 
@@ -29,7 +29,9 @@ pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
             tracing::error!(status = ?status, "no page to show");
             return;
         };
+        let home = gitprompt.url().parse::<Url>().ok();
         let builder = WebviewWindowBuilder::new(&app, MAIN, WebviewUrl::External(url))
+            .on_navigation(move |target| home.as_ref().is_some_and(|home| on_navigation(home, target)))
             .title("GitPrompt")
             .inner_size(1280.0, 840.0)
             .min_inner_size(720.0, 480.0);
@@ -39,6 +41,21 @@ pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
             tracing::error!(error = %e, "could not open the GitPrompt window");
         }
     });
+}
+
+/// Whether the window follows a link: the daemon's own pages stay in it, other web pages open in
+/// the default browser instead, anything else goes nowhere (`gitprompt_tauri::navigation`).
+fn on_navigation(home: &Url, target: &Url) -> bool {
+    match navigation(home, target) {
+        Navigation::Stay => true,
+        Navigation::Browser => {
+            if let Err(e) = open_in_browser(target) {
+                tracing::warn!(error = %e, url = %target, "could not open the link in the browser");
+            }
+            false
+        }
+        Navigation::Refuse => false,
+    }
 }
 
 fn reveal<R: Runtime>(window: &tauri::WebviewWindow<R>) {

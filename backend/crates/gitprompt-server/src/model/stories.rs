@@ -11,6 +11,9 @@ use gitprompt_store::filter::Outcome;
 
 /// `GET /api/stories/prompt/{id}`: the prompt's retries and reuses.
 pub use gitprompt_insights::stories::PromptLineage as Lineage;
+/// `GET /api/commits/{hash}`: the commit a hash names (its trace, project and forge URL), or every
+/// candidate of an ambiguous prefix.
+pub use gitprompt_insights::stories::{CommitLookup, FoundCommit};
 /// `GET /api/stories/project/{id}/commits`: its query (`q`, `group`) and its answer, every commit
 /// with the prompt behind it.
 pub use gitprompt_insights::stories::{CommitQuery, ProjectCommits};

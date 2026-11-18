@@ -34,6 +34,12 @@ describe('the actions of each kind', () => {
 		expect(log).toEqual(['go /prompts?id=7', 'go /sessions/s-1', 'go /projects/gp']);
 	});
 
+	it('opens a commit on its row of the project’s Commits tab', async () => {
+		const { ctx, log } = context();
+		await perform({ kind: 'commit', project: 'gp', hash: 'a1b2c3d' }, 'enter', ctx);
+		expect(log).toEqual(['go /projects/gp?tab=commits#commit-a1b2c3d']);
+	});
+
 	it('copies the full text of a prompt on ⌘↵', async () => {
 		const { ctx, log } = context();
 		expect(await perform({ kind: 'prompt', id: 7 }, 'mod+enter', ctx)).toBe(true);
