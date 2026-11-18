@@ -4,6 +4,7 @@
 	import { plural, relativePath, timeOfDay } from '#lib/shared/format.ts';
 	import { promptHref } from '#lib/shared/links.ts';
 	import Disclosure from '#lib/ui/Disclosure.svelte';
+	import LinkArrow from '#lib/ui/LinkArrow.svelte';
 	import RailNode from '#lib/ui/RailNode.svelte';
 	import CommitList from '#lib/stories/CommitList.svelte';
 	import OutcomeLabel from '#lib/stories/OutcomeLabel.svelte';
@@ -65,6 +66,7 @@
 		<div class="facts">
 			<StoryFacts turn={c} />
 			<ToolMix tools={c.tools} label="Tool calls of turn {c.turn} by kind" />
+			<LinkArrow class="open" {href} title="Prompt › Turn {c.turn}">Open prompt</LinkArrow>
 		</div>
 		{#if c.files.length}
 			<Disclosure summary={plural(c.files_written, 'file') + ' written'}>
@@ -120,11 +122,13 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	/* A link that reads as a heading: dotted underline says it opens the prompt. */
 	.turn {
 		color: var(--color-text);
 		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
-		text-decoration: none;
+		text-decoration: underline dotted var(--color-text-muted);
+		text-underline-offset: 3px;
 	}
 
 	.turn:hover {
@@ -183,6 +187,12 @@
 		align-items: center;
 		gap: var(--space-2) var(--space-5);
 		padding-left: var(--space-3);
+	}
+
+	/* Every turn's way to its prompt, in the same place and look as a card's links. */
+	.facts > :global(.open) {
+		margin-left: auto;
+		font-size: var(--text-sm);
 	}
 
 	.body > :global(.disclosure),
