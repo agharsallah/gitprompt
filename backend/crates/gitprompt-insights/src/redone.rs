@@ -5,6 +5,10 @@
 //! A turn counts once, under the first of those reasons that holds, so a failed turn you then
 //! reworded is one failed turn. Cost is summed only for tools that report it; a range where no tool
 //! does has no cost at all, never a misleading $0.
+//!
+//! Only turns you started count (typed or a slash command): a turn a task notification or an agent
+//! message started is not work you asked for, and its length is the wait for its end. A failed turn
+//! that committed is not counted either: its work landed (both found on real data at gate G3).
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -82,9 +86,13 @@ impl Turn<'_> {
         self.prompt.row.response_s.unwrap_or(0.0)
     }
 
+    /// You started it: typed, or a slash command.
+    fn by_you(&self) -> bool {
+        origin::parse(&self.prompt.row.origin).is_some_and(|o| USER_ORIGINS.contains(&o))
+    }
+
     fn typed(&self) -> Option<&str> {
-        let by_you = origin::parse(&self.prompt.row.origin).is_some_and(|o| USER_ORIGINS.contains(&o));
-        self.prompt.row.typed_text.as_deref().filter(|text| by_you && !text.trim().is_empty())
+        self.prompt.row.typed_text.as_deref().filter(|text| self.by_you() && !text.trim().is_empty())
     }
 }
 
@@ -135,6 +143,8 @@ fn reasons(turns: &[Turn<'_>]) -> Vec<Option<Reason>> {
         .iter()
         .zip(reworded)
         .map(|(turn, reworded)| match turn.prompt.outcome {
+            _ if !turn.by_you() => None,
+            Outcome::Failed if turn.prompt.row.git_commits > 0 => reworded.then_some(Reason::Reworded),
             Outcome::Failed => Some(Reason::Failed),
             Outcome::Interrupted => Some(Reason::Interrupted),
             _ => reworded.then_some(Reason::Reworded),

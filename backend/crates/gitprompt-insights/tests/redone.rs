@@ -110,3 +110,17 @@ fn nothing_redone_is_an_empty_figure() {
     let work = redone(&[turn(1, "s", "build it", 30.0, Outcome::Done)], NO_COST);
     assert_eq!((work.total.turns, work.costliest), (0, None));
 }
+
+#[test]
+fn a_turn_you_did_not_start_is_not_yours_to_redo() {
+    let mut notified = turn(1, "s", "<task-notification>done</task-notification>", 11_000.0, Outcome::Failed);
+    notified.row.origin = "task_notification".into();
+    assert_eq!(redone(&[notified], NO_COST).total.turns, 0);
+}
+
+#[test]
+fn a_failed_turn_that_committed_landed_its_work() {
+    let mut committed = turn(1, "s", "ship the release", 13_000.0, Outcome::Failed);
+    committed.row.git_commits = 4;
+    assert_eq!(redone(&[committed], NO_COST).total.turns, 0);
+}

@@ -47,14 +47,14 @@ expression: "get(&api,\n&format!(\"/api/stats?previous=true&key_figures=true&sin
   },
   "groups": [],
   "redone": {
-    "turns": 3,
+    "turns": 2,
     "agent_time_s": 14.0,
     "failed": {
       "turns": 1,
       "agent_time_s": 7.0
     },
     "interrupted": {
-      "turns": 2,
+      "turns": 1,
       "agent_time_s": 7.0
     },
     "reworded": {
