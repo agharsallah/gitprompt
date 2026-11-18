@@ -215,6 +215,21 @@ export type DeleteIn = { source: string | null,
 before: string | null, };
 
 /**
+ * One figure now and in the period before.
+ */
+
+export type Delta = { now: number, 
+/**
+ * Absent when the period before held no prompt.
+ */
+before?: number, 
+/**
+ * `(now − before) / before`, 3 decimals (0.18 is +18%); absent without a `before`, or when it
+ * is 0.
+ */
+change?: number, };
+
+/**
  * A run of a word diff.
  */
 
@@ -383,6 +398,21 @@ export type Join = "prompt_id" | "session";
 
 export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]: JsonValue } | null;
 
+/**
+ * The key figures the Overview leads with, each against the period before. Phase 3 adds redone
+ * work and possible leaks here.
+ */
+
+export type KeyChanges = { prompts: Delta, sessions: Delta, cost_usd: Delta, 
+/**
+ * Agent working time, seconds.
+ */
+agent_time_s: Delta, 
+/**
+ * Commits made during the turns.
+ */
+git_commits: Delta, };
+
 export type Lineage = { id: number, 
 /**
  * [`crate::lineage::THRESHOLD`]
@@ -531,6 +561,20 @@ disabled_sources: Array<string>,
  * The desktop app's recall shortcut (`shortcut` module spelling, such as `CmdOrCtrl+Alt+P`).
  */
 recall_shortcut: string, };
+
+/**
+ * The period before the requested one: its span, its totals, and the key figures compared.
+ */
+
+export type PreviousPeriod = { 
+/**
+ * UTC, inclusive.
+ */
+since: string, 
+/**
+ * UTC, exclusive: where the requested period starts.
+ */
+until: string, totals: StatsBucket, changes: KeyChanges, };
 
 /**
  * A project's commits while you worked on it, each with the prompt behind it.
@@ -887,7 +931,12 @@ export type SpecText = { file: SpecFile, text: string, };
  * `surface` group by its label.
  */
 
-export type Stats = { group_by: GroupBy | null, split_by: GroupBy | null, totals: StatsBucket, groups: Array<StatsBucket>, };
+export type Stats = { group_by: GroupBy | null, split_by: GroupBy | null, 
+/**
+ * With `previous=true` and a `since`: the period of equal length before, its totals and the
+ * key figures compared. Omitted otherwise (all time has no period before).
+ */
+previous?: PreviousPeriod, totals: StatsBucket, groups: Array<StatsBucket>, };
 
 /**
  * The measures of one bucket (totals, a group or a part). Absent measures are 0.
@@ -911,7 +960,11 @@ resume?: Resume,
  * Session groups: when the latest event or prompt of the session arrived (the server fills
  * it); what tells a session that is still going from one you left.
  */
-last_event_at?: string, prompts: number, sessions: number, api_requests: number, cost_usd: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, api_time_s: number, api_errors: number, tool_calls: number, tool_failures: number, tool_time_s: number, subagent_tool_calls: number, subagents: number, files_written: number, git_commits: number, compactions: number, denials: number, rejections: number, 
+last_event_at?: string, prompts: number, sessions: number, api_requests: number, cost_usd: number, input_tokens: number, output_tokens: number, cache_read_tokens: number, cache_creation_tokens: number, api_time_s: number, 
+/**
+ * Agent working time: the summed length of the turns that ended, in seconds (1 decimal).
+ */
+agent_time_s: number, api_errors: number, tool_calls: number, tool_failures: number, tool_time_s: number, subagent_tool_calls: number, subagents: number, files_written: number, git_commits: number, compactions: number, denials: number, rejections: number, 
 /**
  * Prompts whose turn has an end.
  */

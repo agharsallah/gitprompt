@@ -1,0 +1,118 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, &format!(\"/api/stats?previous=true&since={since}\")).await"
+---
+{
+  "group_by": null,
+  "split_by": null,
+  "totals": {
+    "key": null,
+    "detail": null,
+    "prompts": 6,
+    "sessions": 2,
+    "api_requests": 0.0,
+    "cost_usd": 0.0,
+    "input_tokens": 0.0,
+    "output_tokens": 0.0,
+    "cache_read_tokens": 0.0,
+    "cache_creation_tokens": 0.0,
+    "api_time_s": 0.0,
+    "agent_time_s": 91.0,
+    "api_errors": 0.0,
+    "tool_calls": 6.0,
+    "tool_failures": 2.0,
+    "tool_time_s": 0.0,
+    "subagent_tool_calls": 0.0,
+    "subagents": 0.0,
+    "files_written": 2.0,
+    "git_commits": 0.0,
+    "compactions": 1.0,
+    "denials": 0.0,
+    "rejections": 0.0,
+    "ended": 4,
+    "failed": 1.0,
+    "followed": 4.0,
+    "with_code": 0.0,
+    "with_url": 0.0,
+    "with_mention": 0.0,
+    "with_secret": 0.0,
+    "with_commit": 0.0,
+    "distinct_texts": 6,
+    "first_at": "2026-01-12T09:03:16.000000+00:00",
+    "last_at": "2026-01-12T09:05:57.000000+00:00",
+    "response_s_p50": 17.5,
+    "response_s_p90": 42.7,
+    "span_s": null,
+    "parts": null
+  },
+  "groups": [],
+  "previous": {
+    "since": "2025-12-29T09:06:11.000000+00:00",
+    "until": "2026-01-05T09:06:11.000000+00:00",
+    "totals": {
+      "key": null,
+      "detail": null,
+      "prompts": 9,
+      "sessions": 2,
+      "api_requests": 2.0,
+      "cost_usd": 0.0,
+      "input_tokens": 3000.0,
+      "output_tokens": 300.0,
+      "cache_read_tokens": 9000.0,
+      "cache_creation_tokens": 0.0,
+      "api_time_s": 0.0,
+      "agent_time_s": 105.0,
+      "api_errors": 1.0,
+      "tool_calls": 5.0,
+      "tool_failures": 0.0,
+      "tool_time_s": 0.0,
+      "subagent_tool_calls": 0.0,
+      "subagents": 0.0,
+      "files_written": 2.0,
+      "git_commits": 0.0,
+      "compactions": 1.0,
+      "denials": 0.0,
+      "rejections": 0.0,
+      "ended": 3,
+      "failed": 0.0,
+      "followed": 7.0,
+      "with_code": 0.0,
+      "with_url": 0.0,
+      "with_mention": 0.0,
+      "with_secret": 0.0,
+      "with_commit": 0.0,
+      "distinct_texts": 9,
+      "first_at": "2026-01-05T09:00:07.000000+00:00",
+      "last_at": "2026-01-05T09:02:20.000000+00:00",
+      "response_s_p50": 28.0,
+      "response_s_p90": 56.0,
+      "span_s": null,
+      "parts": null
+    },
+    "changes": {
+      "prompts": {
+        "now": 6.0,
+        "before": 9.0,
+        "change": -0.333
+      },
+      "sessions": {
+        "now": 2.0,
+        "before": 2.0,
+        "change": 0.0
+      },
+      "cost_usd": {
+        "now": 0.0,
+        "before": 0.0
+      },
+      "agent_time_s": {
+        "now": 91.0,
+        "before": 105.0,
+        "change": -0.133
+      },
+      "git_commits": {
+        "now": 0.0,
+        "before": 0.0
+      }
+    }
+  }
+}

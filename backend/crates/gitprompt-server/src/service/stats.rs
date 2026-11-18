@@ -5,11 +5,12 @@ use indexmap::IndexMap;
 use gitprompt_core::Error;
 use gitprompt_core::spec::{SpecSet, SurfaceInfo};
 use gitprompt_insights::catalog;
+use gitprompt_insights::delta::Previous;
 use gitprompt_insights::surface;
 use gitprompt_store::filter::PromptFilter;
-use gitprompt_store::stats::{AggregateQuery, Bucket, GroupBy};
+use gitprompt_store::stats::{Aggregate, AggregateQuery, Bucket, GroupBy};
 
-use super::Service;
+use super::{Inner, Service};
 use crate::error::{ApiError, ApiResult};
 use crate::model::{Catalog, Stats, StatsQuery, Telemetry};
 
@@ -23,24 +24,16 @@ impl Service {
         }
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let aggregate = AggregateQuery {
-                filter: query.filter,
-                group_by: query.group_by,
-                split_by: query.split_by,
-                order: query.order,
-                limit: query.limit,
-            };
-            let mut result = inner.store.aggregate(&aggregate).map_err(|e| match e {
-                Error::Invalid(message) => ApiError::Unprocessable(message),
-                other => other.into(),
-            })?;
+            let StatsQuery { filter, group_by, split_by, order, limit, previous } = query;
+            let mut result = inner.aggregate(&AggregateQuery { filter: filter.clone(), group_by, split_by, order, limit })?;
+            let previous = if previous { inner.previous_period(&filter, &result.totals)? } else { None };
             let names = GroupNames { set: &set, surfaces: surface::catalog(set.specs.values().map(AsRef::as_ref)) };
-            names.name_groups(query.group_by, query.split_by, &mut result.groups);
-            if query.group_by == Some(GroupBy::Session) {
+            names.name_groups(group_by, split_by, &mut result.groups);
+            if group_by == Some(GroupBy::Session) {
                 inner.name_sessions(&mut result.groups)?;
                 inner.present_sessions(&set, &mut result.groups)?;
             }
-            Ok(Stats { group_by: query.group_by, split_by: query.split_by, aggregate: result })
+            Ok(Stats { group_by, split_by, aggregate: result, previous })
         })
         .await
     }
@@ -59,6 +52,26 @@ impl Service {
             Ok(catalog::build_catalog(&inner.store.samples(SAMPLES)?, set.specs.values().map(AsRef::as_ref)))
         })
         .await
+    }
+}
+
+impl Inner {
+    /// The store's aggregate, an impossible split as a 422.
+    fn aggregate(&self, query: &AggregateQuery) -> ApiResult<Aggregate> {
+        self.store.aggregate(query).map_err(|e| match e {
+            Error::Invalid(message) => ApiError::Unprocessable(message),
+            other => other.into(),
+        })
+    }
+
+    /// The same filter over the period of equal length before its own ("now" from the app
+    /// clock when it has no end), compared with `totals`; None for all time.
+    fn previous_period(&self, filter: &PromptFilter, totals: &Bucket) -> ApiResult<Option<Previous>> {
+        let Some((filter, period)) = filter.previous_period(self.now()) else {
+            return Ok(None);
+        };
+        let before = self.aggregate(&AggregateQuery { filter, ..AggregateQuery::default() })?.totals;
+        Ok(Some(Previous::new(period, totals, before)))
     }
 }
 

@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use gitprompt_insights::delta::Previous;
 use gitprompt_store::filter::PromptFilter;
 use gitprompt_store::stats::{Aggregate, GroupBy, Order};
 
@@ -14,11 +15,13 @@ pub struct StatsQuery {
     pub split_by: Option<GroupBy>,
     pub order: Option<Order>,
     pub limit: usize,
+    /// `previous=true`: add the totals of the period of equal length before `since`.
+    pub previous: bool,
 }
 
 impl Default for StatsQuery {
     fn default() -> Self {
-        StatsQuery { filter: PromptFilter::default(), group_by: None, split_by: None, order: None, limit: 1000 }
+        StatsQuery { filter: PromptFilter::default(), group_by: None, split_by: None, order: None, limit: 1000, previous: false }
     }
 }
 
@@ -30,6 +33,11 @@ pub struct Stats {
     pub split_by: Option<GroupBy>,
     #[serde(flatten)]
     pub aggregate: Aggregate,
+    /// With `previous=true` and a `since`: the period of equal length before, its totals and the
+    /// key figures compared. Omitted otherwise (all time has no period before).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub previous: Option<Previous>,
 }
 
 pub use gitprompt_store::stats::Telemetry;

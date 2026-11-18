@@ -5,7 +5,10 @@
 
 mod aggregate;
 mod groups;
+mod period;
 mod sessions;
+
+pub use period::Period;
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -121,6 +124,8 @@ pub struct Bucket {
     pub cache_read_tokens: f64,
     pub cache_creation_tokens: f64,
     pub api_time_s: f64,
+    /// Agent working time: the summed length of the turns that ended, in seconds (1 decimal).
+    pub agent_time_s: f64,
     pub api_errors: f64,
     pub tool_calls: f64,
     pub tool_failures: f64,

@@ -17,6 +17,7 @@ expression: "get(&api, \"/api/stats\").await"
     "cache_read_tokens": 9000.0,
     "cache_creation_tokens": 0.0,
     "api_time_s": 0.0,
+    "agent_time_s": 196.0,
     "api_errors": 1.0,
     "tool_calls": 11.0,
     "tool_failures": 2.0,

@@ -149,6 +149,7 @@ export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
 		cache_read_tokens: 0,
 		cache_creation_tokens: 0,
 		api_time_s: 0,
+		agent_time_s: 0,
 		api_errors: 0,
 		tool_calls: 0,
 		tool_failures: 0,

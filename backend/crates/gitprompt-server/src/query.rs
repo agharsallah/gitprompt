@@ -178,7 +178,8 @@ pub fn commit_query(pairs: &[(String, String)]) -> Result<CommitQuery, ApiError>
     Ok(CommitQuery { q: last(pairs, "q").unwrap_or_default().trim().to_owned(), group })
 }
 
-/// Filters plus `group_by`, `split_by` (needs `group_by`), `order`, `limit` (1..=10000).
+/// Filters plus `group_by`, `split_by` (needs `group_by`), `order`, `limit` (1..=10000) and
+/// `previous` (a boolean, default false).
 pub fn stats_query(pairs: &[(String, String)]) -> Result<StatsQuery, ApiError> {
     let group_by = last(pairs, "group_by").map(|v| variant("group_by", v)).transpose()?;
     let split_by = last(pairs, "split_by").map(|v| variant("split_by", v)).transpose()?;
@@ -187,7 +188,8 @@ pub fn stats_query(pairs: &[(String, String)]) -> Result<StatsQuery, ApiError> {
     }
     let order = last(pairs, "order").map(|v| variant("order", v)).transpose()?;
     let limit = last(pairs, "limit").map(|v| integer("limit", v, 1..=10_000)).transpose()?.unwrap_or(1000);
-    Ok(StatsQuery { filter: prompt_filter(pairs)?, group_by, split_by, order, limit })
+    let previous = last(pairs, "previous").map(|v| boolean("previous", v)).transpose()?.unwrap_or(false);
+    Ok(StatsQuery { filter: prompt_filter(pairs)?, group_by, split_by, order, limit, previous })
 }
 
 /// The export options among the pairs (the filters are read separately).

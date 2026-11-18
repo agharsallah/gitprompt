@@ -111,6 +111,8 @@ impl Bench {
         let list: Value = serde_json::from_slice(&list).map_err(|e| format!("/api/prompts: {e}"))?;
         let sample = list.as_array().and_then(|l| l.get(l.len() / 2)).ok_or("no prompt listed")?;
         let id = sample["id"].as_i64().ok_or("a prompt without id")?;
+        // From the middle of the store, so the period and the one before it both hold prompts.
+        let since = sample["received_at"].as_str().ok_or("a prompt without received_at")?.replace('+', "%2B");
         let session = sample["fields"]["session_id"].as_str().ok_or("a prompt without session")?;
         let (_, story) = get(&self.router, &self.host, &format!("/api/stories/session/{session}")).await?;
         let story: Value = serde_json::from_slice(&story).map_err(|e| format!("/api/stories/session: {e}"))?;
@@ -120,6 +122,7 @@ impl Bench {
             read("prompts (limit=50)", "/api/prompts?limit=50".into(), true),
             read("prompt detail", format!("/api/prompts/{id}"), true),
             read("stats by day", "/api/stats?group_by=day".into(), true),
+            read("stats with the period before", format!("/api/stats?previous=true&since={since}"), true),
             read("stats by model", "/api/stats?group_by=model".into(), false),
             read("stats by tool", "/api/stats?group_by=tool".into(), false),
             read("sources", "/api/sources".into(), true),

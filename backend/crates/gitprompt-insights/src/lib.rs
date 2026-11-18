@@ -8,6 +8,7 @@
 //! | [`origin`]      | who produced a prompt, the text the user typed, the injected context      |
 //! | [`surface`]     | where a prompt was typed (CLI, VS Code, a desktop app...)                 |
 //! | [`derivations`] | prompt stats, the turn summary, the session summary, [`derivations::derive`] |
+//! | [`delta`]       | each key figure against the period before (the Overview's headline)     |
 //! | [`facts`]       | the few values every page shows about a turn (ADR-0021)                   |
 //! | [`label`]      | the default name of a session: what you first typed in it                 |
 //! | [`lineage`]   | similarity, word diff and outcome change between versions of a prompt     |
@@ -34,6 +35,7 @@ use gitprompt_core::spec::Spec;
 pub mod captures;
 pub mod catalog;
 pub mod coverage;
+pub mod delta;
 pub mod derivations;
 pub mod facts;
 pub mod find;

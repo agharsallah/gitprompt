@@ -135,6 +135,30 @@ async fn stats_and_telemetry() {
     insta::assert_json_snapshot!("telemetry", get(&api, "/api/stats/telemetry").await);
 }
 
+/// This week against last week: the first two tools' fixtures arrive a week before the other two's,
+/// and the stats of the last seven days carry the seven before them.
+#[tokio::test]
+async fn stats_with_the_week_before() {
+    let clock = ManualClock::new(START.parse().expect("instant"));
+    let api = harness().moving_clock(&clock).start();
+    for (n, tool) in TOOLS.iter().enumerate() {
+        if n == 2 {
+            clock.advance(SignedDuration::from_hours(7 * 24));
+        }
+        for payload in payloads(tool) {
+            clock.advance(STEP);
+            api.ingest(tool, payload).await;
+        }
+    }
+    let since = clock_now(&clock) - SignedDuration::from_hours(7 * 24);
+    insta::assert_json_snapshot!("stats_previous", get(&api, &format!("/api/stats?previous=true&since={since}")).await);
+}
+
+/// The clock's instant (a `ManualClock` is a `Clock`).
+fn clock_now(clock: &ManualClock) -> Timestamp {
+    gitprompt_server::Clock::now(clock)
+}
+
 #[tokio::test]
 async fn stories_lineage_and_search() {
     let api = loaded().await;

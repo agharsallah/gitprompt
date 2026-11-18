@@ -1180,7 +1180,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
   </div>
 
   <div class="tickets">
-    <article class="tk" id="t20" data-area="be" data-size="M" data-needs="">
+    <article class="tk" id="t20" data-area="be" data-size="M" data-needs="" data-status="done">
       <details><summary><span class="tt">Previous period in stats</span><span class="goal">Every key figure can say how it compares with the period before, so the headline knows what changed.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a> headline</dd><dt>Asks first</dt><dd>API snapshot.</dd></dl>
@@ -1192,6 +1192,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> period edges with <code>ManualClock</code> in two time zones and across a daylight-saving change · a first week without a "before" gives no change, never +∞ · snapshot with <code>FixedClock</code> · stats p95 in <code>just perf</code> still inside its budget.</p>
         <p class="dod"><b>Done when</b> the snapshot shows this week and last week for the fixture, and the perf budget holds with <code>previous=true</code>.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>PromptFilter::previous_period(now)</code> (<code>gitprompt-store/src/stats/period.rs</code>) gives the same filter over the period of equal length just before <code>since</code>, ending where it starts; without <code>until</code> the period ends at the app clock's now. The store runs the one <code>aggregate</code> over it, so no query is copied. Lengths are absolute time, because the ranges are rolling windows: a week across a daylight-saving change lasts 169 h before as now, and the same instant written in two zones gives the same period. A new measure, <code>agent_time_s</code> (the summed length of ended turns), is on every bucket for the key figures. <code>gitprompt-insights/src/delta.rs</code> has <code>Delta { now, before?, change? }</code> and <code>KeyChanges</code> (prompts, sessions, spend, agent time, commits; redone work and leaks join in <a href="#t22">22</a> and <a href="#t24">24</a>). <code>change</code> is absent when the period before held no prompt or the figure was 0 then, so it is never +∞. <code>GET /api/stats?previous=true</code> adds <code>previous { since, until, totals, changes }</code>; all time has none. Tests: 6 server tests on a <code>ManualClock</code> (edges, two zones, DST, first week, the clock's now), delta unit tests, and a <code>stats_previous</code> snapshot with the fixture split a week apart (this week 6 prompts, the week before 9). <code>just perf</code>: the new read has p95 1.0 ms alone and 5.3 ms under load. Note: the module is <code>delta.rs</code>, not <code>derivations/stats.rs</code>, which is about the prompt text.</p>
       </div></details>
     </article>
 
