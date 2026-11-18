@@ -120,14 +120,14 @@ async fn kinds_limit_which_lists_are_filled_and_limit_caps_each() {
 #[tokio::test]
 async fn a_query_nothing_matches_finds_nothing() {
     let api = data().await;
-    assert_eq!(api.json("/api/find?q=zebra").await, json!({"prompts": [], "sessions": [], "projects": []}));
+    assert_eq!(api.json("/api/find?q=zebra").await, json!({"prompts": [], "sessions": [], "projects": [], "commits": []}));
 }
 
 #[tokio::test]
 async fn a_bad_kind_or_limit_is_a_422_naming_it() {
     let api = data().await;
     for (query, key) in
-        [("kinds=prompts,commits", "kinds"), ("kinds=prompt", "kinds"), ("limit=0", "limit"), ("limit=6", "limit"), ("limit=many", "limit")]
+        [("kinds=prompts,branches", "kinds"), ("kinds=prompt", "kinds"), ("limit=0", "limit"), ("limit=6", "limit"), ("limit=many", "limit")]
     {
         let response = api.get(&format!("/api/find?{query}")).send().await;
         assert_eq!(response.status, 422, "{query}");
