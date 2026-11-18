@@ -3,8 +3,10 @@
 //! runs git once (new in the Rust port).
 
 mod forge;
+mod history_cache;
 
 pub use forge::commit_url;
+pub use history_cache::HistoryCache;
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -93,6 +95,14 @@ pub fn resolve_revision(cwd: &Path, rev: &str) -> Revision {
     }
     let commit = format!("{rev}^{{commit}}");
     git(cwd, &["rev-parse", "--verify", "--quiet", &commit]).map_or(Revision::Unknown, Revision::Commit)
+}
+
+/// Whether the repository around `root` has an object whose name starts with `prefix` (4 or more
+/// hex digits): a few milliseconds, against most of a second to list its commits, so a hash is
+/// looked for only where it can be.
+pub fn has_object(root: &Path, prefix: &str) -> bool {
+    let hex = !prefix.is_empty() && prefix.chars().all(|c| c.is_ascii_hexdigit());
+    hex && git(root, &["rev-parse", &format!("--disambiguate={prefix}")]).is_some()
 }
 
 /// Everything a reader yields until EOF, or `None` when that takes longer than `timeout`. Read on

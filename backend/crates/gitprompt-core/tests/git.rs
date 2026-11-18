@@ -21,7 +21,7 @@ use std::time::Duration;
 
 use common::{DATE, Repo, git, git_dated, git_output, repo};
 use gitprompt_core::git::{
-    Changes, Commit, CommitsAfter, GitCache, Revision, Shortstat, commits, git_context, history, numstat, resolve_revision,
+    Changes, Commit, CommitsAfter, GitCache, Revision, Shortstat, commits, git_context, has_object, history, numstat, resolve_revision,
 };
 use gitprompt_core::{Json, JsonMap};
 use pretty_assertions::assert_eq;
@@ -394,6 +394,17 @@ fn history_reads_when_an_amended_commit_was_first_made() {
 fn history_outside_a_repository_is_empty() {
     let repo = three_days();
     assert_eq!(history(&repo.root.join("missing"), "2026-01-01", "2026-01-02"), Vec::<Commit>::new());
+}
+
+#[test]
+fn a_repository_has_the_objects_its_hashes_start() {
+    let repo = committed();
+    let head = repo.head(40);
+    assert!(has_object(&repo.root, &head));
+    assert!(has_object(&repo.root, &head[..7]));
+    assert!(!has_object(&repo.root, "0000000"));
+    assert!(!has_object(&repo.root, "--all"));
+    assert!(!has_object(repo.dir.path(), &head)); // not a repository
 }
 
 // --- GitCache -------------------------------------------------------------------------------

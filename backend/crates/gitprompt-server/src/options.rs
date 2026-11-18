@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use gitprompt_capture::probe::{VersionCache, VersionProbe};
 use gitprompt_core::JsonMap;
-use gitprompt_core::git::{self, Commit, CommitsAfter, GitCache};
+use gitprompt_core::git::{self, Commit, CommitsAfter, GitCache, HistoryCache};
 use gitprompt_core::preferences::APPLIES_AT_START;
 use gitprompt_core::spec::Spec;
 
@@ -69,17 +69,25 @@ pub trait GitProvider: Send + Sync {
     fn context(&self, cwd: Option<&Path>) -> JsonMap;
     fn commits(&self, root: &Path, start: Option<&str>, end: &str, since: &str) -> CommitsAfter;
     fn history(&self, root: &Path, since: &str, until: &str) -> Vec<Commit>;
+    /// Whether the repository at `root` can have a commit whose hash starts with `prefix`; `true`
+    /// unless it is known not to (a provider that cannot tell reads every repository).
+    fn has_object(&self, _root: &Path, _prefix: &str) -> bool {
+        true
+    }
 }
 
-/// The user's `git` CLI, with the context memoized for `ttl` per directory (`core::git::GitCache`).
+/// The user's `git` CLI, with the context memoized for `ttl` per directory (`core::git::GitCache`)
+/// and each history kept until a branch moves, asked at most once per `ttl`
+/// (`core::git::HistoryCache`).
 #[derive(Debug)]
 pub struct SystemGit {
     cache: GitCache,
+    histories: HistoryCache,
 }
 
 impl SystemGit {
     pub fn new(ttl: Duration) -> Self {
-        SystemGit { cache: GitCache::new(ttl) }
+        SystemGit { cache: GitCache::new(ttl), histories: HistoryCache::new(ttl) }
     }
 }
 
@@ -91,7 +99,10 @@ impl GitProvider for SystemGit {
         git::commits(root, start, end, since)
     }
     fn history(&self, root: &Path, since: &str, until: &str) -> Vec<Commit> {
-        git::history(root, since, until)
+        self.histories.history(root, since, until)
+    }
+    fn has_object(&self, root: &Path, prefix: &str) -> bool {
+        git::has_object(root, prefix)
     }
 }
 

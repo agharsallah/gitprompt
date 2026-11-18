@@ -59,7 +59,10 @@ impl Service {
         }
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let projects = inner.recent_traces(&set, LOOKUP_PROJECTS)?;
+            // Listing a repository's commits is the slow part: only where the hash can be.
+            let repos =
+                inner.recent_repos(LOOKUP_PROJECTS)?.into_iter().filter(|repo| inner.options.git.has_object(Path::new(repo), &hash));
+            let projects = repos.map(|repo| inner.traces_of(&set, repo)).collect::<ApiResult<Vec<_>>>()?;
             let found = stories::lookup_commit(&hash, &projects, |repo| inner.remote_of(repo));
             Ok(found.ok_or_else(|| Error::NotFound(format!("no commit {hash} in your projects")))?)
         })
