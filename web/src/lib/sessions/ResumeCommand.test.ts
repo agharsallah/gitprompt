@@ -26,10 +26,13 @@ describe('ResumeCommand', () => {
 		expect(out).toContain('aria-label="Copy Resume in a terminal"');
 	});
 
-	it('is only the button when compact, with the line as its tooltip', () => {
+	it('is only a labelled button when compact, with the line in its tooltip', () => {
 		const out = html(ResumeCommand, { resume, compact: true });
 		expect(out).toContain('aria-label="Copy resume command"');
-		expect(out).toContain('title="cd /work/app &amp;&amp; claude --resume session-a"');
+		expect(out).toContain('>Copy resume</span>');
+		expect(out).toMatch(
+			/title="[^"]*resumes this session[^"]*cd \/work\/app &amp;&amp; claude --resume session-a"/
+		);
 		expect(out).not.toContain('<pre');
 	});
 

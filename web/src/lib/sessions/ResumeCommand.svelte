@@ -5,7 +5,7 @@
 
 	/**
 	 * How to pick a session up again: the line to paste (`cd <folder> && <command>`, built and
-	 * shell-quoted by the daemon) with a copy button, or only the button (`compact`, for a row).
+	 * shell-quoted by the daemon) with a copy button, or only a labelled button whose tooltip shows the line (`compact`, for a row).
 	 * Nothing without a resume command. A copy is counted (`copy.resume`).
 	 */
 	let { resume, compact = false }: { resume?: Resume | null; compact?: boolean } = $props();
@@ -13,9 +13,13 @@
 
 {#if resume}
 	{#if compact}
-		<span class="compact" title={resume.paste}>
-			<CopyButton text={resume.paste} label="Copy resume command" count="copy.resume" />
-		</span>
+		<CopyButton
+			text={resume.paste}
+			label="Copy resume command"
+			caption="Copy resume"
+			hint="Copy the command that resumes this session in a terminal: {resume.paste}"
+			count="copy.resume"
+		/>
 	{:else}
 		<CodeBlock
 			code={resume.paste}
@@ -25,9 +29,3 @@
 		/>
 	{/if}
 {/if}
-
-<style>
-	.compact {
-		display: inline-flex;
-	}
-</style>

@@ -8,6 +8,8 @@
 		label = 'Copy',
 		ghost = false,
 		say = false,
+		caption,
+		hint,
 		count
 	}: {
 		text: string;
@@ -15,6 +17,10 @@
 		/** No frame: for toolbars of icon buttons. */ ghost?: boolean;
 		/** Writes "Copied" next to the check for a moment (a row's copy, which has no toast). */
 		say?: boolean;
+		/** Visible words beside the icon, so the button says what it copies (a pill, sized for a row). */
+		caption?: string;
+		/** The tooltip, when it should say more than the label (what exactly gets copied). */
+		hint?: string;
 		/** What a copy is counted as (usage-actions.ts): every copy is, so it is not optional. */
 		count: UsageAction;
 	} = $props();
@@ -33,14 +39,23 @@
 
 <button
 	type="button"
-	class={['copy', ghost && 'ghost', say && copied && 'saying']}
+	class={[
+		'copy',
+		ghost && 'ghost',
+		say && copied && 'saying',
+		caption && 'captioned',
+		caption && copied && 'done'
+	]}
 	onclick={copy}
 	aria-label={copied ? 'Copied' : label}
-	title={label}
+	title={hint ?? label}
 >
-	{#if copied}<Check size={14} aria-hidden="true" />{#if say}<span class="said" aria-hidden="true"
-				>Copied</span
-			>{/if}{:else}<Copy size={14} aria-hidden="true" />{/if}
+	{#if copied}<Check size={caption ? 12 : 14} aria-hidden="true" />{#if say || caption}<span
+				class="said"
+				aria-hidden="true">Copied</span
+			>{/if}{:else}<Copy size={caption ? 12 : 14} aria-hidden="true" />{#if caption}<span
+				aria-hidden="true">{caption}</span
+			>{/if}{/if}
 </button>
 <span class="sr-only" aria-live="polite">{copied ? 'Copied to clipboard' : ''}</span>
 
@@ -71,6 +86,29 @@
 		color: var(--color-success-text);
 		font-size: var(--text-xs);
 		font-weight: var(--weight-medium);
+	}
+
+	/* Icon and words in a pill, the height of a row's badges, so it reads as an action among them. */
+	.captioned {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		width: auto;
+		height: 1.375rem;
+		padding: 0 var(--space-2);
+		border-radius: var(--radius-full);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-medium);
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.captioned:hover {
+		background: var(--color-surface-hover);
+	}
+
+	.done {
+		color: var(--color-success-text);
 	}
 
 	.ghost {
