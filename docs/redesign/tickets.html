@@ -1323,7 +1323,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t26" data-area="web" data-size="M" data-pri="core" data-needs="t21 t08 t03">
+    <article class="tk" id="t26" data-area="web" data-size="M" data-pri="core" data-needs="t21 t08 t03" data-status="done">
       <details><summary><span class="tt">Overview first screen: Pick up, and Worth a look</span><span class="goal">The Overview opens on what needs you: the sessions to pick up and up to three things worth a look, each ending in an action.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a> (Ready, Loading, First run, Nothing in range), I3</dd></dl>
@@ -1343,6 +1343,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> component tests for the four states and for an unknown kind · a page test at 1280×800: both lists start above the fold · each action tested to do what it says.</p>
         <p class="dod"><b>Done when</b> the first thing on the Overview in the morning is yesterday's sessions with their commands.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> The Overview opens on <code>lib/overview/FirstScreen.svelte</code>: Pick up and Worth a look side by side (stacked on narrow screens), before the filters, the key figures and the panels; with nothing ever captured, <code>SetupSteps</code> only. <code>PickUp.svelte</code>: at most three rows (<code>PICK_UP_MAX</code>), each a dot (running, or a ring when left), the name, the project, how it stopped (<code>stopped.ts</code>: "running · last event 2 min ago", "left 3 h ago, mid-turn / finished / failed / interrupted", days from 48 h), and the compact <code>ResumeCommand</code> counting <code>pickup.copy</code> (a new optional <code>count</code> prop). Then "All sessions ›". <code>WorthALook.svelte</code> shows one <code>Callout</code> per item in the daemon's order, each with one button from <code>actions.ts</code>. "Copy as command" copies the text and names <code>.claude/commands/&lt;name&gt;.md</code>, writing nothing; "Open the turn" goes to the reader; "Hide values" opens <code>lib/leaks/HideValues.svelte</code>, reusable for <a href="#t29">29</a>. It lists each masked value, its kind and where it sits, says the hide cannot be undone, and on confirm sends <code>PUT hidden</code> for each, shows "Hidden 2 values" and reloads. A kind the page does not know is a plain link to its target (<code>targetHref</code>). When the feed says so: "Nothing needs you" with the period in one line (<code>calm.ts</code>). Counted: <code>pickup.copy</code> and <code>worth.act.&lt;kind&gt;</code>. Client: <code>api.attention</code>, <code>api.leaks</code>, <code>api.setLeak</code>. Substituted: there is no browser runner for the 1280×800 test, so a test checks DOM order (the lists right after the header) and that no height is fixed. Clicks are tested in the logic modules, since the test setup has no DOM. Web: 115 files and 1,112 tests pass. <b>Not yet looked at in a browser.</b></p>
       </div></details>
     </article>
 

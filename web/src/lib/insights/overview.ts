@@ -5,7 +5,7 @@
  */
 import { api } from '#lib/api/client.ts';
 import { queryParams, type StatsQuery } from '#lib/api/query.ts';
-import type { GroupBy, Prompt, Stats, StatsOrder, Telemetry } from '#lib/api/types.ts';
+import type { Attention, GroupBy, Prompt, Stats, StatsOrder, Telemetry } from '#lib/api/types.ts';
 import { toQuery, without, type InsightFilters } from '#lib/insights/filters.ts';
 import { rangeStart } from '#lib/insights/range.ts';
 
@@ -41,6 +41,8 @@ export type Overview = {
 	/** The choices of each filter, counted without that filter. */
 	options: { source: Stats; surface: Stats; repo: Stats; model: Stats };
 	starred: Prompt[];
+	/** What needs you: sessions to pick up (whatever the range) and what is worth a look in it. */
+	attention: Attention;
 };
 
 export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Promise<Overview> {
@@ -68,6 +70,7 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 		toolKinds: stats('tool_kind'),
 		tools: stats('tool', by('prompts', 500)),
 		telemetry: api.telemetry(query, fetcher),
+		attention: api.attention(query, fetcher),
 		starred: api.prompts(queryParams({ ...query, starred: 'true', limit: 5 }), fetcher),
 		source: stats('source', by('prompts', 50), without(query, 'source')),
 		surface: stats('surface', by('prompts', 50), without(query, 'surface')),

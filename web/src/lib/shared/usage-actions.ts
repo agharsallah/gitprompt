@@ -3,6 +3,7 @@
  * closed list of names. A name is a dotted lowercase word the daemon accepts (letters, digits,
  * `.`, `_`, `-`; at most 48 characters), so a new action is one more entry in a list below.
  */
+import type { WorthKind } from '#lib/api/types.ts';
 
 /** The Overview panels: seen (stayed in view), and clicked through to the prompts behind them. */
 export const PANELS = [
@@ -66,12 +67,21 @@ export const FILTER_KINDS = [
 ] as const;
 export type FilterKind = (typeof FILTER_KINDS)[number];
 
+/** The kinds of a Worth a look row on the Overview: acting on one is counted per kind. */
+export const WORTH_KINDS = [
+	'possible_leak',
+	'redone_turn',
+	'repeated_prompt'
+] as const satisfies readonly WorthKind[];
+
 export type UsageAction =
 	| `panel.seen.${PanelName}`
 	| `panel.click.${PanelName}`
 	| `reader.tab.${ReaderTab}`
 	| `page.opened.${PageName}`
 	| `filter.${FilterKind}`
+	| `worth.act.${WorthKind}`
+	| 'pickup.copy'
 	| 'copy.prompt'
 	| 'copy.resume'
 	| 'copy.code'
@@ -92,6 +102,8 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	...READER_TABS.map((t) => `reader.tab.${t}` as const),
 	...PAGES.map((p) => `page.opened.${p}` as const),
 	...FILTER_KINDS.map((k) => `filter.${k}` as const),
+	...WORTH_KINDS.map((k) => `worth.act.${k}` as const),
+	'pickup.copy',
 	'copy.prompt',
 	'copy.resume',
 	'copy.code',

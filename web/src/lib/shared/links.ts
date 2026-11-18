@@ -5,6 +5,7 @@
  * the app's base path.
  */
 import { resolve } from '$app/paths';
+import type { AttentionTarget } from '#lib/api/types.ts';
 
 /** The pages that take no path parameter. */
 export type PageRoute =
@@ -104,4 +105,23 @@ export function sourcesHref({ connect, tool }: { connect?: string; tool?: string
 		query: { connect },
 		anchor: tool === undefined ? undefined : `tool-${tool}`
 	});
+}
+
+/**
+ * Where an attention item leads (Overview, Worth a look). The leaks have no page of their own yet:
+ * the Overview, at its `#leaks` anchor.
+ */
+export function targetHref(target: AttentionTarget): string {
+	switch (target.page) {
+		case 'prompts':
+			return promptListHref({ q: target.q });
+		case 'prompt':
+			return promptHref(target.id);
+		case 'session':
+			return sessionHref(target.id);
+		case 'leaks':
+			return pageHref('/', { anchor: 'leaks' });
+		default:
+			return pageHref('/');
+	}
 }

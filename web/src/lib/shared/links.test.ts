@@ -7,7 +7,8 @@ import {
 	promptListHref,
 	sessionHref,
 	sessionsHref,
-	sourcesHref
+	sourcesHref,
+	targetHref
 } from '#lib/shared/links.ts';
 
 describe('pageHref', () => {
@@ -102,5 +103,15 @@ describe('sourcesHref', () => {
 		expect(sourcesHref()).toBe('/sources');
 		expect(sourcesHref({ connect: 'codex' })).toBe('/sources?connect=codex');
 		expect(sourcesHref({ tool: 'codex' })).toBe('/sources#tool-codex');
+	});
+});
+
+describe('targetHref', () => {
+	it('leads to the page an attention item names', () => {
+		expect(targetHref({ page: 'overview' })).toBe('/');
+		expect(targetHref({ page: 'prompts', q: 'fix lint' })).toBe('/prompts?q=fix%20lint');
+		expect(targetHref({ page: 'prompt', id: 7 })).toBe('/prompts?id=7');
+		expect(targetHref({ page: 'session', id: 's1' })).toBe('/sessions/s1');
+		expect(targetHref({ page: 'leaks' })).toBe('/#leaks');
 	});
 });

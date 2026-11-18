@@ -123,6 +123,21 @@ describe('endpoints', () => {
 			'GET /api/fields'
 		]);
 	});
+
+	it('asks for the attention feed and the leaks with the filters, and decides with the header', async () => {
+		const { fetch, calls } = fakeFetch(() => ({ body: {} }));
+		vi.stubGlobal('fetch', fetch);
+		await api.attention({ source: 'codex' }, fetch);
+		await api.leaks({ source: 'codex' });
+		await api.setLeak('f 1', 'hidden');
+		expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+			'GET /api/attention?source=codex',
+			'GET /api/leaks?source=codex',
+			'PUT /api/leaks/f%201'
+		]);
+		expect(calls[2]?.headers).toMatchObject({ 'x-gitprompt': '1' });
+		expect(calls[2]?.body).toEqual({ state: 'hidden' });
+	});
 });
 
 describe('find', () => {

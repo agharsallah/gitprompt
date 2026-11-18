@@ -1,11 +1,15 @@
 // HTTP client for the daemon. One function per endpoint; types live in types.ts.
 import type {
 	Annotation,
+	Attention,
 	Catalog,
 	Change,
 	CommitGrouping,
 	ConfigAction,
 	FindResults,
+	LeakDecision,
+	LeakSaved,
+	Leaks,
 	Lineage,
 	ProjectCommits,
 	ProjectStory,
@@ -111,6 +115,16 @@ export const api = {
 	/** Telemetry reported per session (lines of code, commits, slash commands) for the sessions kept. */
 	telemetry: (query: StatsQuery = {}, fetcher?: Fetch) =>
 		get<Telemetry>(`/api/stats/telemetry?${queryParams(query)}`, fetcher),
+
+	/** What needs you: sessions to pick up (any time) and up to three things worth a look (the range). */
+	attention: (query: StatsQuery = {}, fetcher?: Fetch) =>
+		get<Attention>(`/api/attention?${queryParams(query)}`, fetcher),
+	/** The possible leaks of the range, open first, with what you decided about the others. */
+	leaks: (query: StatsQuery = {}, fetcher?: Fetch) =>
+		get<Leaks>(`/api/leaks?${queryParams(query)}`, fetcher),
+	/** Decide about one finding: `hidden` rewrites the stored text (no undo), `null` opens it again. */
+	setLeak: (id: string, state: LeakDecision | null) =>
+		write<LeakSaved>(`/api/leaks/${encodeURIComponent(id)}`, 'PUT', { state }),
 
 	/** A session as chapters (what you typed) with system markers between them. */
 	sessionStory: (id: string, fetcher?: Fetch) =>

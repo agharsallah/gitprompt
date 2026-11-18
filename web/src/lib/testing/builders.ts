@@ -4,17 +4,21 @@
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
 import type {
+	Attention,
 	Delta,
 	Event,
 	Facts,
 	KeyChanges,
+	LeakOut,
+	PickUp,
 	Prompt,
 	RedonePart,
 	RedoneWork,
 	SessionStory,
 	Source,
 	Stats,
-	StatsBucket
+	StatsBucket,
+	WorthItem
 } from '#lib/api/types.ts';
 import type { PreferenceKey, Preferences, Setting, SettingsState } from '#lib/api/settings.ts';
 
@@ -294,5 +298,54 @@ export function settingsState(values: Preferences): SettingsState {
 			recall_shortcut: setting('recall_shortcut'),
 			leak_allow: setting('leak_allow')
 		}
+	};
+}
+
+/** One Pick up row: a Claude Code session you left after a finished turn, with no resume command. */
+export function pickUp(overrides: Partial<PickUp> = {}): PickUp {
+	return {
+		session: 'session-a',
+		label: 'Fix the failing test',
+		project: 'app',
+		presence: 'left',
+		ended: 'done',
+		last_event_at: '2026-11-05T10:00:00Z',
+		...overrides
+	};
+}
+
+/** One Worth a look row: a reused prompt, with its text to copy as a command. */
+export function worthItem(overrides: Partial<WorthItem> = {}): WorthItem {
+	return {
+		kind: 'repeated_prompt',
+		text: 'You typed “run the tests and fix what fails” 6 times.',
+		action: { type: 'copy_command', name: 'run-tests', text: 'run the tests and fix what fails' },
+		target: { page: 'prompts', q: 'run the tests and fix what fails' },
+		...overrides
+	};
+}
+
+/** GET /api/attention: nothing needs you, unless the test says what does. */
+export function attention(overrides: Partial<Attention> = {}): Attention {
+	const pick_up = overrides.pick_up ?? [];
+	const worth_a_look = overrides.worth_a_look ?? [];
+	return {
+		pick_up,
+		worth_a_look,
+		nothing_needs_you: pick_up.length === 0 && worth_a_look.length === 0,
+		...overrides
+	};
+}
+
+/** One open finding of GET /api/leaks: an email address in a prompt. */
+export function leakOut(overrides: Partial<LeakOut> = {}): LeakOut {
+	return {
+		id: 'f1',
+		kind: 'email',
+		masked: 'j•••@example.com',
+		place: 'prompt',
+		prompt: 1,
+		at: '2026-11-05T10:00:00Z',
+		...overrides
 	};
 }
