@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UsageIn } from '#lib/api/types.ts';
-import { UsageTracker, USAGE_URL, flushOnLeave, postUsage, track } from '#lib/shared/usage.ts';
+import { USAGE_ACTIONS } from '#lib/shared/usage-actions.ts';
+import {
+	MAX_HITS,
+	UsageTracker,
+	USAGE_URL,
+	flushOnLeave,
+	postUsage,
+	track
+} from '#lib/shared/usage.ts';
 import { fakeFetch } from '#lib/testing/fetch.ts';
 
 beforeEach(() => vi.useFakeTimers());
@@ -58,6 +66,15 @@ describe('UsageTracker', () => {
 		const tracker = new UsageTracker((report) => sent.push(report), 100);
 		for (let i = 0; i < 1000; i++) tracker.track('export.open');
 		expect(sent).toEqual([{ hits: [{ action: 'export.open', n: 1000 }] }]);
+	});
+
+	it('splits what a report may not carry: at most 64 names each', () => {
+		const sent: UsageIn[] = [];
+		const tracker = new UsageTracker((report) => sent.push(report), 100);
+		for (const action of USAGE_ACTIONS) tracker.track(action);
+		tracker.flush();
+		expect(sent.every((report) => report.hits.length <= MAX_HITS)).toBe(true);
+		expect(sent.flatMap((report) => report.hits.map((hit) => hit.action))).toEqual(USAGE_ACTIONS);
 	});
 
 	it('swallows a send that throws or rejects', async () => {

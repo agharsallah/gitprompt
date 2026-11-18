@@ -6,10 +6,6 @@ describe('the actions that are counted', () => {
 		for (const action of USAGE_ACTIONS) expect(action).toMatch(/^[a-z][a-z0-9._-]{0,47}$/);
 	});
 
-	it('are few enough for one report (the daemon takes 64 names)', () => {
-		expect(USAGE_ACTIONS.length).toBeLessThanOrEqual(64);
-	});
-
 	it('are each listed once', () => {
 		expect(new Set(USAGE_ACTIONS).size).toBe(USAGE_ACTIONS.length);
 	});

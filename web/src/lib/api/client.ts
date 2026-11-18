@@ -3,9 +3,11 @@ import type {
 	Annotation,
 	Catalog,
 	Change,
+	CommitGrouping,
 	ConfigAction,
 	FindResults,
 	Lineage,
+	ProjectCommits,
 	ProjectStory,
 	Prompt,
 	PromptDetail,
@@ -84,6 +86,16 @@ function findParams(q: string, kinds: readonly FindKind[]): URLSearchParams {
 	return params;
 }
 
+/** What the Commits tab asks for: words to match (subject, file or hash) and the grouping. */
+export type CommitsQuery = { q?: string; group?: CommitGrouping };
+
+function commitsParams({ q, group }: CommitsQuery): URLSearchParams {
+	const params = new URLSearchParams();
+	if (q?.trim()) params.set('q', q.trim());
+	if (group) params.set('group', group);
+	return params;
+}
+
 const source = (id: string) => `/api/sources/${encodeURIComponent(id)}`;
 
 export const api = {
@@ -106,6 +118,12 @@ export const api = {
 	/** A project's typed prompts in phases, with commits, cost and outcomes. */
 	projectStory: (id: string, fetcher?: Fetch) =>
 		get<ProjectStory>(`/api/stories/project/${encodeURIComponent(id)}`, fetcher),
+	/** A project's commits, each with the prompt it followed (or none: made by hand). */
+	projectCommits: (id: string, query: CommitsQuery = {}, fetcher?: Fetch) =>
+		get<ProjectCommits>(
+			`/api/stories/project/${encodeURIComponent(id)}/commits?${commitsParams(query)}`,
+			fetcher
+		),
 	/** The versions of a prompt you typed. */
 	lineage: (id: number, fetcher?: Fetch) => get<Lineage>(`/api/stories/prompt/${id}`, fetcher),
 	/** Full-text search over typed text, with snippets; takes the prompt filters. */

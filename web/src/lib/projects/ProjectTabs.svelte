@@ -1,0 +1,30 @@
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import CommitTable from '#lib/projects/CommitTable.svelte';
+	import { openTab, PROJECT_TABS, tabOf, type ProjectTab } from '#lib/projects/tabs.ts';
+	import { track } from '#lib/shared/usage.ts';
+	import Tabs from '#lib/ui/Tabs.svelte';
+
+	/**
+	 * A project's page below its header: the journey (`journey`, drawn by the page) and the commits,
+	 * one tab apart. The tab is the URL's (`?tab=`), so it survives a reload and Back.
+	 */
+	let { project, remote, journey }: { project: string; remote?: string; journey: Snippet } =
+		$props();
+
+	const tab = $derived(tabOf(page.url));
+	const tabs = PROJECT_TABS.map((t) => ({ id: t.id, label: t.label }));
+
+	function select(id: ProjectTab) {
+		if (id === 'commits') track('tab.project.commits');
+		openTab(project, id, goto);
+	}
+</script>
+
+<Tabs {tabs} selected={tab} label="Project" onselect={select}>
+	{#snippet panel(id)}
+		{#if id === 'commits'}<CommitTable {project} {remote} />{:else}{@render journey()}{/if}
+	{/snippet}
+</Tabs>

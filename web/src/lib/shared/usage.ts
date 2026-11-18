@@ -13,11 +13,11 @@ export const USAGE_URL = '/api/usage';
 /** How long counts wait for company before they are sent. */
 export const FLUSH_MS = 2000;
 
-/**
- * The daemon takes at most 1000 of a name per report (and 64 names: the closed list of actions
- * fits, usage-actions.test.ts), so a count that reaches it is sent at once.
- */
+/** The daemon takes at most 1000 of a name per report, so a count that reaches it is sent at once. */
 const MAX_COUNT = 1000;
+
+/** The daemon takes at most 64 names per report (service/usage.rs `MAX_HITS`): more go in another. */
+export const MAX_HITS = 64;
 
 export type Send = (report: UsageIn) => unknown;
 
@@ -56,7 +56,9 @@ export class UsageTracker {
 		this.#timer = undefined;
 		const hits: UsageHit[] = [...this.#pending].map(([action, n]) => ({ action, n }));
 		this.#pending.clear();
-		if (hits.length) this.#deliver({ hits });
+		for (let at = 0; at < hits.length; at += MAX_HITS) {
+			this.#deliver({ hits: hits.slice(at, at + MAX_HITS) });
+		}
 	}
 
 	#deliver(report: UsageIn) {

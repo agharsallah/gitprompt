@@ -4,6 +4,8 @@
 	import Deferred from '#lib/async/Deferred.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import ExportButton from '#lib/export/ExportButton.svelte';
+	import ProjectTabs from '#lib/projects/ProjectTabs.svelte';
+	import ProjectHeader from '#lib/stories/ProjectHeader.svelte';
 	import ProjectStory from '#lib/stories/ProjectStory.svelte';
 	import StorySkeleton from '#lib/stories/StorySkeleton.svelte';
 	import type { PageProps } from './$types';
@@ -23,11 +25,14 @@
 <Deferred resource={story} label="Loading the project" what="this project" variant="page">
 	{#snippet pending()}<StorySkeleton />{/snippet}
 	{#snippet children(story)}
-		<ProjectStory {story}>
+		<ProjectHeader {story}>
 			{#snippet actions()}
 				<ExportButton target={{ kind: 'project', id: story.id }} />
 			{/snippet}
-		</ProjectStory>
+		</ProjectHeader>
+		<ProjectTabs project={story.id}>
+			{#snippet journey()}<ProjectStory {story} />{/snippet}
+		</ProjectTabs>
 	{/snippet}
 </Deferred>
 

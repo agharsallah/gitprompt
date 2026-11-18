@@ -138,3 +138,17 @@ describe('find', () => {
 		]);
 	});
 });
+
+describe('project commits', () => {
+	it('sends the words trimmed and the grouping, and leaves out what is not set', async () => {
+		const { fetch, calls } = fakeFetch(() => ({ body: {} }));
+		await api.projectCommits('/w/app', {}, fetch);
+		await api.projectCommits('/w/app', { q: '  ', group: 'day' }, fetch);
+		await api.projectCommits('/w/app', { q: ' src/a.rs ', group: 'branch' }, fetch);
+		expect(calls.map((c) => c.url)).toEqual([
+			'/api/stories/project/%2Fw%2Fapp/commits?',
+			'/api/stories/project/%2Fw%2Fapp/commits?group=day',
+			'/api/stories/project/%2Fw%2Fapp/commits?q=src%2Fa.rs&group=branch'
+		]);
+	});
+});

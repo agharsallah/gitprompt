@@ -77,7 +77,9 @@ export type UsageAction =
 	| 'copy.code'
 	| 'export.open'
 	| 'palette.open'
-	| 'palette.copy';
+	| 'palette.copy'
+	| 'tab.project.commits'
+	| 'commit.open.prompt';
 
 export const panelAction = <K extends 'seen' | 'click', P extends PanelName>(kind: K, panel: P) =>
 	`panel.${kind}.${panel}` as const;
@@ -94,5 +96,7 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	'copy.code',
 	'export.open',
 	'palette.open',
-	'palette.copy'
+	'palette.copy',
+	'tab.project.commits',
+	'commit.open.prompt'
 ];
