@@ -41,6 +41,9 @@ export const SEARCH_VIEW_KEY = 'gitprompt-view-search';
 /** The time range, shared by every page: a range id. */
 export const RANGE_KEY = 'gitprompt-view-range';
 
+/** The Overview tab you used last: a tab id (lib/insights/tabs.ts), checked where it is read. */
+export const OVERVIEW_TAB_KEY = 'gitprompt-view-overview-tab';
+
 /** `off`: remember nothing (Settings → General). */
 export const REMEMBER_KEY = 'gitprompt-remember-filters';
 
@@ -51,8 +54,11 @@ export const OLD_KEYS = [
 	'gitprompt-sessions-view'
 ];
 
-/** Parameters of one visit, not of the view: the selected prompt, how many rows are loaded. */
-const TRANSIENT = new Set(['id', 'limit', MOVED_PARAM]);
+/**
+ * Parameters of one visit, not of the view: the selected prompt, how many rows are loaded, the
+ * Overview's tab (kept on its own: `keepOverviewTab`).
+ */
+const TRANSIENT = new Set(['id', 'limit', 'tab', MOVED_PARAM]);
 
 export const isViewPage = (route: string | null | undefined): route is ViewPage =>
 	!!route && Object.hasOwn(VIEWS, route);
@@ -156,6 +162,16 @@ export function startView(
 	return viewSearch(route, storage) || null;
 }
 
+/** The Overview tab you used last, as kept (`''` when none); the caller checks it is a tab. */
+export function savedOverviewTab(storage = browserStorage()): string {
+	return isRemembering(storage) ? (get(storage, OVERVIEW_TAB_KEY) ?? '') : '';
+}
+
+/** Keep the Overview tab you are on, so the Overview opens on it when its URL names none. */
+export function keepOverviewTab(tab: string, storage = browserStorage()): void {
+	if (isRemembering(storage)) write(storage, OVERVIEW_TAB_KEY, tab);
+}
+
 export function forgetView(page: ViewPage, storage = browserStorage()): void {
 	put(storage, VIEWS[page].key, null);
 }
@@ -163,6 +179,7 @@ export function forgetView(page: ViewPage, storage = browserStorage()): void {
 export function forgetViews(storage = browserStorage()): void {
 	for (const page of VIEW_PAGES) forgetView(page, storage);
 	put(storage, SEARCH_VIEW_KEY, null);
+	put(storage, OVERVIEW_TAB_KEY, null);
 	forgetRange(storage);
 	dropOldKeys(storage);
 }

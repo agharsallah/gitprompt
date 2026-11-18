@@ -21,7 +21,7 @@
 
 <Panel
 	{@attach countPanel('starred')}
-	title="Which prompts did I keep?"
+	title="Which prompts did I star?"
 	description="Prompts you starred."
 	state={view}
 >

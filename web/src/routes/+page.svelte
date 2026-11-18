@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { refreshAll } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import { pageHref } from '#lib/shared/links.ts';
 	import { liveUpdates } from '#lib/api/live.svelte.ts';
 	import type { Capability, PromptQuery } from '#lib/api/types.ts';
 	import Deferred from '#lib/async/Deferred.svelte';
-	import Lazy from '#lib/async/Lazy.svelte';
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import Boundary from '#lib/errors/Boundary.svelte';
 	import ExportButton from '#lib/export/ExportButton.svelte';
@@ -14,16 +14,17 @@
 	import type { Overview } from '#lib/insights/overview.ts';
 	import { rangePhrase } from '#lib/insights/range.ts';
 	import { chartStart, timeSlots } from '#lib/insights/series.ts';
-	// The first screen is part of the page; the panels further down load as they come into view.
-	import ActivityPanel from '#lib/insights/panels/ActivityPanel.svelte';
+	// The first screen is part of the page; the panels below it sit in tabs (overview/OverviewTabs).
 	import KeyFigures from '#lib/insights/panels/KeyFigures.svelte';
-	import RhythmPanel from '#lib/insights/panels/RhythmPanel.svelte';
-	import SessionsPanel from '#lib/insights/panels/SessionsPanel.svelte';
+	import { overviewTabHref, resolveTab, type OverviewTab } from '#lib/insights/tabs.ts';
 	import { topProject } from '#lib/insights/keyFigures.ts';
 	import { calmLine } from '#lib/overview/calm.ts';
 	import FirstScreen from '#lib/overview/FirstScreen.svelte';
 	import NeedsYou from '#lib/overview/NeedsYou.svelte';
+	import OverviewTabs from '#lib/overview/OverviewTabs.svelte';
 	import WeekStrip from '#lib/overview/WeekStrip.svelte';
+	import { keepOverviewTab, savedOverviewTab } from '#lib/settings/views.ts';
+	import { track } from '#lib/shared/usage.ts';
 	import { availability } from '#lib/sources/capabilities.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import { PURPOSES } from '#lib/layout/nav.ts';
@@ -37,6 +38,20 @@
 
 	// Refetch once capture goes quiet, not on every event.
 	$effect(() => liveUpdates(refreshAll, 3000));
+
+	// The tab below the first screen: the URL's, else the one used last, else Activity. The tab
+	// shown is the one kept, so a link that names a tab is remembered as well as a click.
+	const tab = $derived(resolveTab(page.url.searchParams.get('tab'), savedOverviewTab()));
+	$effect(() => keepOverviewTab(tab));
+
+	/**
+	 * A new history entry with the tab in the URL (Back returns to the tab before); scroll and focus
+	 * stay. The page's load reads only its filters, so the numbers are not fetched again.
+	 */
+	function selectTab(id: OverviewTab) {
+		track(`tab.overview.${id}`);
+		void goto(overviewTabHref(page.url.search, id), { replace: false, reset: false });
+	}
 
 	const content = new Resource(() => data.content);
 	const overview = $derived(content.value?.overview);
@@ -76,7 +91,6 @@
 </StoryHeader>
 
 {#snippet panel()}<PanelSkeleton />{/snippet}
-{#snippet rows()}<PanelSkeleton body="rows" rows={3} />{/snippet}
 
 <Deferred resource={content} label="Loading the overview" what="the overview">
 	{#snippet pending()}
@@ -133,124 +147,14 @@
 
 					<Boundary what="the week strip"><WeekStrip data={o} /></Boundary>
 
-					<section aria-labelledby="activity">
-						<h2 id="activity" class="section">Activity</h2>
-						<div class="grid two">
-							<Boundary what="the activity panel"
-								><ActivityPanel data={o} {slots} {link} availability={can('cost')} /></Boundary
-							>
-							<Boundary what="the rhythm panel">
-								<RhythmPanel data={o} weekStart={data.weekStart} {link} />
-							</Boundary>
-						</div>
-						<Boundary what="the sessions panel"><SessionsPanel data={o} /></Boundary>
-					</section>
-
-					<section aria-labelledby="types">
-						<h2 id="types" class="section">Prompt types</h2>
-						<div class="grid two">
-							<Lazy
-								load={() => import('#lib/insights/panels/OriginPanel.svelte')}
-								props={{ data: o, link }}
-								when="visible"
-								label="Loading who wrote the prompts"
-								what="the origins panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/CommandsPanel.svelte')}
-								props={{ data: o, link, availability: can('session_metrics') }}
-								when="visible"
-								label="Loading slash commands"
-								what="the commands panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/WritingPanel.svelte')}
-								props={{ data: o, link }}
-								when="visible"
-								label="Loading prompt sizes"
-								what="the writing panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/ReusePanel.svelte')}
-								props={{ data: o, link }}
-								when="visible"
-								label="Loading reused prompts"
-								what="the reuse panel"
-								pending={panel}
-							/>
-						</div>
-					</section>
-
-					<section aria-labelledby="cost">
-						<h2 id="cost" class="section">Models and cost</h2>
-						<div class="grid two">
-							<Lazy
-								load={() => import('#lib/insights/panels/ModelsPanel.svelte')}
-								props={{ data: o, link, availability: can('model') }}
-								when="visible"
-								label="Loading models"
-								what="the models panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/SpendPanel.svelte')}
-								props={{ data: o, link, availability: can('cost') }}
-								when="visible"
-								label="Loading spend"
-								what="the spend panel"
-								pending={panel}
-							/>
-						</div>
-					</section>
-
-					<section aria-labelledby="work">
-						<h2 id="work" class="section">Performance and agentic work</h2>
-						<div class="grid two">
-							<Lazy
-								load={() => import('#lib/insights/panels/PerformancePanel.svelte')}
-								props={{ data: o, link }}
-								when="visible"
-								label="Loading performance"
-								what="the performance panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/AgentPanel.svelte')}
-								props={{ data: o, link }}
-								when="visible"
-								label="Loading agent work"
-								what="the agent panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/DelegationPanel.svelte')}
-								props={{ data: o, link }}
-								when="visible"
-								label="Loading delegation"
-								what="the delegation panel"
-								pending={panel}
-							/>
-							<Lazy
-								load={() => import('#lib/insights/panels/OutcomesPanel.svelte')}
-								props={{ data: o, link, availability: can('session_metrics') }}
-								when="visible"
-								label="Loading outcomes"
-								what="the outcomes panel"
-								pending={panel}
-							/>
-						</div>
-					</section>
-
-					<Lazy
-						load={() => import('#lib/insights/panels/StarredPanel.svelte')}
-						props={{ prompts: o.starred, href: link({ starred: 'true' }) }}
-						when="visible"
-						label="Loading starred prompts"
-						what="the starred prompts"
-						pending={rows}
+					<OverviewTabs
+						selected={tab}
+						onselect={selectTab}
+						data={o}
+						{link}
+						{slots}
+						{can}
+						weekStart={data.weekStart}
 					/>
 				{/if}
 			</FirstScreen>
@@ -269,20 +173,6 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
-	}
-
-	section {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--space-4);
-	}
-
-	.section {
-		margin-top: var(--space-3);
-		color: var(--color-text);
-		font-size: var(--text-lg);
-		font-weight: var(--weight-semibold);
-		font-stretch: var(--stretch-heading);
 	}
 
 	.grid {

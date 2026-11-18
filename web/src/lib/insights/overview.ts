@@ -11,6 +11,9 @@ import { rangeStart } from '#lib/insights/range.ts';
 
 type Fetch = typeof fetch;
 
+/** The starred prompts the Overview shows, newest first: the rest are one link away. */
+export const STARRED_LIMIT = 5;
+
 export type Overview = {
 	filters: InsightFilters;
 	query: StatsQuery;
@@ -74,7 +77,7 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 		tools: stats('tool', by('prompts', 500)),
 		telemetry: api.telemetry(query, fetcher),
 		attention: api.attention(query, fetcher),
-		starred: api.prompts(queryParams({ ...query, starred: 'true', limit: 5 }), fetcher),
+		starred: api.prompts(queryParams({ ...query, starred: 'true', limit: STARRED_LIMIT }), fetcher),
 		source: stats('source', by('prompts', 50), without(query, 'source')),
 		surface: stats('surface', by('prompts', 50), without(query, 'surface')),
 		repo: stats('repo', by('prompts', 200), without(query, 'repo')),

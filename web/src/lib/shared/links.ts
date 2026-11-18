@@ -46,6 +46,9 @@ function queryString(query?: Query): string {
 
 const hashOf = (anchor?: string) => (anchor ? `#${anchor}` : '');
 
+/** A link to a place on the page you are on (`#anchor`, the anchor given without the `#`). */
+export const anchorHref = (anchor: string) => hashOf(anchor);
+
 /** A URL (a page's, from `pageHref`) with a query added. */
 export const withQuery = (href: string, query: Query) => `${href}${queryString(query)}`;
 

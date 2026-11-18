@@ -41,7 +41,7 @@
 <Panel
 	{@attach countPanel('delegation')}
 	state={view}
-	title="How much work goes to subagents and MCP servers?"
+	title="How much goes to subagents and MCP servers?"
 >
 	<div class="stack">
 		{#if share !== null}

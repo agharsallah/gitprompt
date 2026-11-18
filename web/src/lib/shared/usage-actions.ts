@@ -25,6 +25,10 @@ export const PANELS = [
 ] as const;
 export type PanelName = (typeof PANELS)[number];
 
+/** The Overview's tabs (lib/insights/tabs.ts): opening one is counted. */
+export const OVERVIEW_TABS = ['activity', 'types', 'cost', 'agentic', 'starred'] as const;
+export type OverviewTabName = (typeof OVERVIEW_TABS)[number];
+
 /** The tabs under a prompt in the reader. */
 export const READER_TABS = [
 	'activity',
@@ -78,6 +82,7 @@ export type UsageAction =
 	| `panel.seen.${PanelName}`
 	| `panel.click.${PanelName}`
 	| `reader.tab.${ReaderTab}`
+	| `tab.overview.${OverviewTabName}`
 	| `page.opened.${PageName}`
 	| `filter.${FilterKind}`
 	| `worth.act.${WorthKind}`
@@ -102,6 +107,7 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	...PANELS.map((p) => panelAction('seen', p)),
 	...PANELS.map((p) => panelAction('click', p)),
 	...READER_TABS.map((t) => `reader.tab.${t}` as const),
+	...OVERVIEW_TABS.map((t) => `tab.overview.${t}` as const),
 	...PAGES.map((p) => `page.opened.${p}` as const),
 	...FILTER_KINDS.map((k) => `filter.${k}` as const),
 	...WORTH_KINDS.map((k) => `worth.act.${k}` as const),

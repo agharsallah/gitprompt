@@ -1,7 +1,9 @@
 <script lang="ts" generics="T extends string">
 	import type { Snippet } from 'svelte';
+	import { tabKeyTarget } from '#lib/ui/tabs.ts';
 
-	type Tab = { id: T; label: string; count?: number | string; disabled?: boolean };
+	/** `hint`: what the tab holds, in a few words under its name. */
+	type Tab = { id: T; label: string; count?: number | string; hint?: string; disabled?: boolean };
 
 	/**
 	 * WAI-ARIA tabs: one tab stop, arrow keys move between tabs (Home/End jump), activation follows
@@ -32,15 +34,8 @@
 	const buttons: HTMLButtonElement[] = $state([]);
 
 	function move(event: KeyboardEvent, index: number) {
-		const enabled = tabs.map((t, i) => (t.disabled ? -1 : i)).filter((i) => i >= 0);
-		const at = enabled.indexOf(index);
-		const target = {
-			ArrowRight: enabled[(at + 1) % enabled.length],
-			ArrowLeft: enabled[(at - 1 + enabled.length) % enabled.length],
-			Home: enabled[0],
-			End: enabled.at(-1)
-		}[event.key];
-		if (target === undefined) return;
+		const target = tabKeyTarget(event.key, index, tabs);
+		if (target === null) return;
 		event.preventDefault();
 		select(tabs[target].id);
 		buttons[target]?.focus();
@@ -62,7 +57,14 @@
 				onclick={() => select(tab.id)}
 				onkeydown={(e) => move(e, i)}
 			>
-				{tab.label}
+				{#if tab.hint}
+					<span class="named">
+						<span class="label">{tab.label}</span>
+						<span class="hint">{tab.hint}</span>
+					</span>
+				{:else}
+					{tab.label}
+				{/if}
 				{#if tab.count !== undefined && tab.count !== 0}<span class="count num">{tab.count}</span
 					>{/if}
 			</button>
@@ -131,6 +133,24 @@
 
 	[role='tab']:disabled {
 		color: var(--color-text-disabled);
+	}
+
+	.named {
+		display: grid;
+		justify-items: start;
+		padding: var(--space-2) 0;
+		line-height: var(--leading-tight);
+		text-align: start;
+	}
+
+	[role='tab']:has(.named) {
+		height: auto;
+	}
+
+	.hint {
+		color: var(--color-text-muted);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-regular);
 	}
 
 	.count {

@@ -1372,7 +1372,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t28" data-area="web" data-size="M" data-needs="t26 t27">
+    <article class="tk" id="t28" data-area="web" data-size="M" data-needs="t26 t27" data-status="done">
       <details><summary><span class="tt">Overview tabs for today's panels</span><span class="goal">The 14 panels move behind five tabs that say what they hold, so the page fits in two screens.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-a2">A2</a> (without its new panels), I3</dd></dl>
@@ -1390,6 +1390,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> a test that every panel of the <a href="index.html#keep">§08 checklist</a> is in the table once · takeaway unit tests · the page is at most two screens tall at 1280×800.</p>
         <p class="dod"><b>Done when</b> every Overview panel is reachable in one click, and reload keeps the tab.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> Below the first screen, <code>lib/overview/OverviewTabs.svelte</code> shows the 14 panels in five tabs. The table is data in <code>lib/insights/tabs.ts</code>: Activity (rhythm, sessions), Prompt types (origin, commands, writing, reuse), Models and cost (spend, models, the spend per day of <code>ActivityPanel</code>, as the A2 sketch places it), Agentic work (agent, delegation, performance, outcomes) and Starred. Each panel's title is its A2 question; two titles changed to match. A tab opens on its takeaway (<code>lib/stories/takeaways.ts</code>, one pure function per tab, null when there is nothing to say), then "In this tab" with jump links, then its panels. Only the open tab is drawn; the other tabs' panels load lazily when opened. Which tab opens: <code>?tab=</code>, else the one you used last (<code>settings/views.ts</code>, its own key, no longer kept with the filters), else Activity. ← →, Home and End come from a pure <code>ui/tabs.ts</code> on the shared roving logic. A tab whose data no connected tool reports stays in place and says so. Counted: <code>tab.overview.&lt;id&gt;</code>. Tests: each of the 14 panels is in the table exactly once, and each panel's rendered title is its question; takeaways; the tab order; only the open tab renders, standing in for the two-screen height, which is not measured. Not done: "sessions got shorter" needs the period before's session lengths, which are not loaded, so the Activity takeaway names the typical session length instead. The A2 questions without a panel yet (prompts per hour and per day, run lengths, commits) arrive in phase 6. Web: 125 files and 1,237 tests pass. <b>Not yet looked at in a browser.</b></p>
       </div></details>
     </article>
 
