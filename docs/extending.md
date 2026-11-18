@@ -105,6 +105,16 @@ A new wire format is a variant of `Format` (`spec.rs`) and an arm in `gitprompt-
 - Every threshold is a named constant beside the rule (`COMMAND_MIN_SENDS`, `RUNNING_WINDOW`, `PICK_UP_WITHIN`...).
 - Where an item leads is a `Target` (`gitprompt-insights/src/target.rs`), data the dashboard turns into a link.
 
+## A kind of possible leak
+
+Possible leaks are found once per turn, when the turn is indexed (`gitprompt-insights/src/leaks.rs`), and stored masked in `prompt_index_leak`: the clear value is never stored, logged or sent. Precision comes first; every rule below exists because of a false alarm on real data.
+
+- A secret: one named pattern in `KINDS` (`gitprompt-core/src/secrets.rs`; it also hides), and if its shape alone is not enough, a rule in `secrets/plausible.rs` (entropy, placeholders, code that only names a secret).
+- Personal data: one `Detector` in `gitprompt-core/src/personal/mod.rs`: needles (a cheap test), a pattern **without lookaround** (lookaround runs on fancy-regex's slow backtracking engine; check the edges in `check` instead), a `check` that turns look-alikes away (a checksum, example values, the line or the text nearby), a `Mask` and a `Scope` (`Sent`: not in what a tool read back, like a phone number on a fetched page).
+- A sensitive file: one row of `SENSITIVE_FILES` (`personal/files.rs`).
+- Each kind has a table test (matches and near misses) in `gitprompt-core/tests/personal.rs` or `secrets.rs`, and `hashes_ids_versions_and_lock_files_raise_no_alarm` must still pass. A finding you dismissed as not sensitive becomes a near miss there.
+- Bump `CODE_VERSION` (`insights/src/indexer.rs`) so stored findings are recomputed.
+
 ## A filter, a grouping, a statistic
 
 - A prompt filter: a field on `PromptFilter` (`gitprompt-store/src/filter.rs`) and one function in `gitprompt-store/src/sql/filter.rs`; parse it from the query string in `gitprompt-server/src/query.rs`. It then works for prompts, stats, stories, search and export.

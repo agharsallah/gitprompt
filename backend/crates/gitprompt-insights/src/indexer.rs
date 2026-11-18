@@ -22,12 +22,13 @@ use sha2::{Digest, Sha256};
 
 use gitprompt_core::spec::{OriginRule, Spec, SurfaceRule, ToolKind, Usage};
 use gitprompt_core::{Json, JsonMap, Result};
-use gitprompt_store::index::{Entry, IndexRow, ModelUsage, SessionCommand, SessionMetric, ToolCalls, UsageTotals, WorkUsage};
+use gitprompt_store::index::{Entry, IndexRow, LeakRow, ModelUsage, SessionCommand, SessionMetric, ToolCalls, UsageTotals, WorkUsage};
 use gitprompt_store::{Annotation, EventRow, Outcome, PromptRow, PromptView, Store};
 
 use crate::Specs;
 use crate::derivations::{self, COMMAND_EVENT, Derived, METRIC_PREFIX, derive, prompt_stats, work_kind};
 use crate::facts::{Facts, facts, main_model};
+use crate::leaks;
 use crate::origin;
 use crate::text::{text_of, truthy, words};
 use crate::zone::{MachineZone, Zone, local_time};
@@ -38,7 +39,7 @@ pub const BATCH: usize = 500;
 /// Bump whenever a derivation, a projection in [`entry`] or the index schema changes what is
 /// stored: every index is then rebuilt on next use. (Python hashed its source files; a Rust binary
 /// has none to hash.)
-pub const CODE_VERSION: &str = "rust-3";
+pub const CODE_VERSION: &str = "rust-4";
 
 /// 16 hex characters of a SHA-256 over `code_version`, the zone's name and the rules of every spec
 /// (in id order): `origin`, `surface`, `injected`, `tool_kinds`, `tool_files` (pattern sources) and
@@ -219,7 +220,7 @@ fn project(derived: &Derived) -> Entry {
             usage: usage.clone(),
         })
         .collect();
-    Entry { row: index_row, models, tools, work }
+    Entry { row: index_row, models, tools, work, leaks: Vec::new() }
 }
 
 /// A derived prompt's facts, from the same projection the index stores (models: every model of the
@@ -287,7 +288,7 @@ impl Indexer {
             let spec = self.specs.get(&row.source).map(AsRef::as_ref);
             let derived = derive(&view(row), turn, spec);
             match entry(&derived, self.zone.as_ref()) {
-                Ok(entry) => out.push(entry),
+                Ok(entry) => out.push(Entry { leaks: leak_rows(&derived, turn), ..entry }),
                 Err(error) => tracing::warn!(id = derived.prompt.row.id, %error, "prompt left out of the index"),
             }
         }
@@ -399,6 +400,14 @@ impl Indexer {
             .collect();
         index.add_telemetry(newest, &metrics, &commands)
     }
+}
+
+/// The possible leaks of a turn as the index stores them (masked; see [`crate::leaks`]).
+fn leak_rows(derived: &Derived, events: &[EventRow]) -> Vec<LeakRow> {
+    leaks::findings(derived, events)
+        .into_iter()
+        .map(|f| LeakRow { finding: f.id, value_key: f.value_key, kind: f.kind, place: f.place.as_str().to_owned(), masked: f.masked })
+        .collect()
 }
 
 /// The prompt id a stored prompt's turn events carry.

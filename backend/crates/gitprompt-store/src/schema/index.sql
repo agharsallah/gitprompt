@@ -71,6 +71,14 @@ create table if not exists prompt_index_work (
 );
 create index if not exists prompt_index_work_id on prompt_index_work (id);
 
+-- Possible leaks of each prompt's turn, masked (never the clear value). `finding` is stable across
+-- reindexing; `value_key` names the value wherever it appears.
+create table if not exists prompt_index_leak (
+  id integer not null, finding text not null, value_key text not null, kind text not null, place text not null, masked text not null
+);
+create index if not exists prompt_index_leak_id on prompt_index_leak (id);
+create index if not exists prompt_index_leak_finding on prompt_index_leak (finding);
+
 -- Telemetry that arrives per session (event_id = event.id): read incrementally, after the last one.
 create table if not exists session_metric (
   event_id integer primary key, session text, received_at text not null, name text not null, value real not null

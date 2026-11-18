@@ -34,6 +34,14 @@ fn samples() -> Vec<(&'static str, String)> {
         ("Google API key", "AIza".to_owned() + &"Sy0_-abcde".repeat(3) + "fghij"),
         ("Stripe key", "sk_live_".to_owned() + &"abcd1234".repeat(3)),
         ("JWT", "eyJ".to_owned() + "hbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcdefghijk"),
+        ("GitLab token", "glpat-".to_owned() + "x9Kq2Lm7Vt4Rw8Zp3Nc6"),
+        ("npm token", "npm_".to_owned() + &"aB3dE6gH9k".repeat(3) + "mN2pQ5"),
+        ("PyPI token", "pypi-AgEIcHlwaS5vcmc".to_owned() + &"Qx7Lm2Vt9Rw4Zp8Nc3Kb".repeat(3)),
+        ("Hugging Face token", "hf_".to_owned() + &"QxLmVtRwZpNcKbYdFgHj".repeat(2)),
+        ("SendGrid key", "SG.".to_owned() + &"a".repeat(22) + "." + &"b".repeat(43)),
+        ("Atlassian token", "ATATT3".to_owned() + &"xFfGF0q8Zt2Lw9XkP4vR7mN3cB".repeat(3)),
+        ("credentials in a URL", "postgres://app:".to_owned() + "Tr0ub4dor3@db.internal"),
+        ("bearer token", "Authorization: Bearer ".to_owned() + "q8Zt2Lw9XkP4vR7mN3cBy6"),
         ("password or key assignment", "password=".to_owned() + "hunter2hunter2"),
     ]
 }
@@ -140,4 +148,54 @@ fn redact_hides_secrets_in_nested_strings_and_leaves_keys_alone() {
     let value = json!({key.clone(): {"list": [key, 3, null, false]}});
     let expected = json!({key: {"list": ["[hidden AWS access key]", 3, null, false]}});
     assert_eq!(redact(&value), expected);
+}
+
+use gitprompt_core::leak::masked;
+use gitprompt_core::secrets::find_leaks;
+
+/// The kinds and masked values of the plausible secrets in `text`.
+fn leaks(text: &str) -> Vec<(&'static str, String)> {
+    find_leaks(text).into_iter().map(|f| (f.kind, masked(f.mask, f.value))).collect()
+}
+
+#[test]
+fn real_looking_secrets_are_leaks_with_only_their_masked_value() {
+    let key = "sk-proj-".to_owned() + "q8Zt2Lw9XkP4vR7mN3cBy6Hd";
+    assert_eq!(leaks(&format!("export OPENAI_API_KEY={key}")), [("OpenAI API key", "sk-…y6Hd".to_owned())]);
+    assert_eq!(leaks("db_password = 'Tr0ub4dor&3x'"), [("password or key assignment", "Tr0…r&3x".to_owned())]);
+    assert_eq!(leaks("postgres://app:Tr0ub4dor3xZ@db.internal/app"), [("credentials in a URL", "Tr0…r3xZ".to_owned())]);
+    let block = format!("-----BEGIN OPENSSH PRIVATE KEY-----\n{}\n-----END OPENSSH PRIVATE KEY-----", "b3BlbnNzaC1rZXktdjEAAAAA".repeat(4));
+    assert_eq!(leaks(&block), [("private key", "hidden".to_owned())]);
+}
+
+#[test]
+fn placeholders_examples_and_code_that_names_a_secret_are_not_leaks() {
+    let not_leaks = [
+        "AKIAIOSFODNN7EXAMPLE",
+        "OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key = os.environ[\"OPENAI_API_KEY\"]",
+        "password: ${DB_PASSWORD}",
+        "token = config.auth.token_value",
+        "password=YOUR_PASSWORD_HERE",
+        "secret: <your-secret>",
+        "password = PASSWORD_FROM_ENV",
+        "https://user:${TOKEN}@github.com/acme/app.git",
+        "-----BEGIN RSA PRIVATE KEY----- goes here, then -----END RSA PRIVATE KEY-----",
+        "| { type: \"link\"; token: LinkToken }",
+        "logs on a wrong password: \"observatory: failed login\"",
+        "SESSION_SECRET: CFG.sessionSecret,",
+        "#   token: https://id.atlassian.com/manage/api-tokens",
+        "ACCOUNT_PASSWORD = me@corp.io",
+        "\"prompt\": \"key password=hunter2hunter2\"",
+        "new URL('https://x.io/?token=supersecret'));",
+        "blobToken: target.config.blobToken,",
+        "the read-write token: BLOB_READ_WRITE_TOKEN. Without it",
+        "PWD=/Users/me/Desktop/git/app OLDPWD=/Users/me",
+        "POSTGRES_PASSWORD=\nPOSTGRES_URL=postgres://h/db",
+        "GLIMMER_API_KEY= GLIMMER_MODEL=qwen-30B",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    ];
+    for text in not_leaks {
+        assert_eq!(leaks(text), [], "{text}");
+    }
 }

@@ -12,6 +12,7 @@ pub(super) struct Inserts<'c> {
     model: CachedStatement<'c>,
     tool: CachedStatement<'c>,
     work: CachedStatement<'c>,
+    leak: CachedStatement<'c>,
     text: CachedStatement<'c>,
 }
 
@@ -25,6 +26,8 @@ impl<'c> Inserts<'c> {
             work: conn.prepare_cached(&format!(
                 "insert into prompt_index_work (id, work, query_source, {USAGE}) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             ))?,
+            leak: conn
+                .prepare_cached("insert into prompt_index_leak (id, finding, value_key, kind, place, masked) values (?, ?, ?, ?, ?, ?)")?,
             text: conn.prepare_cached("insert into prompt_fts (rowid, typed_text) values (?, ?)")?,
         })
     }
@@ -62,6 +65,9 @@ impl<'c> Inserts<'c> {
                 u.cache_read_tokens,
                 u.cache_creation_tokens,
             ))?;
+        }
+        for l in &entry.leaks {
+            self.leak.execute((id, &l.finding, &l.value_key, &l.kind, &l.place, &l.masked))?;
         }
         if let Some(typed) = entry.row.typed_text.as_deref().filter(|t| !t.is_empty()) {
             self.text.execute((id, typed))?;

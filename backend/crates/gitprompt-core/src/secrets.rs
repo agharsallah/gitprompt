@@ -8,6 +8,9 @@ use fancy_regex::{NoExpand, Regex};
 
 use crate::Json;
 use crate::json::map_strings;
+use crate::leak::Found;
+
+mod plausible;
 
 /// (name, pattern) of every kind of secret detected, in detection order.
 pub const KINDS: &[(&str, &str)] = &[
@@ -15,12 +18,24 @@ pub const KINDS: &[(&str, &str)] = &[
     ("AWS access key", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
     ("GitHub token", r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_\w{22,})"),
     ("Anthropic API key", r"\bsk-ant-[\w-]{20,}"),
-    ("OpenAI API key", r"\bsk-(?!ant-)(?:proj-)?[\w-]{20,}"),
+    // "not sk-ant-" spelled without a lookahead, so the pattern runs on the fast engine.
+    (
+        "OpenAI API key",
+        r"\bsk-(?:proj-[\w-]{20,}|[[\w-]&&[^a]][\w-]{19,}|a[[\w-]&&[^n]][\w-]{18,}|an[[\w-]&&[^t]][\w-]{17,}|ant[[\w-]&&[^-]][\w-]{16,})",
+    ),
     ("Slack token", r"\bxox[abposr]-[\w-]{10,}"),
     ("Google API key", r"\bAIza[\w-]{35}"),
     ("Stripe key", r"\b[rs]k_live_[A-Za-z0-9]{20,}"),
     ("JWT", r"\beyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}"),
-    ("password or key assignment", r#"(?i)\b(?:password|passwd|pwd|secret|api[_-]?key|token)\s*[:=]\s*['"]?[^\s'"]{8,}"#),
+    ("GitLab token", r"\bglpat-[\w-]{20,}"),
+    ("npm token", r"\bnpm_[A-Za-z0-9]{36}\b"),
+    ("PyPI token", r"\bpypi-AgEIcHlwaS5vcmc[\w-]{50,}"),
+    ("Hugging Face token", r"\bhf_[A-Za-z0-9]{34,}\b"),
+    ("SendGrid key", r"\bSG\.[\w-]{22}\.[\w-]{43}\b"),
+    ("Atlassian token", r"\bATATT3[A-Za-z0-9_=-]{50,}"),
+    ("credentials in a URL", r"\b[a-z][a-z0-9+.-]{1,20}://[^\s:/@]{1,64}:[^\s:/@]{3,128}@[\w.-]+"),
+    ("bearer token", r"(?i)\bauthorization:\s*bearer\s+[\w.~+/=-]{20,}"),
+    ("password or key assignment", r#"(?i)\b[\w-]*?(?:password|passwd|pwd|secret|api[_-]?key|token)[ \t]*[:=][ \t]*['"]?[^\s'"]{8,}"#),
 ];
 
 /// [`KINDS`] compiled once, with each kind's replacement text.
@@ -66,6 +81,33 @@ pub fn find_secrets(text: &str) -> Vec<&'static str> {
 /// Replace every secret match with `[hidden <kind>]`.
 pub fn hide(text: &str) -> String {
     COMPILED.iter().fold(text.to_owned(), |text, kind| kind.hide(&text).into_owned())
+}
+
+/// Every secret in `text` that is plausibly real, with its value: placeholders, examples, code
+/// that only names a secret and values too regular to be a key are left out (unlike [`hide`],
+/// which hides every match). A value an earlier kind already found is not found again (the
+/// specific kinds come first, `password or key assignment` last).
+pub fn find_leaks(text: &str) -> Vec<Found<'_>> {
+    let mut found: Vec<Found<'_>> = Vec::new();
+    for kind in COMPILED.iter() {
+        for m in kind.regex.find_iter(text).filter_map(Result::ok) {
+            let Some(leak) = plausible::judge(kind.name, m.as_str()) else { continue };
+            if !found.iter().any(|seen| overlaps(text, seen.value, leak.value)) {
+                found.push(leak);
+            }
+        }
+    }
+    found
+}
+
+/// Whether two slices of `text` share a byte.
+fn overlaps(text: &str, a: &str, b: &str) -> bool {
+    let span = |s: &str| {
+        let start = (s.as_ptr() as usize).saturating_sub(text.as_ptr() as usize);
+        start..start + s.len()
+    };
+    let (a, b) = (span(a), span(b));
+    a.start < b.end && b.start < a.end
 }
 
 /// Replace every secret match in a JSON value, keeping its structure.

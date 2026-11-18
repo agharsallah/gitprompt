@@ -13,6 +13,7 @@
 //! | [`delta`]       | each key figure against the period before (the Overview's headline)     |
 //! | [`facts`]       | the few values every page shows about a turn (ADR-0021)                   |
 //! | [`label`]      | the default name of a session: what you first typed in it                 |
+//! | [`leaks`]       | possible leaks in a turn: secrets, personal data, sensitive files (masked) |
 //! | [`lineage`]   | similarity, word diff and outcome change between versions of a prompt     |
 //! | [`stories`]     | session chapters, project phases, commit attribution, a prompt's versions |
 //! | [`redone`]      | what the turns you had to redo cost (failed, interrupted, reworded)     |
@@ -45,6 +46,7 @@ pub mod facts;
 pub mod find;
 pub mod indexer;
 pub mod label;
+pub mod leaks;
 pub mod lineage;
 pub mod origin;
 pub mod redone;

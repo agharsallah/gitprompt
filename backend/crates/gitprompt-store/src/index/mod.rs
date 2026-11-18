@@ -108,6 +108,20 @@ pub struct WorkUsage {
     pub usage: UsageTotals,
 }
 
+/// A possible leak of the prompt's turn, masked (`gitprompt_insights::leaks::Finding`): the clear
+/// value is never stored here.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LeakRow {
+    /// Stable across reindexing: kind, turn, place and value.
+    pub finding: String,
+    /// The kind and value only: the same value wherever it appears.
+    pub value_key: String,
+    pub kind: String,
+    /// prompt, answer, `tool_input` or `tool_output`.
+    pub place: String,
+    pub masked: String,
+}
+
 /// Everything the index stores about one prompt.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Entry {
@@ -115,6 +129,7 @@ pub struct Entry {
     pub models: Vec<ModelUsage>,
     pub tools: Vec<ToolCalls>,
     pub work: Vec<WorkUsage>,
+    pub leaks: Vec<LeakRow>,
 }
 
 /// A telemetry metric data point of a session.
@@ -182,7 +197,7 @@ impl PromptIndex<'_> {
         Ok(self.db.write(|conn| set_meta(conn, RULES_VERSION, value))?)
     }
 
-    /// Replace the rows of these prompts (index, model, tool, work, FTS), in one transaction.
+    /// Replace the rows of these prompts (index, model, tool, work, leak, FTS), in one transaction.
     /// Returns how many.
     pub fn upsert(&self, entries: &[Entry]) -> Result<usize> {
         let ids: Vec<i64> = entries.iter().map(|e| e.row.id).collect();
@@ -275,7 +290,17 @@ impl PromptIndex<'_> {
             let work = decode::all(conn, work, [id], |r| {
                 Ok(WorkUsage { work: r.get("work")?, query_source: r.get("query_source")?, usage: usage(r)? })
             })?;
-            Ok(Some(Entry { row, models, tools, work }))
+            let leaks = "select finding, value_key, kind, place, masked from prompt_index_leak where id = ? order by rowid";
+            let leaks = decode::all(conn, leaks, [id], |r| {
+                Ok(LeakRow {
+                    finding: r.get("finding")?,
+                    value_key: r.get("value_key")?,
+                    kind: r.get("kind")?,
+                    place: r.get("place")?,
+                    masked: r.get("masked")?,
+                })
+            })?;
+            Ok(Some(Entry { row, models, tools, work, leaks }))
         })?)
     }
 }
@@ -295,6 +320,7 @@ fn delete(conn: &Connection, ids: &[i64]) -> DbResult<()> {
         ("prompt_index_model", "id"),
         ("prompt_index_tool", "id"),
         ("prompt_index_work", "id"),
+        ("prompt_index_leak", "id"),
         ("prompt_fts", "rowid"),
     ] {
         conn.prepare_cached(&format!("delete from {table} where {column} in (select value from json_each(?))"))?.execute([&ids])?;

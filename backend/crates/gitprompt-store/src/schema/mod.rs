@@ -29,13 +29,14 @@ pub(crate) const REBUILD_SOURCE_EVENT_STATS: &str = "delete from event_stats whe
     from event where source = ?1 group by source, event;";
 
 /// Every table of the prompt index, for `drop_all`.
-pub(crate) const INDEX_TABLES: [&str; 9] = [
+pub(crate) const INDEX_TABLES: [&str; 10] = [
     "index_meta",
     "index_dirty",
     "prompt_index",
     "prompt_index_model",
     "prompt_index_tool",
     "prompt_index_work",
+    "prompt_index_leak",
     "prompt_fts",
     "session_metric",
     "session_command",
