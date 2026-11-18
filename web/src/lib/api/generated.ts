@@ -106,6 +106,12 @@ retry_of: number | null, facts: Facts | null, };
 
 export type ChartInfo = { id: string, title: string, };
 
+/**
+ * What was looked through: "1,204 prompts checked for 26 kinds".
+ */
+
+export type Checked = { prompts: number, kinds: number, };
+
 export type CleanupReport = { removals: Array<Removal>, rows: number, bytes: number, size_before: number, size_after: number | null, applied: boolean, };
 
 export type CommandUse = { command: string, source: string | null, uses: number, sessions: number, };
@@ -458,6 +464,63 @@ redone_cost_usd?: Delta,
  * Possible leaks not handled yet; with `key_figures`.
  */
 possible_leaks?: Delta, };
+
+/**
+ * What you decided about a finding.
+ */
+
+export type LeakDecision = "hidden" | "not_sensitive";
+
+/**
+ * Body of `PUT /api/leaks/{id}`: `hidden` replaces the value in the stored text (it cannot be
+ * undone), `not_sensitive` dismisses it wherever the same value appears, `null` opens it again.
+ */
+
+export type LeakIn = { state: LeakDecision | null, };
+
+/**
+ * One finding as the dashboard shows it: masked, never the value.
+ */
+
+export type LeakOut = { id: string, kind: string, masked: string, place: LeakPlace, 
+/**
+ * The prompt whose turn holds it.
+ */
+prompt: number, 
+/**
+ * When that prompt was received (a hidden finding: when it was hidden).
+ */
+at: string, session?: string, decided?: LeakDecision, decided_at?: string, };
+
+/**
+ * Where in a turn a finding sits.
+ */
+
+export type LeakPlace = "prompt" | "answer" | "tool_input" | "tool_output";
+
+/**
+ * Answer of `PUT /api/leaks/{id}`.
+ */
+
+export type LeakSaved = { id: string, state: LeakDecision | null, 
+/**
+ * Stored rows rewritten (hiding only).
+ */
+updated: number, };
+
+export type Leaks = { 
+/**
+ * Not decided yet, newest first.
+ */
+open: Array<LeakOut>, 
+/**
+ * Values you hid (whatever the range: the value is gone from the text).
+ */
+hidden: Array<LeakOut>, 
+/**
+ * Findings you marked not sensitive, and the same values elsewhere.
+ */
+dismissed: Array<LeakOut>, checked: Checked, };
 
 export type Lineage = { id: number, 
 /**
