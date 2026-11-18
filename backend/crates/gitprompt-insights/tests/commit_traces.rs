@@ -220,11 +220,13 @@ fn without_prompts_every_commit_is_made_by_hand() {
 }
 
 #[test]
-fn the_trace_window_starts_two_hours_before_the_first_prompt() {
-    let rows = [story(1, 120.0, "a").response_s(Some(3600.0)).build()];
-    let since = at(120.0 - LOG_LEAD_S as f64 / 60.0);
-    assert_eq!(trace_window(&rows), Some((since, "2026-03-02T14:00:00+00:00".to_string())));
-    assert_eq!(trace_window(&[]), None);
+fn the_trace_window_starts_two_hours_before_the_first_prompt_and_runs_until_now() {
+    let now = "2026-03-09T09:00:00Z";
+    for rows in [[story(1, 120.0, "a").response_s(Some(3600.0)).build()], [story(1, 120.0, "a").response_s(None).build()]] {
+        let since = at(120.0 - LOG_LEAD_S as f64 / 60.0);
+        assert_eq!(trace_window(&rows, now), Some((since, now.to_string())), "a turn still running reads up to now too");
+    }
+    assert_eq!(trace_window(&[], now), None);
 }
 
 // --- forward and backward agree ------------------------------------------------------------------

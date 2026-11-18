@@ -48,7 +48,7 @@ pub(super) fn lines(found: &FoundCommit, context: &Context<'_>) -> Vec<String> {
         out.push(format!("{}{why}", label("likely")));
     }
     out.push(format!("{}{}", label("open"), dashboard_link(found, context.dashboard)));
-    if let Some(url) = &found.url {
+    if let Some(url) = &found.trace.url {
         out.push(format!("{}{url}", label("forge")));
     }
     out

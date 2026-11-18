@@ -116,14 +116,14 @@ impl Service {
         self.run(move |inner| inner.project_story(&project)).await
     }
 
-    /// A project's commits while you worked on it ([`stories::trace_window`]), each with the prompt
+    /// A project's commits since you started on it ([`stories::trace_window`]), each with the prompt
     /// behind it and its page on the forge, matched against `query.q` and grouped by `query.group`.
     pub async fn project_commits(&self, project: &str, query: CommitQuery) -> ApiResult<ProjectCommits> {
         let project = project.to_owned();
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
             let ProjectRows { repo, rows } = inner.project_rows(&set, &project)?;
-            let commits = inner.log_in(&rows, stories::trace_window(&rows));
+            let commits = inner.log_in(&rows, stories::trace_window(&rows, &inner.now().to_string()));
             let remote = inner.remote_of(&repo);
             Ok(stories::project_commits(&repo, &rows, &commits, &query, remote.as_deref()))
         })

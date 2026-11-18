@@ -69,8 +69,12 @@ async fn loaded() -> Api {
 
 /// [`loaded`], on an app built from `harness`.
 async fn loaded_with(harness: Harness) -> Api {
-    let clock = ManualClock::new(START.parse().expect("instant"));
-    let api = harness.moving_clock(&clock).start();
+    loaded_on(harness, &ManualClock::new(START.parse().expect("instant"))).await
+}
+
+/// [`loaded_with`], on `clock`, which the test can move on afterwards.
+async fn loaded_on(harness: Harness, clock: &ManualClock) -> Api {
+    let api = harness.moving_clock(clock).start();
     for tool in TOOLS {
         for payload in payloads(tool) {
             clock.advance(STEP);
@@ -206,7 +210,10 @@ fn listed(commits: &Value) -> Vec<&str> {
 
 #[tokio::test]
 async fn commits_with_the_prompt_behind_each() {
-    let api = loaded_with(harness().git(FixtureGit)).await;
+    let clock = ManualClock::new(START.parse().expect("instant"));
+    let api = loaded_on(harness().git(FixtureGit), &clock).await;
+    // The list reads up to now: move it past the last fixture commit (09:30).
+    clock.advance(SignedDuration::from_hours(1));
     let path = format!("/api/stories/project/{}/commits", project_id("/work/app"));
     let commits = get(&api, &path).await;
     // Every commit of the project exactly once, newest first.

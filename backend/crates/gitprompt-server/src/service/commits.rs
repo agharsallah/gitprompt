@@ -35,7 +35,7 @@ impl Inner {
     /// A project's commits while you worked on it, each traced: the read behind its Commits tab.
     fn traces_of(&self, set: &SpecSet, repo: String) -> ApiResult<ProjectTraces> {
         let ProjectRows { repo, rows, .. } = self.repo_rows(set, repo)?;
-        let commits = self.log_in(&rows, stories::trace_window(&rows));
+        let commits = self.log_in(&rows, stories::trace_window(&rows, &self.now().to_string()));
         Ok(stories::project_traces(&repo, &rows, &commits))
     }
 

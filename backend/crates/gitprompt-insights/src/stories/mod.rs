@@ -275,13 +275,14 @@ pub fn log_window(prompts: &[FactRow]) -> Option<(String, String)> {
     Some((first.prompt.row.received_at.clone(), last.plus_seconds(LOG_TAIL_S as f64).isoformat()))
 }
 
-/// `(since, until)` of the commits a project's commit list reads: [`log_window`], starting
-/// [`LOG_LEAD_S`] before the first prompt was sent. `None` without prompts, or when the first
-/// one's time can't be read.
-pub fn trace_window(prompts: &[FactRow]) -> Option<(String, String)> {
+/// `(since, until)` of the commits a project's commit list reads: from [`LOG_LEAD_S`] before the
+/// first prompt was sent up to `until` (the caller's "now"). It is open at the end, unlike
+/// [`log_window`], so a commit made while a turn still runs, or long after the last one, is listed
+/// (and traced as the rule says: by hand when far from any work). `None` without prompts, or when
+/// the first one's time can't be read.
+pub fn trace_window(prompts: &[FactRow], until: &str) -> Option<(String, String)> {
     let since = sent(prompts.first()?)?.plus_seconds(-(LOG_LEAD_S as f64));
-    let (_, until) = log_window(prompts)?;
-    Some((since.isoformat(), until))
+    Some((since.isoformat(), until.to_owned()))
 }
 
 /// The latest turn end (by instant, in the offset that prompt was written in).
