@@ -206,7 +206,8 @@ pub struct TurnTools<'a> {
 /// commits, cost, time, retry); prompts of other origins are markers (their typed text as excerpt),
 /// and each turn's compactions and agent-tool calls with a brief become markers after its prompt;
 /// markers are then folded into groups ([`group_markers`]). Commits are attributed among the
-/// chapters only; retries are looked for among the chapters only.
+/// chapters only (the markers' turns carry a chapter's work on, [`attribute_commits`]); retries
+/// are looked for among the chapters only.
 pub fn session_story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commits: &[Commit]) -> SessionStory {
     story(session, rows, turns, commits)
 }
@@ -217,7 +218,7 @@ pub(super) fn story(session: &str, rows: &[FactRow], turns: TurnTools<'_>, commi
         by_turn.entry(e.prompt_id.as_str()).or_default().push(e);
     }
     let user: Vec<FactRow> = rows.iter().filter(|p| is_user(p)).cloned().collect();
-    let owned = attribute_commits(&user, commits);
+    let owned = attribute_commits(rows, commits);
     let retry = retries(&user, RETRY_WINDOW);
     let mut items: Vec<SessionItem> = Vec::new();
     for (turn, p) in rows.iter().enumerate() {

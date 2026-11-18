@@ -23,7 +23,7 @@ use indexmap::IndexMap;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 
-use common::{at, commit, commit_with_stat, ids, some_facts, story, surface_ref};
+use common::{StoryBuilder, at, commit, commit_with_stat, ids, some_facts, story, surface_ref};
 use gitprompt_core::git::Commit;
 use gitprompt_core::spec::{Origin, Pattern, ToolKind};
 use gitprompt_insights::facts::FactRow;
@@ -311,10 +311,11 @@ fn a_commit_belongs_to_the_turn_that_made_it() {
         story(2, 5.0, "b").session(Some("b")).build(),
         story(3, 30.0, "c").session(Some("b")).build(),
     ];
+    // c2: no turn runs at 20, and the committing one (to 10) ended after the second (to 6).
     let commits = [commit("c0", &at(-5.0)), commit("c1", &at(9.0)), commit("c2", &at(20.0)), commit("c3", &at(31.0))];
     assert_eq!(
         owned_hashes(attribute_commits(&rows, &commits)),
-        BTreeMap::from([(1, vec!["c1".into()]), (2, vec!["c2".into()]), (3, vec!["c3".into()])])
+        BTreeMap::from([(1, vec!["c1".into(), "c2".into()]), (3, vec!["c3".into()])])
     );
 }
 
@@ -327,16 +328,23 @@ fn a_commit_two_minutes_after_a_committing_turn_ended_still_belongs_to_it() {
                 r.response_s = Some(600.0);
             })
             .build(),
-        story(2, 5.0, "b").build(),
+        story(2, 5.0, "b").session(Some("b")).build(),
+        story(3, 11.0, "c").session(Some("b")).build(),
     ];
+    // At 12 the first turn's grace runs and the third's turn too; a second later only the third's.
     let commits = [commit("in", &at(12.0)), commit("out", &at(12.0 + 1.0 / 60.0))];
-    assert_eq!(owned_hashes(attribute_commits(&rows, &commits)), BTreeMap::from([(1, vec!["in".into()]), (2, vec!["out".into()])]));
+    assert_eq!(owned_hashes(attribute_commits(&rows, &commits)), BTreeMap::from([(1, vec!["in".into()]), (3, vec!["out".into()])]));
 }
 
 #[test]
 fn a_commit_made_as_a_prompt_was_sent_belongs_to_that_prompt() {
-    let rows = [story(1, 0.0, "a").build(), story(2, 5.0, "b").build()];
+    let rows = [committed(story(1, 0.0, "a")), committed(story(2, 5.0, "b"))];
     assert_eq!(owned_hashes(attribute_commits(&rows, &[commit("c", &at(5.0))])), BTreeMap::from([(2, vec!["c".into()])]));
+}
+
+/// A prompt whose turn ran `git commit`.
+fn committed(prompt: StoryBuilder) -> FactRow {
+    prompt.with(|r| r.git_commits = 1).build()
 }
 
 #[test]
@@ -347,7 +355,7 @@ fn commits_with_an_unreadable_time_belong_to_no_prompt() {
 
 #[test]
 fn prompts_are_ordered_by_time_before_commits_are_attributed() {
-    let rows = [story(2, 5.0, "b").build(), story(1, 0.0, "a").build()];
+    let rows = [committed(story(2, 5.0, "b")), committed(story(1, 0.0, "a"))];
     assert_eq!(owned_hashes(attribute_commits(&rows, &[commit("c", &at(6.0))])), BTreeMap::from([(2, vec!["c".into()])]));
 }
 
@@ -609,7 +617,7 @@ fn a_project_story_has_phases_with_measures_commits_and_retries() {
                 r.response_s = None;
             })
             .build(),
-        story(3, 6.0, "add the parser module").build(),
+        committed(story(3, 6.0, "add the parser module")),
         story(4, 60.0 * 24.0, "write the docs").session(Some("s2")).with(|r| r.code_blocks = 1).build(),
     ];
     let commits = [commit_with_stat("c1", &at(8.0), 2, 10, 0)];

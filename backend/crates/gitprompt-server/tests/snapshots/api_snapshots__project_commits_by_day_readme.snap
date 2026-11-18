@@ -10,8 +10,8 @@ expression: "get(&api, &format!(\"{path}?group=day&q=readme\")).await"
   "group": "day",
   "counts": {
     "total": 4,
-    "traced": 2,
-    "likely": 1,
+    "traced": 1,
+    "likely": 2,
     "by_hand": 1
   },
   "matched": 2,

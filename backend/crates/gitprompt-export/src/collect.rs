@@ -81,7 +81,7 @@ fn session(store: &Store, specs: &Specs, id: &str, generated_at: String) -> Resu
         kinds: spec.map_or(&no_kinds, |s| &s.tool_kinds),
         tool_files: spec.map_or(&no_files, |s| &s.tool_files),
     };
-    let story = stories::session_story(id, &rows, turns, &log(&user));
+    let story = stories::session_story(id, &rows, turns, &log(&rows));
     let environment = derivations::session(&store.events_for_session(id)?)
         .environment
         .into_iter()
@@ -100,15 +100,15 @@ fn session(store: &Store, specs: &Specs, id: &str, generated_at: String) -> Resu
 fn project(store: &Store, specs: &Specs, id: &str, generated_at: String) -> Result<ProjectExport, ExportError> {
     let not_found = || ExportError::Store(Error::NotFound("project not found".into()));
     let repo = stories::project_repo(id).ok_or_else(not_found)?;
+    // Every origin: the prompts you did not type carry a typed prompt's work on (its commits).
     let all = PromptFilter { repo: Some(repo.clone()), ..PromptFilter::default() };
-    let typed = PromptFilter { origin: stories::USER_ORIGINS.to_vec(), ..all.clone() };
-    let rows = facts::attach(store.timeline(&typed, None, false)?, specs);
-    let count = store.count(&all)?;
-    if rows.is_empty() && count == 0 {
+    let rows = facts::attach(store.timeline(&all, None, false)?, specs);
+    if rows.is_empty() {
         return Err(not_found());
     }
-    let system = count - i64::try_from(rows.len()).unwrap_or(i64::MAX);
-    let tool_kinds = store.tool_kinds(&rows.iter().map(|r| r.prompt.row.id).collect::<Vec<_>>())?;
+    let typed: Vec<i64> = rows.iter().filter(|r| stories::is_user(r)).map(|r| r.prompt.row.id).collect();
+    let system = i64::try_from(rows.len() - typed.len()).unwrap_or(i64::MAX);
+    let tool_kinds = store.tool_kinds(&typed)?;
     let story = stories::project_story(&repo, &rows, &tool_kinds, &log(&rows), system);
     Ok(ProjectExport { generated_at, story: convert(story)? })
 }

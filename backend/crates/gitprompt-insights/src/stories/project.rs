@@ -97,8 +97,9 @@ pub struct ProjectStory {
     pub phases: Vec<ProjectPhase>,
 }
 
-/// The prompts you typed in a project (rows oldest first; other origins are left out), split into
-/// [`phases`] with the default rules, each prompt with the commits made after it and its retry.
+/// The prompts you typed in a project (rows of every origin, oldest first; the others are left out
+/// but carry a prompt's work on, [`attribute_commits`]), split into [`phases`] with the default
+/// rules, each prompt with the commits made in its work and its retry.
 pub fn project_story(
     repo: &str,
     rows: &[FactRow],
@@ -117,7 +118,7 @@ pub(super) fn story(
     system: i64,
 ) -> ProjectStory {
     let user: Vec<FactRow> = rows.iter().filter(|p| is_user(p)).cloned().collect();
-    let mut owned = attribute_commits(&user, commits);
+    let mut owned = attribute_commits(rows, commits);
     let retry = retries(&user, RETRY_WINDOW);
     let entries: Vec<ProjectEntry> = user
         .iter()

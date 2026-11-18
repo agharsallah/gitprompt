@@ -213,6 +213,11 @@ pub struct Commit {
     pub author: String,
     /// Committer time, ISO-8601.
     pub time: String,
+    /// Author time, ISO-8601: when the change was first made. It differs from `time` once the
+    /// commit is amended, rebased or cherry-picked. Never on the wire; empty when unknown.
+    #[serde(skip)]
+    #[ts(skip)]
+    pub authored: String,
     #[serde(default)]
     pub files: u64,
     #[serde(default)]
@@ -263,7 +268,7 @@ fn commit_headers<S: serde::Serializer>(commits: &[Commit], serializer: S) -> Re
 /// `start..end` when the head at prompt time is known, otherwise everything on `end` since `since`
 /// (e.g. a repository that had no commits yet).
 pub fn commits(root: &Path, start: Option<&str>, end: &str, since: &str) -> CommitsAfter {
-    let format = format!("--format=%h{SEP}%s{SEP}%an{SEP}%cI");
+    let format = format!("--format=%h{SEP}%s{SEP}%an{SEP}%cI{SEP}%aI");
     let (range, since_arg) = (start.map(|start| format!("{start}..{end}")), format!("--since={since}"));
     let mut args = vec!["log", format.as_str()];
     match &range {
@@ -279,11 +284,11 @@ pub fn commits(root: &Path, start: Option<&str>, end: &str, since: &str) -> Comm
     CommitsAfter { commits, diffstat, until: end.to_owned() }
 }
 
-/// A commit from a `%h SEP %s SEP %an SEP %cI` line; missing fields are empty.
+/// A commit from a `%h SEP %s SEP %an SEP %cI SEP %aI` line; missing fields are empty.
 fn commit_header(line: &str) -> Commit {
     let mut fields = line.split(SEP).map(str::to_owned);
     let mut next = || fields.next().unwrap_or_default();
-    Commit { hash: next(), subject: next(), author: next(), time: next(), ..Commit::default() }
+    Commit { hash: next(), subject: next(), author: next(), time: next(), authored: next(), ..Commit::default() }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -331,7 +336,7 @@ fn renamed_to(path: &str) -> String {
 /// diffstat and paths: one git call for a whole story. `[]` outside a repository or if git fails.
 pub fn history(root: &Path, since: &str, until: &str) -> Vec<Commit> {
     let (since, until) = (format!("--since={since}"), format!("--until={until}"));
-    let format = format!("--format={RECORD}%h{SEP}%s{SEP}%an{SEP}%cI");
+    let format = format!("--format={RECORD}%h{SEP}%s{SEP}%an{SEP}%cI{SEP}%aI");
     let log = git(root, &["log", "--branches", &since, &until, &format, "--numstat"]).unwrap_or_default();
     let mut found: Vec<Commit> = log.split(RECORD).filter_map(history_record).collect();
     found.reverse();

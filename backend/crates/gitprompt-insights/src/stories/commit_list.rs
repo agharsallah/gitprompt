@@ -69,12 +69,13 @@ pub struct ProjectCommits {
 }
 
 /// The commits of a project (oldest first, as `git::history` lists them), each traced to the
-/// prompt you typed that it followed (rows oldest first; other origins are left out), counted, then
+/// prompt you typed that it followed (rows of every origin, oldest first: the others carry a
+/// prompt's work on, [`commit_traces`]), counted, then
 /// those matching `query.q` (each word in the subject, a path or the hash, ignoring case) grouped,
 /// newest first by commit time.
 pub fn project_commits(repo: &str, rows: &[FactRow], commits: &[Commit], query: &CommitQuery) -> ProjectCommits {
     let user: Vec<FactRow> = rows.iter().filter(|p| is_user(p)).cloned().collect();
-    let traces = commit_traces(&user, commits);
+    let traces = commit_traces(rows, commits);
     let words: Vec<String> = query.q.split_whitespace().map(str::to_lowercase).collect();
     let mut matched: Vec<CommitTrace> = traces.iter().rev().filter(|t| matches(&t.commit, &words)).cloned().collect();
     // Newest first even where git's order is not by date (a commit dated earlier than its parent).

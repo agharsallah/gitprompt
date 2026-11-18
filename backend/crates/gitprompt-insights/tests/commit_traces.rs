@@ -1,7 +1,10 @@
 //! Commit traces (`stories/commits.rs`, `stories/commit_list.rs`): each commit with the prompt behind
-//! it, how sure that is, and the project's commit list searched and grouped. The property test
+//! it, how sure that is, and the project's commit list searched and grouped. One test per kind of
+//! work that fooled the first rule on a real repository (ticket 14): an amend, a rebase, two
+//! sessions at once, a commit by hand between prompts, a worktree, a subagent. The property test
 //! checks the one promise everything else rests on: reading the rule from the commits' side gives
-//! exactly what `attribute_commits` gives from the prompts' side.
+//! exactly what `attribute_commits` gives from the prompts' side, and only a guess names another
+//! prompt.
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -25,8 +28,8 @@ use common::{at, commit, story};
 use gitprompt_core::git::Commit;
 use gitprompt_insights::facts::FactRow;
 use gitprompt_insights::stories::{
-    COMMIT_GRACE_S, CommitGrouping, CommitQuery, CommitTrace, LOG_LEAD_S, ProjectCommits, TraceCounts, TraceHow, attribute_commits,
-    commit_traces, project_commits, trace_window,
+    COMMIT_GRACE_S, CommitGrouping, CommitQuery, CommitTrace, LIKELY_S, LOG_LEAD_S, ProjectCommits, TraceCounts, TraceHow,
+    attribute_commits, commit_traces, project_commits, trace_window,
 };
 
 /// `(hash, prompt id, how)` of each trace.
@@ -90,6 +93,127 @@ fn a_running_committing_turn_of_another_session_owns_the_commit() {
     assert_eq!((read(&traces), traces[0].session.as_deref()), (vec![("c".into(), Some(1), TraceHow::Traced)], Some("a")));
 }
 
+// --- what real work produces ----------------------------------------------------------------------
+
+/// A commit whose change was made at `authored` and committed (again) at `committed`.
+fn rewritten(hash: &str, authored: f64, committed: f64) -> Commit {
+    Commit { authored: at(authored), ..commit(hash, &at(committed)) }
+}
+
+/// The alternative prompt each trace names.
+fn alternatives(traces: &[CommitTrace]) -> Vec<Option<i64>> {
+    traces.iter().map(|t| t.alternative.as_ref().map(|a| a.prompt.id)).collect()
+}
+
+#[test]
+fn a_commit_amended_later_keeps_the_prompt_it_was_made_in_but_only_as_likely() {
+    let rows = [story(1, 0.0, "add the form").build(), story(2, 60.0, "explain the cache").build()];
+    let traces = commit_traces(&rows, &[rewritten("amended", 0.5, 60.5)]);
+    assert_eq!(read(&traces), [("amended".into(), Some(1), TraceHow::Likely)]);
+}
+
+#[test]
+fn a_rebase_that_changed_hashes_traces_each_commit_to_the_work_it_was_made_in() {
+    let rows = [committing(1, 0.0, "s", 1.0), committing(2, 10.0, "s", 1.0)];
+    // Rebased by hand at 30, after both turns; a rebase inside the turn's grace stays certain.
+    let commits = [rewritten("form", 0.5, 30.0), rewritten("bug", 10.5, 30.0), rewritten("quick", 10.5, 12.0)];
+    assert_eq!(
+        read(&commit_traces(&rows, &commits)),
+        [
+            ("form".into(), Some(1), TraceHow::Likely),
+            ("bug".into(), Some(2), TraceHow::Likely),
+            ("quick".into(), Some(2), TraceHow::Traced)
+        ]
+    );
+}
+
+#[test]
+fn two_sessions_running_in_one_repository_make_the_commit_likely_and_name_both_unless_one_alone_ran_git_commit() {
+    let asking = |id: i64, minutes: f64, session: &str| story(id, minutes, "q").session(Some(session)).response_s(Some(600.0)).build();
+    let trace_at_8 = |rows: &[FactRow]| {
+        let traces = commit_traces(rows, &[commit("c", &at(8.0))]);
+        (read(&traces).remove(0), alternatives(&traces).remove(0), traces[0].alternative.as_ref().and_then(|a| a.session.clone()))
+    };
+    // Neither ran `git commit`, or both did: the later sent, naming the other.
+    let neither = [asking(1, 0.0, "a"), asking(2, 5.0, "b")];
+    assert_eq!(trace_at_8(&neither), (("c".into(), Some(2), TraceHow::Likely), Some(1), Some("a".into())));
+    let both = [committing(1, 0.0, "a", 10.0), committing(2, 5.0, "b", 10.0)];
+    assert_eq!(trace_at_8(&both), (("c".into(), Some(2), TraceHow::Likely), Some(1), Some("a".into())));
+    // Only one did: it made the commit.
+    let one = [committing(1, 0.0, "a", 10.0), asking(2, 5.0, "b")];
+    assert_eq!(trace_at_8(&one), (("c".into(), Some(1), TraceHow::Traced), None, None));
+}
+
+#[test]
+fn a_commit_by_hand_between_two_prompts_is_likely_soon_after_the_work_and_by_hand_long_after() {
+    // The one-minute turns end at 1 and at 601.
+    let rows = [story(1, 0.0, "a").build(), story(2, 600.0, "b").build()];
+    let likely = 1.0 + LIKELY_S as f64 / 60.0;
+    let commits = [
+        commit("soon", &at(30.0)),
+        commit("edge", &at(likely)),
+        commit("late", &at(likely + 1.0)),
+        commit("week", &at(601.0 + 7.0 * 1440.0)),
+    ];
+    assert_eq!(
+        read(&commit_traces(&rows, &commits)),
+        [
+            ("soon".into(), Some(1), TraceHow::Likely),
+            ("edge".into(), Some(1), TraceHow::Likely),
+            ("late".into(), None, TraceHow::ByHand),
+            ("week".into(), None, TraceHow::ByHand)
+        ]
+    );
+}
+
+#[test]
+fn a_commit_by_hand_while_another_session_runs_without_committing_is_likely_the_work_that_left_changes() {
+    // The first work wrote files, never committed, and ended at 10; the second runs from 5 to 25.
+    let rows = [
+        story(1, 0.0, "make the ci cheaper").session(Some("a")).response_s(Some(600.0)).build(),
+        story(2, 5.0, "fix the console warnings").session(Some("b")).response_s(Some(1200.0)).build(),
+    ];
+    let traces = commit_traces(&rows, &[commit("ci", &at(20.0))]);
+    assert_eq!((read(&traces), alternatives(&traces)), (vec![("ci".into(), Some(1), TraceHow::Likely)], vec![Some(2)]));
+    // Had the first work committed its changes itself, the running one made the commit.
+    let rows =
+        [committing(1, 0.0, "a", 10.0), story(2, 5.0, "fix the console warnings").session(Some("b")).response_s(Some(1200.0)).build()];
+    assert_eq!(read(&commit_traces(&rows, &[commit("ci", &at(20.0))])), [("ci".into(), Some(2), TraceHow::Traced)]);
+}
+
+#[test]
+fn a_commit_in_a_worktree_belongs_to_the_turn_running_there_not_to_a_later_prompt_in_the_main_checkout() {
+    let rows = [
+        story(1, 0.0, "build the parser").session(Some("w")).branch(Some("worktree-parser")).response_s(Some(1200.0)).build(),
+        story(2, 10.0, "what does main do").session(Some("m")).with(|r| r.files_written = 0).build(),
+    ];
+    let traces = commit_traces(&rows, &[commit("c", &at(15.0))]);
+    assert_eq!(
+        (read(&traces), traces[0].prompt.as_ref().unwrap().branch.as_deref()),
+        (vec![("c".into(), Some(1), TraceHow::Traced)], Some("worktree-parser"))
+    );
+}
+
+#[test]
+fn a_commit_by_a_subagent_belongs_to_the_prompt_that_started_it_until_the_hand_back() {
+    let rows = [
+        story(1, 0.0, "build it with a subagent").session(Some("a")).build(),
+        story(2, 5.0, "a question elsewhere").session(Some("b")).with(|r| r.files_written = 0).build(),
+        story(3, 40.0, "<agent-message> done").session(Some("a")).origin("agent_message").response_s(Some(120.0)).build(),
+    ];
+    // The work of prompt 1 runs to the end of the hand-back's turn (42), plus the grace.
+    let commits = [commit("sub", &at(30.0)), commit("back", &at(42.0 + grace())), commit("after", &at(50.0))];
+    assert_eq!(
+        read(&commit_traces(&rows, &commits)),
+        [
+            ("sub".into(), Some(1), TraceHow::Traced),
+            ("back".into(), Some(1), TraceHow::Traced),
+            ("after".into(), Some(1), TraceHow::Likely)
+        ]
+    );
+    assert_eq!(attribute_commits(&rows, &commits).keys().copied().collect::<Vec<_>>(), [1]);
+}
+
 #[test]
 fn without_prompts_every_commit_is_made_by_hand() {
     assert_eq!(read(&commit_traces(&[], &[commit("c", &at(0.0))])), [("c".into(), None, TraceHow::ByHand)]);
@@ -117,9 +241,15 @@ fn both_ways(rows: &[FactRow], commits: &[Commit]) -> (BTreeMap<i64, Vec<String>
     (forward, backward)
 }
 
-/// A prompt: minute sent, turn length in seconds (none: unknown), whether it committed, session.
-fn prompt_strategy() -> impl Strategy<Value = (u16, Option<u16>, bool, u8)> {
-    (0..600u16, prop::option::of(0..1200u16), any::<bool>(), 0..3u8)
+/// A prompt: minute sent, turn length in seconds (none: unknown), whether it committed, session,
+/// whether you typed it (else a subagent's hand-back).
+fn prompt_strategy() -> impl Strategy<Value = (u16, Option<u16>, bool, u8, bool)> {
+    (0..600u16, prop::option::of(0..1200u16), any::<bool>(), 0..3u8, prop::bool::weighted(0.7))
+}
+
+/// A commit's minute made, and committed again that many minutes later (0: never rewritten).
+fn rewrite_strategy() -> impl Strategy<Value = u16> {
+    prop::sample::select(vec![0u16, 0, 0, 1, 30, 300])
 }
 
 /// A commit's minute (some before every prompt, some after), or an unreadable time.
@@ -133,14 +263,15 @@ proptest! {
     #[test]
     fn forward_and_backward_links_agree(
         prompts in prop::collection::vec(prompt_strategy(), 0..12),
-        times in prop::collection::vec(commit_strategy(), 0..20),
+        times in prop::collection::vec((commit_strategy(), rewrite_strategy()), 0..20),
     ) {
         let rows: Vec<FactRow> = prompts
             .iter()
             .enumerate()
-            .map(|(i, &(minute, length, committed, session))| {
+            .map(|(i, &(minute, length, committed, session, typed))| {
                 story(i as i64 + 1, f64::from(minute), "p")
                     .session(Some(&format!("s{session}")))
+                    .origin(if typed { "typed" } else { "agent_message" })
                     .with(|r| {
                         r.response_s = length.map(f64::from);
                         r.git_commits = i64::from(committed);
@@ -151,11 +282,23 @@ proptest! {
         let commits: Vec<Commit> = times
             .iter()
             .enumerate()
-            .map(|(i, minute)| commit(&format!("c{i}"), &minute.map_or_else(|| "?".into(), |m| at(f64::from(m)))))
+            .map(|(i, &(minute, later))| match minute {
+                Some(m) => rewritten(&format!("c{i}"), f64::from(m), f64::from(m) + f64::from(later)),
+                None => commit(&format!("c{i}"), "?"),
+            })
             .collect();
         let traces = commit_traces(&rows, &commits);
         prop_assert_eq!(traces.iter().map(|t| &t.commit).collect::<Vec<_>>(), commits.iter().collect::<Vec<_>>());
         prop_assert!(traces.iter().all(|t| t.prompt.is_none() == (t.how == TraceHow::ByHand)));
+        // Only a prompt you typed owns a commit, and only a guess names another one.
+        let typed = |id: i64| usize::try_from(id - 1).ok().and_then(|i| prompts.get(i)).is_some_and(|p| p.4);
+        prop_assert!(traces.iter().filter_map(|t| t.prompt.as_ref()).all(|p| typed(p.id)));
+        for trace in &traces {
+            if let (Some(prompt), Some(other)) = (&trace.prompt, &trace.alternative) {
+                prop_assert!(trace.how == TraceHow::Likely && other.prompt.id != prompt.id && typed(other.prompt.id));
+            }
+            prop_assert!(trace.alternative.is_none() || trace.prompt.is_some());
+        }
         let (forward, backward) = both_ways(&rows, &commits);
         prop_assert_eq!(forward, backward);
     }

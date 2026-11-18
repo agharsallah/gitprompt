@@ -128,7 +128,11 @@ prompt: TracePrompt | null,
 /**
  * The prompt's session.
  */
-session: string | null, how: TraceHow, };
+session: string | null, how: TraceHow, 
+/**
+ * The other prompt that could own it; only on a [`TraceHow::Likely`] trace.
+ */
+alternative?: TraceAlternative, };
 
 /**
  * Commits made after a prompt.
@@ -1023,6 +1027,12 @@ commands: Array<CommandUse>, };
  */
 
 export type ToolKind = "read" | "write" | "shell" | "web" | "mcp" | "agent" | "other";
+
+/**
+ * The other prompt that could own a commit ([`commit_traces`] says when there is one).
+ */
+
+export type TraceAlternative = { prompt: TracePrompt, session: string | null, };
 
 /**
  * How many commits followed a prompt, and how surely.

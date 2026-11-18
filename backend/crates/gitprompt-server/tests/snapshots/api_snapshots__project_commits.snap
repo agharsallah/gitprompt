@@ -10,8 +10,8 @@ expression: commits
   "group": "phase",
   "counts": {
     "total": 4,
-    "traced": 2,
-    "likely": 1,
+    "traced": 1,
+    "likely": 2,
     "by_hand": 1
   },
   "matched": 4,
@@ -60,7 +60,18 @@ expression: commits
             "outcome": "interrupted"
           },
           "session": "0190a1b2-0000-7000-8000-000000000001",
-          "how": "traced"
+          "how": "likely",
+          "alternative": {
+            "prompt": {
+              "id": 7,
+              "received_at": "2026-01-05T09:01:10.000000+00:00",
+              "branch": "main",
+              "text": "Add a retry to the upload client",
+              "clipped": false,
+              "outcome": "done"
+            },
+            "session": "0190a1b2-0000-7000-8000-000000000001"
+          }
         },
         {
           "commit": {

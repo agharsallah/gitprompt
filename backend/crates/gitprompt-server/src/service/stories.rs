@@ -39,28 +39,24 @@ impl Inner {
         repo.map_or_else(Vec::new, |repo| self.options.git.history(Path::new(repo), &since, &until))
     }
 
-    /// The repo a project id names, the prompts you typed in it (oldest first) and how many prompts
-    /// it has in all; not found when the id doesn't decode or the project has no prompt.
+    /// The repo a project id names and its prompts of every origin, oldest first (the ones you did
+    /// not type carry a prompt's work on, `stories::commit_traces`); not found when the id doesn't
+    /// decode or the project has no prompt.
     fn project_rows(&self, set: &SpecSet, project: &str) -> ApiResult<ProjectRows> {
         let not_found = || ApiError::from(Error::NotFound("project not found".into()));
         let repo = stories::project_repo(project).ok_or_else(not_found)?;
-        let every = PromptFilter { repo: Some(repo.clone()), ..PromptFilter::default() };
-        let typed = PromptFilter { origin: USER_ORIGINS.to_vec(), ..every.clone() };
-        let rows = self.timeline(set, &typed, None, false)?;
-        let total = self.store.count(&every)?;
-        if rows.is_empty() && total == 0 {
+        let rows = self.timeline(set, &PromptFilter { repo: Some(repo.clone()), ..PromptFilter::default() }, None, false)?;
+        if rows.is_empty() {
             return Err(not_found());
         }
-        Ok(ProjectRows { repo, rows, total })
+        Ok(ProjectRows { repo, rows })
     }
 }
 
-/// A project's typed prompts ([`Inner::project_rows`]).
+/// A project's prompts of every origin ([`Inner::project_rows`]).
 struct ProjectRows {
     repo: String,
     rows: Vec<FactRow>,
-    /// Prompts of every origin.
-    total: i64,
 }
 
 impl Service {
@@ -75,7 +71,7 @@ impl Service {
             let user: Vec<FactRow> = rows.iter().filter(|r| stories::is_user(r)).cloned().collect();
             let turns: Vec<String> = rows.iter().filter_map(|r| r.prompt.row.prompt_id.clone()).collect();
             let events = store.turn_events(&turns, BRIEF_CHARS)?;
-            let commits = inner.log(&user);
+            let commits = inner.log(&rows);
             let tool_kinds = store.tool_kinds(&user.iter().map(|r| r.prompt.row.id).collect::<Vec<_>>())?;
             let spec = set.get(&first.prompt.row.source);
             let (none_kinds, none_files) = Default::default();
@@ -101,10 +97,11 @@ impl Service {
         let project = project.to_owned();
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let ProjectRows { repo, rows, total } = inner.project_rows(&set, &project)?;
-            let system = total - i64::try_from(rows.len()).unwrap_or(i64::MAX);
+            let ProjectRows { repo, rows } = inner.project_rows(&set, &project)?;
+            let typed: Vec<i64> = rows.iter().filter(|r| stories::is_user(r)).map(|r| r.prompt.row.id).collect();
+            let system = i64::try_from(rows.len() - typed.len()).unwrap_or(i64::MAX);
             let commits = inner.log(&rows);
-            let tool_kinds = inner.store.tool_kinds(&rows.iter().map(|r| r.prompt.row.id).collect::<Vec<_>>())?;
+            let tool_kinds = inner.store.tool_kinds(&typed)?;
             Ok(stories::project_story(&repo, &rows, &tool_kinds, &commits, system))
         })
         .await
@@ -116,7 +113,7 @@ impl Service {
         let project = project.to_owned();
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let ProjectRows { repo, rows, .. } = inner.project_rows(&set, &project)?;
+            let ProjectRows { repo, rows } = inner.project_rows(&set, &project)?;
             let commits = inner.log_in(&rows, stories::trace_window(&rows));
             Ok(stories::project_commits(&repo, &rows, &commits, &query))
         })

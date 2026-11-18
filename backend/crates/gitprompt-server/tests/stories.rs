@@ -159,15 +159,18 @@ async fn the_commit_list_traces_each_commit_of_the_repository_once() {
         .flat_map(|g| g["commits"].as_array().expect("commits"))
         .map(|t| (t["commit"]["subject"].clone(), t["prompt"]["id"].clone(), t["how"].clone()))
         .collect();
+    // "Add parser tests" lands in p3's turn while p1's work still runs (its task notification at
+    // 09:02 carries it on), so it is likely and names p1; "Later fix" comes a day after any work.
     assert_eq!(
         traces,
         [
-            (json!("Later fix"), ids["p3"].clone(), json!("likely")),
-            (json!("Add parser tests"), ids["p3"].clone(), json!("traced")),
+            (json!("Later fix"), Value::Null, json!("by_hand")),
             (json!("Notes by hand"), Value::Null, json!("by_hand")),
+            (json!("Add parser tests"), ids["p3"].clone(), json!("likely")),
         ]
     );
-    assert_eq!(list["counts"], json!({"total": 3, "traced": 1, "likely": 1, "by_hand": 1}));
+    let alternative = list["groups"][1]["commits"][0]["alternative"]["prompt"]["id"].clone();
+    assert_eq!((list["counts"].clone(), alternative), (json!({"total": 3, "traced": 0, "likely": 1, "by_hand": 2}), ids["p1"].clone()));
     let found = api.json(&format!("{path}?q=b.txt&group=branch")).await;
     assert_eq!((&found["matched"], &found["groups"][0]["key"]), (&json!(1), &json!("main")));
 }

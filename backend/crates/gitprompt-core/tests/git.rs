@@ -19,7 +19,7 @@ mod common;
 use std::path::Path;
 use std::time::Duration;
 
-use common::{DATE, Repo, git, git_output, repo};
+use common::{DATE, Repo, git, git_dated, git_output, repo};
 use gitprompt_core::git::{Changes, Commit, CommitsAfter, GitCache, Shortstat, commits, git_context, history, numstat};
 use gitprompt_core::{Json, JsonMap};
 use pretty_assertions::assert_eq;
@@ -253,6 +253,7 @@ fn commits_after_a_known_head_are_listed_newest_first_with_a_diffstat() {
                 subject: "third".into(),
                 author: "t".into(),
                 time: "2026-01-03T10:00:00+02:00".into(),
+                authored: "2026-01-03T10:00:00+02:00".into(),
                 ..Commit::default()
             },
             Commit {
@@ -260,6 +261,7 @@ fn commits_after_a_known_head_are_listed_newest_first_with_a_diffstat() {
                 subject: "second".into(),
                 author: "t".into(),
                 time: "2026-01-02T10:00:00+02:00".into(),
+                authored: "2026-01-02T10:00:00+02:00".into(),
                 ..Commit::default()
             },
         ],
@@ -335,7 +337,7 @@ fn history_lists_commits_of_a_window_with_their_diffstat() {
     let found = history(&repo.root, "2026-01-01T12:00:00+02:00", "2026-01-03T12:00:00+02:00");
     let subjects: Vec<&str> = found.iter().map(|c| c.subject.as_str()).collect();
     assert_eq!(subjects, ["add b", "add c"]); // oldest first, inside the window
-    let b = Commit { hash: String::new(), time: String::new(), ..found[0].clone() };
+    let b = Commit { hash: String::new(), time: String::new(), authored: String::new(), ..found[0].clone() };
     assert_eq!(
         b,
         Commit {
@@ -343,6 +345,7 @@ fn history_lists_commits_of_a_window_with_their_diffstat() {
             subject: "add b".into(),
             author: "t".into(),
             time: String::new(),
+            authored: String::new(),
             files: 1,
             insertions: 2,
             deletions: 0,
@@ -370,6 +373,19 @@ fn history_includes_every_local_branch() {
     let found = history(&repo.root, "2026-01-03T00:00:00+02:00", "2026-01-05T00:00:00+02:00");
     let subjects: Vec<&str> = found.iter().map(|c| c.subject.as_str()).collect();
     assert_eq!(subjects, ["add c", "on side"]);
+}
+
+#[test]
+fn history_reads_when_an_amended_commit_was_first_made() {
+    let repo = three_days();
+    git_dated(
+        &repo.root,
+        "2026-01-09T10:00:00+02:00",
+        &["commit", "-q", "--amend", "-m", "add c, reworded", "--date", "2026-01-03T10:00:00+02:00"],
+    );
+    let found = history(&repo.root, "2026-01-08T00:00:00+02:00", "2026-01-10T00:00:00+02:00");
+    let times: Vec<(&str, &str, &str)> = found.iter().map(|c| (c.subject.as_str(), c.time.as_str(), c.authored.as_str())).collect();
+    assert_eq!(times, [("add c, reworded", "2026-01-09T10:00:00+02:00", "2026-01-03T10:00:00+02:00")]);
 }
 
 #[test]

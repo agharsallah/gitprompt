@@ -183,6 +183,7 @@ impl GitProvider for FixtureGit {
                 subject: subject.into(),
                 author: "t".into(),
                 time: time.into(),
+                authored: time.into(),
                 files: paths.len() as u64,
                 insertions: 3,
                 deletions: 1,

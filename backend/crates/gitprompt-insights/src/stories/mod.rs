@@ -12,6 +12,7 @@
 mod commit_list;
 mod commits;
 mod ids;
+mod owners;
 mod project;
 mod session;
 mod versions;
@@ -29,7 +30,7 @@ use crate::facts::FactRow;
 use crate::lineage::Shingles;
 use crate::time::Instant;
 pub use commit_list::{CommitGroup, CommitGrouping, CommitQuery, ProjectCommits, TraceCounts, project_commits};
-pub use commits::{CommitTrace, TraceHow, TracePrompt, attribute_commits, commit_traces};
+pub use commits::{CommitTrace, TraceAlternative, TraceHow, TracePrompt, attribute_commits, commit_traces};
 pub use project::{Measures, ProjectEntry, ProjectPhase, ProjectStory, project_story};
 pub use session::{
     Chapter, Marker, MarkerKind, SessionItem, SessionStory, SessionTotals, StoryItem, TurnTools, group_markers, session_story,
@@ -44,8 +45,12 @@ pub const GAP_S: f64 = 3.0 * 3600.0;
 pub const BRANCH_RUN: usize = 2;
 /// Earlier prompts of the session compared when looking for a retry.
 pub const RETRY_WINDOW: usize = 30;
-/// A commit this many seconds after a committing turn ended still belongs to it.
+/// A commit this many seconds after a prompt's work ended was still made in it.
 pub const COMMIT_GRACE_S: i64 = 120;
+/// A commit made while no work ran is likely the work that ended last (committed by hand) when
+/// that ended at most this many seconds earlier; later, it is made by hand. The same pause as
+/// [`GAP_S`]: after it a project story starts a new phase, so what you commit then is new work.
+pub const LIKELY_S: i64 = 3 * 3600;
 /// Seconds of commits read after the last turn of a story ended.
 pub const LOG_TAIL_S: i64 = 2 * 3600;
 /// Seconds of commits a project's commit list reads before its first prompt: work you did by hand
