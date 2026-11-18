@@ -2,7 +2,8 @@
 	import { CircleX, Layers, ServerCrash, Wrench } from '@lucide/svelte';
 	import type { Doorway } from '#lib/insights/filters.ts';
 	import type { Overview } from '#lib/insights/overview.ts';
-	import { duration, integer, plural } from '#lib/shared/format.ts';
+	import { ratio } from '#lib/insights/series.ts';
+	import { duration, integer, percent, plural } from '#lib/shared/format.ts';
 	import SegmentedBar from '#lib/ui/charts/SegmentedBar.svelte';
 	import { countPanel } from '#lib/insights/counting.ts';
 	import Panel from '#lib/ui/Panel.svelte';
@@ -13,7 +14,9 @@
 	let { data, link }: { data: Overview; link: Doorway } = $props();
 
 	const t = $derived(data.activity.totals);
-	const failed = $derived(data.outcomes.groups.find((g) => g.key === 'failed')?.prompts ?? 0);
+	const outcome = (key: string) => data.outcomes.groups.find((g) => g.key === key)?.prompts ?? 0;
+	const failed = $derived(outcome('failed'));
+	const done = $derived(outcome('done'));
 	const timed = $derived(t.api_time_s + t.tool_time_s > 0);
 	const view = $derived(
 		readyOr(t.ended, {
@@ -39,6 +42,11 @@
 			<div>
 				<dt>1 in 10 take over</dt>
 				<dd>{duration(t.response_s_p90)}</dd>
+			</div>
+			<div>
+				<dt>Finished</dt>
+				<dd>{done + failed ? percent(ratio(done, done + failed)) : '—'}</dd>
+				<dd class="note">{failed ? `${plural(failed, 'turn')} failed` : 'No failed turns'}</dd>
 			</div>
 		</dl>
 		{#if timed}
@@ -99,7 +107,7 @@
 
 	.speed {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
 		gap: var(--space-3);
 	}
 
@@ -108,7 +116,7 @@
 		font-size: var(--text-sm);
 	}
 
-	dd {
+	dd:not(.note) {
 		font-size: var(--text-xl);
 		font-weight: var(--weight-semibold);
 	}

@@ -19,14 +19,15 @@
 	import KeyFigures from '#lib/insights/panels/KeyFigures.svelte';
 	import RhythmPanel from '#lib/insights/panels/RhythmPanel.svelte';
 	import SessionsPanel from '#lib/insights/panels/SessionsPanel.svelte';
-	import { plural } from '#lib/shared/format.ts';
+	import { topProject } from '#lib/insights/keyFigures.ts';
 	import { availability } from '#lib/sources/capabilities.ts';
 	import SetupSteps from '#lib/sources/SetupSteps.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import { PURPOSES } from '#lib/layout/nav.ts';
-	import PageHeader from '#lib/ui/PageHeader.svelte';
 	import PanelSkeleton from '#lib/ui/PanelSkeleton.svelte';
 	import Skeleton from '#lib/ui/Skeleton.svelte';
+	import StoryHeader from '#lib/ui/StoryHeader.svelte';
+	import { overviewHeadline, totalsLine } from '#lib/stories/headline.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -35,11 +36,17 @@
 	$effect(() => liveUpdates(refreshAll, 3000));
 
 	const content = new Resource(() => data.content);
-	const totals = $derived(content.value?.overview.activity.totals);
-	const summary = $derived(
-		totals?.prompts
-			? `${plural(totals.prompts, 'prompt')} in ${plural(totals.sessions, 'session')} ${rangePhrase(data.filters.range)}.`
-			: 'Your prompting, at a glance.'
+	const overview = $derived(content.value?.overview);
+	const totals = $derived(overview?.keyFigures.totals);
+	const summary = $derived(totals?.prompts ? totalsLine(totals) : 'Your prompting, at a glance.');
+	const headline = $derived(
+		overview && totals?.prompts
+			? overviewHeadline({
+					stats: overview.keyFigures,
+					range: overview.filters.range.id,
+					top: topProject(overview.repos)
+				})
+			: null
 	);
 
 	const linkFor =
@@ -57,13 +64,13 @@
 
 <svelte:head><title>Overview · GitPrompt</title></svelte:head>
 
-<PageHeader title="Overview" purpose={PURPOSES['/']} description={summary}>
+<StoryHeader title="Overview" purpose={PURPOSES['/']} {headline} totals={summary}>
 	{#snippet actions()}
-		{#if content.value && totals?.prompts}
-			<ExportButton target={{ kind: 'overview', query: content.value.overview.query }} />
+		{#if overview && totals?.prompts}
+			<ExportButton target={{ kind: 'overview', query: overview.query }} />
 		{/if}
 	{/snippet}
-</PageHeader>
+</StoryHeader>
 
 {#snippet panel()}<PanelSkeleton />{/snippet}
 {#snippet rows()}<PanelSkeleton body="rows" rows={3} />{/snippet}
@@ -106,7 +113,14 @@
 				{/if}
 			{:else}
 				<Boundary what="the key figures">
-					<KeyFigures data={o} {slots} {link} cost={can('cost')} />
+					<KeyFigures
+						stats={o.keyFigures}
+						repos={o.repos}
+						range={o.filters.range}
+						{slots}
+						{link}
+						can={{ cost: can('cost'), turnEnd: can('turn_end'), tools: can('tools') }}
+					/>
 				</Boundary>
 
 				<section aria-labelledby="activity">

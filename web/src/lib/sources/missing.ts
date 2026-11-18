@@ -44,3 +44,16 @@ export function missingNotice(what: string, a: Availability): Notice {
 		}
 	};
 }
+
+/**
+ * For a figure no tool in use reports (a tile shows "Not reported", never 0): which tool could,
+ * and how, or that none of them can.
+ */
+export function whoCouldReport(what: string, a: Availability): string {
+	const layer = a.connectable[0];
+	if (layer) return `${layer.tool}’s ${layer.layer.toLowerCase()} would report ${what}`;
+	if (a.updatable.length) return updateNote(a);
+	return a.unavailable.length
+		? `${names(a.unavailable)} can’t report ${what}`
+		: `No tool reports ${what}`;
+}

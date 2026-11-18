@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Availability } from '#lib/sources/capabilities.ts';
-import { missingNotice } from '#lib/sources/missing.ts';
+import { missingNotice, whoCouldReport } from '#lib/sources/missing.ts';
 
 const of = (a: Partial<Availability>): Availability => ({
 	capability: 'cost',
@@ -51,5 +51,20 @@ describe('missingNotice', () => {
 		expect(missingNotice('costs', of({})).message).toBe(
 			'Not available for the connected tools: its connector doesn’t report costs.'
 		);
+	});
+});
+
+describe('whoCouldReport', () => {
+	it('names the layer that would report it, else the update, else who can’t', () => {
+		expect(whoCouldReport('cost', of({ connectable: [hooks] }))).toBe(
+			'Claude Code’s hooks would report cost'
+		);
+		expect(whoCouldReport('cost', of({ updatable: [codex] }))).toBe(
+			'Needs OpenAI Codex CLI 0.164.0 or later.'
+		);
+		expect(whoCouldReport('cost', of({ unavailable: ['Cursor'] }))).toBe(
+			'Cursor can’t report cost'
+		);
+		expect(whoCouldReport('cost', of({}))).toBe('No tool reports cost');
 	});
 });

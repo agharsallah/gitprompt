@@ -1301,7 +1301,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       <p class="stop"><b>Stop if</b> a number is not believable: a headline built on it (<a href="#t25">25</a>) and a notification sent from it (<a href="#t30">30</a>) would teach you to ignore both.</p>
     </div>
 
-    <article class="tk" id="t25" data-area="web" data-size="M" data-needs="t20 t22 t24">
+    <article class="tk" id="t25" data-area="web" data-size="M" data-needs="t20 t22 t24" data-status="done">
       <details><summary><span class="tt">Headline sentence and five key figures</span><span class="goal">The Overview leads with a sentence only when a figure stands out, and with five figures you can act on.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a>, I3</dd></dl>
@@ -1319,6 +1319,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> <code>headline.ts</code> tests: each figure standing out, two standing out (the larger change wins), nothing standing out, no "before" · component test for a tool without cost.</p>
         <p class="dod"><b>Done when</b> in a week like the last one there is no sentence, and in a week where redone work doubled the sentence says so.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>lib/stories/headline.ts</code> is pure. <code>overviewHeadline</code> names the figure that moved at least ±50% (<code>STANDS_OUT</code>) above a floor that makes it news (<code>MEANINGFUL</code>: $5 spend, 1 h agent time, 30 min redone, 10 commits, 1 leak), and the larger change wins. Its words: doubled, tripled, up 5×, up 60%, halved, down 80%; "this week", "today" or "this month" from the range; ", mostly gitprompt" once one project holds half the spend (<code>MOSTLY</code>). With no "before" there is no sentence. <code>standsOut</code>, <code>movement</code>, <code>periodName</code> and <code>totalsLine</code> are shared, so each later level adds one function. <code>lib/ui/StoryHeader.svelte</code> shows the sentence when there is one, over the totals line ("278 prompts · 41 sessions · $453 · 181 commits"). <code>KeyFigures</code> (tile models in <code>lib/insights/keyFigures.ts</code>) has redone work, agent time, spend with its top project, commits after prompts and possible leaks. Each tile has its change in words ("+18% vs the 7 days before"), a sparkline, and is a link. Redone work is amber: "$14.20 and 1h 12m redone" (time alone without cost), split by reason in the hint and tooltip, and "Nothing redone" for a period with none. A figure no connected tool reports says "Not reported" and who could (<code>whoCouldReport</code>), never 0. The loader adds one parallel <code>stats?key_figures&amp;previous</code>. Finished joined Typical turn at the top of <code>PerformancePanel</code>. Differs from the ticket: the figures sit under the filter bar, not inside <code>StoryHeader</code>, so the title shows while data loads; the header keeps a <code>figures</code> slot for the next levels. The redone tile links to failed and interrupted prompts, since no filter holds exactly the redone turns yet. On the author's last week nothing stood out (spend −45%, redone +10%), so there is no sentence there. Web: 108 files and 1,061 tests pass; check and lint are clean.</p>
       </div></details>
     </article>
 

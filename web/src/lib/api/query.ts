@@ -8,6 +8,10 @@ export type StatsQuery = PromptQuery & {
 	split_by?: GroupBy;
 	order?: StatsOrder;
 	limit?: number;
+	/** Adds what the redone turns cost and the open possible leaks (`redone`, `possible_leaks`). */
+	key_figures?: 'true';
+	/** Adds the period of equal length before, and the key figures compared (`previous`). */
+	previous?: 'true';
 };
 
 export function queryParams(query: StatsQuery): URLSearchParams {

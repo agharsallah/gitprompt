@@ -21,6 +21,8 @@ export type Overview = {
 	hourly: boolean;
 	/** totals: the headline figures; groups: per day, or per clock hour. */
 	activity: Stats;
+	/** The totals with redone work, possible leaks and the period before compared. */
+	keyFigures: Stats;
 	week: Stats;
 	sessionLengths: Stats;
 	/** Every origin, whatever the origin filter: who wrote what. */
@@ -51,6 +53,7 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 
 	const results = await all({
 		activity: stats(hourly ? 'day_hour' : 'day'),
+		keyFigures: api.stats({ ...query, key_figures: 'true', previous: 'true' }, fetcher),
 		week: stats('weekday_hour'),
 		sessionLengths: stats('session_length'),
 		origins: stats('origin', {}, without(query, 'origin')),

@@ -3,7 +3,19 @@
  * the fields the test is about. Deep-merges the nested objects so a test can say
  * `prompt({ summary: { cost_usd: 1 } })` without restating the rest.
  */
-import type { Event, Facts, Prompt, SessionStory, Source, StatsBucket } from '#lib/api/types.ts';
+import type {
+	Delta,
+	Event,
+	Facts,
+	KeyChanges,
+	Prompt,
+	RedonePart,
+	RedoneWork,
+	SessionStory,
+	Source,
+	Stats,
+	StatsBucket
+} from '#lib/api/types.ts';
 import type { PreferenceKey, Preferences, Setting, SettingsState } from '#lib/api/settings.ts';
 
 let nextId = 1;
@@ -177,6 +189,54 @@ export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
 		last_at: null,
 		parts: null,
 		...overrides
+	};
+}
+
+/** GET /api/stats without grouping: these totals, nothing else. */
+export function stats(overrides: Partial<Stats> = {}): Stats {
+	return { group_by: null, split_by: null, totals: bucket(), groups: [], ...overrides };
+}
+
+/** One figure now and before; the change is worked out as the daemon does (absent without one). */
+export function delta(now: number, before?: number): Delta {
+	if (before === undefined) return { now };
+	return before ? { now, before, change: (now - before) / before } : { now, before };
+}
+
+/** The key figures compared: all flat at zero except what the test sets. */
+export function changes(overrides: Partial<KeyChanges> = {}): KeyChanges {
+	const flat = delta(0, 0);
+	return {
+		prompts: flat,
+		sessions: flat,
+		cost_usd: flat,
+		agent_time_s: flat,
+		git_commits: flat,
+		...overrides
+	};
+}
+
+const part = (overrides: Partial<RedonePart> = {}): RedonePart => ({
+	turns: 0,
+	agent_time_s: 0,
+	...overrides
+});
+
+/** What the redone turns cost: nothing redone, unless the test says what. */
+export function redone(
+	overrides: Partial<Omit<RedoneWork, 'failed' | 'interrupted' | 'reworded'>> & {
+		failed?: Partial<RedonePart>;
+		interrupted?: Partial<RedonePart>;
+		reworded?: Partial<RedonePart>;
+	} = {}
+): RedoneWork {
+	return {
+		turns: 0,
+		agent_time_s: 0,
+		...overrides,
+		failed: part(overrides.failed),
+		interrupted: part(overrides.interrupted),
+		reworded: part(overrides.reworded)
 	};
 }
 
