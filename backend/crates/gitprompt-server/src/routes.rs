@@ -35,6 +35,8 @@
 //! | GET    | /api/stories/prompt/{id}               |              | `Lineage`; 404                  |
 //! | GET    | /api/search                            |              | `SearchResults`                 |
 //! | GET    | /api/attention?<filters>               |              | `Attention`; Pick up is the latest sessions whatever the filters |
+//! | GET    | /api/leaks?<filters>                   |              | `Leaks`: open, hidden, dismissed, what was checked |
+//! | PUT    | /api/leaks/{id}                        | X-GitPrompt  | `LeakSaved`; 404 unknown finding, 409 value gone, 422 body |
 //! | GET    | /api/find                              |              | `FindResults`; 422 kinds/limit  |
 //! | GET    | /api/commits/{hash}                    |              | `CommitLookup`; 400 not a hash, 404 |
 //! | GET    | /api/export/{kind}                     |              | the file; 422 kind/id, 404 unknown id |
@@ -57,6 +59,7 @@ mod extract;
 mod fields;
 mod find;
 mod ingest;
+mod leaks;
 mod names;
 mod prompts;
 mod security;
@@ -82,6 +85,7 @@ pub fn api(service: Service) -> Router {
         .merge(security::writes())
         .merge(usage::writes())
         .merge(names::writes())
+        .merge(leaks::writes())
         .route_layer(from_fn(crate::security::require_dashboard));
     let ingest = ingest::router().route_layer(axum::middleware::from_fn_with_state(service.clone(), crate::security::require_token));
     Router::new()
@@ -95,6 +99,7 @@ pub fn api(service: Service) -> Router {
         .merge(stories::router())
         .merge(find::router())
         .merge(attention::router())
+        .merge(leaks::router())
         .merge(commits::router())
         .merge(export::router())
         .merge(status::router())

@@ -104,3 +104,89 @@ fn a_phone_number_counts_where_it_was_sent_not_in_a_page_a_tool_read() {
     let typed = turn("my number is +49 30 1234567", &[]);
     assert_eq!(seen(&typed), [("phone number", "+49…567", Place::Prompt)]);
 }
+
+mod hiding {
+    use super::{EventRow, KEY, derive, event, findings, json, prompt, spec};
+    use gitprompt_insights::leaks::redactor;
+    use pretty_assertions::assert_eq;
+
+    fn derived(text: &str, events: &[EventRow]) -> gitprompt_insights::derivations::Derived {
+        derive(&prompt(text).id(7).build(), events, Some(&spec("claude-code")))
+    }
+
+    #[test]
+    fn a_redactor_replaces_the_value_and_never_shows_it() {
+        let d = derived(&format!("use {KEY} now"), &[]);
+        let id = findings(&d, &[])[0].id.clone();
+        let hide = redactor(&d, &[], &id).unwrap();
+        assert_eq!(
+            hide.apply(&json!({"prompt": format!("use {KEY} now"), "n": 1})),
+            json!({"prompt": "use [hidden OpenAI API key] now", "n": 1})
+        );
+        assert!(!format!("{hide:?}").contains("q8Zt2Lw9XkP4vR7mN3cB"));
+        assert!(redactor(&d, &[], "0000000000000000").is_none(), "another turn's finding");
+    }
+
+    #[test]
+    fn hiding_a_sensitive_file_hides_what_reading_it_returned() {
+        let read = event(
+            "PostToolUse",
+            json!({"tool_name": "Read", "tool_input": {"file_path": "/app/.env"}, "tool_response": {"content": "A=1"}}),
+        );
+        let d = derived("check the config", std::slice::from_ref(&read));
+        let id = findings(&d, std::slice::from_ref(&read))[0].id.clone();
+        let hide = redactor(&d, std::slice::from_ref(&read), &id).unwrap();
+        let other = json!({"tool_input": {"file_path": "/app/main.rs"}, "tool_response": "fn main"});
+        assert_eq!(hide.apply(&read.raw)["tool_response"], "[hidden environment file]");
+        assert_eq!(hide.apply(&other), other);
+    }
+}
+
+mod board {
+    use std::collections::BTreeSet;
+
+    use gitprompt_insights::leaks::{LeakDecision, allow_keys, board, value_key};
+    use gitprompt_store::leaks::{LeakState, StoredLeak};
+    use pretty_assertions::assert_eq;
+
+    fn stored(finding: &str, value: &str) -> StoredLeak {
+        StoredLeak {
+            finding: finding.into(),
+            value_key: value_key("email address", value),
+            kind: "email address".into(),
+            place: "prompt".into(),
+            masked: "m…@dupont.io".into(),
+            prompt: 1,
+            received_at: "2026-11-18T10:00:00.000000+00:00".into(),
+            session: None,
+        }
+    }
+
+    fn state(leak: &StoredLeak, decision: LeakDecision) -> LeakState {
+        LeakState {
+            finding: leak.finding.clone(),
+            value_key: leak.value_key.clone(),
+            kind: leak.kind.clone(),
+            masked: leak.masked.clone(),
+            place: leak.place.clone(),
+            prompt: leak.prompt,
+            state: decision.as_str().into(),
+            at: "2026-11-18T11:00:00.000000+00:00".into(),
+        }
+    }
+
+    #[test]
+    fn decisions_and_the_allow_list_sort_findings() {
+        let (a, a_again, b) = (stored("a", "marie@dupont.io"), stored("a2", "Marie@dupont.io "), stored("b", "paul@dupont.io"));
+        let gone = stored("h", "zoe@dupont.io");
+        let states = [state(&a, LeakDecision::NotSensitive), state(&gone, LeakDecision::Hidden)];
+        let out = board(vec![a, a_again, b], &states, &BTreeSet::new(), 3);
+        let names = |list: &[gitprompt_insights::leaks::LeakOut]| list.iter().map(|l| l.id.clone()).collect::<Vec<_>>();
+        assert_eq!(
+            (names(&out.open), names(&out.dismissed), names(&out.hidden)),
+            (vec!["b".to_owned()], vec!["a".to_owned(), "a2".to_owned()], vec!["h".to_owned()])
+        );
+        let allowed = board(vec![stored("b", "paul@dupont.io")], &[], &allow_keys(&["Paul@Dupont.io".to_owned()]), 1);
+        assert_eq!(allowed.open, []);
+    }
+}

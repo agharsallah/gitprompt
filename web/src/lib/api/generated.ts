@@ -32,7 +32,7 @@ worth_a_look: Array<WorthItem>,
  */
 nothing_needs_you: boolean, };
 
-export type AttentionTarget = { "page": "overview" } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, };
+export type AttentionTarget = { "page": "overview" } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, } | { "page": "leaks" };
 
 export type Backup = { name: string, path: string, bytes: number, modified: string, };
 
@@ -453,7 +453,11 @@ redone_agent_time_s?: Delta,
 /**
  * Their cost; only where tools report cost now.
  */
-redone_cost_usd?: Delta, };
+redone_cost_usd?: Delta, 
+/**
+ * Possible leaks not handled yet; with `key_figures`.
+ */
+possible_leaks?: Delta, };
 
 export type Lineage = { id: number, 
 /**
@@ -618,7 +622,12 @@ disabled_sources: Array<string>,
 /**
  * The desktop app's recall shortcut (`shortcut` module spelling, such as `CmdOrCtrl+Alt+P`).
  */
-recall_shortcut: string, };
+recall_shortcut: string, 
+/**
+ * Values that are never a possible leak (your other addresses, a shared test account), on top
+ * of your git email. Env: comma-separated.
+ */
+leak_allow: Array<string>, };
 
 /**
  * The period before the requested one: its span, its totals, and the key figures compared.
@@ -636,7 +645,11 @@ until: string, totals: StatsBucket,
 /**
  * With `key_figures`.
  */
-redone?: RedoneWork, changes: KeyChanges, };
+redone?: RedoneWork, 
+/**
+ * With `key_figures`.
+ */
+possible_leaks?: number, changes: KeyChanges, };
 
 /**
  * A project's commits while you worked on it, each with the prompt behind it.
@@ -1025,6 +1038,10 @@ export type Stats = { group_by: GroupBy | null, split_by: GroupBy | null,
  */
 redone?: RedoneWork, 
 /**
+ * With `key_figures=true`: possible leaks not handled yet.
+ */
+possible_leaks?: number, 
+/**
  * With `previous=true` and a `since`: the period of equal length before, its totals and the
  * key figures compared. Omitted otherwise (all time has no period before).
  */
@@ -1370,7 +1387,7 @@ export type WeekStart = "monday" | "sunday";
  * or runs anything.
  */
 
-export type WorthAction = { "type": "copy_command", name: string, text: string, } | { "type": "open_turn", prompt_id: number, };
+export type WorthAction = { "type": "copy_command", name: string, text: string, } | { "type": "open_turn", prompt_id: number, } | { "type": "hide_values", findings: Array<string>, };
 
 /**
  * One row of Worth a look: one sentence and one action.
@@ -1387,4 +1404,4 @@ target: AttentionTarget, };
  * not know as a plain link to its target.
  */
 
-export type WorthKind = "redone_turn" | "repeated_prompt";
+export type WorthKind = "possible_leak" | "redone_turn" | "repeated_prompt";

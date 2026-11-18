@@ -68,6 +68,7 @@ expression: "get(&api,\n&format!(\"/api/stats?previous=true&key_figures=true&sin
       "text": "/review the coupon change"
     }
   },
+  "possible_leaks": 0,
   "previous": {
     "since": "2025-12-29T09:06:11.000000+00:00",
     "until": "2026-01-05T09:06:11.000000+00:00",
@@ -133,6 +134,7 @@ expression: "get(&api,\n&format!(\"/api/stats?previous=true&key_figures=true&sin
         "text": "Summarise this log"
       }
     },
+    "possible_leaks": 0,
     "changes": {
       "prompts": {
         "now": 6.0,
@@ -161,6 +163,10 @@ expression: "get(&api,\n&format!(\"/api/stats?previous=true&key_figures=true&sin
         "now": 14.0,
         "before": 28.0,
         "change": -0.5
+      },
+      "possible_leaks": {
+        "now": 0.0,
+        "before": 0.0
       }
     }
   }

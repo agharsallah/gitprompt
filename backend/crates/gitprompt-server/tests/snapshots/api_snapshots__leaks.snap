@@ -1,0 +1,32 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/leaks\").await"
+---
+{
+  "open": [
+    {
+      "id": "7c3d466cd014cdbb",
+      "kind": "OpenAI API key",
+      "masked": "sk-…y6Hd",
+      "place": "prompt",
+      "prompt": 21,
+      "at": "2026-01-05T09:06:53.000000+00:00",
+      "session": "again-0"
+    },
+    {
+      "id": "7a723f5c837dbb7e",
+      "kind": "email address",
+      "masked": "m…@dupont.io",
+      "place": "prompt",
+      "prompt": 21,
+      "at": "2026-01-05T09:06:53.000000+00:00",
+      "session": "again-0"
+    }
+  ],
+  "hidden": [],
+  "dismissed": [],
+  "checked": {
+    "prompts": 21,
+    "kinds": 28
+  }
+}

@@ -38,7 +38,7 @@ async fn every_preference_key_is_listed_in_order() {
     let keys: Vec<String> = api.json("/api/settings").await["settings"].as_object().expect("settings").keys().cloned().collect();
     assert_eq!(
         keys,
-        ["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut"]
+        ["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut", "leak_allow"]
     );
 }
 

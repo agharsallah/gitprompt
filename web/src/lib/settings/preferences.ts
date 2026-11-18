@@ -14,7 +14,8 @@ export const DEFAULTS: Preferences = {
 	event_retention_days: null,
 	hide_secrets_on_ingest: false,
 	disabled_sources: [],
-	recall_shortcut: 'CmdOrCtrl+Alt+P'
+	recall_shortcut: 'CmdOrCtrl+Alt+P',
+	leak_allow: []
 };
 
 /** The effective value of every preference. */

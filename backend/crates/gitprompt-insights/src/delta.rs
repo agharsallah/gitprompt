@@ -40,6 +40,8 @@ impl Delta {
 pub struct Figures<'a> {
     pub totals: &'a Bucket,
     pub redone: Option<&'a RedoneWork>,
+    /// Possible leaks not handled yet.
+    pub leaks: Option<i64>,
 }
 
 /// The key figures the Overview leads with, each against the period before.
@@ -60,6 +62,10 @@ pub struct KeyChanges {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub redone_cost_usd: Option<Delta>,
+    /// Possible leaks not handled yet; with `key_figures`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub possible_leaks: Option<Delta>,
 }
 
 /// Whole-number counts as figures.
@@ -85,6 +91,7 @@ impl KeyChanges {
             git_commits: delta(|b| b.git_commits),
             redone_agent_time_s: redone(|r| Some(r.total.agent_time_s)),
             redone_cost_usd: redone(|r| r.total.cost_usd),
+            possible_leaks: now.leaks.map(|n| Delta::new(count(n), before.leaks.filter(|_| had).map(count))),
         }
     }
 }
@@ -102,13 +109,25 @@ pub struct Previous {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub redone: Option<RedoneWork>,
+    /// With `key_figures`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub possible_leaks: Option<i64>,
     pub changes: KeyChanges,
 }
 
 impl Previous {
-    /// The period before, its totals and redone work, compared with `now`.
-    pub fn new(period: Period, now: Figures<'_>, totals: Bucket, redone: Option<RedoneWork>) -> Previous {
-        let changes = KeyChanges::between(now, Figures { totals: &totals, redone: redone.as_ref() });
-        Previous { since: period.since, until: period.until, totals, redone, changes }
+    /// The period before, its totals and key figures, compared with `now`.
+    pub fn new(period: Period, now: Figures<'_>, totals: Bucket, extra: Extra) -> Previous {
+        let Extra { redone, leaks } = extra;
+        let changes = KeyChanges::between(now, Figures { totals: &totals, redone: redone.as_ref(), leaks });
+        Previous { since: period.since, until: period.until, totals, redone, possible_leaks: leaks, changes }
     }
+}
+
+/// The key figures computed beyond the aggregate (`key_figures=true`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Extra {
+    pub redone: Option<RedoneWork>,
+    pub leaks: Option<i64>,
 }

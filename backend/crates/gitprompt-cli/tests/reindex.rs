@@ -72,3 +72,41 @@ fn reindex_of_an_empty_home_indexes_nothing() {
     let output = home.cmd(&["reindex"]).assert().success().get_output().clone();
     assert_eq!(indexed(&stdout(&output)).map(|(count, _)| count), Some("0".to_string()));
 }
+
+#[tokio::test]
+async fn a_finding_you_dismissed_stays_dismissed_after_reindex() {
+    use gitprompt_insights::leaks::{LeakDecision, board};
+    use gitprompt_store::PromptFilter;
+    use gitprompt_store::leaks::LeakState;
+
+    let home = home();
+    let key = "sk-proj-".to_owned() + "q8Zt2Lw9XkP4vR7mN3cBy6Hd";
+    let prompt = json!({"hook_event_name": "UserPromptSubmit", "prompt_id": "p1", "session_id": "s", "prompt": format!("use {key}")});
+    home.ingest(&[("claude-code", prompt)]).await;
+    home.cmd(&["reindex"]).assert().success();
+
+    let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
+    let found = store.leaks(&PromptFilter::default()).unwrap();
+    assert_eq!(found.len(), 1);
+    let leak = found[0].clone();
+    let state = LeakState {
+        finding: leak.finding.clone(),
+        value_key: leak.value_key.clone(),
+        kind: leak.kind.clone(),
+        masked: leak.masked.clone(),
+        place: leak.place.clone(),
+        prompt: leak.prompt,
+        state: LeakDecision::NotSensitive.as_str().into(),
+        at: "2026-11-18T10:00:00.000000+00:00".into(),
+    };
+    store.set_leak_state(&state).unwrap();
+    drop(store);
+
+    home.cmd(&["reindex"]).assert().success();
+
+    let store = gitprompt_store::Store::open(&home.db_path()).unwrap();
+    let again = store.leaks(&PromptFilter::default()).unwrap();
+    assert_eq!(again[0].finding, leak.finding, "the same id after the index is rebuilt");
+    let board = board(again, &store.leak_states().unwrap(), &std::collections::BTreeSet::default(), 1);
+    assert_eq!((board.open.len(), board.dismissed.len()), (0, 1));
+}

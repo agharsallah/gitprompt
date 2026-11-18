@@ -19,7 +19,8 @@ impl Service {
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
             let redone = Some(inner.redone_work(&set, &filter)?);
-            let inputs = Inputs { sessions: inner.recent_sessions(&set)?, repeated: inner.repeated_texts(filter)?, redone };
+            let leaks = inner.leak_board(&filter)?.open;
+            let inputs = Inputs { sessions: inner.recent_sessions(&set)?, repeated: inner.repeated_texts(filter)?, redone, leaks };
             Ok(attention(&inputs, inner.now()))
         })
         .await

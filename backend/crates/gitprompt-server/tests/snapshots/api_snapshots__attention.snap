@@ -9,8 +9,8 @@ expression: "get(&api, \"/api/attention\").await"
       "label": "run just verify and fix what fails",
       "presence": "left",
       "ended": "open",
-      "last_event_at": "2026-01-05T09:06:46.000000+00:00",
-      "latest_prompt": 20,
+      "last_event_at": "2026-01-05T09:06:53.000000+00:00",
+      "latest_prompt": 21,
       "resume": {
         "command": "claude --resume again-0",
         "cwd": "/work/app",
@@ -40,6 +40,20 @@ expression: "get(&api, \"/api/attention\").await"
     }
   ],
   "worth_a_look": [
+    {
+      "kind": "possible_leak",
+      "text": "2 possible leaks: OpenAI API key, email address",
+      "action": {
+        "type": "hide_values",
+        "findings": [
+          "7c3d466cd014cdbb",
+          "7a723f5c837dbb7e"
+        ]
+      },
+      "target": {
+        "page": "leaks"
+      }
+    },
     {
       "kind": "redone_turn",
       "text": "Costliest redone turn: 28 s of agent time",

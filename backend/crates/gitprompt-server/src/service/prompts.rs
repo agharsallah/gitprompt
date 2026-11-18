@@ -71,13 +71,21 @@ impl Service {
     /// Hide detected secrets in the prompt, its raw payload, its events and the index.
     pub async fn redact(&self, id: i64) -> ApiResult<Updated> {
         self.run(move |inner| {
-            let (_, indexer) = inner.indexed()?;
             inner.store.get(id)?.ok_or_else(|| Error::NotFound("prompt not found".into()))?;
-            let updated = inner.store.rewrite(id, &secrets::redact)?;
-            indexer.reindex(&inner.store, &[id])?;
-            Ok(Updated { updated })
+            Ok(Updated { updated: inner.rewrite_turn(id, &secrets::redact)? })
         })
         .await
+    }
+}
+
+impl Inner {
+    /// Apply `edit` to a prompt and its turn's stored JSON, then index the prompt again: what
+    /// redaction and hiding a possible leak share. Rows rewritten.
+    pub(super) fn rewrite_turn(&self, id: i64, edit: &dyn Fn(&Json) -> Json) -> ApiResult<u64> {
+        let (_, indexer) = self.indexed()?;
+        let updated = self.store.rewrite(id, edit)?;
+        indexer.reindex(&self.store, &[id])?;
+        Ok(updated)
     }
 }
 
@@ -125,7 +133,7 @@ fn prompt_out(derived: &Derived, spec: Option<&Spec>, outcome: Option<gitprompt_
 }
 
 /// The id a prompt's turn events carry.
-fn turn_id(view: &PromptView) -> Option<String> {
+pub(super) fn turn_id(view: &PromptView) -> Option<String> {
     view.row.fields.get("prompt_id").and_then(Json::as_str).filter(|pid| !pid.is_empty()).map(str::to_owned)
 }
 

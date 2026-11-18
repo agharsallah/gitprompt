@@ -47,8 +47,7 @@ fn password(value: &str) -> Option<&str> {
         Some((head, rest)) if rest.contains('=') => head,
         _ => value,
     };
-    let value =
-        value.trim().trim_matches(|c| c == '"' || c == '\'').trim_end_matches([':', '.', ',', ';', '!', '?']);
+    let value = value.trim().trim_matches(|c| c == '"' || c == '\'').trim_end_matches([':', '.', ',', ';', '!', '?']);
     let plausible = value.chars().count() >= PASSWORD_CHARS
         && !is_code(value)
         && !is_name(value)

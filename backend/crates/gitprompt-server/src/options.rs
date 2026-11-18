@@ -74,6 +74,10 @@ pub trait GitProvider: Send + Sync {
     fn has_object(&self, _root: &Path, _prefix: &str) -> bool {
         true
     }
+    /// Your git email (`git config user.email`): never a possible leak of yours.
+    fn user_email(&self) -> Option<String> {
+        None
+    }
 }
 
 /// The user's `git` CLI, with the context memoized for `ttl` per directory (`core::git::GitCache`)
@@ -83,11 +87,12 @@ pub trait GitProvider: Send + Sync {
 pub struct SystemGit {
     cache: GitCache,
     histories: HistoryCache,
+    email: std::sync::OnceLock<Option<String>>,
 }
 
 impl SystemGit {
     pub fn new(ttl: Duration) -> Self {
-        SystemGit { cache: GitCache::new(ttl), histories: HistoryCache::new(ttl) }
+        SystemGit { cache: GitCache::new(ttl), histories: HistoryCache::new(ttl), email: std::sync::OnceLock::new() }
     }
 }
 
@@ -103,6 +108,10 @@ impl GitProvider for SystemGit {
     }
     fn has_object(&self, root: &Path, prefix: &str) -> bool {
         git::has_object(root, prefix)
+    }
+    /// Read once per daemon, from the home folder (the global setting).
+    fn user_email(&self) -> Option<String> {
+        self.email.get_or_init(|| std::env::home_dir().and_then(|home| git::user_email(&home))).clone()
     }
 }
 

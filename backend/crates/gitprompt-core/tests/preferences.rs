@@ -71,6 +71,7 @@ fn defaults_without_a_file() {
         ("hide_secrets_on_ingest", json!(false)),
         ("disabled_sources", json!([])),
         ("recall_shortcut", json!("CmdOrCtrl+Alt+P")),
+        ("leak_allow", json!([])),
     ]
     .into_iter()
     .map(|(key, value)| Resolved {
@@ -111,6 +112,7 @@ fn env_wins_over_file_wins_over_default() {
         ("hide_secrets_on_ingest".to_string(), json!(false), ValueSource::Default, false),
         ("disabled_sources".to_string(), json!([]), ValueSource::Default, false),
         ("recall_shortcut".to_string(), json!("CmdOrCtrl+Alt+P"), ValueSource::Default, false),
+        ("leak_allow".to_string(), json!([]), ValueSource::Default, false),
     ];
     assert_eq!(summary, expected);
     let current = file.current().unwrap();

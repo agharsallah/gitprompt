@@ -18,6 +18,7 @@ mod time;
 pub mod filter;
 pub mod housekeeping;
 pub mod index;
+pub mod leaks;
 pub mod rows;
 pub mod stats;
 pub mod store;

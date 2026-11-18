@@ -17,4 +17,6 @@ pub enum Target {
     Prompt { id: i64 },
     /// One session's story.
     Session { id: String },
+    /// The possible leaks of the Overview.
+    Leaks,
 }

@@ -7,10 +7,11 @@
 //! Detection is [`gitprompt_core::secrets::find_leaks`] and [`gitprompt_core::personal`]; this
 //! module decides where to look and how many to keep.
 
-use std::fmt::Write as _;
+mod board;
+mod key;
+mod redact;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use ts_rs::TS;
 
 use gitprompt_core::Json;
@@ -20,6 +21,10 @@ use gitprompt_core::secrets::find_leaks;
 use gitprompt_store::EventRow;
 
 use crate::derivations::Derived;
+
+pub use board::{Checked, LeakDecision, LeakOut, Leaks, board};
+pub use key::{KINDS_CHECKED, allow_keys, value_key};
+pub use redact::{Redactor, redactor};
 
 /// Characters of one text scanned at most (a long tool output is read from its start).
 pub const SCAN_CHARS: usize = 256 * 1024;
@@ -86,7 +91,7 @@ pub fn findings(derived: &Derived, events: &[EventRow]) -> Vec<Finding> {
 }
 
 /// Every look-alike of the turn with where it sits, in the order of [`Place`].
-fn found<'a>(derived: &'a Derived, events: &'a [EventRow]) -> Vec<(Place, Found<'a>)> {
+pub(crate) fn found<'a>(derived: &'a Derived, events: &'a [EventRow]) -> Vec<(Place, Found<'a>)> {
     let mut out: Vec<(Place, Found<'a>)> = Vec::new();
     let prompt = derived.prompt.row.prompt.as_deref().map(scan).unwrap_or_default();
     out.extend(prompt.into_iter().map(|f| (Place::Prompt, f)));
@@ -131,26 +136,7 @@ fn file_name(path: &str) -> &str {
 }
 
 fn finding(turn: i64, place: Place, found: Found<'_>) -> Finding {
-    let value_key = key(&[found.kind, &normal(found.value)]);
-    let id = key(&[found.kind, &turn.to_string(), place.as_str(), &value_key]);
+    let value_key = key::value_key(found.kind, found.value);
+    let id = key::finding_id(found.kind, turn, place, &value_key);
     Finding { id, value_key, kind: found.kind.to_owned(), masked: masked(found.mask, found.value), place }
-}
-
-/// The value as compared: no spaces, any case (`DE44 5001` is `de445001`).
-fn normal(value: &str) -> String {
-    value.chars().filter(|c| !c.is_whitespace()).flat_map(char::to_lowercase).collect()
-}
-
-/// A stable digest of the parts: the first 16 hex digits of their SHA-256, so stored states keep
-/// matching across versions and machines.
-fn key(parts: &[&str]) -> String {
-    let mut hasher = Sha256::new();
-    for part in parts {
-        hasher.update(part.as_bytes());
-        hasher.update([0]);
-    }
-    hasher.finalize().iter().take(8).fold(String::with_capacity(16), |mut out, byte| {
-        let _ = write!(out, "{byte:02x}");
-        out
-    })
 }

@@ -231,7 +231,8 @@ export function settingsState(values: Preferences): SettingsState {
 			event_retention_days: setting('event_retention_days'),
 			hide_secrets_on_ingest: setting('hide_secrets_on_ingest'),
 			disabled_sources: setting('disabled_sources'),
-			recall_shortcut: setting('recall_shortcut')
+			recall_shortcut: setting('recall_shortcut'),
+			leak_allow: setting('leak_allow')
 		}
 	};
 }

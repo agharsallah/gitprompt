@@ -97,6 +97,12 @@ pub fn resolve_revision(cwd: &Path, rev: &str) -> Revision {
     git(cwd, &["rev-parse", "--verify", "--quiet", &commit]).map_or(Revision::Unknown, Revision::Commit)
 }
 
+/// Your git email (`git config user.email`, as git resolves it from `dir`): what your commits are
+/// signed with, never a leak of yours.
+pub fn user_email(dir: &Path) -> Option<String> {
+    git(dir, &["config", "--get", "user.email"])
+}
+
 /// Whether the repository around `root` has an object whose name starts with `prefix` (4 or more
 /// hex digits): a few milliseconds, against most of a second to list its commits, so a hash is
 /// looked for only where it can be.

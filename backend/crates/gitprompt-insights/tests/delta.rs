@@ -6,7 +6,7 @@ use gitprompt_insights::redone::{RedonePart, RedoneWork};
 use gitprompt_store::stats::Bucket;
 
 fn figures(totals: &Bucket) -> Figures<'_> {
-    Figures { totals, redone: None }
+    Figures { totals, redone: None, leaks: None }
 }
 
 fn bucket(prompts: i64, cost_usd: f64, agent_time_s: f64) -> Bucket {
@@ -55,12 +55,17 @@ fn redone_work_compares_only_when_asked_for_and_its_cost_only_where_reported() {
     assert_eq!(KeyChanges::between(figures(&now), figures(&before)).redone_agent_time_s, None, "not asked for");
 
     let (now_r, before_r) = (redone(120.0, None), redone(60.0, None));
-    let changes = KeyChanges::between(Figures { totals: &now, redone: Some(&now_r) }, Figures { totals: &before, redone: Some(&before_r) });
+    let changes = KeyChanges::between(
+        Figures { totals: &now, redone: Some(&now_r), leaks: None },
+        Figures { totals: &before, redone: Some(&before_r), leaks: None },
+    );
     assert_eq!(changes.redone_agent_time_s, Some(Delta { now: 120.0, before: Some(60.0), change: Some(1.0) }));
     assert_eq!(changes.redone_cost_usd, None, "no tool reports cost: no cost figure, never $0");
 
     let costed = redone(120.0, Some(9.2));
-    let changes =
-        KeyChanges::between(Figures { totals: &now, redone: Some(&costed) }, Figures { totals: &before, redone: Some(&before_r) });
+    let changes = KeyChanges::between(
+        Figures { totals: &now, redone: Some(&costed), leaks: None },
+        Figures { totals: &before, redone: Some(&before_r), leaks: None },
+    );
     assert_eq!(changes.redone_cost_usd, Some(Delta { now: 9.2, before: None, change: None }), "no cost before: nothing to compare");
 }

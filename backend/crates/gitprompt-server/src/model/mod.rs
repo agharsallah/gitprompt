@@ -11,6 +11,7 @@ mod attention;
 mod data;
 mod export;
 mod find;
+mod leaks;
 mod names;
 mod prompts;
 mod security;
@@ -24,6 +25,7 @@ pub use attention::{Attention, PickUp, PickUpPresence, Target, WorthAction, Wort
 pub use data::{Backup, CompactIn, DataOut, DeleteIn, RemovalOut, ReportOut, SourceEvents};
 pub use export::{BranchQuery, ChartInfo, ExportFile, ExportFormat, ExportKind, ExportQuery};
 pub use find::{FindHit, FindQuery, FindResults, FindTarget};
+pub use leaks::{LeakDecision, LeakIn, LeakOut, LeakPlace, LeakSaved, Leaks, LeaksChecked};
 pub use names::{NameIn, NameOut};
 pub use prompts::{Annotation, Injected, PromptDetail, PromptOut, PromptQuery, Updated};
 pub use security::{Reconnect, Rotation, SecurityOut};

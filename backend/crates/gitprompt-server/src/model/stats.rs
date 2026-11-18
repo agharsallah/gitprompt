@@ -18,7 +18,7 @@ pub struct StatsQuery {
     pub limit: usize,
     /// `previous=true`: add the totals of the period of equal length before `since`.
     pub previous: bool,
-    /// `key_figures=true`: add the figures computed beyond the aggregate (redone work), and with
+    /// `key_figures=true`: add the figures computed beyond the aggregate (redone work, possible leaks), and with
     /// `previous`, theirs for the period before.
     pub key_figures: bool,
 }
@@ -49,6 +49,10 @@ pub struct Stats {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub redone: Option<RedoneWork>,
+    /// With `key_figures=true`: possible leaks not handled yet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub possible_leaks: Option<i64>,
     /// With `previous=true` and a `since`: the period of equal length before, its totals and the
     /// key figures compared. Omitted otherwise (all time has no period before).
     #[serde(default, skip_serializing_if = "Option::is_none")]

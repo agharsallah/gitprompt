@@ -53,6 +53,9 @@ pub struct Preferences {
     pub disabled_sources: Vec<String>,
     /// The desktop app's recall shortcut (`shortcut` module spelling, such as `CmdOrCtrl+Alt+P`).
     pub recall_shortcut: String,
+    /// Values that are never a possible leak (your other addresses, a shared test account), on top
+    /// of your git email. Env: comma-separated.
+    pub leak_allow: Vec<String>,
 }
 
 impl Default for Preferences {
@@ -64,13 +67,14 @@ impl Default for Preferences {
             hide_secrets_on_ingest: false,
             disabled_sources: Vec::new(),
             recall_shortcut: shortcut::DEFAULT.to_owned(),
+            leak_allow: Vec::new(),
         }
     }
 }
 
 /// Every preference key, in declaration order.
 pub const KEYS: &[&str] =
-    &["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut"];
+    &["default_range", "week_start", "event_retention_days", "hide_secrets_on_ingest", "disabled_sources", "recall_shortcut", "leak_allow"];
 
 /// Keys that need a daemon restart to take effect (none today).
 pub const APPLIES_AT_START: &[&str] = &[];
@@ -264,7 +268,7 @@ fn normalize(key: &str, value: &Json) -> std::result::Result<Json, String> {
         "week_start" => one_of(value, &["monday", "sunday"]),
         "event_retention_days" => retention_days(value),
         "hide_secrets_on_ingest" => boolean(value).map(Json::Bool),
-        "disabled_sources" => string_list(value),
+        "disabled_sources" | "leak_allow" => string_list(value),
         "recall_shortcut" => recall_shortcut(value),
         _ => Err("unknown setting".into()),
     }

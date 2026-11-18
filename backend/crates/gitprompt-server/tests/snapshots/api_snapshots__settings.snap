@@ -52,6 +52,14 @@ expression: "get(&api, \"/api/settings\").await"
       "env": "GITPROMPT_RECALL_SHORTCUT",
       "locked": false,
       "applies": "now"
+    },
+    "leak_allow": {
+      "value": [],
+      "default": [],
+      "source": "default",
+      "env": "GITPROMPT_LEAK_ALLOW",
+      "locked": false,
+      "applies": "now"
     }
   }
 }

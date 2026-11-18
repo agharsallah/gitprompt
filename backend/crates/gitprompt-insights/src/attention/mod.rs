@@ -6,6 +6,7 @@
 //! the feed keeps the first [`WORTH_A_LOOK`]. A new kind is one function and one line in
 //! [`SOURCES`]; a new reader only reads [`Attention`].
 
+mod leaks;
 mod pick_up;
 mod redone_turn;
 mod repeated;
@@ -17,6 +18,7 @@ use ts_rs::TS;
 pub use pick_up::{PICK_UP, PICK_UP_WITHIN, PickUp, Presence, RUNNING_WINDOW, SessionState, pick_up};
 pub use repeated::{COMMAND_MIN_CHARS, COMMAND_MIN_SENDS, COMMAND_MIN_SESSIONS, RepeatedText, command_name};
 
+use crate::leaks::LeakOut;
 use crate::redone::RedoneWork;
 use crate::target::Target;
 
@@ -29,6 +31,8 @@ pub const WORTH_A_LOOK: usize = 3;
 #[serde(rename_all = "snake_case")]
 #[ts(rename = "WorthKind")]
 pub enum Kind {
+    /// Possible leaks you have not handled.
+    PossibleLeak,
     /// The redone turn that cost the most.
     RedoneTurn,
     /// A prompt you send often enough to become a slash command.
@@ -45,6 +49,8 @@ pub enum Action {
     CopyCommand { name: String, text: String },
     /// Open this turn in the reader.
     OpenTurn { prompt_id: i64 },
+    /// Hide these findings' values (after asking: it rewrites stored text).
+    HideValues { findings: Vec<String> },
 }
 
 /// One row of Worth a look: one sentence and one action.
@@ -67,13 +73,15 @@ pub struct Inputs {
     pub repeated: Vec<RepeatedText>,
     /// The range's redone work.
     pub redone: Option<RedoneWork>,
+    /// The range's possible leaks not handled yet, newest first.
+    pub leaks: Vec<LeakOut>,
 }
 
 /// A source of Worth a look: at most one item from the inputs.
 pub type Source = fn(&Inputs) -> Option<Item>;
 
 /// Every source, in the order their kinds are shown.
-pub const SOURCES: &[Source] = &[redone_turn::source, repeated::source];
+pub const SOURCES: &[Source] = &[leaks::source, redone_turn::source, repeated::source];
 
 /// `GET /api/attention`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]

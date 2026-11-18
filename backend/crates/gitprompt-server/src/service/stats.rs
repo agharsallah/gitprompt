@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use gitprompt_core::Error;
 use gitprompt_core::spec::{SpecSet, SurfaceInfo};
 use gitprompt_insights::catalog;
-use gitprompt_insights::delta::{Figures, Previous};
+use gitprompt_insights::delta::{Extra, Figures, Previous};
 use gitprompt_insights::surface;
 use gitprompt_store::filter::PromptFilter;
 use gitprompt_store::stats::{Aggregate, AggregateQuery, Bucket, GroupBy};
@@ -26,8 +26,8 @@ impl Service {
             let (set, _) = inner.indexed()?;
             let StatsQuery { filter, group_by, split_by, order, limit, previous, key_figures } = query;
             let mut result = inner.aggregate(&AggregateQuery { filter: filter.clone(), group_by, split_by, order, limit })?;
-            let redone = key_figures.then(|| inner.redone_work(&set, &filter)).transpose()?;
-            let now = Figures { totals: &result.totals, redone: redone.as_ref() };
+            let extra = if key_figures { inner.extra_figures(&set, &filter)? } else { Extra::default() };
+            let now = Figures { totals: &result.totals, redone: extra.redone.as_ref(), leaks: extra.leaks };
             let previous = if previous { inner.previous_period(&set, &filter, now, key_figures)? } else { None };
             let names = GroupNames { set: &set, surfaces: surface::catalog(set.specs.values().map(AsRef::as_ref)) };
             names.name_groups(group_by, split_by, &mut result.groups);
@@ -35,7 +35,7 @@ impl Service {
                 inner.name_sessions(&mut result.groups)?;
                 inner.present_sessions(&set, &mut result.groups)?;
             }
-            Ok(Stats { group_by, split_by, aggregate: result, redone, previous })
+            Ok(Stats { group_by, split_by, aggregate: result, redone: extra.redone.clone(), possible_leaks: extra.leaks, previous })
         })
         .await
     }
@@ -66,15 +66,21 @@ impl Inner {
         })
     }
 
+    /// The key figures beyond the aggregate: redone work and possible leaks not handled yet.
+    fn extra_figures(&self, set: &SpecSet, filter: &PromptFilter) -> ApiResult<Extra> {
+        let leaks = i64::try_from(self.leak_board(filter)?.open.len()).unwrap_or(i64::MAX);
+        Ok(Extra { redone: Some(self.redone_work(set, filter)?), leaks: Some(leaks) })
+    }
+
     /// The same filter over the period of equal length before its own ("now" from the app
     /// clock when it has no end), compared with `now`; None for all time.
     fn previous_period(&self, set: &SpecSet, filter: &PromptFilter, now: Figures<'_>, key_figures: bool) -> ApiResult<Option<Previous>> {
         let Some((filter, period)) = filter.previous_period(self.now()) else {
             return Ok(None);
         };
-        let redone = key_figures.then(|| self.redone_work(set, &filter)).transpose()?;
+        let extra = if key_figures { self.extra_figures(set, &filter)? } else { Extra::default() };
         let before = self.aggregate(&AggregateQuery { filter, ..AggregateQuery::default() })?.totals;
-        Ok(Some(Previous::new(period, now, before, redone)))
+        Ok(Some(Previous::new(period, now, before, extra)))
     }
 }
 

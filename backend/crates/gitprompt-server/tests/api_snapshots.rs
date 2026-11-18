@@ -296,8 +296,14 @@ async fn attention_pick_up_and_worth_a_look() {
         });
         api.ingest("claude-code", payload).await;
     }
+    // A pasted key and a colleague's address: listed masked, never in clear.
+    let key = "sk-proj-".to_owned() + "q8Zt2Lw9XkP4vR7mN3cBy6Hd";
+    let leak = format!("deploy with {key}, then mail marie.curie@dupont.io");
+    clock.advance(STEP);
+    api.ingest("claude-code", serde_json::json!({"hook_event_name": "UserPromptSubmit", "prompt_id": "leak-1", "session_id": "again-0", "prompt": leak, "cwd": "/work/app"})).await;
     clock.advance(SignedDuration::from_hours(2));
     insta::assert_json_snapshot!("attention", get(&api, "/api/attention").await);
+    insta::assert_json_snapshot!("leaks", get(&api, "/api/leaks").await);
 }
 
 #[tokio::test]
