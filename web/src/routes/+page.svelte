@@ -23,6 +23,7 @@
 	import { calmLine } from '#lib/overview/calm.ts';
 	import FirstScreen from '#lib/overview/FirstScreen.svelte';
 	import NeedsYou from '#lib/overview/NeedsYou.svelte';
+	import WeekStrip from '#lib/overview/WeekStrip.svelte';
 	import { availability } from '#lib/sources/capabilities.ts';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
 	import { PURPOSES } from '#lib/layout/nav.ts';
@@ -87,6 +88,7 @@
 				{/each}
 			</div>
 			<PanelSkeleton body="figures" rows={4} title={false} />
+			<Skeleton width="100%" height="6.5rem" shape="block" />
 			<div class="grid two">
 				{@render panel()}
 				{@render panel()}
@@ -129,11 +131,13 @@
 						/>
 					</Boundary>
 
+					<Boundary what="the week strip"><WeekStrip data={o} /></Boundary>
+
 					<section aria-labelledby="activity">
 						<h2 id="activity" class="section">Activity</h2>
 						<div class="grid two">
 							<Boundary what="the activity panel"
-								><ActivityPanel data={o} {slots} {link} /></Boundary
+								><ActivityPanel data={o} {slots} {link} availability={can('cost')} /></Boundary
 							>
 							<Boundary what="the rhythm panel">
 								<RhythmPanel data={o} weekStart={data.weekStart} {link} />

@@ -90,7 +90,9 @@ export type UsageAction =
 	| 'palette.open'
 	| 'palette.copy'
 	| 'tab.project.commits'
-	| 'commit.open.prompt';
+	| 'commit.open.prompt'
+	| 'week.day.open'
+	| 'filters.open';
 
 export const panelAction = <K extends 'seen' | 'click', P extends PanelName>(kind: K, panel: P) =>
 	`panel.${kind}.${panel}` as const;
@@ -112,5 +114,7 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	'palette.open',
 	'palette.copy',
 	'tab.project.commits',
-	'commit.open.prompt'
+	'commit.open.prompt',
+	'week.day.open',
+	'filters.open'
 ];

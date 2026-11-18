@@ -82,6 +82,34 @@ export function readFilters(
 	return filters;
 }
 
+/** One single-valued filter that is on: what the folded bar counts and shows as a chip. */
+export type ActiveFilter = { dimension: Dimension; value: string };
+
+/** The filters on besides range and origin, in the bar's order ("Filters · N" counts them). */
+export const activeFilters = (filters: InsightFilters): ActiveFilter[] =>
+	DIMENSIONS.flatMap((dimension) => {
+		const value = filters[dimension];
+		return value ? [{ dimension, value }] : [];
+	});
+
+/** The URL parameters of those filters, as the bar's selects submit them (`repo=/r/app`). */
+export const dimensionParams = (filters: InsightFilters): [Dimension, string][] =>
+	activeFilters(filters).map(({ dimension, value }) => [dimension, value]);
+
+/**
+ * The URL that reads back as these filters (readFilters): `range`, each `origin`, then the
+ * dimensions. The inverse of readFilters, so a filter URL and its state agree both ways. No origin
+ * (every origin) is written as every origin: left out, it would read as the remembered choice.
+ */
+export function filterParams(filters: InsightFilters): URLSearchParams {
+	const origins = filters.origins.length ? filters.origins : ALL_ORIGINS;
+	return new URLSearchParams([
+		['range', filters.range.id],
+		...origins.map((o): [string, string] => ['origin', o]),
+		...dimensionParams(filters)
+	]);
+}
+
 /** The daemon query for these filters (`now` fixes the start of the window). */
 export function toQuery(filters: InsightFilters, now: number): StatsQuery {
 	const start = rangeStart(filters.range, now);

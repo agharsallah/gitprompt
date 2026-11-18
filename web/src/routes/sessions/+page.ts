@@ -3,12 +3,14 @@ import { defer } from '#lib/async/resource.svelte.ts';
 import { readFilters, toQuery, without } from '#lib/insights/filters.ts';
 import { sessions } from '#lib/insights/aggregate.ts';
 import { originFilter } from '#lib/prompts/originFilter.svelte.ts';
+import { dayWindow } from '#lib/sessions/day.ts';
 import { isSort, promptsOf, SESSION_PAGE, SORTS } from '#lib/sessions/load.ts';
 import { preferences } from '#lib/settings/preferences.ts';
 import type { PageLoad } from './$types';
 
 // URL: ?range=, ?q= (sessions with a prompt matching every word), ?project= (a repo filter value),
-// ?sort=recent|longest|costliest, ?limit= (sessions shown). Origins: the remembered choice.
+// ?day=YYYY-MM-DD (one local day, instead of the range), ?sort=recent|longest|costliest,
+// ?limit= (sessions shown). Origins: the remembered choice.
 // The controls come from the URL at once; the sessions stream in.
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range } = await preferences(fetch);
@@ -18,7 +20,9 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	const q = params.get('q') ?? '';
 	const project = params.get('project') || undefined;
 	const limit = Math.min(500, Math.max(SESSION_PAGE, Number(params.get('limit')) || SESSION_PAGE));
-	const base = { ...toQuery(filters, Date.now()), repo: project };
+	const span = dayWindow(params.get('day'));
+	const day = span ? (params.get('day') ?? undefined) : undefined;
+	const base = { ...toQuery(filters, Date.now()), repo: project, ...span };
 
 	const content = (async () => {
 		const [list, projects] = await Promise.all([
@@ -42,6 +46,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		sort,
 		q,
 		project,
+		day,
 		limit,
 		content: defer(content)
 	};

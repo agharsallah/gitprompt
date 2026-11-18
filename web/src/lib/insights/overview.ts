@@ -21,6 +21,8 @@ export type Overview = {
 	hourly: boolean;
 	/** totals: the headline figures; groups: per day, or per clock hour. */
 	activity: Stats;
+	/** The same days (or hours), each split per project (`split_by=repo`): the week strip. */
+	strip: Stats;
 	/** The totals with redone work, possible leaks and the period before compared. */
 	keyFigures: Stats;
 	week: Stats;
@@ -55,6 +57,7 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 
 	const results = await all({
 		activity: stats(hourly ? 'day_hour' : 'day'),
+		strip: stats(hourly ? 'day_hour' : 'day', { split_by: 'repo' }),
 		keyFigures: api.stats({ ...query, key_figures: 'true', previous: 'true' }, fetcher),
 		week: stats('weekday_hour'),
 		sessionLengths: stats('session_length'),

@@ -21,6 +21,8 @@ import type {
 	WorthItem
 } from '#lib/api/types.ts';
 import type { PreferenceKey, Preferences, Setting, SettingsState } from '#lib/api/settings.ts';
+import type { Overview } from '#lib/insights/overview.ts';
+import { parseRange, rangeStart } from '#lib/insights/range.ts';
 
 let nextId = 1;
 
@@ -199,6 +201,56 @@ export function bucket(overrides: Partial<StatsBucket> = {}): StatsBucket {
 /** GET /api/stats without grouping: these totals, nothing else. */
 export function stats(overrides: Partial<Stats> = {}): Stats {
 	return { group_by: null, split_by: null, totals: bucket(), groups: [], ...overrides };
+}
+
+/**
+ * A day (or "YYYY-MM-DD HH" hour) of `group_by=day&split_by=repo`: its prompts per project, the
+ * day's totals summed from them. `null` as a project is "no project".
+ */
+export function splitDay(
+	key: string,
+	projects: [string | null, number][],
+	overrides: Partial<StatsBucket> = {}
+): StatsBucket {
+	const parts = projects.map(([repo, prompts]) => bucket({ key: repo, prompts }));
+	return bucket({ key, prompts: parts.reduce((n, p) => n + p.prompts, 0), parts, ...overrides });
+}
+
+/**
+ * Everything the Overview loads, empty: the range `7d` ending at `now`, every stats call with no
+ * groups; the test sets what it is about (e.g. `strip`).
+ */
+export function overview(overrides: Partial<Overview> = {}, now = Date.now()): Overview {
+	const filters = overrides.filters ?? { range: parseRange('7d'), origins: [] };
+	const empty = stats();
+	return {
+		filters,
+		query: {},
+		now,
+		start: rangeStart(filters.range, now),
+		hourly: filters.range.id === '24h',
+		activity: empty,
+		strip: empty,
+		keyFigures: empty,
+		week: empty,
+		sessionLengths: empty,
+		origins: empty,
+		commands: empty,
+		sizes: empty,
+		texts: empty,
+		models: empty,
+		work: empty,
+		querySources: empty,
+		repos: empty,
+		outcomes: empty,
+		toolKinds: empty,
+		tools: empty,
+		telemetry: { sessions: 0, metrics: {}, commands: [] },
+		options: { source: empty, surface: empty, repo: empty, model: empty },
+		starred: [],
+		attention: attention(),
+		...overrides
+	};
 }
 
 /** One figure now and before; the change is worked out as the daemon does (absent without one). */

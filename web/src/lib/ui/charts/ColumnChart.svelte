@@ -12,6 +12,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import Tooltip from '#lib/ui/charts/Tooltip.svelte';
+	import { rovingStep } from '#lib/ui/charts/roving.ts';
 	import { columnPath, niceTicks } from '#lib/ui/charts/scale.ts';
 	import { compact } from '#lib/shared/format.ts';
 
@@ -72,19 +73,12 @@
 	const every = $derived(Math.max(1, Math.ceil((data.length * 44) / Math.max(plotW, 1))));
 
 	function key(event: KeyboardEvent) {
-		if (!data.length) return;
-		const last = data.length - 1;
-		const next = {
-			ArrowRight: Math.min(last, (active ?? -1) + 1),
-			ArrowLeft: Math.max(0, (active ?? last + 1) - 1),
-			Home: 0,
-			End: last
-		}[event.key];
-		if (next !== undefined) {
+		const step = rovingStep(event.key, active, data.length);
+		if (step.kind === 'move') {
 			event.preventDefault();
-			active = next;
-		} else if (event.key === 'Enter' && active !== null) select(data[active]);
-		else if (event.key === 'Escape') active = null;
+			active = step.index;
+		} else if (step.kind === 'open') select(data[step.index]);
+		else if (step.kind === 'leave') active = null;
 	}
 </script>
 

@@ -8,9 +8,10 @@
 	import { Resource } from '#lib/async/resource.svelte.ts';
 	import RangePicker from '#lib/insights/RangePicker.svelte';
 	import { rangePhrase } from '#lib/insights/range.ts';
+	import { dayPhrase } from '#lib/sessions/day.ts';
 	import { SESSION_PAGE, SORTS, type Sort } from '#lib/sessions/load.ts';
 	import SessionCard from '#lib/sessions/SessionCard.svelte';
-	import { folder, plural } from '#lib/shared/format.ts';
+	import { dayLabel, folder, plural } from '#lib/shared/format.ts';
 	import Button from '#lib/ui/Button.svelte';
 	import Chip from '#lib/ui/Chip.svelte';
 	import EmptyState from '#lib/ui/EmptyState.svelte';
@@ -35,7 +36,7 @@
 		}
 		return pageHref('/sessions', { query: params });
 	}
-	const filtered = $derived(!!(data.q || data.project));
+	const filtered = $derived(!!(data.q || data.project || data.day));
 	const projectName = (key: string) =>
 		content.value?.projects.find((p) => p.key === key)?.detail ?? folder(key) ?? key;
 </script>
@@ -58,7 +59,7 @@
 		data-sveltekit-reset="false"
 		role="search"
 	>
-		{#each ['range', 'project', 'sort'] as key (key)}
+		{#each ['range', 'project', 'day', 'sort'] as key (key)}
 			{#if page.url.searchParams.get(key)}<input
 					type="hidden"
 					name={key}
@@ -94,6 +95,14 @@
 	{/snippet}
 	{#snippet children({ projects, sessions, total })}
 		{@const more = sessions.length >= data.limit && total > data.limit}
+		{#if data.day}
+			<div class="projects" role="group" aria-label="Day">
+				<Chip
+					onremove={() => goto(url({ day: null, limit: null }))}
+					removeLabel="Show every day of the range">{dayLabel(data.day)}</Chip
+				>
+			</div>
+		{/if}
 		{#if projects.length > 1 || data.project}
 			<div class="projects" role="group" aria-label="Filter by project">
 				{#if data.project}
@@ -117,7 +126,7 @@
 			{:else}
 				{plural(total, 'session')}{filtered ? ' match' : ''}
 			{/if}
-			{rangePhrase(data.filters.range)}
+			{data.day ? dayPhrase(data.day) : rangePhrase(data.filters.range)}
 		</p>
 
 		{#if sessions.length}

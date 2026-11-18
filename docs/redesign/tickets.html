@@ -1347,7 +1347,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t27" data-area="web" data-size="S" data-needs="">
+    <article class="tk" id="t27" data-area="web" data-size="S" data-needs="" data-status="done">
       <details><summary><span class="tt">Week strip and folded filters</span><span class="goal">The week reads as one short strip by project, and the filters take one button instead of a row.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a> week strip, "Filters · 2", I3, sketch below</dd></dl>
@@ -1368,6 +1368,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> component tests: stacking, the day link, keyboard access to each column · a filter test: every existing filter URL gives the same state.</p>
         <p class="dod"><b>Done when</b> the strip is half the height of today's daily chart and no filter was lost.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>lib/overview/WeekStrip.svelte</code> follows the key figures. It reads one more stats call (<code>group_by=day</code>, or <code>day_hour</code> for 24 h, with <code>split_by=repo</code>) and stacks the columns by project on the new generic <code>ui/charts/StackedColumns.svelte</code>, 70 px tall, half the old daily chart. The top 5 projects get their own colour, the rest "Other projects". Today is outlined. The day that stands out (1.5× the median of active days, <code>STANDOUT_RATIO</code>) is marked and its line says why. Hovering a day shows prompts, spend, commits and the top project; hovering or focusing a legend item dims the other projects. Each column is a link with a roving tab stop (<code>ui/charts/roving.ts</code>, now shared with <code>ColumnChart</code>): ← → move, Home and End jump, ↵ opens the day. The screen-reader table stays. A day opens <code>/sessions?day=</code>, which the Sessions page now reads (<code>sessions/day.ts</code>: that local day as since and until, with a removable chip; the hours of the 24 h range open their day). The daily chart and its streak moved out of <code>ActivityPanel</code>, which keeps the spend chart as "What does each day cost?". <code>FilterBar</code>: range and origin chips stay visible; tool, app, project and model fold into a "Filters · N" popover (a native <code>&lt;details&gt;</code> that closes on Esc and on a click outside). Each active filter is a removable chip beside it, with "Clear all". The URL format is unchanged: a round-trip test runs a table of existing filter URLs through <code>readFilters</code> and the new <code>filterParams</code>, and it caught "every origin" being dropped. Counted: <code>week.day.open</code> and <code>filters.open</code>. Web: 121 files and 1,194 tests pass. <b>Not yet looked at in a browser</b> (the test setup draws no SVG, so the tests read the table view).</p>
       </div></details>
     </article>
 

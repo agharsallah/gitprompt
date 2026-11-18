@@ -91,10 +91,17 @@ export function projectHref(
 export const projectsHref = ({ range }: { range?: string } = {}) =>
 	pageHref('/projects', { query: { range } });
 
-/** The Sessions list: narrowed to a project, or scrolled to a session's card. */
-export function sessionsHref({ project, session }: { project?: string; session?: string } = {}) {
+/**
+ * The Sessions list: narrowed to a project, to one local day (`day`, YYYY-MM-DD), or scrolled to a
+ * session's card.
+ */
+export function sessionsHref({
+	project,
+	session,
+	day
+}: { project?: string; session?: string; day?: string } = {}) {
 	return pageHref('/sessions', {
-		query: { project },
+		query: { project, day },
 		anchor: session === undefined ? undefined : `session-${session}`
 	});
 }

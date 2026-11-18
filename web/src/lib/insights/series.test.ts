@@ -10,6 +10,8 @@ import {
 	ratio,
 	repeated,
 	SIZES,
+	slotNames,
+	WEEKDAY_TICKS,
 	slotWindow,
 	streaks,
 	timeSlots,
@@ -143,5 +145,20 @@ describe('telemetry and query sources', () => {
 		expect(querySourceLabel('agent:builtin:Explore')).toBe('Explore');
 		expect(querySourceLabel('generate_session_title')).toBe('Generate session title');
 		expect(querySourceLabel(null)).toBe('Main thread');
+	});
+});
+
+describe('slotNames', () => {
+	const now = new Date(2026, 10, 18, 12);
+	const day = { key: '2026-11-05', date: new Date(2026, 10, 5), bucket: null };
+
+	it('names a day in full, with a weekday tick for a short row and a date for a long one', () => {
+		expect(slotNames(day, false, now, 7)).toEqual({ label: 'Thursday 5 November', tick: 'Thu' });
+		expect(slotNames(day, false, now, WEEKDAY_TICKS + 1).tick).toBe('5 Nov');
+	});
+
+	it('names an hour by its time and day', () => {
+		const hour = { key: '2026-11-18 09', date: new Date(2026, 10, 18, 9), bucket: null };
+		expect(slotNames(hour, true, now, 24).label).toMatch(/^09.00.*, today$/);
 	});
 });

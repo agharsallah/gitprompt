@@ -5,7 +5,7 @@
  */
 import type { StatsBucket, Telemetry } from '#lib/api/types.ts';
 import { weekdays, type WeekStart } from '#lib/insights/week.ts';
-import { dayKey } from '#lib/shared/format.ts';
+import { dayKey, dayLabel } from '#lib/shared/format.ts';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -40,6 +40,35 @@ export function timeSlots(groups: StatsBucket[], start: Date, end: Date, hourly:
 		else cursor.setDate(cursor.getDate() + 1);
 	}
 	return slots.slice(-800);
+}
+
+/** Up to this many days, the axis names weekdays; beyond, dates. */
+export const WEEKDAY_TICKS = 10;
+
+const clock = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+/**
+ * How a slot is named on a chart: its full `label` ("Today", "14:00, yesterday") and its axis
+ * `tick` (an hour, a weekday, or "5 Nov" when the row holds more than `WEEKDAY_TICKS` days).
+ */
+export function slotNames(
+	slot: Slot,
+	hourly: boolean,
+	now: Date,
+	count: number
+): { label: string; tick: string } {
+	if (hourly)
+		return {
+			label: `${clock(slot.date)}, ${dayLabel(dayKey(slot.date), now).toLowerCase()}`,
+			tick: slot.date.toLocaleTimeString([], { hour: '2-digit' })
+		};
+	return {
+		label: dayLabel(slot.key, now),
+		tick: slot.date.toLocaleDateString(
+			'en-GB',
+			count > WEEKDAY_TICKS ? { day: 'numeric', month: 'short' } : { weekday: 'short' }
+		)
+	};
 }
 
 /** The instants a slot covers, for a link to its prompts (a day, or one clock hour). */
