@@ -9,6 +9,7 @@
 		ghost = false,
 		say = false,
 		caption,
+		mono = false,
 		hint,
 		count
 	}: {
@@ -19,6 +20,8 @@
 		say?: boolean;
 		/** Visible words beside the icon, so the button says what it copies (a pill, sized for a row). */
 		caption?: string;
+		/** The caption is code (a command): set in the code font. */
+		mono?: boolean;
 		/** The tooltip, when it should say more than the label (what exactly gets copied). */
 		hint?: string;
 		/** What a copy is counted as (usage-actions.ts): every copy is, so it is not optional. */
@@ -44,7 +47,8 @@
 		ghost && 'ghost',
 		say && copied && 'saying',
 		caption && 'captioned',
-		caption && copied && 'done'
+		caption && copied && 'done',
+		caption && mono && 'mono'
 	]}
 	onclick={copy}
 	aria-label={copied ? 'Copied' : label}
@@ -105,6 +109,12 @@
 
 	.captioned:hover {
 		background: var(--color-surface-hover);
+	}
+
+	/* A command as the caption: in code, like the line it copies. */
+	.mono {
+		font-family: var(--font-mono);
+		font-weight: var(--weight-regular);
 	}
 
 	.done {

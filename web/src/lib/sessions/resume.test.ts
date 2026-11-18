@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Resume } from '#lib/api/types.ts';
-import { countResumeCopy, noResumeText, resumeText } from '#lib/sessions/resume.ts';
+import { countResumeCopy, noResumeText, resumeLabel, resumeText } from '#lib/sessions/resume.ts';
 import type { UsageAction } from '#lib/shared/usage-actions.ts';
 
 const resume: Resume = {
@@ -22,6 +22,19 @@ describe('resumeText', () => {
 
 	it('is null when the tool has no resume command', () => {
 		expect([resumeText({}), resumeText({ resume: null })]).toEqual([null, null]);
+	});
+});
+
+describe('resumeLabel', () => {
+	it('is the tool’s command without the session id, so the button says what it copies', () => {
+		const label = (command: string) => resumeLabel({ ...resume, command });
+		expect(label('claude --resume abc')).toBe('claude --resume');
+		expect(label('codex resume abc')).toBe('codex resume');
+		expect(label('copilot --resume=abc')).toBe('copilot --resume');
+	});
+
+	it('is the whole command when there is nothing to leave out', () => {
+		expect(resumeLabel({ ...resume, command: 'resume-last' })).toBe('resume-last');
 	});
 });
 

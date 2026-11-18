@@ -13,6 +13,18 @@ export type Resumable = { resume?: Resume | null };
 /** What to paste into a terminal to pick the session up again, or null when there is no command. */
 export const resumeText = (session: Resumable): string | null => session.resume?.paste ?? null;
 
+/**
+ * The tool's command without the session id (`claude --resume`, `codex resume`, `copilot
+ * --resume`): what a row's button shows, so it says what it copies without the long id.
+ */
+export function resumeLabel(resume: Resume): string {
+	const words = resume.command.trim().split(/\s+/);
+	if (words.length < 2) return resume.command.trim();
+	const last = words.pop() ?? '';
+	const flag = last.includes('=') ? last.slice(0, last.indexOf('=')) : '';
+	return [...words, flag].filter(Boolean).join(' ');
+}
+
 /** What the story says in place of the command: the tool, or "this tool" when it is not named. */
 export const noResumeText = (tool?: string | null) =>
 	`${tool || 'This tool'} has no resume command`;
