@@ -97,6 +97,14 @@ A new wire format is a variant of `Format` (`spec.rs`) and an arm in `gitprompt-
 - Bump `CODE_VERSION` in `insights/src/indexer.rs` when what the index stores changes: every install rebuilds its index on next start.
 - What every page shows about a turn is its facts (`insights/src/facts.rs`) and `web/src/lib/prompts/facts.ts`.
 
+## Something that needs you (Pick up, Worth a look)
+
+`GET /api/attention` is one pure feed (`gitprompt-insights/src/attention/`) that the Overview, notifications, the weekly recap and the tray all read.
+
+- A new kind of Worth a look item: a variant of `Kind`, one function `fn(&Inputs) -> Option<Item>` in its own file under `attention/`, and one line in `SOURCES` (its place is its order on screen; three are shown). If it needs data the feed does not read yet, add a field to `Inputs` and fill it in `gitprompt-server/src/service/attention.rs`. A test with a fake source shows nothing else changes.
+- Every threshold is a named constant beside the rule (`COMMAND_MIN_SENDS`, `RUNNING_WINDOW`, `PICK_UP_WITHIN`...).
+- Where an item leads is a `Target` (`gitprompt-insights/src/target.rs`), data the dashboard turns into a link.
+
 ## A filter, a grouping, a statistic
 
 - A prompt filter: a field on `PromptFilter` (`gitprompt-store/src/filter.rs`) and one function in `gitprompt-store/src/sql/filter.rs`; parse it from the query string in `gitprompt-server/src/query.rs`. It then works for prompts, stats, stories, search and export.

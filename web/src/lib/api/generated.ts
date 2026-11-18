@@ -13,6 +13,27 @@ rating: number, tags: Array<string>, note: string, };
 
 export type Applies = "now" | "restart";
 
+/**
+ * `GET /api/attention`.
+ */
+
+export type Attention = { 
+/**
+ * Running sessions first, then the ones you left most recently ([`PICK_UP`] at most).
+ */
+pick_up: Array<PickUp>, 
+/**
+ * At most [`WORTH_A_LOOK`], in the order of [`SOURCES`].
+ */
+worth_a_look: Array<WorthItem>, 
+/**
+ * Nothing to pick up and nothing worth a look: the calm state, said by the daemon so no reader
+ * has to interpret two empty lists.
+ */
+nothing_needs_you: boolean, };
+
+export type AttentionTarget = { "page": "overview" } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, };
+
 export type Backup = { name: string, path: string, bytes: number, modified: string, };
 
 /**
@@ -527,6 +548,22 @@ with_mention: number,
 with_code: number, first_at: string | null, last_at: string | null, };
 
 export type PhaseReason = "start" | "gap" | "branch";
+
+/**
+ * One row of Pick up.
+ */
+
+export type PickUp = { session: string, name?: string, label?: string, project?: string, presence: PickUpPresence, 
+/**
+ * How its latest turn ended (`running` or `open` when it has no end).
+ */
+ended: TurnOutcome, last_event_at: string, latest_prompt?: number, 
+/**
+ * Omitted when its tool has no resume command or its folder is unknown.
+ */
+resume?: Resume, };
+
+export type PickUpPresence = "running" | "left";
 
 /**
  * Candidates whose raw sizes differ more than `LENGTH_RATIO × SIZE_SLACK` can't pass
@@ -1272,3 +1309,27 @@ diff: Array<[DiffOpKind, string]> | null,
 change: OutcomeChange | null, };
 
 export type WeekStart = "monday" | "sunday";
+
+/**
+ * What the item's one button does. GitPrompt only hands over what to copy; it never writes a file
+ * or runs anything.
+ */
+
+export type WorthAction = { "type": "copy_command", name: string, text: string, };
+
+/**
+ * One row of Worth a look: one sentence and one action.
+ */
+
+export type WorthItem = { kind: WorthKind, text: string, action: WorthAction, 
+/**
+ * Where the row leads (also what a kind the reader does not know links to).
+ */
+target: AttentionTarget, };
+
+/**
+ * What kind of thing an item is; the dashboard picks its button by kind and shows a kind it does
+ * not know as a plain link to its target.
+ */
+
+export type WorthKind = "repeated_prompt";

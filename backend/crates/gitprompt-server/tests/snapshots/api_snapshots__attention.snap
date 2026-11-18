@@ -1,0 +1,58 @@
+---
+source: crates/gitprompt-server/tests/api_snapshots.rs
+expression: "get(&api, \"/api/attention\").await"
+---
+{
+  "pick_up": [
+    {
+      "session": "again-0",
+      "label": "run just verify and fix what fails",
+      "presence": "left",
+      "ended": "open",
+      "last_event_at": "2026-01-05T09:06:46.000000+00:00",
+      "latest_prompt": 20,
+      "resume": {
+        "command": "claude --resume again-0",
+        "cwd": "/work/app",
+        "paste": "cd /work/app && claude --resume again-0"
+      }
+    },
+    {
+      "session": "again-1",
+      "label": "run just verify and fix what fails",
+      "presence": "left",
+      "ended": "open",
+      "last_event_at": "2026-01-05T09:06:39.000000+00:00",
+      "latest_prompt": 19,
+      "resume": {
+        "command": "claude --resume again-1",
+        "cwd": "/work/app",
+        "paste": "cd /work/app && claude --resume again-1"
+      }
+    },
+    {
+      "session": "5f0c1a2e-0000-4000-8000-00000000c001",
+      "label": "Add a coupon field to the checkout form",
+      "presence": "left",
+      "ended": "failed",
+      "last_event_at": "2026-01-05T09:06:11.000000+00:00",
+      "latest_prompt": 15
+    }
+  ],
+  "worth_a_look": [
+    {
+      "kind": "repeated_prompt",
+      "text": "“run just verify and fix what fails” sent 5×",
+      "action": {
+        "type": "copy_command",
+        "name": "run-just-verify-and",
+        "text": "run just verify and fix what fails"
+      },
+      "target": {
+        "page": "prompts",
+        "q": "run just verify and fix what fails"
+      }
+    }
+  ],
+  "nothing_needs_you": false
+}

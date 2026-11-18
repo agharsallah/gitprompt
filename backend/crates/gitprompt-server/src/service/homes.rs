@@ -15,6 +15,9 @@ use crate::error::ApiResult;
 pub(super) struct Presence {
     pub resume: Option<Resume>,
     pub last_event_at: Option<String>,
+    /// Its latest prompt, and the owner/name of its remote.
+    pub latest_prompt: Option<i64>,
+    pub project: Option<String>,
 }
 
 impl Inner {
@@ -35,7 +38,7 @@ impl Inner {
         Ok(self.presence(set, &[session.to_owned()])?.remove(session).unwrap_or_default())
     }
 
-    fn presence(&self, set: &SpecSet, sessions: &[String]) -> ApiResult<BTreeMap<String, Presence>> {
+    pub(super) fn presence(&self, set: &SpecSet, sessions: &[String]) -> ApiResult<BTreeMap<String, Presence>> {
         if sessions.is_empty() {
             return Ok(BTreeMap::new());
         }
@@ -45,7 +48,10 @@ impl Inner {
             .map(|(session, home)| {
                 let spec = home.source.as_deref().and_then(|source| set.get(source));
                 let resume = spec.and_then(|spec| spec.resume_action(&session, home.cwd.as_deref()));
-                (session, Presence { resume, last_event_at: home.last_event_at })
+                (
+                    session,
+                    Presence { resume, last_event_at: home.last_event_at, latest_prompt: home.latest_prompt, project: home.repo_name },
+                )
             })
             .collect())
     }

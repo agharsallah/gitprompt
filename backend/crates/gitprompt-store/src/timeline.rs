@@ -62,6 +62,10 @@ pub struct Home {
     pub cwd: Option<String>,
     /// When the latest event or prompt of the session was received.
     pub last_event_at: Option<String>,
+    /// Its latest prompt (whose turn says how the session stopped).
+    pub latest_prompt: Option<i64>,
+    /// The owner/name of the remote of its latest prompt that has one.
+    pub repo_name: Option<String>,
 }
 
 /// Characters of each typed text [`Store::session_openers`] returns: room to drop a slash command
@@ -79,8 +83,14 @@ const HOMES: &str = "select s.value session,
        where i.session = s.value and coalesce(json_extract(p.fields, '$.cwd'), '') <> '' order by i.id limit 1)
   ) cwd,
   (select received_at from event where session_id = s.value order by id desc limit 1) last_event,
-  (select received_at from prompt_index where session = s.value order by id desc limit 1) last_prompt
+  (select received_at from prompt_index where session = s.value order by id desc limit 1) last_prompt,
+  (select id from prompt_index where session = s.value order by id desc limit 1) latest_prompt,
+  (select repo_name from prompt_index where session = s.value and repo_name is not null order by id desc limit 1) repo_name
 from json_each(?1) s";
+
+const TYPED_TEXTS: &str = "select l.text_hash hash, f.typed_text text from (
+  select text_hash, max(id) id from prompt_index where text_hash in (select value from json_each(?1)) group by text_hash
+) l join prompt_fts f on f.rowid = l.id";
 
 const OPENER_TEXTS: &str = "select session, text from (
   select i.session session, i.id id, substr(f.typed_text, 1, ?4) text, row_number() over (partition by i.session order by i.id) n
@@ -115,10 +125,27 @@ impl Store {
         let homes = self.db().read(|conn| {
             decode::all(conn, HOMES, [&ids], |row| {
                 let last_event_at = text_at(row, "last_event")?.max(text_at(row, "last_prompt")?);
-                Ok((row.get::<_, String>("session")?, Home { source: text_at(row, "source")?, cwd: text_at(row, "cwd")?, last_event_at }))
+                let home = Home {
+                    source: text_at(row, "source")?,
+                    cwd: text_at(row, "cwd")?,
+                    last_event_at,
+                    latest_prompt: row.get("latest_prompt")?,
+                    repo_name: text_at(row, "repo_name")?,
+                };
+                Ok((row.get::<_, String>("session")?, home))
             })
         })?;
         Ok(homes.into_iter().filter(|(_, home)| home.source.is_some()).collect())
+    }
+
+    /// The whole typed text of the latest prompt of each of these text hashes (`text` group keys),
+    /// in one read; a hash no prompt has is left out.
+    pub fn typed_texts(&self, hashes: &[String]) -> Result<BTreeMap<String, String>> {
+        let hashes = json_list(hashes)?;
+        let rows = self.db().read(|conn| {
+            decode::all(conn, TYPED_TEXTS, [&hashes], |row| Ok((row.get::<_, String>("hash")?, row.get::<_, String>("text")?)))
+        })?;
+        Ok(rows.into_iter().collect())
     }
 
     /// The prompts the filter keeps, oldest first unless `newest_first` (by `received_at`, then id).

@@ -1196,7 +1196,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t21" data-area="be" data-size="M" data-pri="core" data-needs="t07">
+    <article class="tk" id="t21" data-area="be" data-size="M" data-pri="core" data-needs="t07" data-status="done">
       <details><summary><span class="tt">Attention feed: pick up, and worth a look</span><span class="goal">One pure source produces the two lists that the Overview, the tray, notifications and the weekly recap all show.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-a1">A1</a>, <a href="index.html#s-n1">N1</a>, sketch below</dd><dt>Asks first</dt><dd>API snapshot.</dd></dl>
@@ -1227,6 +1227,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> unit tests for order, cap and "running" with <code>ManualClock</code> · a test with a fake source proving a new kind needs no change in <code>attention.rs</code> beyond the list · snapshot.</p>
         <p class="dod"><b>Done when</b> the snapshot shows both lists for the fixture, and adding a source is one function plus one line.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>gitprompt-insights/src/attention/</code> is pure. <code>pick_up</code> lists running sessions first (no end to the latest turn, and an event in the last 10 minutes, the dashboard's <code>ACTIVE_WINDOW_MS</code>), then the ones you left, newest first, at most 3, none left more than 7 days ago. Each row has how its latest turn ended, the project, the latest prompt and the <code>Resume</code> line. It always reads the 10 latest sessions, whatever the range. <code>worth_a_look</code> runs <code>SOURCES</code> (<code>fn(&amp;Inputs) -&gt; Option&lt;Item { kind, text, action, target }&gt;</code>) in list order and keeps 3. The first source, <code>repeated.rs</code>, picks a typed text sent at least 5 times in 2 or more sessions, at least 12 characters long and not a slash command. Its action is <code>copy_command { name, text }</code>, a suggested name and the whole text; GitPrompt writes nothing. Where an item leads is a <code>Target</code> (<code>insights/src/target.rs</code>), shared with notifications later. <code>GET /api/attention?&lt;filters&gt;</code> takes "now" from the Clock; with nothing in either list it says <code>nothing_needs_you: true</code>. The store gained <code>Home.latest_prompt</code>, <code>Home.repo_name</code> and <code>typed_texts(hashes)</code> (one read, no new index). Tests: 11 insights tests (order, cap, running flipping with time, thresholds, a fake source in the list), 3 route tests on a <code>ManualClock</code>, store tests, and the <code>attention</code> snapshot with both lists. <code>just perf</code>: p95 22 ms alone and 40 ms under load. <code>docs/extending.md</code> says how to add a source. Note: <code>ReusePanel</code> still lists every reused text over the range; the rule for which text deserves a command now lives in the daemon only.</p>
       </div></details>
     </article>
 

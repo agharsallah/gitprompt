@@ -34,6 +34,7 @@
 //! | GET    | /api/stories/project/{project}/commits?q=&group= | | `ProjectCommits`; 404, 422 group |
 //! | GET    | /api/stories/prompt/{id}               |              | `Lineage`; 404                  |
 //! | GET    | /api/search                            |              | `SearchResults`                 |
+//! | GET    | /api/attention?<filters>               |              | `Attention`; Pick up is the latest sessions whatever the filters |
 //! | GET    | /api/find                              |              | `FindResults`; 422 kinds/limit  |
 //! | GET    | /api/commits/{hash}                    |              | `CommitLookup`; 400 not a hash, 404 |
 //! | GET    | /api/export/{kind}                     |              | the file; 422 kind/id, 404 unknown id |
@@ -48,6 +49,7 @@
 //!
 //! Every request also passes the Host check (400). Errors are `{"detail": "..."}`.
 
+mod attention;
 mod commits;
 mod data;
 mod export;
@@ -92,6 +94,7 @@ pub fn api(service: Service) -> Router {
         .merge(security::router())
         .merge(stories::router())
         .merge(find::router())
+        .merge(attention::router())
         .merge(commits::router())
         .merge(export::router())
         .merge(status::router())

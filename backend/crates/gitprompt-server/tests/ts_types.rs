@@ -57,6 +57,7 @@ fn roots(c: &mut Collect<'_>) {
     c.visit::<model::Lineage>();
     c.visit::<model::SearchResults>();
     c.visit::<model::FindResults>();
+    c.visit::<model::Attention>();
     c.visit::<model::CommitLookup>();
     c.visit::<model::Catalog>();
     // connectors

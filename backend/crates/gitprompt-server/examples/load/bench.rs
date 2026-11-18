@@ -132,6 +132,7 @@ impl Bench {
             read("project commits", format!("/api/stories/project/{project}/commits"), false),
             read("search", "/api/search?q=retry".into(), false),
             read("find", "/api/find?q=retry".into(), false),
+            read("attention", "/api/attention".into(), true),
             read("fields", "/api/fields".into(), false),
         ])
     }

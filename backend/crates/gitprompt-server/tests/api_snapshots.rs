@@ -282,6 +282,24 @@ async fn find_prompts_sessions_and_projects() {
     insta::assert_json_snapshot!("find_recent", get(&api, "/api/find").await);
 }
 
+/// Pick up over the fixtures' sessions, and a typed prompt sent five times in two sessions as the
+/// one thing worth a look.
+#[tokio::test]
+async fn attention_pick_up_and_worth_a_look() {
+    let clock = ManualClock::new(START.parse().expect("instant"));
+    let api = loaded_on(harness(), &clock).await;
+    for n in 0..5 {
+        clock.advance(STEP);
+        let payload = serde_json::json!({
+            "hook_event_name": "UserPromptSubmit", "prompt_id": format!("again-{n}"), "session_id": format!("again-{}", n % 2),
+            "prompt": "run just verify and fix what fails", "cwd": "/work/app"
+        });
+        api.ingest("claude-code", payload).await;
+    }
+    clock.advance(SignedDuration::from_hours(2));
+    insta::assert_json_snapshot!("attention", get(&api, "/api/attention").await);
+}
+
 #[tokio::test]
 async fn a_commit_by_its_hash_and_in_find() {
     let api = loaded_with(harness().git(FixtureGit)).await;

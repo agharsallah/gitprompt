@@ -5,6 +5,8 @@
 //!
 //! | module          | derives                                                                   |
 //! |-----------------|---------------------------------------------------------------------------|
+//! | [`attention`]   | what needs you: sessions to pick up, things worth a look (one feed, every reader) |
+//! | [`target`]      | where an item or a notification opens in the dashboard                   |
 //! | [`origin`]      | who produced a prompt, the text the user typed, the injected context      |
 //! | [`surface`]     | where a prompt was typed (CLI, VS Code, a desktop app...)                 |
 //! | [`derivations`] | prompt stats, the turn summary, the session summary, [`derivations::derive`] |
@@ -32,6 +34,7 @@ use std::sync::Arc;
 
 use gitprompt_core::spec::Spec;
 
+pub mod attention;
 pub mod captures;
 pub mod catalog;
 pub mod coverage;
@@ -46,6 +49,7 @@ pub mod origin;
 pub mod snippets;
 pub mod stories;
 pub mod surface;
+pub mod target;
 pub mod zone;
 
 mod difflib;
