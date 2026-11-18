@@ -6,8 +6,6 @@ use std::cmp::Reverse;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use gitprompt_core::git::commit_url;
-
 use super::{CommitTrace, ProjectRef, ProjectTraces, names_hash};
 use crate::time::Instant;
 
@@ -18,10 +16,6 @@ pub struct FoundCommit {
     pub trace: CommitTrace,
     /// The project whose commits list it.
     pub project: ProjectRef,
-    /// Its page on GitHub, GitLab or Bitbucket (`git::commit_url`); left out without such a remote.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub url: Option<String>,
 }
 
 /// What a hash names.
@@ -35,16 +29,12 @@ pub enum CommitLookup {
 }
 
 /// The commits of `projects` that `hash` names ([`names_hash`]), each with its URL on the forge of
-/// `remote_of(project)` (the `origin` URL); `None` when it names none.
-pub fn lookup_commit(hash: &str, projects: &[ProjectTraces], remote_of: impl Fn(&ProjectRef) -> Option<String>) -> Option<CommitLookup> {
+/// `remote_of(repo)` (the `origin` URL, [`CommitTrace::on_remote`]); `None` when it names none.
+pub fn lookup_commit(hash: &str, projects: &[ProjectTraces], remote_of: impl Fn(&str) -> Option<String>) -> Option<CommitLookup> {
     let mut found: Vec<FoundCommit> = projects
         .iter()
         .flat_map(|p| p.traces.iter().filter(|t| names_hash(&t.commit.hash, hash)).map(move |t| (p, t)))
-        .map(|(p, trace)| FoundCommit {
-            url: remote_of(&p.project).and_then(|remote| commit_url(&remote, &trace.commit.hash)),
-            trace: trace.clone(),
-            project: p.project.clone(),
-        })
+        .map(|(p, trace)| FoundCommit { trace: trace.clone().on_remote(remote_of(&p.project.repo).as_deref()), project: p.project.clone() })
         .collect();
     found.sort_by_key(|f| Reverse(Instant::parse(&f.trace.commit.time).map(|time| time.at)));
     match found.len() {

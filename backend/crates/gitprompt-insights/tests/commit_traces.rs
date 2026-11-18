@@ -324,7 +324,7 @@ fn project() -> (Vec<FactRow>, Vec<Commit>) {
 
 fn list(group: CommitGrouping, q: &str) -> ProjectCommits {
     let (rows, commits) = project();
-    project_commits("/r/app", &rows, &commits, &CommitQuery { q: q.into(), group })
+    project_commits("/r/app", &rows, &commits, &CommitQuery { q: q.into(), group }, None)
 }
 
 /// `(key, hashes)` of each group.
@@ -367,4 +367,18 @@ fn a_search_matches_the_subject_a_path_or_the_hash_and_keeps_the_counts_whole() 
     assert_eq!(hashes("nothing"), Vec::<String>::new());
     let found = list(CommitGrouping::Day, "readme");
     assert_eq!((found.matched, found.counts.total), (1, 3));
+}
+
+#[test]
+fn each_listed_commit_links_to_its_page_on_the_forge_only_with_a_known_remote() {
+    let (rows, commits) = project();
+    let urls = |remote: Option<&str>| -> Vec<Option<String>> {
+        let found = project_commits("/r/app", &rows, &commits, &CommitQuery::default(), remote);
+        found.groups.iter().flat_map(|g| g.commits.iter().map(|t| t.url.clone())).collect()
+    };
+    let github = urls(Some("git@github.com:acme/app.git"));
+    assert_eq!(github.first().cloned().flatten().as_deref(), Some("https://github.com/acme/app/commit/ccc3333"));
+    assert!(github.iter().all(Option::is_some));
+    assert!(urls(None).iter().all(Option::is_none), "no remote, no url");
+    assert!(urls(Some("git@example.com:acme/app.git")).iter().all(Option::is_none), "an unknown forge, no url");
 }

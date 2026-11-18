@@ -4,6 +4,7 @@ import {
 	commitsState,
 	firstLine,
 	groupTitle,
+	openRow,
 	rowAction,
 	showing,
 	summaryParts
@@ -123,6 +124,33 @@ describe('the keyboard in the table', () => {
 
 	it('ignores other keys', () => {
 		expect(rowAction(key('a'), 0, 3, true)).toBeUndefined();
+	});
+});
+
+describe('opening a row', () => {
+	/** What `openRow` asked to open, recorded instead of opened. */
+	function opened(kind: 'prompt' | 'remote', row: ReturnType<typeof trace>) {
+		const asked: string[] = [];
+		openRow(kind, row, {
+			url: (href) => asked.push(href),
+			prompt: (id) => asked.push(`prompt ${id}`)
+		});
+		return asked;
+	}
+
+	it('opens the commit on its forge with ⌘↵ when the daemon gives its url', () => {
+		const url = 'https://github.com/acme/app/commit/c0ffee';
+		expect(opened('remote', trace('traced', { url }))).toEqual([url]);
+	});
+
+	it('opens nothing with ⌘↵ without a url', () => {
+		expect(opened('remote', trace('traced'))).toEqual([]);
+	});
+
+	it('opens the prompt with ↵, and nothing for a commit made by hand', () => {
+		const traced = trace('traced');
+		expect(opened('prompt', traced)).toEqual([`prompt ${traced.prompt?.id}`]);
+		expect(opened('prompt', trace('by_hand'))).toEqual([]);
 	});
 });
 

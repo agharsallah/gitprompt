@@ -138,7 +138,12 @@ session: string | null, how: TraceHow,
 /**
  * The other prompt that could own it; only on a [`TraceHow::Likely`] trace.
  */
-alternative?: TraceAlternative, };
+alternative?: TraceAlternative, 
+/**
+ * Its page on GitHub, GitLab or Bitbucket ([`CommitTrace::on_remote`]); left out without such
+ * a remote.
+ */
+url?: string, };
 
 /**
  * Commits made after a prompt.
@@ -343,11 +348,7 @@ export type FoundCommit = {
 /**
  * The project whose commits list it.
  */
-project: StoryProject, 
-/**
- * Its page on GitHub, GitLab or Bitbucket (`git::commit_url`); left out without such a remote.
- */
-url?: string, commit: StoryCommit, 
+project: StoryProject, commit: StoryCommit, 
 /**
  * `None` when made by hand.
  */
@@ -359,7 +360,12 @@ session: string | null, how: TraceHow,
 /**
  * The other prompt that could own it; only on a [`TraceHow::Likely`] trace.
  */
-alternative?: TraceAlternative, };
+alternative?: TraceAlternative, 
+/**
+ * Its page on GitHub, GitLab or Bitbucket ([`CommitTrace::on_remote`]); left out without such
+ * a remote.
+ */
+url?: string, };
 
 export type GroupBy = "day" | "day_hour" | "hour" | "weekday" | "weekday_hour" | "origin" | "source" | "surface" | "session" | "session_length" | "repo" | "branch" | "command" | "size" | "text" | "outcome" | "model" | "tool" | "tool_kind" | "work" | "query_source";
 

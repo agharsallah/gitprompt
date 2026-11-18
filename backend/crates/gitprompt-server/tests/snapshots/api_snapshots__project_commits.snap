@@ -39,7 +39,8 @@ expression: commits
             "outcome": "superseded"
           },
           "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-          "how": "likely"
+          "how": "likely",
+          "url": "https://github.com/acme/app/commit/d4d4d4d"
         },
         {
           "commit": {
@@ -71,7 +72,8 @@ expression: commits
               "outcome": "done"
             },
             "session": "0190a1b2-0000-7000-8000-000000000001"
-          }
+          },
+          "url": "https://github.com/acme/app/commit/c3c3c3c"
         },
         {
           "commit": {
@@ -92,7 +94,8 @@ expression: commits
             "outcome": "done"
           },
           "session": "abc123",
-          "how": "traced"
+          "how": "traced",
+          "url": "https://github.com/acme/app/commit/b2b2b2b"
         }
       ]
     },
@@ -112,7 +115,8 @@ expression: commits
           },
           "prompt": null,
           "session": null,
-          "how": "by_hand"
+          "how": "by_hand",
+          "url": "https://github.com/acme/app/commit/a1a1a1a"
         }
       ]
     }

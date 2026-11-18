@@ -97,6 +97,23 @@ export type RowAction = { kind: 'move'; to: number } | { kind: 'prompt' } | { ki
 
 type RowKey = Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey'>;
 
+/** How a row opens what it links to: a page on the forge (in a new tab), or a prompt. */
+export type RowOpener = { url: (href: string) => void; prompt: (id: number) => void };
+
+/**
+ * Open a row's prompt, or its commit on the forge (`trace.url`, from the daemon); nothing when the
+ * row has no such link (a commit made by hand, a repository without a known remote).
+ */
+export function openRow(
+	kind: Exclude<RowAction['kind'], 'move'>,
+	trace: CommitTrace,
+	open: RowOpener
+): void {
+	if (kind === 'remote') {
+		if (trace.url) open.url(trace.url);
+	} else if (trace.prompt) open.prompt(trace.prompt.id);
+}
+
 /**
  * ↑ ↓ move between rows; ⌘↵ (Ctrl+↵ off a Mac) opens the commit on the remote; ↵ opens the prompt
  * when the row itself has focus (on a link inside it, ↵ follows that link).

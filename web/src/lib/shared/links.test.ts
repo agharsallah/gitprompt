@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-	commitHref,
 	pageHref,
 	projectHref,
 	promptHref,
@@ -72,22 +71,6 @@ describe('projectHref', () => {
 		expect(
 			projectHref('p1', { tab: 'commits', from: '2026-01-01', to: '2026-02-01', anchor: 'a' })
 		).toBe('/projects/p1?tab=commits&from=2026-01-01&to=2026-02-01#a');
-	});
-});
-
-describe('commitHref', () => {
-	it('points at the commit on the remote', () => {
-		expect(commitHref('abc123', 'https://git.example.com/acme/widgets')).toBe(
-			'https://git.example.com/acme/widgets/commit/abc123'
-		);
-		expect(commitHref('abc123', 'https://git.example.com/acme/widgets/')).toBe(
-			'https://git.example.com/acme/widgets/commit/abc123'
-		);
-	});
-
-	it('is nothing without a remote', () => {
-		expect(commitHref('abc123')).toBeUndefined();
-		expect(commitHref('abc123', '')).toBeUndefined();
 	});
 });
 

@@ -13,16 +13,17 @@
 	/**
 	 * A commit read as cause and effect: the commit on top, the prompt it followed under it with how
 	 * that turn ended, and links to the prompt and its session. A commit that followed no prompt is
-	 * muted and says "by hand"; one that came after its prompt's turn says "likely".
+	 * muted and says "by hand"; one that came after its prompt's turn says "likely". The hash links
+	 * to the commit on its forge when the daemon knows it (`trace.url`).
 	 */
-	let { trace, remote, now }: { trace: CommitTrace; remote?: string; now: Date } = $props();
+	let { trace, now }: { trace: CommitTrace; now: Date } = $props();
 
 	const prompt = $derived(trace.prompt);
 	const when = (iso: string) => `${shortDate(iso, now)} ${timeOfDay(iso)}`;
 </script>
 
 <li id={commitAnchor(trace.commit.hash)} class={['row', !prompt && 'hand']} tabindex="-1">
-	<CommitRow commit={trace.commit} {remote} time={when} />
+	<CommitRow commit={trace.commit} href={trace.url} time={when} />
 	<span class="open">
 		{#if prompt}
 			<LinkArrow

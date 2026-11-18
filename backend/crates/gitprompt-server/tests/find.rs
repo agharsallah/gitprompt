@@ -126,9 +126,13 @@ async fn a_query_nothing_matches_finds_nothing() {
 #[tokio::test]
 async fn a_bad_kind_or_limit_is_a_422_naming_it() {
     let api = data().await;
-    for (query, key) in
-        [("kinds=prompts,branches", "kinds"), ("kinds=prompt", "kinds"), ("limit=0", "limit"), ("limit=6", "limit"), ("limit=many", "limit")]
-    {
+    for (query, key) in [
+        ("kinds=prompts,branches", "kinds"),
+        ("kinds=prompt", "kinds"),
+        ("limit=0", "limit"),
+        ("limit=6", "limit"),
+        ("limit=many", "limit"),
+    ] {
         let response = api.get(&format!("/api/find?{query}")).send().await;
         assert_eq!(response.status, 422, "{query}");
         assert!(response.json()["detail"].as_str().expect("detail").starts_with(key), "{query}: {}", response.text());

@@ -2,16 +2,13 @@
 	import type { StoryCommit } from '#lib/api/types.ts';
 	import CommitRow from '#lib/stories/CommitRow.svelte';
 
-	/**
-	 * Commits made after a prompt: short hash, subject, time and size of the change. The hash links
-	 * to the commit on its `remote` (as the daemon reports it), when one is known.
-	 */
-	let { commits, remote }: { commits: StoryCommit[]; remote?: string } = $props();
+	/** Commits made after a prompt: short hash, subject, time and size of the change. */
+	let { commits }: { commits: StoryCommit[] } = $props();
 </script>
 
 <ul class="commits" aria-label="Commits made after this prompt">
 	{#each commits as c (c.hash)}
-		<li><CommitRow commit={c} {remote} /></li>
+		<li><CommitRow commit={c} /></li>
 	{/each}
 </ul>
 

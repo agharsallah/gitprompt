@@ -35,12 +35,12 @@ expression: "get(&api, \"/api/commits/c3c3c3c\").await"
       },
       "session": "0190a1b2-0000-7000-8000-000000000001"
     },
+    "url": "https://github.com/acme/app/commit/c3c3c3c",
     "project": {
       "id": "L3dvcmsvYXBw",
       "repo": "/work/app",
       "name": "app",
       "git": true
-    },
-    "url": "https://github.com/acme/app/commit/c3c3c3c"
+    }
   }
 }

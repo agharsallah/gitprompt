@@ -39,7 +39,8 @@ expression: "get(&api, &format!(\"{path}?group=day&q=readme\")).await"
             "outcome": "superseded"
           },
           "session": "8f14e45f-ceea-467f-a0e6-2c1d1a9b7e10",
-          "how": "likely"
+          "how": "likely",
+          "url": "https://github.com/acme/app/commit/d4d4d4d"
         },
         {
           "commit": {
@@ -53,7 +54,8 @@ expression: "get(&api, &format!(\"{path}?group=day&q=readme\")).await"
           },
           "prompt": null,
           "session": null,
-          "how": "by_hand"
+          "how": "by_hand",
+          "url": "https://github.com/acme/app/commit/a1a1a1a"
         }
       ]
     }

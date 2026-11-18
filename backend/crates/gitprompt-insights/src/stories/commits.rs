@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use gitprompt_core::git::Commit;
+use gitprompt_core::git::{Commit, commit_url};
 use gitprompt_store::Outcome;
 
 use super::owners::Owners;
@@ -58,6 +58,21 @@ pub struct CommitTrace {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub alternative: Option<TraceAlternative>,
+    /// Its page on GitHub, GitLab or Bitbucket ([`CommitTrace::on_remote`]); left out without such
+    /// a remote.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub url: Option<String>,
+}
+
+impl CommitTrace {
+    /// The trace with its page on the forge of `remote` (the `origin` URL, `git::commit_url`):
+    /// every front end links a commit the same way.
+    #[must_use]
+    pub fn on_remote(mut self, remote: Option<&str>) -> Self {
+        self.url = remote.and_then(|remote| commit_url(remote, &self.commit.hash));
+        self
+    }
 }
 
 /// One commit per trace, in the commits' order, each with the prompt behind it. `rows` are the
@@ -99,7 +114,7 @@ pub fn attribute_commits(rows: &[FactRow], commits: &[Commit]) -> BTreeMap<i64, 
 }
 
 fn trace(rows: &[FactRow], owners: &Owners, commit: &Commit) -> CommitTrace {
-    let by_hand = CommitTrace { commit: commit.clone(), prompt: None, session: None, how: TraceHow::ByHand, alternative: None };
+    let by_hand = CommitTrace { commit: commit.clone(), prompt: None, session: None, how: TraceHow::ByHand, alternative: None, url: None };
     let Some(owner) = owners.owner(commit) else { return by_hand };
     let Some(prompt) = rows.get(owner.prompt) else { return by_hand };
     let alternative = owner

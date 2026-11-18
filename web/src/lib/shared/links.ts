@@ -78,14 +78,6 @@ export function projectHref(
 	return `${resolve('/projects/[id]', { id })}${queryString({ tab, from, to })}${hashOf(anchor)}`;
 }
 
-/**
- * A commit on its remote's site (`remote` as the daemon reports it, e.g. https://host/owner/name);
- * nothing without a remote, since a hash alone leads nowhere.
- */
-export function commitHref(hash: string, remote?: string): string | undefined {
-	return remote ? `${remote.replace(/\/+$/, '')}/commit/${encodeURIComponent(hash)}` : undefined;
-}
-
 /** The Sessions list: narrowed to a project, or scrolled to a session's card. */
 export function sessionsHref({ project, session }: { project?: string; session?: string } = {}) {
 	return pageHref('/sessions', {

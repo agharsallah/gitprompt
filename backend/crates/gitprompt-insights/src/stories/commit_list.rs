@@ -94,11 +94,13 @@ fn traced(repo: &str, rows: &[FactRow], commits: &[Commit]) -> (Vec<FactRow>, Pr
 }
 
 /// The commits of a project ([`project_traces`]), counted, then those matching `query.q` (each
-/// word in the subject, a path or the hash, ignoring case) grouped, newest first by commit time.
-pub fn project_commits(repo: &str, rows: &[FactRow], commits: &[Commit], query: &CommitQuery) -> ProjectCommits {
+/// word in the subject, a path or the hash, ignoring case) grouped, newest first by commit time,
+/// each with its page on the forge of `remote` ([`CommitTrace::on_remote`]).
+pub fn project_commits(repo: &str, rows: &[FactRow], commits: &[Commit], query: &CommitQuery, remote: Option<&str>) -> ProjectCommits {
     let (user, ProjectTraces { project, traces }) = traced(repo, rows, commits);
     let words: Vec<String> = query.q.split_whitespace().map(str::to_lowercase).collect();
-    let mut matched: Vec<CommitTrace> = traces.iter().rev().filter(|t| matches(&t.commit, &words)).cloned().collect();
+    let mut matched: Vec<CommitTrace> =
+        traces.iter().rev().filter(|t| matches(&t.commit, &words)).map(|t| t.clone().on_remote(remote)).collect();
     // Newest first even where git's order is not by date (a commit dated earlier than its parent).
     matched.sort_by_key(|t| Reverse(Instant::parse(&t.commit.time).map(|time| time.at)));
     let phase_of = phase_index(&user);

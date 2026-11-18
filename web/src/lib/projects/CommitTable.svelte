@@ -14,12 +14,13 @@
 		COMMIT_ANCHOR,
 		commitAnchor,
 		commitsState,
+		openRow,
 		rowAction,
 		showing,
 		type CommitShow
 	} from '#lib/projects/commits.ts';
 	import { clock } from '#lib/shared/clock.svelte.ts';
-	import { commitHref, promptHref } from '#lib/shared/links.ts';
+	import { promptHref } from '#lib/shared/links.ts';
 	import { track } from '#lib/shared/usage.ts';
 	import ListSkeleton from '#lib/ui/ListSkeleton.svelte';
 	import PanelState from '#lib/ui/PanelState.svelte';
@@ -30,10 +31,11 @@
 	/**
 	 * Every commit of a project with the prompt it followed: searched by subject, file or hash,
 	 * grouped by phase, branch or day. ↑ ↓ move between rows, ↵ opens the prompt, ⌘↵ the commit on
-	 * the `remote` (the hash is plain text without one). The prompts behind `branch` (the project's
-	 * current one) copy as Markdown for a pull request; by branch, each group copies its own.
+	 * its forge in a new tab (when the daemon knows its page; the hash is plain text without one).
+	 * The prompts behind `branch` (the project's current one) copy as Markdown for a pull request;
+	 * by branch, each group copies its own.
 	 */
-	let { project, remote, branch }: { project: string; remote?: string; branch?: string } = $props();
+	let { project, branch }: { project: string; branch?: string } = $props();
 
 	const GROUPINGS: { value: CommitGrouping; label: string }[] = [
 		{ value: 'phase', label: 'Phase' },
@@ -58,15 +60,13 @@
 	const traceAt = (row: HTMLElement): CommitTrace | undefined =>
 		traces.find((t) => commitAnchor(t.commit.hash) === row.id);
 
-	function open(kind: 'prompt' | 'remote', trace: CommitTrace) {
-		if (kind === 'remote') {
-			const href = commitHref(trace.commit.hash, remote);
-			if (href) window.open(href, '_blank', 'noopener');
-		} else if (trace.prompt) {
+	const opener = {
+		url: (href: string) => void window.open(href, '_blank', 'noopener'),
+		prompt: (id: number) => {
 			track('commit.open.prompt');
-			void goto(promptHref(trace.prompt.id));
+			void goto(promptHref(id));
 		}
-	}
+	};
 
 	function onkeydown(event: KeyboardEvent) {
 		const target = event.target;
@@ -78,7 +78,7 @@
 		if (action.kind === 'move') rows[action.to].focus();
 		else if (row) {
 			const trace = traceAt(row);
-			if (trace) open(action.kind, trace);
+			if (trace) openRow(action.kind, trace, opener);
 		}
 		event.preventDefault();
 	}
@@ -129,13 +129,7 @@
 		{#if data.git && branch}<BranchPrompts {project} {branch} />{/if}
 		<PanelState state={commitsState(data, groups.length, q)}>
 			<div bind:this={list}>
-				<CommitGroups
-					{groups}
-					by={data.group}
-					{remote}
-					{now}
-					copy={(b) => void copyBranch(project, b)}
-				/>
+				<CommitGroups {groups} by={data.group} {now} copy={(b) => void copyBranch(project, b)} />
 			</div>
 		</PanelState>
 	{/snippet}

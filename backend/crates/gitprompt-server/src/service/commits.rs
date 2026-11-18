@@ -6,7 +6,7 @@ use std::path::Path;
 
 use gitprompt_core::Error;
 use gitprompt_core::spec::SpecSet;
-use gitprompt_insights::stories::{self, MIN_HASH, ProjectRef, ProjectTraces};
+use gitprompt_insights::stories::{self, MIN_HASH, ProjectTraces};
 use gitprompt_store::stats::{AggregateQuery, GroupBy, Order};
 
 use super::stories::ProjectRows;
@@ -39,9 +39,10 @@ impl Inner {
         Ok(stories::project_traces(&repo, &rows, &commits))
     }
 
-    /// The URL of the project's `origin` remote, credentials stripped (the git facts' `git_remote`).
-    fn remote_of(&self, project: &ProjectRef) -> Option<String> {
-        let context = self.options.git.context(Some(Path::new(&project.repo)));
+    /// The URL of the `origin` remote of the project at `repo`, credentials stripped (the git facts'
+    /// `git_remote`).
+    pub(super) fn remote_of(&self, repo: &str) -> Option<String> {
+        let context = self.options.git.context(Some(Path::new(repo)));
         context.get("git_remote").and_then(|remote| remote.as_str()).map(str::to_owned)
     }
 }
@@ -59,7 +60,7 @@ impl Service {
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
             let projects = inner.recent_traces(&set, LOOKUP_PROJECTS)?;
-            let found = stories::lookup_commit(&hash, &projects, |project| inner.remote_of(project));
+            let found = stories::lookup_commit(&hash, &projects, |repo| inner.remote_of(repo));
             Ok(found.ok_or_else(|| Error::NotFound(format!("no commit {hash} in your projects")))?)
         })
         .await

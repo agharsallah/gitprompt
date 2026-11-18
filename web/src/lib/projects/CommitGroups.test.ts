@@ -7,8 +7,8 @@ import { group, trace } from '#lib/testing/commits.ts';
 
 const NOW = new Date('2026-11-17T12:00:00+01:00');
 
-const draw = (groups: CommitGroup[], by: CommitGrouping = 'phase', remote?: string) =>
-	render(CommitGroups, { props: { groups, by, remote, now: NOW } }).body;
+const draw = (groups: CommitGroup[], by: CommitGrouping = 'phase') =>
+	render(CommitGroups, { props: { groups, by, now: NOW } }).body;
 
 /** The markup of the row anchored at `commit-<hash>`. */
 function rowOf(html: string, hash: string): string {
@@ -60,12 +60,20 @@ describe('the three kinds of row', () => {
 		expect(row).not.toContain('/prompts?id=');
 	});
 
-	it('links the hash to the remote only when there is one', () => {
-		expect(rowOf(html, traced.commit.hash)).not.toContain('/commit/');
-		const linked = draw([group('1', [traced])], 'phase', 'https://example.test/o/app');
-		expect(rowOf(linked, traced.commit.hash)).toContain(
-			`href="https://example.test/o/app/commit/${traced.commit.hash}"`
+	it('links the hash to its page on the forge in a new tab, when the daemon gives one', () => {
+		const url = 'https://github.com/acme/app/commit/c0ffee';
+		const linked = trace('traced', { url });
+		const row = rowOf(draw([group('1', [linked])]), linked.commit.hash);
+		expect(row).toMatch(
+			new RegExp(`<a href="${url}" target="_blank" rel="noopener"[^>]*><code class="hash[^"]*">`)
 		);
+	});
+
+	it('leaves the hash plain text without a url', () => {
+		const row = rowOf(html, traced.commit.hash);
+		expect(row).toMatch(new RegExp(`<code class="hash[^"]*">${traced.commit.hash}</code>`));
+		expect(row).not.toContain('target="_blank"');
+		expect(row).not.toContain('title="Commit ›');
 	});
 });
 

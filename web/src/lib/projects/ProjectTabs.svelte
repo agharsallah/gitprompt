@@ -12,12 +12,8 @@
 	 * one tab apart. The tab is the URL's (`?tab=`), so it survives a reload and Back. `branch`: the
 	 * project's current branch, whose prompts the Commits tab copies.
 	 */
-	let {
-		project,
-		remote,
-		branch,
-		journey
-	}: { project: string; remote?: string; branch?: string; journey: Snippet } = $props();
+	let { project, branch, journey }: { project: string; branch?: string; journey: Snippet } =
+		$props();
 
 	const tab = $derived(tabOf(page.url));
 	const tabs = PROJECT_TABS.map((t) => ({ id: t.id, label: t.label }));
@@ -30,6 +26,6 @@
 
 <Tabs {tabs} selected={tab} label="Project" onselect={select}>
 	{#snippet panel(id)}
-		{#if id === 'commits'}<CommitTable {project} {remote} {branch} />{:else}{@render journey()}{/if}
+		{#if id === 'commits'}<CommitTable {project} {branch} />{:else}{@render journey()}{/if}
 	{/snippet}
 </Tabs>

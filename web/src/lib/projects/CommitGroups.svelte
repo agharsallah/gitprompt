@@ -13,13 +13,11 @@
 	let {
 		groups,
 		by,
-		remote,
 		now,
 		copy
 	}: {
 		groups: CommitGroup[];
 		by: CommitGrouping;
-		remote?: string;
 		now: Date;
 		copy?: (branch: string) => void;
 	} = $props();
@@ -43,7 +41,7 @@
 		</header>
 		<ol class="rows">
 			{#each group.commits as trace (trace.commit.hash)}
-				<CommitTraceRow {trace} {remote} {now} />
+				<CommitTraceRow {trace} {now} />
 			{/each}
 		</ol>
 	</section>

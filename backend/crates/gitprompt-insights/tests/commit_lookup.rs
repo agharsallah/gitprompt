@@ -34,7 +34,7 @@ fn project(name: &str, commits: &[Commit]) -> ProjectTraces {
     project_traces(&repo, &rows, commits)
 }
 
-fn github(_: &gitprompt_insights::stories::ProjectRef) -> Option<String> {
+fn github(_: &str) -> Option<String> {
     Some("git@github.com:acme/app.git".into())
 }
 
@@ -60,7 +60,7 @@ fn a_full_hash_or_a_prefix_finds_the_trace_with_its_forge_url() {
         assert_eq!(commit.trace.how, TraceHow::Traced);
         assert_eq!(commit.trace.prompt.as_ref().map(|p| p.id), Some(1));
         assert_eq!(commit.project.repo, "/r/app");
-        assert_eq!(commit.url.as_deref(), Some("https://github.com/acme/app/commit/a1b2c3d"));
+        assert_eq!(commit.trace.url.as_deref(), Some("https://github.com/acme/app/commit/a1b2c3d"));
     }
 }
 
@@ -72,7 +72,7 @@ fn an_ambiguous_prefix_gives_every_candidate_newest_first_across_projects() {
     ];
     let Some(CommitLookup::Many { candidates }) = lookup_commit("abc", &projects, |_| None) else { panic!("not many") };
     assert_eq!(hashes(&candidates), ["abc2222", "abc3333", "abc1111"]);
-    assert!(candidates.iter().all(|c| c.url.is_none()), "no remote, no url");
+    assert!(candidates.iter().all(|c| c.trace.url.is_none()), "no remote, no url");
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn a_remote_on_an_unknown_host_gives_no_url() {
     let Some(CommitLookup::One { commit }) = lookup_commit("a1b2c3d", &projects, |_| Some("git@example.com:acme/app.git".into())) else {
         panic!("not one")
     };
-    assert_eq!(commit.url, None);
+    assert_eq!(commit.trace.url, None);
 }
 
 // --- find --------------------------------------------------------------------------------------------
