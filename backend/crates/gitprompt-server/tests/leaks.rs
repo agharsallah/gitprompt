@@ -112,3 +112,19 @@ async fn open_findings_lead_worth_a_look_and_count_in_the_key_figures() {
     assert_eq!(feed["worth_a_look"][0]["target"], json!({"page": "leaks"}));
     assert_eq!(api.json_with("/api/stats", &[("key_figures", "true")]).await["possible_leaks"], 1);
 }
+
+#[tokio::test]
+async fn a_hidden_value_is_gone_from_the_reader_and_from_an_export() {
+    let api = api();
+    // A phone number: exports do not hide it on their own, so only Hide removes it.
+    prompt(&api, "p1", "call me on +49 30 1234567 tomorrow").await;
+    let id = ids(&api.json("/api/leaks").await["open"])[0].clone();
+    assert_eq!(decide(&api, &id, json!("hidden")).await.status, 200);
+
+    let prompts = api.json("/api/prompts").await;
+    let detail = api.json(&format!("/api/prompts/{}", prompts[0]["id"])).await.to_string();
+    assert!(!detail.contains("1234567") && detail.contains("[hidden phone number]"), "{detail}");
+    let export = api.get("/api/export/session").query(&[("id", "s"), ("format", "json"), ("prompt_text", "true")]).send().await;
+    assert_eq!(export.status, 200, "{}", export.text());
+    assert!(!export.text().contains("1234567") && export.text().contains("[hidden phone number]"), "{}", export.text());
+}

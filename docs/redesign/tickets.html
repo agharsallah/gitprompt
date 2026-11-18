@@ -1394,7 +1394,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t29" data-area="web" data-size="M" data-needs="t24">
+    <article class="tk" id="t29" data-area="web" data-size="M" data-needs="t24" data-status="done">
       <details><summary><span class="tt">Possible leaks where you work</span><span class="goal">A possible leak is visible on the Overview, in the reader and on its turn, and fixed in one click.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-l1">L1</a> (Findings, All clear)</dd></dl>
@@ -1412,6 +1412,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> component tests for both states and both actions · an end-to-end test: Hide masks the value in the reader and in an export.</p>
         <p class="dod"><b>Done when</b> both actions persist, and Not sensitive removes the banner everywhere the finding showed.</p>
+        <p class="shipped"><b>Shipped 2026-11-18.</b> <code>lib/overview/LeaksPanel.svelte</code> (<code>id="leaks"</code>, after the week strip; Worth a look and the key figure link to it, keeping the filters) groups open findings by kind. Each shows the masked value, where it sits, "Open the turn" and the two actions; with none open, All clear says "1,204 prompts checked for 28 kinds of secret and personal data". A footer appears once something was decided: one line per hidden value, "Hidden on 16 Nov", and a "Dismissed · N" fold with Undo. <code>prompts/SecretWarning.svelte</code> is now the banner for one finding of any kind: the kind, the masked value, and where it sits ("in your prompt", "in the answer", "in a tool's input" or "in a tool's output"), with two buttons. The reader fetches <code>/api/leaks?session=</code> and shows that prompt's banners; it replaces the old secrets-only warning and its redact button (<code>api.redact</code> stays in the client). There is one <code>lib/leaks/LeakActions.svelte</code>: Hide asks through the confirm of <a href="#t26">26</a>, Not sensitive is one click, Undo opens a finding again (<code>decide.svelte.ts</code>); words and grouping are pure in <code>leaks.ts</code>. In the session story, a turn with open findings carries a "possible leak" marker that links to the reader. Settings › Privacy has a "Never a leak" row for <code>leak_allow</code> (comma or newline separated). Counted: <code>leak.hide</code>, <code>leak.dismiss</code>, <code>leak.undo</code>. Tests: both panel states, both actions and Undo, the wording for each place, the marker, the allow row, and an end-to-end server test: after Hide, the value is gone from the reader's answer and from a session export, which shows <code>[hidden phone number]</code>. Web: 131 files and 1,278 tests pass. Not done: your own words (<code>find_terms</code>) are not yet read at index time; that goes to <a href="#t33">33</a>. <b>Not yet looked at in a browser.</b></p>
       </div></details>
     </article>
 

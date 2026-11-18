@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { Bot, FolderGit2, GitBranch } from '@lucide/svelte';
-	import type { SessionStory, StoryItem } from '#lib/api/types.ts';
+	import type { Leaks, SessionStory, StoryItem } from '#lib/api/types.ts';
+	import { openByPrompt } from '#lib/leaks/leaks.ts';
 	import { duration, integer, modelName, money, plural } from '#lib/shared/format.ts';
 	import ConnectorBadge from '#lib/prompts/ConnectorBadge.svelte';
 	import Badge from '#lib/ui/Badge.svelte';
@@ -20,13 +21,26 @@
 	import OutcomeMix from '#lib/stories/OutcomeMix.svelte';
 	import { diffstatText, span as timeSpan } from '#lib/stories/story.ts';
 
-	/** A session told as chapters: each prompt you typed, with system activity folded between. */
-	let { story, actions }: { story: SessionStory; actions?: Snippet } = $props();
+	/**
+	 * A session told as chapters: each prompt you typed, with system activity folded between. A turn
+	 * with possible leaks not handled yet carries a marker that opens it in the reader.
+	 */
+	let {
+		story,
+		leaks,
+		actions
+	}: {
+		story: SessionStory;
+		/** The session's possible leaks; none while they load (or when they failed). */
+		leaks?: Leaks | null;
+		actions?: Snippet;
+	} = $props();
 
 	type ChapterItem = Extract<StoryItem, { kind: 'chapter' }>;
 
 	const chapters = $derived(story.items.filter((i): i is ChapterItem => i.kind === 'chapter'));
 	const turns = $derived(new Map(chapters.map((c) => [c.id, c.turn])));
+	const leaking = $derived(openByPrompt(leaks));
 	/** Its default name, which an emptied name goes back to. */
 	const label = $derived(story.label ?? 'Untitled session');
 	const title = $derived(story.name ?? label);
@@ -134,6 +148,7 @@
 					chapter={item}
 					root={story.project?.repo}
 					retryTurn={item.retry_of ? turns.get(item.retry_of) : undefined}
+					leaks={leaking.get(item.id)}
 				/>
 			{:else}
 				<MarkerGroup markers={item.items} />

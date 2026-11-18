@@ -20,6 +20,7 @@
 	import { topProject } from '#lib/insights/keyFigures.ts';
 	import { calmLine } from '#lib/overview/calm.ts';
 	import FirstScreen from '#lib/overview/FirstScreen.svelte';
+	import LeaksPanel from '#lib/overview/LeaksPanel.svelte';
 	import NeedsYou from '#lib/overview/NeedsYou.svelte';
 	import OverviewTabs from '#lib/overview/OverviewTabs.svelte';
 	import WeekStrip from '#lib/overview/WeekStrip.svelte';
@@ -146,6 +147,15 @@
 					</Boundary>
 
 					<Boundary what="the week strip"><WeekStrip data={o} /></Boundary>
+
+					<Boundary what="the possible leaks">
+						<LeaksPanel
+							leaks={o.leaks}
+							query={o.query}
+							onchanged={() => refreshAll()}
+							now={new Date(o.now)}
+						/>
+					</Boundary>
 
 					<OverviewTabs
 						selected={tab}

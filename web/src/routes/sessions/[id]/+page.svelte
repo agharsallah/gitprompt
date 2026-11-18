@@ -17,6 +17,10 @@
 		() => data.story,
 		() => data.id
 	);
+	const leaks = new Resource(
+		() => data.leaks,
+		() => data.id
+	);
 </script>
 
 <svelte:head><title>Session story · GitPrompt</title></svelte:head>
@@ -27,7 +31,7 @@
 <Deferred resource={story} label="Loading the session" what="this session" variant="page">
 	{#snippet pending()}<StorySkeleton />{/snippet}
 	{#snippet children(story)}
-		<SessionStory {story}>
+		<SessionStory {story} leaks={leaks.value}>
 			{#snippet actions()}
 				<ExportButton target={{ kind: 'session', id: story.session }} />
 			{/snippet}

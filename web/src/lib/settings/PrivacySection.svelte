@@ -3,6 +3,7 @@
 	import type { SettingsState } from '#lib/api/settings.ts';
 	import { OPTIONS as EXPORT_OPTIONS, PRIVATE_DEFAULTS } from '#lib/export/export.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
+	import LeakAllowRow from '#lib/settings/LeakAllowRow.svelte';
 	import SettingRow from '#lib/settings/SettingRow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
@@ -38,6 +39,8 @@
 			options={OPTIONS}
 		/>
 	</SettingRow>
+
+	<LeakAllowRow {prefs} {editor} />
 
 	<SettingRow
 		label="Exports"

@@ -10,6 +10,7 @@ import type {
 	Facts,
 	KeyChanges,
 	LeakOut,
+	Leaks,
 	PickUp,
 	Prompt,
 	RedonePart,
@@ -249,6 +250,7 @@ export function overview(overrides: Partial<Overview> = {}, now = Date.now()): O
 		options: { source: empty, surface: empty, repo: empty, model: empty },
 		starred: [],
 		attention: attention(),
+		leaks: leaks(),
 		...overrides
 	};
 }
@@ -398,6 +400,17 @@ export function leakOut(overrides: Partial<LeakOut> = {}): LeakOut {
 		place: 'prompt',
 		prompt: 1,
 		at: '2026-11-05T10:00:00Z',
+		...overrides
+	};
+}
+
+/** GET /api/leaks: nothing found among 10 prompts, unless the test says what was. */
+export function leaks(overrides: Partial<Leaks> = {}): Leaks {
+	return {
+		open: [],
+		hidden: [],
+		dismissed: [],
+		checked: { prompts: 10, kinds: 28 },
 		...overrides
 	};
 }

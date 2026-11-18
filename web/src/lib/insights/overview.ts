@@ -5,7 +5,15 @@
  */
 import { api } from '#lib/api/client.ts';
 import { queryParams, type StatsQuery } from '#lib/api/query.ts';
-import type { Attention, GroupBy, Prompt, Stats, StatsOrder, Telemetry } from '#lib/api/types.ts';
+import type {
+	Attention,
+	GroupBy,
+	Leaks,
+	Prompt,
+	Stats,
+	StatsOrder,
+	Telemetry
+} from '#lib/api/types.ts';
 import { toQuery, without, type InsightFilters } from '#lib/insights/filters.ts';
 import { rangeStart } from '#lib/insights/range.ts';
 
@@ -48,6 +56,8 @@ export type Overview = {
 	starred: Prompt[];
 	/** What needs you: sessions to pick up (whatever the range) and what is worth a look in it. */
 	attention: Attention;
+	/** The possible leaks of the range, with the values hidden or dismissed and what was checked. */
+	leaks: Leaks;
 };
 
 export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Promise<Overview> {
@@ -77,6 +87,7 @@ export async function loadOverview(filters: InsightFilters, fetcher: Fetch): Pro
 		tools: stats('tool', by('prompts', 500)),
 		telemetry: api.telemetry(query, fetcher),
 		attention: api.attention(query, fetcher),
+		leaks: api.leaks(query, fetcher),
 		starred: api.prompts(queryParams({ ...query, starred: 'true', limit: STARRED_LIMIT }), fetcher),
 		source: stats('source', by('prompts', 50), without(query, 'source')),
 		surface: stats('surface', by('prompts', 50), without(query, 'surface')),

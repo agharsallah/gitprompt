@@ -78,6 +78,10 @@ export const WORTH_KINDS = [
 	'repeated_prompt'
 ] as const satisfies readonly WorthKind[];
 
+/** What you decide about a possible leak: hide its value, not sensitive, or undo that. */
+export const LEAK_ACTIONS = ['hide', 'dismiss', 'undo'] as const;
+export type LeakAction = `leak.${(typeof LEAK_ACTIONS)[number]}`;
+
 export type UsageAction =
 	| `panel.seen.${PanelName}`
 	| `panel.click.${PanelName}`
@@ -97,7 +101,8 @@ export type UsageAction =
 	| 'tab.project.commits'
 	| 'commit.open.prompt'
 	| 'week.day.open'
-	| 'filters.open';
+	| 'filters.open'
+	| LeakAction;
 
 export const panelAction = <K extends 'seen' | 'click', P extends PanelName>(kind: K, panel: P) =>
 	`panel.${kind}.${panel}` as const;
@@ -122,5 +127,6 @@ export const USAGE_ACTIONS: readonly UsageAction[] = [
 	'tab.project.commits',
 	'commit.open.prompt',
 	'week.day.open',
-	'filters.open'
+	'filters.open',
+	...LEAK_ACTIONS.map((a) => `leak.${a}` as const)
 ];

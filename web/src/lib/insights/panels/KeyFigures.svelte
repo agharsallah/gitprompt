@@ -6,7 +6,7 @@
 	import type { Range } from '#lib/insights/range.ts';
 	import type { Stats } from '#lib/api/types.ts';
 	import type { Slot } from '#lib/insights/series.ts';
-	import { pageHref } from '#lib/shared/links.ts';
+	import { anchorHref, LEAKS_ANCHOR } from '#lib/shared/links.ts';
 	import StatTile from '#lib/ui/StatTile.svelte';
 
 	/** The five figures you can act on, each against the period before and a link to its prompts. */
@@ -43,8 +43,8 @@
 			range,
 			slots,
 			link,
-			// The leaks panel arrives with ticket 29; until then the link stays on the Overview.
-			leaksHref: pageHref('/'),
+			// The panel is on this page, under the week strip: the filters in the URL stay.
+			leaksHref: anchorHref(LEAKS_ANCHOR),
 			can
 		})
 	);

@@ -117,10 +117,13 @@ export function sourcesHref({ connect, tool }: { connect?: string; tool?: string
 	});
 }
 
-/**
- * Where an attention item leads (Overview, Worth a look). The leaks have no page of their own yet:
- * the Overview, at its `#leaks` anchor.
- */
+/** The anchor of the Overview's possible leaks panel (overview/LeaksPanel.svelte). */
+export const LEAKS_ANCHOR = 'leaks';
+
+/** The possible leaks: they have no page of their own, they are a panel of the Overview. */
+export const leaksHref = () => pageHref('/', { anchor: LEAKS_ANCHOR });
+
+/** Where an attention item leads (Overview, Worth a look). */
 export function targetHref(target: AttentionTarget): string {
 	switch (target.page) {
 		case 'prompts':
@@ -130,7 +133,7 @@ export function targetHref(target: AttentionTarget): string {
 		case 'session':
 			return sessionHref(target.id);
 		case 'leaks':
-			return pageHref('/', { anchor: 'leaks' });
+			return leaksHref();
 		default:
 			return pageHref('/');
 	}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GitBranch, Redo2 } from '@lucide/svelte';
+	import { GitBranch, Redo2, ShieldAlert } from '@lucide/svelte';
 	import type { Chapter } from '#lib/api/types.ts';
 	import { plural, relativePath, timeOfDay } from '#lib/shared/format.ts';
 	import { promptHref } from '#lib/shared/links.ts';
@@ -19,13 +19,16 @@
 	let {
 		chapter,
 		root,
-		retryTurn
+		retryTurn,
+		leaks = 0
 	}: {
 		chapter: Chapter;
 		/** The repository root, to show file paths relative to it. */
 		root?: string | null;
 		/** The turn number of the chapter this one rewords. */
 		retryTurn?: number;
+		/** Possible leaks not handled yet in its turn: a marker that opens it in the reader. */
+		leaks?: number;
 	} = $props();
 
 	const c = $derived(chapter);
@@ -45,6 +48,13 @@
 			<OutcomeLabel outcome={c.outcome} />
 			{#if c.branch}<span class="branch"><GitBranch size={12} aria-hidden="true" />{c.branch}</span
 				>{/if}
+			{#if leaks}
+				<a class="leak" {href} title="Prompt › Turn {c.turn}: hide it or mark it not sensitive"
+					><ShieldAlert size={12} aria-hidden="true" />{leaks === 1
+						? 'possible leak'
+						: `${leaks} possible leaks`}</a
+				>
+			{/if}
 			{#if c.retry_of}
 				<a class="retry" href="#{anchor(c.retry_of)}"
 					><Redo2 size={12} aria-hidden="true" />Rewords turn {retryTurn ?? ''}</a
@@ -137,13 +147,15 @@
 	}
 
 	.branch,
-	.retry {
+	.retry,
+	.leak {
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
 	}
 
-	.retry {
+	.retry,
+	.leak {
 		color: var(--color-warning-text);
 	}
 

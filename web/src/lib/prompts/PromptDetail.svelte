@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '#lib/api/client.ts';
-	import type { Annotation, PromptDetail, Source } from '#lib/api/types.ts';
+	import type { Annotation, Leaks, PromptDetail, Source } from '#lib/api/types.ts';
 	import type { Outcome } from '#lib/insights/outcome.ts';
 	import { count, inline } from '#lib/shared/format.ts';
 	import { Task } from '#lib/shared/task.svelte.ts';
@@ -17,13 +17,14 @@
 	import { originOf } from '#lib/prompts/origin.ts';
 	import PromptHeader from '#lib/prompts/PromptHeader.svelte';
 	import RawPanel from '#lib/prompts/RawPanel.svelte';
-	import SecretWarning from '#lib/prompts/SecretWarning.svelte';
 	import SessionPanel from '#lib/prompts/SessionPanel.svelte';
 	import TurnOverview from '#lib/prompts/TurnOverview.svelte';
 	import UsagePanel from '#lib/prompts/UsagePanel.svelte';
 	import Voice from '#lib/prompts/Voice.svelte';
 	import WhatCameOfIt from '#lib/prompts/WhatCameOfIt.svelte';
 	import YourPrompt from '#lib/prompts/YourPrompt.svelte';
+	import { sessionQuery } from '#lib/leaks/leaks.ts';
+	import TurnLeaks from '#lib/leaks/TurnLeaks.svelte';
 	import { availability, toolOf } from '#lib/sources/capabilities.ts';
 	import VersionsPanel from '#lib/stories/VersionsPanel.svelte';
 
@@ -52,7 +53,19 @@
 	const noTokens = $derived(missingTokens(prompt.facts, usage));
 
 	const s = $derived(prompt.summary);
-	const secrets = $derived(prompt.stats.secrets ?? []);
+	// The possible leaks of the prompt's session, read again with each new detail (after a decision,
+	// the page reloads the prompt). The reader shows those of this prompt; a failure shows none.
+	const leakQuery = $derived(sessionQuery(prompt.fields.session_id));
+	let leaks = $state.raw<Leaks | null>(null);
+	$effect(() => {
+		void prompt;
+		let current = true;
+		api.leaks(leakQuery).then(
+			(board) => current && (leaks = board),
+			() => current && (leaks = null)
+		);
+		return () => (current = false);
+	});
 	const response = $derived(s.response == null ? null : inline(s.response));
 
 	// Annotation edits are saved right away; the parent reloads and passes the new value down.
@@ -84,7 +97,7 @@
 
 	<YourPrompt {prompt} headingId="prompt-{prompt.id}-title" />
 
-	{#if secrets.length}<SecretWarning id={prompt.id} {secrets} {onchange} />{/if}
+	<TurnLeaks {leaks} prompt={prompt.id} query={leakQuery} onchanged={onchange} />
 	{#if task.error}<Callout tone="danger" live>{task.error}</Callout>{/if}
 
 	<TurnOverview {prompt} {view} {noTokens} />

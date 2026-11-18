@@ -37,4 +37,17 @@ describe('a chapter of a session story', () => {
 		expect(link).toContain(`href="${promptHref(42)}"`);
 		expect(out).toContain('title="Prompt › Turn 3"');
 	});
+
+	it('carries no leak marker without open findings', () => {
+		expect(render(ChapterView, { props: { chapter } }).body).not.toContain('possible leak');
+	});
+
+	it('marks a turn with possible leaks, linking to it in the reader', () => {
+		const one = render(ChapterView, { props: { chapter, leaks: 1 } }).body;
+		const marker = one.slice(one.lastIndexOf('<a', one.indexOf('possible leak')));
+		expect(marker).toContain(`href="${promptHref(42)}"`);
+		expect(render(ChapterView, { props: { chapter, leaks: 3 } }).body).toContain(
+			'3 possible leaks'
+		);
+	});
 });
