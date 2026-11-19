@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SettingsState } from '#lib/api/settings.ts';
+	import { platform } from '#lib/platform/index.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
 	import {
 		HOURS,
@@ -84,6 +85,25 @@
 			options={SWITCH}
 		/>
 	</SettingRow>
+
+	{#if platform.desktop}
+		<SettingRow
+			label="Dock badge"
+			description="The number of possible leaks you have not hidden or dismissed yet, on the app's icon. It clears once each is handled."
+			setting={s.leak_badge}
+			file={prefs.file}
+			value={onOff(s.leak_badge.value)}
+		>
+			<SegmentedControl
+				label="Dock badge"
+				bind:value={
+					() => switchOf(editor.value('leak_badge')),
+					(v: Switch) => editor.set({ leak_badge: v === 'on' })
+				}
+				options={SWITCH}
+			/>
+		</SettingRow>
+	{/if}
 
 	<SettingRow
 		label="A connector gone quiet"

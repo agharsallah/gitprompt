@@ -355,6 +355,7 @@ export function settingsState(values: Preferences): SettingsState {
 			notify_long_turn: setting('notify_long_turn'),
 			notify_long_turn_minutes: setting('notify_long_turn_minutes'),
 			notify_leaks: setting('notify_leaks'),
+			leak_badge: setting('leak_badge'),
 			notify_quiet_connector: setting('notify_quiet_connector'),
 			notify_quiet_connector_minutes: setting('notify_quiet_connector_minutes'),
 			recap: setting('recap'),

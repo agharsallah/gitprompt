@@ -94,13 +94,15 @@ pub(crate) fn on_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     match event {
         WindowEvent::Focused(focused) => {
             let lost = window.try_state::<Recall>().is_some_and(|recall| recall.focus_changed(*focused));
-            if lost && let Err(e) = window.hide() {
-                tracing::warn!(error = %e, "could not hide the recall window");
+            if lost && let Some(window) = window.get_webview_window(panel::LABEL) {
+                crate::window::conceal(&window);
             }
         }
         WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
-            let _ = window.hide();
+            if let Some(window) = window.get_webview_window(panel::LABEL) {
+                crate::window::conceal(&window);
+            }
         }
         _ => {}
     }

@@ -10,7 +10,9 @@
 //! * [`GitPrompt`] (managed state, also via [`GitPromptExt`]) tells the shell the daemon's
 //!   [`DaemonStatus`] and URL; [`GitPrompt::ready`] waits for the start to settle.
 //! * Live-update notices are emitted as [`CAPTURED_EVENT`] (`{prompts, events}`), status changes as
-//!   [`STATUS_EVENT`].
+//!   [`STATUS_EVENT`], the notifications the daemon decided on as [`NOTIFICATION_EVENT`].
+//! * [`tray_menu`] is the tray's live menu as data ([`GitPrompt::tray_menu`] reads it), and
+//!   [`route`] the dashboard path a notification or a menu item opens.
 //! * Native commands (`plugin:gitprompt|<name>`, see [`COMMANDS`]) are thin over
 //!   [`gitprompt_server::Service`]; errors serialize as `{status, detail}` ([`CommandError`]).
 //! * [`navigation`] decides where a link clicked in the window goes: the daemon's own pages stay,
@@ -21,6 +23,7 @@
 //! plugin does not fail: the status is [`DaemonStatus::External`] and the shell points its window
 //! at that daemon's URL instead.
 
+mod coalesce;
 mod command_names;
 mod commands;
 mod config;
@@ -28,19 +31,25 @@ mod error;
 mod lifecycle;
 mod native;
 mod navigation;
+mod route;
 mod state;
+mod tray_feed;
+mod tray_menu;
 
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::{Manager, RunEvent, Runtime};
 
+pub use coalesce::Coalesce;
 pub use command_names::COMMANDS;
 pub use commands::{ExportSaved, StatusOut};
 pub use config::{PluginConfig, sidecar_next_to_exe};
 pub use error::CommandError;
-pub use lifecycle::{CAPTURED_EVENT, STATUS_EVENT};
+pub use lifecycle::{CAPTURED_EVENT, NOTIFICATION_EVENT, STATUS_EVENT};
 pub use native::{Opener, SystemOpener};
 pub use navigation::{Navigation, navigation, open_in_browser};
+pub use route::{encode, route};
 pub use state::{DaemonStatus, GitPrompt};
+pub use tray_menu::{LABEL_CHARS, TrayAction, TrayItem, TrayMenu, tray_menu};
 
 /// The plugin's name: commands are invoked as `plugin:gitprompt|<command>`, permissions are
 /// `gitprompt:default`, `gitprompt:allow-<command>`.

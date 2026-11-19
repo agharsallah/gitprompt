@@ -1,10 +1,13 @@
 //! The GitPrompt desktop app: the [`gitprompt_tauri`] plugin runs the daemon in-process (hooks
 //! reach it on `http://127.0.0.1:<port>`), the main window shows the dashboard the daemon serves,
-//! the tray icon keeps capture running while the window is closed.
+//! the tray icon keeps capture running while the window is closed and shows what is going on, and
+//! the daemon's notifications are shown by the system.
 
 // No console window next to the app on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod badge;
+mod notify;
 mod perf;
 mod recall;
 mod tray;
@@ -47,13 +50,17 @@ fn main() {
     let app = builder
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec![HIDDEN_ARG])))
         .plugin(recall::plugin())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(gitprompt_tauri::init(config))
         // The dashboard's native calls beyond the plugin's: `platform.hideWindow()` and the recall
         // shortcut (permissions: `capabilities/`, names in `build.rs`).
         .invoke_handler(tauri::generate_handler![window::hide_window, recall::recall_register, recall::recall_status])
         .setup(move |app| {
             perf::mark(app.handle(), "setup");
+            badge::setup(app.handle());
             tray::build(app.handle())?;
+            notify::setup(app.handle());
             recall::setup(app.handle(), &recall_shortcut, !performance_run);
             if !hidden {
                 window::show(app.handle());

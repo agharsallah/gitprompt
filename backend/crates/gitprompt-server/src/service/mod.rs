@@ -15,6 +15,7 @@ mod commits;
 mod data;
 mod export;
 mod find;
+mod glance;
 mod homes;
 mod ingest;
 mod leaks;
@@ -52,6 +53,7 @@ use crate::query::iso;
 use crate::status::{self, StatusOut};
 
 pub use find::PromptMatch;
+pub use glance::{Glance, RECENT_PROMPTS, RecentPrompt, Today};
 pub use notify::Watch;
 pub use resume::{SessionPick, SessionResume, session_id};
 

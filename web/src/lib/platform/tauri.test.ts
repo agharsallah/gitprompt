@@ -80,13 +80,14 @@ describe('the desktop answers', () => {
 		expect(stopped).toEqual(['gitprompt://navigate']);
 	});
 
-	it('takes the window to be visible while it has the focus', async () => {
+	it('hands the page what the app says when it shows or hides the window', async () => {
 		const { shell, send } = fakeShell();
 		const seen: boolean[] = [];
 		desktopPlatform(shell, page).onWindowVisible((visible) => seen.push(visible));
 		await settle();
-		send('tauri://focus');
-		send('tauri://blur');
+		send('gitprompt://visible', true);
+		send('gitprompt://visible', false);
+		send('gitprompt://visible', 'yes');
 		expect(seen).toEqual([true, false]);
 	});
 
@@ -94,7 +95,7 @@ describe('the desktop answers', () => {
 		const { shell, stopped } = fakeShell();
 		desktopPlatform(shell, page).onWindowVisible(() => {})();
 		await settle();
-		expect(stopped.sort()).toEqual(['tauri://blur', 'tauri://focus']);
+		expect(stopped).toEqual(['gitprompt://visible']);
 	});
 
 	it('asks the app for the recall shortcut and reports a refusal as its reason', async () => {

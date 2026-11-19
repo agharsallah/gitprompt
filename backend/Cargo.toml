@@ -58,6 +58,9 @@ tauri-plugin = "2.7"
 tauri-plugin-single-instance = "2.5"
 tauri-plugin-autostart = "2.7"
 tauri-plugin-global-shortcut = "2.4"
+# native notifications and the tray copying a resume command without a web view (ticket 32)
+tauri-plugin-notification = "2"
+tauri-plugin-clipboard-manager = "2"
 # tests
 tempfile = "3"
 pretty_assertions = "1"

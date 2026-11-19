@@ -721,6 +721,10 @@ notify_long_turn_minutes: number,
  */
 notify_leaks: boolean, 
 /**
+ * The desktop app's Dock (taskbar) badge: the possible leaks not handled yet.
+ */
+leak_badge: boolean, 
+/**
  * Notify when a connector that was sending goes quiet while its tool is still in use.
  */
 notify_quiet_connector: boolean, 

@@ -155,3 +155,30 @@ describe('liveUpdates', () => {
 		expect(changed).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('a hidden window', () => {
+	afterEach(() => live.setVisible(true));
+
+	it('closes the stream, opens none while hidden, and refreshes once when shown', () => {
+		const reload = vi.fn();
+		const stop = live.subscribe(reload);
+		live.setVisible(false);
+		expect([latest()?.closed, live.state]).toEqual([true, 'closed']);
+		const other = live.subscribe(() => {});
+		expect(FakeSource.opened).toHaveLength(1);
+
+		live.setVisible(true);
+		expect(FakeSource.opened).toHaveLength(2);
+		expect(reload).toHaveBeenCalledTimes(1);
+		live.setVisible(true);
+		expect(reload).toHaveBeenCalledTimes(1);
+		stop();
+		other();
+	});
+
+	it('shown with nobody listening opens nothing', () => {
+		live.setVisible(false);
+		live.setVisible(true);
+		expect(FakeSource.opened).toHaveLength(0);
+	});
+});

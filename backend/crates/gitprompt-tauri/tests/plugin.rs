@@ -30,8 +30,9 @@ use tauri::{App, Listener, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tempfile::TempDir;
 
 use gitprompt_core::{Env, Settings};
+use gitprompt_server::model::{Notification, NotificationKind, Target};
 use gitprompt_server::{AppOptions, Daemon, DaemonOptions, FixedVersion, NoGit, Notice};
-use gitprompt_tauri::{CAPTURED_EVENT, COMMANDS, DaemonStatus, GitPromptExt, Opener, PluginConfig};
+use gitprompt_tauri::{CAPTURED_EVENT, COMMANDS, DaemonStatus, GitPromptExt, NOTIFICATION_EVENT, Opener, PluginConfig, TrayItem};
 
 /// Records what the commands asked to show.
 #[derive(Default)]
@@ -174,6 +175,38 @@ fn bus_notices_are_emitted_as_captured_events() {
     service.bus().publish(Notice { prompts: 1, events: 2 });
     let payload: Value = serde_json::from_str(&rx.recv_timeout(Duration::from_secs(5)).unwrap()).unwrap();
     assert_eq!(payload, json!({"prompts": 1, "events": 2}));
+    shutdown(&app);
+}
+
+#[test]
+fn notifications_are_emitted_for_the_shell_to_show() {
+    let h = Harness::new();
+    let app = h.app();
+    let (tx, rx) = mpsc::channel();
+    app.listen_any(NOTIFICATION_EVENT, move |event| {
+        let _ = tx.send(event.payload().to_owned());
+    });
+    let sent = Notification {
+        kind: NotificationKind::LongTurn,
+        title: "A long turn ended".into(),
+        body: "fix it".into(),
+        target: Target::Prompt { id: 7 },
+    };
+    app.gitprompt().unwrap().service().unwrap().bus().notify(sent.clone());
+    // Waits for the event the plugin emits: the channel is the signal, there is no deadline.
+    let got: Notification = serde_json::from_str(&rx.recv().unwrap()).unwrap();
+    assert_eq!(got, sent);
+    shutdown(&app);
+}
+
+#[test]
+fn the_tray_menu_reads_the_running_daemon() {
+    let h = Harness::new();
+    let app = h.app();
+    let menu = tauri::async_runtime::block_on(app.gitprompt().unwrap().tray_menu());
+    assert_eq!(menu.items[0], TrayItem::Text("Recording".into()));
+    assert_eq!(menu.items[1], TrayItem::Text("Today: no prompts yet".into()));
+    assert_eq!(menu.badge, None);
     shutdown(&app);
 }
 

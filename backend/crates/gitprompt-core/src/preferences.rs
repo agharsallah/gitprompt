@@ -94,6 +94,8 @@ pub struct Preferences {
     pub notify_long_turn_minutes: u32,
     /// Notify when a new possible leak is found in what was captured.
     pub notify_leaks: bool,
+    /// The desktop app's Dock (taskbar) badge: the possible leaks not handled yet.
+    pub leak_badge: bool,
     /// Notify when a connector that was sending goes quiet while its tool is still in use.
     pub notify_quiet_connector: bool,
     /// How long a connector sends nothing before it counts as quiet (1..=1440 minutes).
@@ -127,6 +129,7 @@ impl Default for Preferences {
             notify_long_turn: true,
             notify_long_turn_minutes: LONG_TURN_MINUTES,
             notify_leaks: true,
+            leak_badge: true,
             notify_quiet_connector: true,
             notify_quiet_connector_minutes: QUIET_CONNECTOR_MINUTES,
             recap: true,
@@ -149,6 +152,7 @@ pub const KEYS: &[&str] = &[
     "notify_long_turn",
     "notify_long_turn_minutes",
     "notify_leaks",
+    "leak_badge",
     "notify_quiet_connector",
     "notify_quiet_connector_minutes",
     "recap",
@@ -347,7 +351,7 @@ fn normalize(key: &str, value: &Json) -> std::result::Result<Json, String> {
         "default_range" => one_of(value, &["24h", "7d", "30d", "all"]),
         "week_start" => one_of(value, &["monday", "sunday"]),
         "event_retention_days" => retention_days(value),
-        "hide_secrets_on_ingest" | "notify_long_turn" | "notify_leaks" | "notify_quiet_connector" | "recap" => {
+        "hide_secrets_on_ingest" | "notify_long_turn" | "notify_leaks" | "leak_badge" | "notify_quiet_connector" | "recap" => {
             boolean(value).map(Json::Bool)
         }
         "notify_long_turn_minutes" | "notify_quiet_connector_minutes" => minutes(value),

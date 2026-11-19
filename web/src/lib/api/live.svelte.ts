@@ -20,6 +20,8 @@ class Live {
 
 	#source: EventSource | null = null;
 	#retry: ReturnType<typeof setTimeout> | undefined;
+	/** The window is hidden: no stream, whoever listens. */
+	#hidden = false;
 	#listeners = new Set<() => void>();
 	#notified = new Set<(notification: Notification) => void>();
 
@@ -28,7 +30,7 @@ class Live {
 	}
 
 	#open() {
-		if (this.#source || typeof EventSource === 'undefined') return;
+		if (this.#hidden || this.#source || typeof EventSource === 'undefined') return;
 		this.state = 'connecting';
 		const source = new EventSource(STREAM_URL);
 		source.onopen = () => (this.state = 'open');
@@ -64,6 +66,20 @@ class Live {
 		this.#source?.close();
 		this.#source = null;
 		this.state = 'closed';
+	}
+
+	/**
+	 * The window was hidden or shown (`platform.onWindowVisible`). Hidden, the stream closes and the
+	 * page asks the daemon nothing; shown again, it reopens and every listener runs once, since
+	 * notices sent meanwhile were missed.
+	 */
+	setVisible(visible: boolean) {
+		if (visible === !this.#hidden) return;
+		this.#hidden = !visible;
+		if (!visible) return this.#close();
+		if (!this.#listening) return;
+		this.#open();
+		for (const listener of this.#listeners) listener();
 	}
 
 	/** Call `listener` on every notice; returns the unsubscribe function. */

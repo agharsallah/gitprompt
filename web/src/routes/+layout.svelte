@@ -6,6 +6,7 @@
 	import '#lib/design/tokens.css';
 	import '#lib/design/base.css';
 	import { setLucideProps } from '@lucide/svelte';
+	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import Lazy from '#lib/async/Lazy.svelte';
 	import Boundary from '#lib/errors/Boundary.svelte';
@@ -25,6 +26,8 @@
 	import { toasts } from '#lib/ui/toast.svelte.ts';
 	import { live } from '#lib/api/live.svelte.ts';
 	import { showNotification } from '#lib/shared/notifications.ts';
+	import { clock } from '#lib/shared/clock.svelte.ts';
+	import { platform } from '#lib/platform/index.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -52,6 +55,21 @@
 	$effect(() => {
 		if (recall) return;
 		return live.onNotification((notification) => showNotification(toasts, notification));
+	});
+
+	// While the window is hidden (the desktop app's, or a background tab) the page does no work:
+	// no live stream, no ticking clock. Shown again, it refreshes once.
+	$effect(() =>
+		platform.onWindowVisible((visible) => {
+			live.setVisible(visible);
+			clock.setVisible(visible);
+		})
+	);
+
+	// The app takes the window to a page: a tray item, a notification clicked.
+	$effect(() => {
+		if (recall) return;
+		return platform.onNavigate((href) => void goto(href));
 	});
 
 	// ⌘K (Ctrl K) opens the palette from any page, even from a text field.

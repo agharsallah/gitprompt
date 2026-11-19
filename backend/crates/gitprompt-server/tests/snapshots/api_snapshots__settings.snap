@@ -93,6 +93,14 @@ expression: "get(&api, \"/api/settings\").await"
       "locked": false,
       "applies": "now"
     },
+    "leak_badge": {
+      "value": true,
+      "default": true,
+      "source": "default",
+      "env": "GITPROMPT_LEAK_BADGE",
+      "locked": false,
+      "applies": "now"
+    },
     "notify_quiet_connector": {
       "value": true,
       "default": true,

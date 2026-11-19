@@ -144,3 +144,13 @@ async fn a_hidden_value_is_gone_from_the_reader_and_from_an_export() {
     assert_eq!(export.status, 200, "{}", export.text());
     assert!(!export.text().contains("1234567") && export.text().contains("[hidden phone number]"), "{}", export.text());
 }
+
+#[tokio::test]
+async fn a_decision_tells_whoever_shows_the_open_findings() {
+    let api = api();
+    prompt(&api, "p1", &format!("use {}", key())).await;
+    let id = ids(&api.json("/api/leaks").await["open"])[0].clone();
+    let mut notices = api.service().bus().subscribe();
+    assert_eq!(decide(&api, &id, json!("not_sensitive")).await.status, 200);
+    assert!(notices.try_next().is_some(), "a reload notice after the decision");
+}

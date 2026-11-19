@@ -24,7 +24,7 @@ export type Platform = {
 	saveFile(file: SavedFile): Promise<void>;
 	/** The app asks the page to go to a dashboard URL (a tray item, a notification). Browser: never. */
 	onNavigate(handler: (href: string) => void): Unsubscribe;
-	/** The window was shown or hidden (desktop: focused or not). Browser: `visibilitychange`. */
+	/** The window was shown or hidden (desktop: by the app). Browser: `visibilitychange`. */
 	onWindowVisible(handler: (visible: boolean) => void): Unsubscribe;
 	/** The desktop app's recall shortcut. */
 	recall: {

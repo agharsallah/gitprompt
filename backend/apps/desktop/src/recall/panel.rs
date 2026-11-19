@@ -75,9 +75,8 @@ fn reveal<R: Runtime>(app: &AppHandle<R>, window: &WebviewWindow<R>) {
         recall.reset();
     }
     place(app, window);
-    // Each step is best effort: a window that can't be moved can still be shown.
-    let _ = window.show();
-    let _ = window.set_focus();
+    // A window that can't be moved can still be shown.
+    window::reveal(window);
 }
 
 fn place<R: Runtime>(app: &AppHandle<R>, window: &WebviewWindow<R>) {

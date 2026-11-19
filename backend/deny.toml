@@ -110,6 +110,12 @@ skip = [
     { crate = "toml_edit@0.19", reason = "proc-macro-crate 1 (gtk3-macros 0.18)" },
     { crate = "toml_edit@0.20", reason = "proc-macro-crate 2 (glib-macros 0.18) and toml 0.8 (system-deps 6)" },
     { crate = "winnow@0.5", reason = "toml_edit 0.19/0.20 (gtk-rs 0.18 build tooling)" },
+    # Linux only, ticket 32: native notifications (D-Bus) and the tray's clipboard (Wayland).
+    { crate = "zbus@5", reason = "tauri-plugin-notification 2.8.1 and tauri-plugin-single-instance 2.5.5 (latest); its notify-rust 4.19 is on zbus 6" },
+    { crate = "zbus_macros@5", reason = "zbus 5 (tauri-plugin-notification, tauri-plugin-single-instance)" },
+    { crate = "hashbrown@0.15", reason = "petgraph 0.8 via tree_magic_mini (wl-clipboard-rs, arboard: tauri-plugin-clipboard-manager on Wayland)" },
+    { crate = "foldhash@0.1", reason = "hashbrown 0.15 (petgraph via wl-clipboard-rs)" },
+    { crate = "quick-xml@0.41", reason = "wayland-scanner 0.31 (wl-clipboard-rs); tauri's plist uses 0.42" },
 ]
 skip-tree = []
 

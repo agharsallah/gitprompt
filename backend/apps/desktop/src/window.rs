@@ -1,30 +1,51 @@
 //! The main window: the dashboard served by the daemon, created on demand and hidden (not closed)
 //! when the user closes it, so capture keeps running in the tray.
+//!
+//! Every show and hide of a window goes through [`reveal`] and [`dismiss`], which tell its page
+//! ([`VISIBLE_EVENT`]): a hidden page closes its live stream and timers, and refreshes once when
+//! shown again (`platform.onWindowVisible`).
 
-use tauri::{AppHandle, Manager, Runtime, Url, WebviewUrl, WebviewWindowBuilder, Window, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, Runtime, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent};
 
-use gitprompt_tauri::{DaemonStatus, GitPromptExt, Navigation, navigation, open_in_browser};
+use gitprompt_tauri::{DaemonStatus, GitPromptExt, Navigation, encode, navigation, open_in_browser};
 
-use crate::perf;
+use crate::{badge, perf};
 
 pub(crate) const MAIN: &str = "main";
 
+/// Sent to a window's page with `true` when the window is shown, `false` when it is hidden.
+const VISIBLE_EVENT: &str = "gitprompt://visible";
+
+/// Sent to the main window's page with a dashboard path to go to (`platform.onNavigate`).
+const NAVIGATE_EVENT: &str = "gitprompt://navigate";
+
 /// Show the main window, creating it once the daemon's start settled.
 pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
+    show_at(app, None);
+}
+
+/// Show the main window on the dashboard path `route` (`/prompts?id=7`), or where it is when
+/// `None`: a tray item or a notification that leads somewhere.
+pub(crate) fn show_at<R: Runtime>(app: &AppHandle<R>, route: Option<&str>) {
     if let Some(window) = app.get_webview_window(MAIN) {
-        reveal(&window);
+        go_to(&window, route);
         return;
     }
     let Some(gitprompt) = app.gitprompt() else { return };
     let app = app.clone();
+    let route = route.map(str::to_owned);
     tauri::async_runtime::spawn(async move {
         let status = gitprompt.ready().await;
         perf::mark(&app, "daemonReady");
         if let Some(window) = app.get_webview_window(MAIN) {
-            reveal(&window); // created meanwhile by another call
+            go_to(&window, route.as_deref()); // created meanwhile by another call
             return;
         }
-        let url = if status.serving() { gitprompt.url().parse::<Url>().ok() } else { error_page(&status) };
+        let page = |home: Url| match route.as_deref() {
+            Some(route) => home.join(route).ok(),
+            None => Some(home),
+        };
+        let url = if status.serving() { gitprompt.url().parse::<Url>().ok().and_then(page) } else { error_page(&status) };
         let Some(url) = url else {
             tracing::error!(status = ?status, "no page to show");
             return;
@@ -37,10 +58,21 @@ pub(crate) fn show<R: Runtime>(app: &AppHandle<R>) {
             .min_inner_size(720.0, 480.0);
         let built = perf::configure(&app, builder).build();
         perf::mark(&app, "window");
-        if let Err(e) = built {
-            tracing::error!(error = %e, "could not open the GitPrompt window");
+        match built {
+            Ok(window) => badge::apply(&window),
+            Err(e) => tracing::error!(error = %e, "could not open the GitPrompt window"),
         }
     });
+}
+
+/// Reveal an existing main window and, with a route, take its page there.
+fn go_to<R: Runtime>(window: &WebviewWindow<R>, route: Option<&str>) {
+    reveal(window);
+    if let Some(route) = route
+        && let Err(e) = window.emit_to(MAIN, NAVIGATE_EVENT, route)
+    {
+        tracing::warn!(error = %e, route, "could not take the window to the page");
+    }
 }
 
 /// Whether the window follows a link: the daemon's own pages stay in it, other web pages open in
@@ -58,19 +90,37 @@ fn on_navigation(home: &Url, target: &Url) -> bool {
     }
 }
 
-fn reveal<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+/// Show a window, give it the keyboard and tell its page.
+pub(crate) fn reveal<R: Runtime>(window: &WebviewWindow<R>) {
     // Each step is best effort: a window that can't unminimize can still be shown.
     let _ = window.unminimize();
     let _ = window.show();
     let _ = window.set_focus();
+    tell_page(window, true);
 }
 
-/// Hide a window. When it was the app's last visible one, a Mac app hides too, so the keyboard
-/// goes back to the app the user came from (the recall window opens over another app, and the
-/// text it copied is pasted there).
-pub(crate) fn dismiss<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+/// Tell a window's page whether it can be seen.
+fn tell_page<R: Runtime>(window: &WebviewWindow<R>, visible: bool) {
+    if let Err(e) = window.emit_to(window.label(), VISIBLE_EVENT, visible) {
+        tracing::warn!(error = %e, window = window.label(), "could not tell the page it was shown or hidden");
+    }
+}
+
+/// Hide a window and tell its page. False when it could not be hidden.
+pub(crate) fn conceal<R: Runtime>(window: &WebviewWindow<R>) -> bool {
     if let Err(e) = window.hide() {
-        tracing::warn!(error = %e, "could not hide the window");
+        tracing::warn!(error = %e, window = window.label(), "could not hide the window");
+        return false;
+    }
+    tell_page(window, false);
+    true
+}
+
+/// [`conceal`] a window. When it was the app's last visible one, a Mac app hides too, so the
+/// keyboard goes back to the app the user came from (the recall window opens over another app, and
+/// the text it copied is pasted there).
+pub(crate) fn dismiss<R: Runtime>(window: &WebviewWindow<R>) {
+    if !conceal(window) {
         return;
     }
     #[cfg(target_os = "macos")]
@@ -95,8 +145,8 @@ pub(crate) fn on_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
         && window.label() == MAIN
     {
         api.prevent_close();
-        if let Err(e) = window.hide() {
-            tracing::warn!(error = %e, "could not hide the GitPrompt window");
+        if let Some(window) = window.get_webview_window(MAIN) {
+            conceal(&window);
         }
     }
 }
@@ -113,20 +163,11 @@ fn error_page(status: &DaemonStatus) -> Option<Url> {
          <p>Quit GitPrompt from the tray and start it again.</p>",
         escape(detail)
     );
-    Url::parse(&format!("data:text/html;charset=utf-8,{}", percent_encode(&html))).ok()
+    Url::parse(&format!("data:text/html;charset=utf-8,{}", encode(&html))).ok()
 }
 
 fn escape(text: &str) -> String {
     text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
-}
-
-fn percent_encode(text: &str) -> String {
-    text.bytes()
-        .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
-            _ => format!("%{b:02X}"),
-        })
-        .collect()
 }
 
 #[cfg(test)]

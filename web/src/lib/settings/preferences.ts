@@ -20,6 +20,7 @@ export const DEFAULTS: Preferences = {
 	notify_long_turn: true,
 	notify_long_turn_minutes: 10,
 	notify_leaks: true,
+	leak_badge: true,
 	notify_quiet_connector: true,
 	notify_quiet_connector_minutes: 30,
 	recap: true,

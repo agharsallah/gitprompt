@@ -12,6 +12,9 @@ use crate::state::{DaemonStatus, GitPrompt};
 /// Emitted with `{prompts, events}` each time something is captured (the SSE notice).
 pub const CAPTURED_EVENT: &str = "gitprompt://captured";
 
+/// Emitted with each [`Notification`](gitprompt_server::model::Notification) the daemon decided on.
+pub const NOTIFICATION_EVENT: &str = "gitprompt://notification";
+
 /// Emitted with the [`DaemonStatus`] when the start settles.
 pub const STATUS_EVENT: &str = "gitprompt://status";
 
@@ -59,23 +62,28 @@ fn not_started(state: &GitPrompt, error: &DaemonError) {
     }
 }
 
-/// Every bus notice as a [`CAPTURED_EVENT`], until the daemon shuts down. Subscribes when called,
-/// not when the future first runs; holds no `Service`, so the store closes with the daemon.
+/// Every bus notice as a [`CAPTURED_EVENT`] and every notification as a [`NOTIFICATION_EVENT`],
+/// until the daemon shuts down. Subscribes when called, not when the future first runs; holds no
+/// `Service`, so the store closes with the daemon.
 fn forward<R: Runtime>(app: AppHandle<R>, service: &Service) -> impl Future<Output = ()> + use<R> {
     let mut notices = service.bus().subscribe();
+    let mut notifications = service.bus().notifications();
     let closing = service.closing();
     async move {
         loop {
-            tokio::select! {
+            let sent = tokio::select! {
                 () = closing.cancelled() => return,
                 notice = notices.next() => match notice {
-                    Some(notice) => {
-                        if let Err(e) = app.emit(CAPTURED_EVENT, notice) {
-                            tracing::warn!(error = %e, "could not emit a capture notice");
-                        }
-                    }
+                    Some(notice) => app.emit(CAPTURED_EVENT, notice),
                     None => return,
                 },
+                notification = notifications.next() => match notification {
+                    Some(notification) => app.emit(NOTIFICATION_EVENT, notification),
+                    None => return,
+                },
+            };
+            if let Err(e) = sent {
+                tracing::warn!(error = %e, "could not emit a daemon event");
             }
         }
     }

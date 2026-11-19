@@ -79,10 +79,12 @@ export function desktopPlatform(shell: Shell, page: BrowserPage): Platform {
 				['gitprompt://navigate'],
 				(_, href) => typeof href === 'string' && handler(href)
 			),
-		// A window the user can see is a focused one: the app shows it to be used.
+		// The app says when it shows or hides the window the page is in.
 		onWindowVisible: (handler) =>
-			subscribe(shell, ['tauri://focus', 'tauri://blur'], (name) =>
-				handler(name === 'tauri://focus')
+			subscribe(
+				shell,
+				['gitprompt://visible'],
+				(_, visible) => typeof visible === 'boolean' && handler(visible)
 			),
 		recall: {
 			problem: () =>

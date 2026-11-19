@@ -13,6 +13,7 @@ use gitprompt_store::leaks::{LeakState, StoredLeak};
 
 use super::prompts::turn_id;
 use super::{Inner, Service};
+use crate::bus::Notice;
 use crate::error::ApiResult;
 use crate::model::{LeakIn, LeakSaved};
 use crate::query::iso;
@@ -26,13 +27,18 @@ impl Service {
         .await
     }
 
-    /// Hide a finding's value, mark it not sensitive, or (no state) open it again.
+    /// Hide a finding's value, mark it not sensitive, or (no state) open it again. The bus then
+    /// carries an empty notice: what shows the open findings (the tray's badge, an open dashboard)
+    /// reloads.
     pub async fn set_leak(&self, id: String, body: LeakIn) -> ApiResult<LeakSaved> {
-        self.run(move |inner| match body.state {
-            Some(state) => inner.decide(id, state),
-            None => inner.reopen(id),
-        })
-        .await
+        let saved = self
+            .run(move |inner| match body.state {
+                Some(state) => inner.decide(id, state),
+                None => inner.reopen(id),
+            })
+            .await?;
+        self.bus().publish(Notice::default());
+        Ok(saved)
     }
 }
 

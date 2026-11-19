@@ -44,7 +44,7 @@ impl Inner {
         self.local_now().strftime("%Y-%m-%dT%H:%M:%S%.6f%:z").to_string()
     }
 
-    fn local_now(&self) -> jiff::Zoned {
+    pub(super) fn local_now(&self) -> jiff::Zoned {
         self.now().to_zoned(jiff::tz::TimeZone::system())
     }
 

@@ -50,6 +50,7 @@ async fn every_preference_key_is_listed_in_order() {
             "notify_long_turn",
             "notify_long_turn_minutes",
             "notify_leaks",
+            "leak_badge",
             "notify_quiet_connector",
             "notify_quiet_connector_minutes",
             "recap",
