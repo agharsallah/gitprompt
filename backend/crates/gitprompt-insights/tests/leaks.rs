@@ -132,7 +132,7 @@ mod hiding {
         let terms = private_terms(&[" Project Falcon ".to_owned(), String::new()]);
         let d = derived("ship project falcon today", &[]);
         let found = findings(&d, &[], &terms);
-        assert_eq!(seen(&found), [("private term", "pro…lcon", Place::Prompt)]);
+        assert_eq!(seen(&found), [("private term", "p…", Place::Prompt)]);
         assert_eq!(findings(&d, &[], &[]), [], "without the list, nothing");
         assert!(redactor(&d, &[], &found[0].id, &[]).is_none(), "the value is found again with the list only");
         let hide = redactor(&d, &[], &found[0].id, &terms).unwrap();

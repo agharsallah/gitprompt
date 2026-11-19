@@ -162,8 +162,8 @@ fn leaks(text: &str) -> Vec<(&'static str, String)> {
 fn real_looking_secrets_are_leaks_with_only_their_masked_value() {
     let key = "sk-proj-".to_owned() + "q8Zt2Lw9XkP4vR7mN3cBy6Hd";
     assert_eq!(leaks(&format!("export OPENAI_API_KEY={key}")), [("OpenAI API key", "sk-…y6Hd".to_owned())]);
-    assert_eq!(leaks("db_password = 'Tr0ub4dor&3x'"), [("password or key assignment", "Tr0…r&3x".to_owned())]);
-    assert_eq!(leaks("postgres://app:Tr0ub4dor3xZ@db.internal/app"), [("credentials in a URL", "Tr0…r3xZ".to_owned())]);
+    assert_eq!(leaks("db_password = 'Tr0ub4dor&3x'"), [("password or key assignment", "T…".to_owned())]);
+    assert_eq!(leaks("postgres://app:Tr0ub4dor3xZ@db.internal/app"), [("credentials in a URL", "T…".to_owned())]);
     let block = format!("-----BEGIN OPENSSH PRIVATE KEY-----\n{}\n-----END OPENSSH PRIVATE KEY-----", "b3BlbnNzaC1rZXktdjEAAAAA".repeat(4));
     assert_eq!(leaks(&block), [("private key", "hidden".to_owned())]);
 }

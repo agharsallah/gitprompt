@@ -110,7 +110,7 @@ async fn a_word_of_your_own_list_becomes_a_finding_you_can_hide() {
     let saved = api.put("/api/settings").dashboard().json(json!({"private_terms": "project falcon"})).send().await;
     assert_eq!(saved.status, 200, "{}", saved.text());
     let board = api.json("/api/leaks").await;
-    assert_eq!((&board["open"][0]["kind"], &board["open"][0]["masked"]), (&json!("private term"), &json!("Pro…lcon")));
+    assert_eq!((&board["open"][0]["kind"], &board["open"][0]["masked"]), (&json!("private term"), &json!("P…")));
     let id = ids(&board["open"])[0].clone();
     assert_eq!(decide(&api, &id, json!("hidden")).await.status, 200);
     let prompts = api.json("/api/prompts").await;

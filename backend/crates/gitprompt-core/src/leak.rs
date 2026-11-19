@@ -25,7 +25,8 @@ pub enum Scope {
 /// How a kind of value is shown masked.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mask {
-    /// `sk-…a91f`: the first 3 and last 4 characters of a long value, the first one of a short one.
+    /// `sk-…a91f`: the first 3 and last 4 characters of a long value (a key with a prefix), only
+    /// the first one of a shorter one (a password): never more than about a quarter of it.
     Token,
     /// `j…@example.org`: the first character of the name, then the domain.
     Email,
@@ -41,8 +42,10 @@ pub enum Mask {
     Hidden,
 }
 
-/// Shortest token shown by its head and tail; a shorter one shows only its first character.
-const TOKEN_ENDS_FROM: usize = 12;
+/// Shortest token shown by its head and tail: 7 characters of 28 tell which key it is and leave
+/// the rest unguessable. A shorter one (a password, a word of your own) shows only its first
+/// character: 7 of a 12-character password would be most of it.
+const TOKEN_ENDS_FROM: usize = 28;
 
 /// The value as it may be shown.
 pub fn masked(mask: Mask, value: &str) -> String {
@@ -141,6 +144,8 @@ mod tests {
     fn values_are_masked_by_kind() {
         assert_eq!(masked(Mask::Token, "sk-proj-abcdefghijklmnopa91f"), "sk-…a91f");
         assert_eq!(masked(Mask::Token, "hunter2"), "h…");
+        assert_eq!(masked(Mask::Token, "Tr0ub4dor&3x"), "T…");
+        assert_eq!(masked(Mask::Token, "AKIAIOSFODNN7EXAMPLE"), "A…");
         assert_eq!(masked(Mask::Email, "jane.doe@acme.io"), "j…@acme.io");
         assert_eq!(masked(Mask::Phone, "+49 30 1234567"), "+49…567");
         assert_eq!(masked(Mask::Account, "DE89 3704 0044 0532 0130 00"), "DE89…3000");
