@@ -111,6 +111,7 @@ describe('sourcesHref', () => {
 describe('targetHref', () => {
 	it('leads to the page an attention item names', () => {
 		expect(targetHref({ page: 'overview' })).toBe('/');
+		expect(targetHref({ page: 'overview', range: '7d' })).toBe('/?range=7d');
 		expect(targetHref({ page: 'prompts', q: 'fix lint' })).toBe('/prompts?q=fix%20lint');
 		expect(targetHref({ page: 'prompt', id: 7 })).toBe('/prompts?id=7');
 		expect(targetHref({ page: 'session', id: 's1' })).toBe('/sessions/s1');

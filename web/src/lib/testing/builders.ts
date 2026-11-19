@@ -355,7 +355,10 @@ export function settingsState(values: Preferences): SettingsState {
 			notify_long_turn_minutes: setting('notify_long_turn_minutes'),
 			notify_leaks: setting('notify_leaks'),
 			notify_quiet_connector: setting('notify_quiet_connector'),
-			notify_quiet_connector_minutes: setting('notify_quiet_connector_minutes')
+			notify_quiet_connector_minutes: setting('notify_quiet_connector_minutes'),
+			recap: setting('recap'),
+			recap_weekday: setting('recap_weekday'),
+			recap_hour: setting('recap_hour')
 		}
 	};
 }

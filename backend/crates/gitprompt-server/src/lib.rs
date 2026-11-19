@@ -30,6 +30,7 @@ pub mod model;
 pub mod notify;
 pub mod options;
 pub mod query;
+pub mod recap;
 pub mod routes;
 pub mod security;
 pub mod service;

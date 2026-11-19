@@ -15,6 +15,7 @@ import type {
 	ProjectStory,
 	Prompt,
 	PromptDetail,
+	Recap,
 	SearchResults,
 	SessionStory,
 	Source,
@@ -119,6 +120,8 @@ export const api = {
 	/** What needs you: sessions to pick up (any time) and up to three things worth a look (the range). */
 	attention: (query: StatsQuery = {}, fetcher?: Fetch) =>
 		get<Attention>(`/api/attention?${queryParams(query)}`, fetcher),
+	/** The weekly recap sent for this week, or null when none was (the Overview's card). */
+	recap: (fetcher?: Fetch) => get<Recap | null>('/api/recap', fetcher),
 	/** The possible leaks of the range, open first, with what you decided about the others. */
 	leaks: (query: StatsQuery = {}, fetcher?: Fetch) =>
 		get<Leaks>(`/api/leaks?${queryParams(query)}`, fetcher),

@@ -59,6 +59,7 @@ fn roots(c: &mut Collect<'_>) {
     c.visit::<model::FindResults>();
     c.visit::<model::Attention>();
     c.visit::<model::Notification>();
+    c.visit::<model::Recap>();
     c.visit::<model::Leaks>();
     c.visit::<model::LeakIn>();
     c.visit::<model::LeakSaved>();

@@ -20,7 +20,10 @@ export const DEFAULTS: Preferences = {
 	notify_long_turn_minutes: 10,
 	notify_leaks: true,
 	notify_quiet_connector: true,
-	notify_quiet_connector_minutes: 30
+	notify_quiet_connector_minutes: 30,
+	recap: true,
+	recap_weekday: 'monday',
+	recap_hour: 9
 };
 
 /** The effective value of every preference. */

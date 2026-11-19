@@ -41,7 +41,7 @@ pub fn api() -> Api {
 }
 
 /// Settings rooted in a fresh temp dir with an empty environment; every tool at [`TOOL_VERSION`];
-/// the real git CLI (temp repos only); the system clock; no dashboard.
+/// the real git CLI (temp repos only); the system clock; local time in UTC; no dashboard.
 pub fn harness() -> Harness {
     let tmp = tempfile::tempdir().expect("temp dir");
     let root = tmp.path().canonicalize().expect("canonical temp dir");
@@ -49,6 +49,7 @@ pub fn harness() -> Harness {
     let options = AppOptions {
         tool_version: Arc::new(FixedVersion(Some(TOOL_VERSION.into()))),
         git: Arc::new(SystemGit::new(std::time::Duration::ZERO)),
+        zone: Arc::new(jiff::tz::Offset::UTC),
         ..AppOptions::default()
     };
     Harness { tmp, settings, options }

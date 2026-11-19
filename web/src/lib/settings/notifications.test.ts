@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+	HOURS,
+	hourLabel,
 	LONG_TURN_MINUTES,
 	minuteOptions,
 	minutesLabel,
-	switchOf
+	switchOf,
+	WEEKDAYS,
+	weekdayLabel,
+	weekdayOf
 } from '#lib/settings/notifications.ts';
 
 describe('minutesLabel', () => {
@@ -41,5 +46,31 @@ describe('minuteOptions', () => {
 describe('switchOf', () => {
 	it('names a switch', () => {
 		expect([switchOf(true), switchOf(false)]).toEqual(['on', 'off']);
+	});
+});
+
+describe('the weekly recap day and hour', () => {
+	it('offers every day, Monday first, and reads a picked one back', () => {
+		expect(WEEKDAYS.map((d) => d.value)).toEqual([
+			'monday',
+			'tuesday',
+			'wednesday',
+			'thursday',
+			'friday',
+			'saturday',
+			'sunday'
+		]);
+		expect(weekdayLabel('friday')).toBe('Friday');
+		expect(weekdayOf('sunday')).toBe('sunday');
+		expect(weekdayOf('someday')).toBeUndefined();
+	});
+
+	it('offers every local hour, written as a time', () => {
+		expect(HOURS).toHaveLength(24);
+		expect([HOURS[0], HOURS[23]]).toEqual([
+			{ value: '0', label: '00:00' },
+			{ value: '23', label: '23:00' }
+		]);
+		expect(hourLabel(9)).toBe('09:00');
 	});
 });

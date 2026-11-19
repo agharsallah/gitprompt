@@ -29,6 +29,18 @@ describe('parseNotification', () => {
 		}
 	});
 
+	it('reads the weekly recap, which opens the Overview on the week', () => {
+		const sent = {
+			kind: 'weekly_recap',
+			title: 'Your week',
+			body: 'This week: nothing redone · 2 commits.',
+			target: { page: 'overview', range: '7d' }
+		};
+		expect(parseNotification(data(sent))).toEqual(sent);
+		const odd = { ...sent, target: { page: 'overview', range: 'fortnight' } };
+		expect(parseNotification(data(odd))?.target).toEqual({ page: 'overview' });
+	});
+
 	it('leads a target it does not know, or a malformed one, to the Overview', () => {
 		for (const target of [{ page: 'later' }, { page: 'prompt', id: 'x' }, 'leaks', null]) {
 			const parsed = parseNotification(

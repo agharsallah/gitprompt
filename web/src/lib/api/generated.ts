@@ -32,7 +32,7 @@ worth_a_look: Array<WorthItem>,
  */
 nothing_needs_you: boolean, };
 
-export type AttentionTarget = { "page": "overview" } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, } | { "page": "leaks" } | { "page": "source", id: string, };
+export type AttentionTarget = { "page": "overview", range?: RangeId, } | { "page": "prompts", q: string, } | { "page": "prompt", id: number, } | { "page": "session", id: string, } | { "page": "leaks" } | { "page": "source", id: string, };
 
 export type Backup = { name: string, path: string, bytes: number, modified: string, };
 
@@ -599,7 +599,7 @@ export type Notification = { kind: NotificationKind, title: string, body: string
  */
 target: AttentionTarget, };
 
-export type NotificationKind = "long_turn" | "possible_leak" | "quiet_connector";
+export type NotificationKind = "long_turn" | "possible_leak" | "quiet_connector" | "weekly_recap";
 
 /**
  * Who produced a prompt's text (ADR-0010).
@@ -722,7 +722,19 @@ notify_quiet_connector: boolean,
 /**
  * How long a connector sends nothing before it counts as quiet (1..=1440 minutes).
  */
-notify_quiet_connector_minutes: number, };
+notify_quiet_connector_minutes: number, 
+/**
+ * Send the weekly recap.
+ */
+recap: boolean, 
+/**
+ * The local day the weekly recap is sent.
+ */
+recap_weekday: Weekday, 
+/**
+ * The local hour (0..=23) the weekly recap is sent.
+ */
+recap_hour: number, };
 
 /**
  * The period before the requested one: its span, its totals, and the key figures compared.
@@ -869,6 +881,17 @@ export type PromptStats = { chars?: number, words?: number, lines?: number, appr
 secrets?: Array<string>, };
 
 export type RangeId = "24h" | "7d" | "30d" | "all";
+
+/**
+ * `GET /api/recap`: the weekly recap sent for the current week (`null` when none was), for the
+ * Overview's card when no desktop app shows notifications.
+ */
+
+export type Recap = { 
+/**
+ * The instant it was due (UTC): the week it sums up ends there, and a dismissal is per week.
+ */
+due: string, notification: Notification, };
 
 /**
  * The newest prompt of one connector and surface (`GET /api/sources/recent`), newest first.
@@ -1476,6 +1499,12 @@ diff: Array<[DiffOpKind, string]> | null,
 change: OutcomeChange | null, };
 
 export type WeekStart = "monday" | "sunday";
+
+/**
+ * A day of the week (the weekly recap's day).
+ */
+
+export type Weekday = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
 
 /**
  * What the item's one button does. GitPrompt only hands over what to copy; it never writes a file

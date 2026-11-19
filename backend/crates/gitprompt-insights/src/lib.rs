@@ -18,6 +18,7 @@
 //! | [`lineage`]   | similarity, word diff and outcome change between versions of a prompt     |
 //! | [`stories`]     | session chapters, project phases, commit attribution, a prompt's versions |
 //! | [`redone`]      | what the turns you had to redo cost (failed, interrupted, reworded)     |
+//! | [`recap`]       | the weekly recap: its words and when it is due                           |
 //! | [`snippets`]    | search result snippets with every match marked                            |
 //! | [`find`]        | one search over prompts, sessions and projects, ranked and grouped        |
 //! | [`catalog`]    | the Fields page: fields seen next to the fields each tool documents       |
@@ -51,6 +52,7 @@ pub mod leaks;
 pub mod lineage;
 pub mod notify;
 pub mod origin;
+pub mod recap;
 pub mod redone;
 pub mod snippets;
 pub mod stories;

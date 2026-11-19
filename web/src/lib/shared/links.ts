@@ -137,6 +137,6 @@ export function targetHref(target: AttentionTarget): string {
 		case 'source':
 			return sourcesHref({ tool: target.id });
 		default:
-			return pageHref('/');
+			return pageHref('/', { query: { range: target.range } });
 	}
 }

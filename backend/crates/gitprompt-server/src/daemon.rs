@@ -8,7 +8,8 @@
 //! shows what is already stored meanwhile; a `gitprompt spool drain` waits for it;
 //! [`Daemon::spool_drained`]), and retention repeats every [`DaemonOptions::retention_every`],
 //! health samples every [`DaemonOptions::health_every`]. From then on the notifier ([`crate::notify`])
-//! checks what deserves a notification after each capture.
+//! checks what deserves a notification after each capture, and the weekly recap ([`crate::recap`])
+//! waits for its day and hour.
 
 use std::fs::{File, OpenOptions, TryLockError};
 use std::io::Write;
@@ -30,6 +31,7 @@ use crate::error::{ApiError, ApiResult};
 use crate::health::{Limits, Monitor, ProcessSampler, SAMPLE_EVERY};
 use crate::notify::{self, Notifier};
 use crate::options::AppOptions;
+use crate::recap;
 use crate::service::Service;
 
 #[derive(Clone, Debug)]
@@ -43,11 +45,20 @@ pub struct DaemonOptions {
     pub health_every: Duration,
     /// When a health sample warns.
     pub health_limits: Limits,
+    /// The longest wait of the weekly recap before it reads the clock again. Default
+    /// [`crate::recap::CHECK_EVERY`] (15 min); tests on a moving clock set a short one.
+    pub recap_every: Duration,
 }
 
 impl Default for DaemonOptions {
     fn default() -> Self {
-        DaemonOptions { addr: None, retention_every: RETENTION_EVERY, health_every: SAMPLE_EVERY, health_limits: Limits::default() }
+        DaemonOptions {
+            addr: None,
+            retention_every: RETENTION_EVERY,
+            health_every: SAMPLE_EVERY,
+            health_limits: Limits::default(),
+            recap_every: recap::CHECK_EVERY,
+        }
     }
 }
 
@@ -163,19 +174,22 @@ struct Drain {
 }
 
 /// The work after the listener is up, until `stop`: deliver the hook spool, start the notifier
-/// (so what the spool held is never notified, and it listens before `drained` is cancelled), then
-/// retention and health samples on their schedules and notifications after each capture. The
-/// health rules' clock starts after the drain, which is busy by nature.
+/// (so what the spool held is never notified, and it listens before `drained` is cancelled), send
+/// a weekly recap missed while the daemon was down (before `drained` too, so it counts what the
+/// spool held), then retention and health samples on their schedules, notifications after each
+/// capture and the next recap. The health rules' clock starts after the drain, busy by nature.
 async fn background(service: Service, options: DaemonOptions, stop: CancellationToken, drain: Drain) {
     if let Some(spool) = drain.spool {
         drain_spool(&service, spool, &stop).await;
     }
     let notifier = Notifier::start(service.clone()).await;
+    recap::send_due(&service).await;
     drain.drained.cancel();
     tokio::join!(
         repeat_retention(service.clone(), options.retention_every, stop.clone()),
-        repeat_health(service, options.health_every, options.health_limits, stop.clone()),
-        notify::run(notifier, stop),
+        repeat_health(service.clone(), options.health_every, options.health_limits, stop.clone()),
+        notify::run(notifier, stop.clone()),
+        recap::run(service, options.recap_every, stop),
     );
 }
 

@@ -40,6 +40,8 @@ pub enum Kind {
     PossibleLeak,
     /// A connector that was sending went quiet while its tool is in use.
     QuietConnector,
+    /// Once a week: what the week cost, what was redone, what was committed ([`crate::recap`]).
+    WeeklyRecap,
 }
 
 /// One notification: what the desktop shell shows and the dashboard receives on its live stream.

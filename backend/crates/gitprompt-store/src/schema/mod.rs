@@ -17,6 +17,8 @@ const USAGE: &str = include_str!("usage.sql");
 const NAMES: &str = include_str!("names.sql");
 /// What you decided about possible leaks: durable, never part of the index (see the file).
 const LEAK_STATES: &str = include_str!("leak_states.sql");
+/// The weekly recaps already handled: durable, never part of the index (see the file).
+const RECAPS: &str = include_str!("recaps.sql");
 /// Rows and bytes per (source, event), kept by triggers (see the file).
 const EVENT_STATS: &str = include_str!("event_stats.sql");
 /// Recomputes `event_stats` from the event table.
@@ -50,6 +52,7 @@ pub(crate) fn create(conn: &Connection) -> DbResult<()> {
     conn.execute_batch(USAGE)?;
     conn.execute_batch(NAMES)?;
     conn.execute_batch(LEAK_STATES)?;
+    conn.execute_batch(RECAPS)?;
     create_index(conn)
 }
 

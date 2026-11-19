@@ -100,6 +100,30 @@ expression: "get(&api, \"/api/settings\").await"
       "env": "GITPROMPT_NOTIFY_QUIET_CONNECTOR_MINUTES",
       "locked": false,
       "applies": "now"
+    },
+    "recap": {
+      "value": true,
+      "default": true,
+      "source": "default",
+      "env": "GITPROMPT_RECAP",
+      "locked": false,
+      "applies": "now"
+    },
+    "recap_weekday": {
+      "value": "monday",
+      "default": "monday",
+      "source": "default",
+      "env": "GITPROMPT_RECAP_WEEKDAY",
+      "locked": false,
+      "applies": "now"
+    },
+    "recap_hour": {
+      "value": 9,
+      "default": 9,
+      "source": "default",
+      "env": "GITPROMPT_RECAP_HOUR",
+      "locked": false,
+      "applies": "now"
     }
   }
 }

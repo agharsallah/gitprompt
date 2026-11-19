@@ -21,6 +21,7 @@ mod leaks;
 mod names;
 mod notify;
 mod prompts;
+mod recap;
 mod redone;
 mod resume;
 mod settings;

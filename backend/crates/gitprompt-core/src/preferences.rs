@@ -38,6 +38,35 @@ pub enum WeekStart {
     Sunday,
 }
 
+/// A day of the week (the weekly recap's day).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+pub enum Weekday {
+    #[default]
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+}
+
+impl Weekday {
+    /// ISO number: 1 = Monday .. 7 = Sunday.
+    pub fn number(self) -> i8 {
+        match self {
+            Weekday::Monday => 1,
+            Weekday::Tuesday => 2,
+            Weekday::Wednesday => 3,
+            Weekday::Thursday => 4,
+            Weekday::Friday => 5,
+            Weekday::Saturday => 6,
+            Weekday::Sunday => 7,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(deny_unknown_fields, default)]
 pub struct Preferences {
@@ -66,12 +95,20 @@ pub struct Preferences {
     pub notify_quiet_connector: bool,
     /// How long a connector sends nothing before it counts as quiet (1..=1440 minutes).
     pub notify_quiet_connector_minutes: u32,
+    /// Send the weekly recap.
+    pub recap: bool,
+    /// The local day the weekly recap is sent.
+    pub recap_weekday: Weekday,
+    /// The local hour (0..=23) the weekly recap is sent.
+    pub recap_hour: u8,
 }
 
 /// Default of `notify_long_turn_minutes`.
 pub const LONG_TURN_MINUTES: u32 = 10;
 /// Default of `notify_quiet_connector_minutes`.
 pub const QUIET_CONNECTOR_MINUTES: u32 = 30;
+/// Default of `recap_hour`.
+pub const RECAP_HOUR: u8 = 9;
 
 impl Default for Preferences {
     fn default() -> Self {
@@ -88,6 +125,9 @@ impl Default for Preferences {
             notify_leaks: true,
             notify_quiet_connector: true,
             notify_quiet_connector_minutes: QUIET_CONNECTOR_MINUTES,
+            recap: true,
+            recap_weekday: Weekday::default(),
+            recap_hour: RECAP_HOUR,
         }
     }
 }
@@ -106,6 +146,9 @@ pub const KEYS: &[&str] = &[
     "notify_leaks",
     "notify_quiet_connector",
     "notify_quiet_connector_minutes",
+    "recap",
+    "recap_weekday",
+    "recap_hour",
 ];
 
 /// Keys that need a daemon restart to take effect (none today).
@@ -299,10 +342,14 @@ fn normalize(key: &str, value: &Json) -> std::result::Result<Json, String> {
         "default_range" => one_of(value, &["24h", "7d", "30d", "all"]),
         "week_start" => one_of(value, &["monday", "sunday"]),
         "event_retention_days" => retention_days(value),
-        "hide_secrets_on_ingest" | "notify_long_turn" | "notify_leaks" | "notify_quiet_connector" => boolean(value).map(Json::Bool),
+        "hide_secrets_on_ingest" | "notify_long_turn" | "notify_leaks" | "notify_quiet_connector" | "recap" => {
+            boolean(value).map(Json::Bool)
+        }
         "notify_long_turn_minutes" | "notify_quiet_connector_minutes" => minutes(value),
         "disabled_sources" | "leak_allow" => string_list(value),
         "recall_shortcut" => recall_shortcut(value),
+        "recap_weekday" => one_of(value, &["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
+        "recap_hour" => hour(value),
         _ => Err("unknown setting".into()),
     }
 }
@@ -333,6 +380,14 @@ fn minutes(value: &Json) -> std::result::Result<Json, String> {
         Some(minutes) if RANGE.contains(&minutes) => Ok(Json::from(minutes)),
         Some(_) => Err(format!("must be between {} and {} minutes, got {value}", RANGE.start(), RANGE.end())),
         None => Err(format!("must be a whole number of minutes, got {value}")),
+    }
+}
+
+/// An hour of the day, 0..=23.
+fn hour(value: &Json) -> std::result::Result<Json, String> {
+    match whole_number(value) {
+        Some(hour) if (0..=23).contains(&hour) => Ok(Json::from(hour)),
+        _ => Err(format!("must be a whole hour between 0 and 23, got {value}")),
     }
 }
 

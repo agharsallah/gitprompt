@@ -11,8 +11,10 @@ import type { PageLoad } from './$types';
 export const load: PageLoad = async ({ fetch, url }) => {
 	const { default_range, week_start } = await preferences(fetch);
 	const filters = readFilters(url.searchParams, default_range, originFilter.origins);
-	const content = Promise.all([loadOverview(filters, fetch), api.sources(fetch)]).then(
-		([overview, sources]) => ({ overview, sources })
+	// The weekly recap is a bonus: the page shows without it when it cannot be read.
+	const recap = api.recap(fetch).catch(() => null);
+	const content = Promise.all([loadOverview(filters, fetch), api.sources(fetch), recap]).then(
+		([overview, sources, recap]) => ({ overview, sources, recap })
 	);
 	return { filters, content: defer(content), weekStart: week_start };
 };

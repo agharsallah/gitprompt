@@ -109,6 +109,8 @@ A new wire format is a variant of `Format` (`spec.rs`) and an arm in `gitprompt-
 
 The daemon decides what deserves a notification, so it works with the window closed (`gitprompt-insights/src/notify/`, pure). A kind is a variant of `Kind`, one rule in `notify/rules.rs` (`decide` checks its switch first, then the shared per-kind rate limit, `LIMIT` per hour, held in the rules' state so tests need no clock), a switch (and a threshold if it has one) in `gitprompt-core/src/preferences.rs`, and the events it needs gathered in `gitprompt-server/src/service/notify.rs` (`Watch`: everything captured before the daemon started is marked seen, never notified). Notifications go on the bus's second channel (`Bus::notify`), reach the dashboard as `event: notification` on `/api/prompts/stream`, and are switched in Settings › Notifications.
 
+The weekly recap is one more kind (`gitprompt-insights/src/recap/`: `recap` words the week, `next_recap` finds the instant in the local zone, DST-safe). The daemon sends it from `gitprompt-server/src/recap.rs` and records each week in the durable `recaps` table, so a restart never sends it twice; `GET /api/recap` gives the Overview its card.
+
 ## A kind of possible leak
 
 Possible leaks are found once per turn, when the turn is indexed (`gitprompt-insights/src/leaks.rs`), and stored masked in `prompt_index_leak`: the clear value is never stored, logged or sent. Precision comes first; every rule below exists because of a false alarm on real data.

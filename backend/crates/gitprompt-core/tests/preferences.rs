@@ -18,7 +18,9 @@ mod common;
 use std::path::Path;
 
 use common::{entries, mode};
-use gitprompt_core::preferences::{Applies, KEYS, PreferenceFile, Preferences, RangeId, Resolved, ValueSource, WeekStart, env_name};
+use gitprompt_core::preferences::{
+    Applies, KEYS, PreferenceFile, Preferences, RangeId, Resolved, ValueSource, WeekStart, Weekday, env_name,
+};
 use gitprompt_core::{Env, Error, Json, JsonMap};
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -77,6 +79,9 @@ fn defaults_without_a_file() {
         ("notify_leaks", json!(true)),
         ("notify_quiet_connector", json!(true)),
         ("notify_quiet_connector_minutes", json!(30)),
+        ("recap", json!(true)),
+        ("recap_weekday", json!("monday")),
+        ("recap_hour", json!(9)),
     ]
     .into_iter()
     .map(|(key, value)| Resolved {
@@ -123,6 +128,9 @@ fn env_wins_over_file_wins_over_default() {
         ("notify_leaks".to_string(), json!(true), ValueSource::Default, false),
         ("notify_quiet_connector".to_string(), json!(true), ValueSource::Default, false),
         ("notify_quiet_connector_minutes".to_string(), json!(30), ValueSource::Default, false),
+        ("recap".to_string(), json!(true), ValueSource::Default, false),
+        ("recap_weekday".to_string(), json!("monday"), ValueSource::Default, false),
+        ("recap_hour".to_string(), json!(9), ValueSource::Default, false),
     ];
     assert_eq!(summary, expected);
     let current = file.current().unwrap();
@@ -435,5 +443,26 @@ fn a_notification_threshold_outside_one_minute_to_a_day_is_refused() {
     for minutes in [json!(0), json!(1441), json!(-5), json!("soon"), json!(2.5)] {
         assert_refused(json!({"notify_long_turn_minutes": minutes.clone()}));
         assert_refused(json!({"notify_quiet_connector_minutes": minutes}));
+    }
+}
+
+#[test]
+fn the_weekly_recap_switch_day_and_hour_are_saved_and_read() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = prefs_with_env(&dir, &[("GITPROMPT_RECAP_HOUR", "18")]);
+    let changed = file.update(&changes(json!({"recap": "off", "recap_weekday": "friday"}))).unwrap();
+    assert_eq!(changed, ["recap", "recap_weekday"]);
+    let current = file.current().unwrap();
+    assert_eq!((current.recap, current.recap_weekday, current.recap_hour), (false, Weekday::Friday, 18));
+    assert_eq!(Weekday::Friday.number(), 5);
+}
+
+#[test]
+fn a_recap_hour_outside_the_day_or_an_unknown_weekday_is_refused() {
+    for hour in [json!(-1), json!(24), json!("noon"), json!(9.5)] {
+        assert_refused(json!({"recap_hour": hour}));
+    }
+    for day in [json!("mon"), json!("Monday"), json!(1)] {
+        assert_refused(json!({"recap_weekday": day}));
     }
 }

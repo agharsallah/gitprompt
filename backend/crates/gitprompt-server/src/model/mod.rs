@@ -21,7 +21,7 @@ mod stats;
 mod stories;
 mod usage;
 
-pub use attention::{Attention, PickUp, PickUpPresence, Target, WorthAction, WorthItem, WorthKind};
+pub use attention::{Attention, PickUp, PickUpPresence, Recap, Target, WorthAction, WorthItem, WorthKind};
 pub use data::{Backup, CompactIn, DataOut, DeleteIn, RemovalOut, ReportOut, SourceEvents};
 pub use export::{BranchQuery, ChartInfo, ExportFile, ExportFormat, ExportKind, ExportQuery};
 pub use find::{FindHit, FindQuery, FindResults, FindTarget};

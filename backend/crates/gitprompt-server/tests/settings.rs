@@ -50,7 +50,10 @@ async fn every_preference_key_is_listed_in_order() {
             "notify_long_turn_minutes",
             "notify_leaks",
             "notify_quiet_connector",
-            "notify_quiet_connector_minutes"
+            "notify_quiet_connector_minutes",
+            "recap",
+            "recap_weekday",
+            "recap_hour"
         ]
     );
 }

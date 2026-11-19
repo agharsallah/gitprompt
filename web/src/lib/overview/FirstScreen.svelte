@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { StatsQuery } from '#lib/api/query.ts';
-	import type { Attention, Source } from '#lib/api/types.ts';
+	import type { Attention, Recap, Source } from '#lib/api/types.ts';
 	import NeedsYou from '#lib/overview/NeedsYou.svelte';
+	import RecapCard from '#lib/overview/RecapCard.svelte';
 	import SetupSteps from '#lib/sources/SetupSteps.svelte';
 
 	/**
-	 * The top of the Overview, right under its header: what needs you (NeedsYou.svelte), and the
+	 * The top of the Overview, right under its header: this week's recap once (RecapCard.svelte),
+	 * what needs you (NeedsYou.svelte), and the
 	 * setup steps while no tool is connected (alone on a first run: nothing was ever captured).
 	 * The rest of the page (filters, key figures, panels) comes after, as `children`, so the lists
 	 * are always first.
@@ -14,6 +16,7 @@
 	let {
 		sources,
 		attention,
+		recap,
 		calm,
 		query,
 		onchanged,
@@ -22,6 +25,8 @@
 	}: {
 		sources: Source[];
 		attention?: Attention;
+		/** This week's recap, shown as a card the first time the Overview opens that week. */
+		recap?: Recap | null;
 		calm?: string;
 		query?: StatsQuery;
 		onchanged?: () => void;
@@ -39,6 +44,7 @@
 	<SetupSteps {sources} />
 {/if}
 {#if ever}
+	<RecapCard {recap} />
 	<NeedsYou {attention} {calm} {query} {onchanged} {now} />
 {/if}
 {@render children?.()}

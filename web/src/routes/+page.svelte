@@ -111,7 +111,7 @@
 		</div>
 	{/snippet}
 
-	{#snippet children({ overview: o, sources })}
+	{#snippet children({ overview: o, sources, recap })}
 		{@const t = o.activity.totals}
 		{@const link = linkFor(o)}
 		{@const slots = slotsFor(o)}
@@ -121,6 +121,7 @@
 			<FirstScreen
 				{sources}
 				attention={o.attention}
+				{recap}
 				calm={calmLine(o.filters.range, o.keyFigures.totals)}
 				query={o.query}
 				onchanged={() => refreshAll()}

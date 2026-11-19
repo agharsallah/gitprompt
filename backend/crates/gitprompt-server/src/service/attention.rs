@@ -18,16 +18,21 @@ impl Service {
     pub async fn attention(&self, filter: PromptFilter) -> ApiResult<Attention> {
         self.run(move |inner| {
             let (set, _) = inner.indexed()?;
-            let redone = Some(inner.redone_work(&set, &filter)?);
-            let leaks = inner.leak_board(&filter)?.open;
-            let inputs = Inputs { sessions: inner.recent_sessions(&set)?, repeated: inner.repeated_texts(filter)?, redone, leaks };
-            Ok(attention(&inputs, inner.now()))
+            inner.attention(&set, filter)
         })
         .await
     }
 }
 
 impl Inner {
+    /// The feed over the range `filter` keeps (the sessions to pick up are always the latest).
+    pub(super) fn attention(&self, set: &SpecSet, filter: PromptFilter) -> ApiResult<Attention> {
+        let redone = Some(self.redone_work(set, &filter)?);
+        let leaks = self.leak_board(&filter)?.open;
+        let inputs = Inputs { sessions: self.recent_sessions(set)?, repeated: self.repeated_texts(filter)?, redone, leaks };
+        Ok(attention(&inputs, self.now()))
+    }
+
     /// The latest sessions, whatever the range, with their names, homes and latest turn's end.
     fn recent_sessions(&self, set: &SpecSet) -> ApiResult<Vec<SessionState>> {
         let query = AggregateQuery {

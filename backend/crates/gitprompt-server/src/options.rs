@@ -10,6 +10,7 @@ use gitprompt_core::JsonMap;
 use gitprompt_core::git::{self, Commit, CommitsAfter, GitCache, HistoryCache};
 use gitprompt_core::preferences::APPLIES_AT_START;
 use gitprompt_core::spec::Spec;
+use gitprompt_insights::zone::{MachineZone, Zone};
 
 use crate::clock::{Clock, SystemClock};
 use crate::dashboard::Dashboard;
@@ -151,6 +152,9 @@ pub struct AppOptions {
     /// down, and the Connectors page compares installed entries against that form. `None`: the
     /// spec's curl commands.
     pub forwarder: Option<PathBuf>,
+    /// The zone of local times the daemon schedules by (the weekly recap's day and hour).
+    /// Default: the machine's ([`MachineZone`]); tests pin one.
+    pub zone: Arc<dyn Zone>,
 }
 
 impl std::fmt::Debug for AppOptions {
@@ -164,7 +168,7 @@ impl std::fmt::Debug for AppOptions {
 
 impl Default for AppOptions {
     /// System clock, [`ProbeVersions`], [`SystemGit`] (2 s cache), no dashboard, backlog 100,
-    /// `APPLIES_AT_START`, curl hooks (no forwarder).
+    /// `APPLIES_AT_START`, curl hooks (no forwarder), the machine's zone.
     fn default() -> Self {
         AppOptions {
             clock: Arc::new(SystemClock),
@@ -174,6 +178,7 @@ impl Default for AppOptions {
             bus_backlog: 100,
             applies_at_start: APPLIES_AT_START.iter().map(|k| (*k).to_owned()).collect(),
             forwarder: None,
+            zone: Arc::new(MachineZone),
         }
     }
 }

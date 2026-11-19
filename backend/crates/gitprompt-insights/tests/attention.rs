@@ -144,7 +144,7 @@ fn fake(_: &Inputs) -> Option<Item> {
         kind: Kind::RepeatedPrompt,
         text: "fake".into(),
         action: Action::CopyCommand { name: "fake".into(), text: "fake".into() },
-        target: Target::Overview,
+        target: Target::Overview { range: None },
     })
 }
 

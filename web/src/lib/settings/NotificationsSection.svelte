@@ -2,18 +2,24 @@
 	import type { SettingsState } from '#lib/api/settings.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
 	import {
+		HOURS,
+		hourLabel,
 		LONG_TURN_MINUTES,
 		minuteOptions,
 		minutesLabel,
 		QUIET_MINUTES,
 		SWITCH,
 		switchOf,
-		type Switch
+		type Switch,
+		WEEKDAYS,
+		weekdayLabel,
+		weekdayOf
 	} from '#lib/settings/notifications.ts';
 	import SettingRow from '#lib/settings/SettingRow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
 	import SegmentedControl from '#lib/ui/SegmentedControl.svelte';
+	import Select from '#lib/ui/Select.svelte';
 
 	let { prefs }: { prefs: SettingsState } = $props();
 
@@ -111,6 +117,62 @@
 					(v: string) => editor.set({ notify_quiet_connector_minutes: Number(v) })
 				}
 				options={minuteOptions(QUIET_MINUTES, s.notify_quiet_connector_minutes.value)}
+			/>
+		</SettingRow>
+	{/if}
+
+	<SettingRow
+		label="Weekly recap"
+		description="Once a week: what the week cost, what was redone, what was committed and the one thing worth a look. Without the desktop app, it is a card on the Overview."
+		setting={s.recap}
+		file={prefs.file}
+		value={onOff(s.recap.value)}
+	>
+		<SegmentedControl
+			label="Weekly recap"
+			bind:value={
+				() => switchOf(editor.value('recap')), (v: Switch) => editor.set({ recap: v === 'on' })
+			}
+			options={SWITCH}
+		/>
+	</SettingRow>
+
+	{#if editor.value('recap')}
+		<SettingRow
+			label="Recap day"
+			setting={s.recap_weekday}
+			file={prefs.file}
+			value={weekdayLabel(s.recap_weekday.value)}
+		>
+			<Select
+				label="Recap day"
+				hideLabel
+				options={WEEKDAYS}
+				bind:value={
+					() => editor.value('recap_weekday'),
+					(v: string) => {
+						const day = weekdayOf(v);
+						if (day) void editor.set({ recap_weekday: day });
+					}
+				}
+			/>
+		</SettingRow>
+
+		<SettingRow
+			label="Recap hour"
+			description="Local time."
+			setting={s.recap_hour}
+			file={prefs.file}
+			value={hourLabel(s.recap_hour.value)}
+		>
+			<Select
+				label="Recap hour"
+				hideLabel
+				options={HOURS}
+				bind:value={
+					() => String(editor.value('recap_hour')),
+					(v: string) => editor.set({ recap_hour: Number(v) })
+				}
 			/>
 		</SettingRow>
 	{/if}

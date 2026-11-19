@@ -1433,7 +1433,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t31" data-area="be" data-size="S" data-needs="t30 t22">
+    <article class="tk" id="t31" data-area="be" data-size="S" data-needs="t30 t22" data-status="done">
       <details><summary><span class="tt">The weekly recap</span><span class="goal">Once a week, one notification says what the week cost, what was redone, what was committed and the one thing worth a look.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd><a href="index.html#s-n1">N1</a> weekly recap</dd></dl>
@@ -1450,6 +1450,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> unit tests for <code>next_recap</code> (week edges, time zones, a changed preference) · a server test that advances a <code>ManualClock</code> past the instant and sees exactly one recap.</p>
         <p class="dod"><b>Done when</b> the recap arrives once at the set time and never twice after a restart.</p>
+        <p class="shipped"><b>Shipped 2026-11-19.</b> <code>gitprompt-insights/src/recap/</code> is pure. <code>recap(&amp;Week, &amp;Attention)</code> gives "Your week: This week: $42.00 · 1 h 10 min redone · 23 commits. Worth a look: …". There is no spend where no tool reports cost, it says "nothing redone" or "no commits", and there is no pointer when nothing is worth a look. A week with no prompts gives nothing. <code>next_recap</code> and <code>last_recap</code> find the local weekday and hour in the <code>Zone</code>; a repeated hour takes its first instant and a skipped one lands just after the gap. New preferences <code>recap</code>, <code>recap_weekday</code> (Monday) and <code>recap_hour</code> (9). The durable <code>recaps</code> table records each week, a week without prompts as handled, so a restart never sends twice. At start, a recap missed while the daemon was down is sent once. The daemon waits until the next instant (checked at least every 15 minutes, <code>recap_every</code>, which tests set), with "now" from the Clock, and puts the recap on the bus. <code>just timing</code> reports it as a timer for review, not blocking. <code>Target::Overview { range? }</code> opens the Overview on the last week. <code>GET /api/recap</code> gives the recap of the last 7 days or null; the Overview shows it as a dismissable card the first time you open it that week (<code>overview/recap.ts</code>). Settings › Notifications: weekly recap on or off, its day and its hour. Tests: the schedule across week edges, two offsets, a changed preference and both DST changes; the wording; the store record across a reindex; and a daemon on a <code>ManualClock</code> that sends exactly one recap, sends a missed one once at start and not again on a second start, and sends none when it is off. Note: the first start after upgrading sends last week's recap if that week had prompts.</p>
       </div></details>
     </article>
 
