@@ -13,16 +13,23 @@ export type Resumable = { resume?: Resume | null };
 /** What to paste into a terminal to pick the session up again, or null when there is no command. */
 export const resumeText = (session: Resumable): string | null => session.resume?.paste ?? null;
 
+/** Ids longer than this are cut to `SHORT_ID` characters and `…`, like a commit hash. */
+const LONG_ID = 12;
+const SHORT_ID = 8;
+
+const shortId = (id: string) => (id.length > LONG_ID ? `${id.slice(0, SHORT_ID)}…` : id);
+
 /**
- * The tool's command without the session id (`claude --resume`, `codex resume`, `copilot
- * --resume`): what a row's button shows, so it says what it copies without the long id.
+ * The tool's command with the session's own id shortened (`claude --resume 4a7d31a7…`, `copilot
+ * --resume=4a7d31a7…`): what a row's button shows, so each row says which session it copies.
+ * The id is the command's last word (or the value of its last `--flag=`).
  */
 export function resumeLabel(resume: Resume): string {
 	const words = resume.command.trim().split(/\s+/);
 	if (words.length < 2) return resume.command.trim();
 	const last = words.pop() ?? '';
-	const flag = last.includes('=') ? last.slice(0, last.indexOf('=')) : '';
-	return [...words, flag].filter(Boolean).join(' ');
+	const eq = last.indexOf('=') + 1;
+	return [...words, last.slice(0, eq) + shortId(last.slice(eq))].join(' ');
 }
 
 /** What the story says in place of the command: the tool, or "this tool" when it is not named. */

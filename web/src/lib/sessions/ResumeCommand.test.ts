@@ -29,7 +29,7 @@ describe('ResumeCommand', () => {
 	it('is only a labelled button when compact, with the line in its tooltip', () => {
 		const out = html(ResumeCommand, { resume, compact: true });
 		expect(out).toContain('aria-label="Copy resume command"');
-		expect(out).toContain('>claude --resume</span>');
+		expect(out).toContain('>claude --resume session-a</span>');
 		expect(out).toMatch(
 			/title="[^"]*resumes this session[^"]*cd \/work\/app &amp;&amp; claude --resume session-a"/
 		);

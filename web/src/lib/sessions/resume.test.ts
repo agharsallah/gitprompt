@@ -26,15 +26,21 @@ describe('resumeText', () => {
 });
 
 describe('resumeLabel', () => {
-	it('is the tool’s command without the session id, so the button says what it copies', () => {
-		const label = (command: string) => resumeLabel({ ...resume, command });
-		expect(label('claude --resume abc')).toBe('claude --resume');
-		expect(label('codex resume abc')).toBe('codex resume');
-		expect(label('copilot --resume=abc')).toBe('copilot --resume');
+	const label = (command: string) => resumeLabel({ ...resume, command });
+	const id = '4a7d31a7-6564-4e59-90ed-9ffe391bbbe0';
+
+	it('keeps the session’s own id, shortened like a commit hash, so each row shows what it copies', () => {
+		expect(label(`claude --resume ${id}`)).toBe('claude --resume 4a7d31a7…');
+		expect(label(`codex resume ${id}`)).toBe('codex resume 4a7d31a7…');
+		expect(label(`copilot --resume=${id}`)).toBe('copilot --resume=4a7d31a7…');
 	});
 
-	it('is the whole command when there is nothing to leave out', () => {
-		expect(resumeLabel({ ...resume, command: 'resume-last' })).toBe('resume-last');
+	it('keeps a short id whole', () => {
+		expect(label('claude --resume abc')).toBe('claude --resume abc');
+	});
+
+	it('is the whole command when it has one word', () => {
+		expect(label('resume-last')).toBe('resume-last');
 	});
 });
 
