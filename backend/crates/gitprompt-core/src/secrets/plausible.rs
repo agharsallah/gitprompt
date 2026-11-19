@@ -10,6 +10,8 @@ pub(crate) const TOKEN_ENTROPY: f64 = 3.0;
 pub(crate) const PASSWORD_ENTROPY: f64 = 2.5;
 /// Shortest password worth a finding.
 const PASSWORD_CHARS: usize = 8;
+/// Kinds of character (letters, digits, others) a password mixes at least: a word alone is not one.
+const PASSWORD_CLASSES: usize = 2;
 /// Base64 characters a private key block holds at least (a header alone is documentation).
 const KEY_BODY_CHARS: usize = 64;
 
@@ -51,7 +53,7 @@ fn password(value: &str) -> Option<&str> {
     let plausible = value.chars().count() >= PASSWORD_CHARS
         && !is_code(value)
         && !is_name(value)
-        && classes(value) >= 2
+        && classes(value) >= PASSWORD_CLASSES
         && !is_placeholder(value)
         && entropy(value) >= PASSWORD_ENTROPY;
     plausible.then_some(value)

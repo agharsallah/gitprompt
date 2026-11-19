@@ -74,6 +74,7 @@ fn defaults_without_a_file() {
         ("disabled_sources", json!([])),
         ("recall_shortcut", json!("CmdOrCtrl+Alt+P")),
         ("leak_allow", json!([])),
+        ("private_terms", json!([])),
         ("notify_long_turn", json!(true)),
         ("notify_long_turn_minutes", json!(10)),
         ("notify_leaks", json!(true)),
@@ -123,6 +124,7 @@ fn env_wins_over_file_wins_over_default() {
         ("disabled_sources".to_string(), json!([]), ValueSource::Default, false),
         ("recall_shortcut".to_string(), json!("CmdOrCtrl+Alt+P"), ValueSource::Default, false),
         ("leak_allow".to_string(), json!([]), ValueSource::Default, false),
+        ("private_terms".to_string(), json!([]), ValueSource::Default, false),
         ("notify_long_turn".to_string(), json!(true), ValueSource::Default, false),
         ("notify_long_turn_minutes".to_string(), json!(10), ValueSource::Default, false),
         ("notify_leaks".to_string(), json!(true), ValueSource::Default, false),
@@ -318,6 +320,17 @@ fn a_comma_separated_disabled_sources_string_is_stored_as_a_list() {
     let file = prefs(&dir);
     assert_eq!(file.update(&changes(json!({"disabled_sources": "cursor, codex"}))).unwrap(), ["disabled_sources"]);
     assert_eq!(file_json(&file.path), json!({"disabled_sources": ["cursor", "codex"]}));
+}
+
+#[test]
+fn private_terms_are_a_list_from_the_file_or_the_environment() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = prefs(&dir);
+    assert_eq!(file.update(&changes(json!({"private_terms": "Project Falcon, acme-internal"}))).unwrap(), ["private_terms"]);
+    assert_eq!(file.current().unwrap().private_terms, ["Project Falcon", "acme-internal"]);
+    let env = prefs_with_env(&dir, &[("GITPROMPT_PRIVATE_TERMS", "falcon")]);
+    assert_eq!(env.current().unwrap().private_terms, ["falcon"]);
+    assert!(prefs(&dir).update(&changes(json!({"private_terms": 3}))).is_err());
 }
 
 #[test]

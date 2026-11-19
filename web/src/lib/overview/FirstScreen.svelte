@@ -20,7 +20,6 @@
 		calm,
 		query,
 		onchanged,
-		now,
 		children
 	}: {
 		sources: Source[];
@@ -30,7 +29,6 @@
 		calm?: string;
 		query?: StatsQuery;
 		onchanged?: () => void;
-		now?: number;
 		children?: Snippet;
 	} = $props();
 
@@ -45,6 +43,6 @@
 {/if}
 {#if ever}
 	<RecapCard {recap} />
-	<NeedsYou {attention} {calm} {query} {onchanged} {now} />
+	<NeedsYou {attention} {calm} {query} {onchanged} />
 {/if}
 {@render children?.()}

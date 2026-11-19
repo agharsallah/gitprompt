@@ -10,8 +10,9 @@
 //!
 //! The rules version hashes what the values depend on besides the raw rows: [`CODE_VERSION`], each
 //! spec's `origin` and `surface` rules, `injected` tags, `tool_kinds`, `tool_files` and `usage`, and
-//! the timezone's name (day and hour buckets). Changing any of them rebuilds the index on next use,
-//! with no migration.
+//! the timezone's name (day and hour buckets), and the words of your own list that are possible
+//! leaks ([`terms_version`]). Changing any of them rebuilds the index on next use, with no
+//! migration.
 
 use std::collections::HashMap;
 use std::fmt::Write as _;
@@ -76,6 +77,17 @@ pub fn rules_version(specs: &Specs, zone: &dyn Zone, code_version: &str) -> Stri
         tracing::error!(error = %e, "rules could not be serialized for the rules version");
         e.to_string().into_bytes()
     });
+    hex16(&bytes)
+}
+
+/// `rules` with the words of your own list (as [`leaks::private_terms`] gives them): `rules` itself
+/// without any, so an install that keeps none is not rebuilt; else 16 hex characters of a SHA-256
+/// over both.
+pub fn terms_version(rules: &str, terms: &[String]) -> String {
+    if terms.is_empty() {
+        return rules.to_owned();
+    }
+    let bytes = serde_json::to_vec(&(rules, terms)).unwrap_or_else(|e| e.to_string().into_bytes());
     hex16(&bytes)
 }
 
@@ -237,6 +249,11 @@ pub fn prompt_facts(derived: &Derived, spec: Option<&Spec>, outcome: Option<Outc
 pub struct Indexer {
     specs: Specs,
     zone: Arc<dyn Zone>,
+    /// [`rules_version`] of the specs, zone and code version.
+    rules: String,
+    /// The words of your own list found as possible leaks ([`leaks::private_terms`]).
+    terms: Vec<String>,
+    /// [`terms_version`] of `rules` and `terms`: what the index is stamped with.
     version: String,
 }
 
@@ -248,13 +265,28 @@ impl Indexer {
 
     /// An explicit timezone and code version (tests; a desktop app with its own timezone setting).
     pub fn with(specs: Specs, zone: Arc<dyn Zone>, code_version: &str) -> Self {
-        let version = rules_version(&specs, zone.as_ref(), code_version);
-        Indexer { specs, zone, version }
+        let rules = rules_version(&specs, zone.as_ref(), code_version);
+        Indexer { specs, zone, version: rules.clone(), rules, terms: Vec::new() }
     }
 
-    /// [`rules_version`] of this indexer's specs, zone and code version.
+    /// This indexer also finding the words of your own list (the `private_terms` preference);
+    /// another list is another version, so changing it rebuilds the index.
+    #[must_use]
+    pub fn with_private_terms(mut self, terms: &[String]) -> Self {
+        self.terms = leaks::private_terms(terms);
+        self.version = terms_version(&self.rules, &self.terms);
+        self
+    }
+
+    /// The version the index is stamped with: [`rules_version`] of this indexer's specs, zone and
+    /// code version, with its private terms ([`terms_version`]).
     pub fn version(&self) -> &str {
         &self.version
+    }
+
+    /// The words of your own list this indexer finds, as [`leaks::private_terms`] gives them.
+    pub fn private_terms(&self) -> &[String] {
+        &self.terms
     }
 
     pub fn specs(&self) -> &Specs {
@@ -288,7 +320,7 @@ impl Indexer {
             let spec = self.specs.get(&row.source).map(AsRef::as_ref);
             let derived = derive(&view(row), turn, spec);
             match entry(&derived, self.zone.as_ref()) {
-                Ok(entry) => out.push(Entry { leaks: leak_rows(&derived, turn), ..entry }),
+                Ok(entry) => out.push(Entry { leaks: leak_rows(&derived, turn, &self.terms), ..entry }),
                 Err(error) => tracing::warn!(id = derived.prompt.row.id, %error, "prompt left out of the index"),
             }
         }
@@ -403,8 +435,8 @@ impl Indexer {
 }
 
 /// The possible leaks of a turn as the index stores them (masked; see [`crate::leaks`]).
-fn leak_rows(derived: &Derived, events: &[EventRow]) -> Vec<LeakRow> {
-    leaks::findings(derived, events)
+fn leak_rows(derived: &Derived, events: &[EventRow], terms: &[String]) -> Vec<LeakRow> {
+    leaks::findings(derived, events, terms)
         .into_iter()
         .map(|f| LeakRow { finding: f.id, value_key: f.value_key, kind: f.kind, place: f.place.as_str().to_owned(), masked: f.masked })
         .collect()

@@ -351,6 +351,7 @@ export function settingsState(values: Preferences): SettingsState {
 			disabled_sources: setting('disabled_sources'),
 			recall_shortcut: setting('recall_shortcut'),
 			leak_allow: setting('leak_allow'),
+			private_terms: setting('private_terms'),
 			notify_long_turn: setting('notify_long_turn'),
 			notify_long_turn_minutes: setting('notify_long_turn_minutes'),
 			notify_leaks: setting('notify_leaks'),

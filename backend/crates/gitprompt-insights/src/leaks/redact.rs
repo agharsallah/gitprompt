@@ -66,10 +66,11 @@ fn strings_end_with(value: &Json, name: &str) -> bool {
     }
 }
 
-/// The redactor of finding `id` of this turn, if the turn still holds it.
-pub fn redactor(derived: &Derived, events: &[EventRow], id: &str) -> Option<Redactor> {
+/// The redactor of finding `id` of this turn, if the turn still holds it (`terms`: the words of
+/// your own list the turn was indexed with).
+pub fn redactor(derived: &Derived, events: &[EventRow], id: &str, terms: &[String]) -> Option<Redactor> {
     let turn = derived.prompt.row.id;
-    let (_, found) = found(derived, events).into_iter().find(|(place, found)| finding(turn, *place, *found).id == id)?;
+    let (_, found) = found(derived, events, terms).into_iter().find(|(place, found)| finding(turn, *place, *found).id == id)?;
     let target =
         if found.mask == Mask::Plain { Target::FileContents(found.value.to_owned()) } else { Target::Value(found.value.to_owned()) };
     Some(Redactor { target, replacement: format!("[hidden {}]", found.kind) })

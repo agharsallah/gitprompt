@@ -61,6 +61,14 @@ expression: "get(&api, \"/api/settings\").await"
       "locked": false,
       "applies": "now"
     },
+    "private_terms": {
+      "value": [],
+      "default": [],
+      "source": "default",
+      "env": "GITPROMPT_PRIVATE_TERMS",
+      "locked": false,
+      "applies": "now"
+    },
     "notify_long_turn": {
       "value": true,
       "default": true,

@@ -6,8 +6,7 @@
 
 	/**
 	 * A component fetched only when it is needed: its code is a separate file, imported when this
-	 * renders (`when="now"`) or when it comes near the viewport (`when="visible"`). The skeleton in
-	 * `pending` holds its place meanwhile. The import must be the component's only one, or the
+	 * renders. The skeleton in `pending` holds its place meanwhile. The import must be the component's only one, or the
 	 * bundler keeps it in the page's own file:
 	 *
 	 *     <Lazy load={() => import('#lib/x/Heavy.svelte')} props={{ data }} label="Loading …" what="…">
@@ -17,14 +16,12 @@
 	let {
 		load,
 		props,
-		when = 'now',
 		label,
 		what,
 		pending
 	}: {
 		load: () => Promise<{ default: Component<Props> }>;
 		props: Props;
-		when?: 'now' | 'visible';
 		label: string;
 		/** What this is, for error titles: "this panel". */
 		what: string;
@@ -34,25 +31,9 @@
 	let Loaded = $state.raw<Component<Props> | null>(null);
 	let error = $state.raw<unknown>(null);
 	let attempt = $state(0);
-	let near = $state(false);
-	let placeholder = $state<HTMLElement>();
-	const wanted = $derived(when === 'now' || near);
-
-	// Start the import once the placeholder is within a screen of the viewport.
-	$effect(() => {
-		if (wanted || !placeholder) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries.some((e) => e.isIntersecting)) near = true;
-			},
-			{ rootMargin: '100% 0px' }
-		);
-		observer.observe(placeholder);
-		return () => observer.disconnect();
-	});
 
 	$effect(() => {
-		if (!wanted || Loaded) return;
+		if (Loaded) return;
 		void attempt;
 		let current = true;
 		load().then(
@@ -79,7 +60,5 @@
 {:else if error}
 	<ErrorView {error} {what} onretry={retry} />
 {:else}
-	<div bind:this={placeholder}>
-		<Loading {label} waiting={!wanted}>{@render pending()}</Loading>
-	</div>
+	<Loading {label}>{@render pending()}</Loading>
 {/if}

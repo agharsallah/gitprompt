@@ -46,6 +46,7 @@ async fn every_preference_key_is_listed_in_order() {
             "disabled_sources",
             "recall_shortcut",
             "leak_allow",
+            "private_terms",
             "notify_long_turn",
             "notify_long_turn_minutes",
             "notify_leaks",

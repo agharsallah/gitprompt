@@ -23,8 +23,8 @@ use gitprompt_server::Dashboard;
 use gitprompt_server::status::{self, BACKEND, Counts};
 use gitprompt_store::Store;
 
-use crate::Io;
 use crate::commands::Failure;
+use crate::{Io, index};
 use report::{Data, Finding, PreferenceSet, Report, SpecFileCheck, SpecsCheck};
 
 /// Print the report (text, or JSON with `json`); 0 when healthy, 1 when something needs attention.
@@ -51,7 +51,7 @@ fn gather(settings: &Settings, now: Timestamp) -> Report {
     } else {
         None
     };
-    let facts = store.as_ref().map(|store| store_facts(store, &Indexer::new(set.specs.clone())));
+    let facts = store.as_ref().map(|store| store_facts(store, &index::indexer(settings, set.specs.clone())));
     let (stats, counts, db_bytes, index) = match facts {
         Some(Ok(facts)) => facts,
         Some(Err(e)) => {

@@ -54,6 +54,10 @@ const PLACEHOLDER_NAMES: &[&str] = &[
 const EXAMPLE_COMPANIES: &[&str] = &["acme", "example", "test", "foo", "bar", "contoso", "fabrikam"];
 /// Addresses on one line from which it is a list (paper authors, a directory, a credits file).
 const LIST_ADDRESSES: usize = 3;
+/// Digits of an international number (E.164) after its `+`.
+const PHONE_DIGITS: std::ops::RangeInclusive<usize> = 8..=15;
+/// Shortest domain label a real mail domain has (`x.com` is a placeholder).
+const DOMAIN_LABEL_CHARS: usize = 2;
 
 /// Addresses of a role, published to be written to: not a person's.
 const ROLES: &[&str] = &[
@@ -185,7 +189,7 @@ fn not_a_person(name: &str, domain: &str) -> bool {
     let academic = tld == "edu" || domain.contains(".ac.") || domain.contains("univ") || domain.starts_with("uni-");
     !mail_tld
         || academic
-        || label.chars().count() < 2
+        || label.chars().count() < DOMAIN_LABEL_CHARS
         || EXAMPLE_COMPANIES.contains(&label)
         || PLACEHOLDER_NAMES.contains(&name)
         || name.split(['.', '_', '-']).any(|part| part == "mail" || part == "email")
@@ -206,7 +210,7 @@ pub(super) fn phone(context: &Context<'_>) -> bool {
     }
     let digits = value.chars().filter(char::is_ascii_digit).count();
     // No country code starts with 0: `+0000 2014` is a time zone and a year.
-    (8..=15).contains(&digits) && !value.starts_with("+0") && !is_date(value.trim_start_matches('+')) && !value.contains("  ")
+    PHONE_DIGITS.contains(&digits) && !value.starts_with("+0") && !is_date(value.trim_start_matches('+')) && !value.contains("  ")
 }
 
 /// `yyyy-mm-dd`.

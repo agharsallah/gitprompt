@@ -1469,7 +1469,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
       </div></details>
     </article>
 
-    <article class="tk" id="t33" data-area="be web" data-size="S" data-pri="quality" data-needs="t25 t28 t29 t31 t32">
+    <article class="tk" id="t33" data-area="be web" data-size="S" data-pri="quality" data-needs="t25 t28 t29 t31 t32" data-status="partial">
       <details><summary><span class="tt">Phase 3 tuning: quiet, believable, tidy</span><span class="goal">After two weeks of use, the thresholds are right, the noise is gone and the old Overview code is removed.</span></summary>
       <div class="body">
         <dl><dt>Design</dt><dd>none: thresholds and removals</dd></dl>
@@ -1482,6 +1482,7 @@ figure.mini { margin-left: 0; margin-right: 0; }
         </ul>
         <p class="vf"><b>Verify</b> <code>just verify</code>, <code>just flaky</code> · Lighthouse on <code>/</code> at or above the baseline.</p>
         <p class="dod"><b>Done when</b> no notification kind was switched off for noise, or the one that was has a new threshold and a test.</p>
+        <p class="shipped"><b>Partly shipped 2026-11-19.</b> Every phase 3 threshold is a named constant or a preference, and the inline ones left were named (<code>PASSWORD_CLASSES</code>, <code>PHONE_DIGITS</code>, <code>DOMAIN_LABEL_CHARS</code>, <code>TOKEN_ENDS_FROM</code>); the values are in the ADR (<code>docs/adr/0024-dashboard-redesign-v3.md</code>, "Phase 3 thresholds"), untouched because the two weeks of use have not happened. Your own private words are now read at index time: a <code>private_terms</code> preference reaches the <code>Indexer</code>, whose version hashes the list, so a change rebuilds the index while an empty list keeps the old one. The CLI's <code>reindex</code>, <code>check</code> and <code>doctor</code> build the indexer the same way. Hide works on a private-word finding. Settings › Privacy has "Your own private words" next to "Never a leak"; both rows share <code>ListSettingRow</code>. Deleted, unused since tickets 25–29: <code>ui/charts/Lanes.svelte</code>, the visible-on-scroll mode of <code>async/Lazy.svelte</code> with what served it, the <code>figures</code> slot of <code>StoryHeader</code>, and a prop no one set. <b>Not done:</b> <code>just flaky</code> over the new suites was killed when the machine ran low on memory (run <code>just flaky --jobs 2 -- -p gitprompt-insights -p gitprompt-server</code>); tuning from two weeks of use; and the Lighthouse check on <code>/</code>. Dismissed leak patterns go to the allow-list with a test as they are found in use.</p>
       </div></details>
     </article>
   </div>

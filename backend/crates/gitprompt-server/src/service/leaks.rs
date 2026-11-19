@@ -38,9 +38,9 @@ impl Service {
 
 impl Inner {
     fn decide(&self, id: String, state: LeakDecision) -> ApiResult<LeakSaved> {
-        let (set, _) = self.indexed()?;
+        let (set, indexer) = self.indexed()?;
         let leak = self.store.leak(&id)?.ok_or_else(|| Error::NotFound(format!("no finding {id}")))?;
-        let updated = if state == LeakDecision::Hidden { self.hide(&set, &leak)? } else { 0 };
+        let updated = if state == LeakDecision::Hidden { self.hide(&set, indexer.private_terms(), &leak)? } else { 0 };
         self.store.set_leak_state(&decision(&leak, state, &iso(self.now())))?;
         Ok(LeakSaved { id, state: Some(state), updated })
     }
@@ -67,15 +67,16 @@ impl Inner {
     }
 
     /// Replace the finding's value in its prompt and turn, then index the prompt again (the
-    /// finding is gone from the index after). Rows rewritten.
-    fn hide(&self, set: &SpecSet, leak: &StoredLeak) -> ApiResult<u64> {
+    /// finding is gone from the index after); `terms` are the private terms it was indexed with.
+    /// Rows rewritten.
+    fn hide(&self, set: &SpecSet, terms: &[String], leak: &StoredLeak) -> ApiResult<u64> {
         let view = self.store.get(leak.prompt)?.ok_or_else(|| Error::NotFound("prompt not found".into()))?;
         let events = match turn_id(&view) {
             Some(turn) => self.store.events_for_prompts(&[turn])?,
             None => Vec::new(),
         };
         let derived = derive(&view, &events, set.get(&view.row.source).map(AsRef::as_ref));
-        let redactor = redactor(&derived, &events, &leak.finding)
+        let redactor = redactor(&derived, &events, &leak.finding, terms)
             .ok_or_else(|| Error::Conflict("the value is no longer in the stored text".into()))?;
         self.rewrite_turn(leak.prompt, &|json: &Json| redactor.apply(json))
     }

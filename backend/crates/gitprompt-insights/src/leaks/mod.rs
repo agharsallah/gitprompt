@@ -4,7 +4,8 @@
 //! from it ([`Finding::id`], [`Finding::value_key`]) so a state set on a finding still applies after
 //! a reindex, and a value you dismissed stays dismissed wherever it shows up again.
 //!
-//! Detection is [`gitprompt_core::secrets::find_leaks`] and [`gitprompt_core::personal`]; this
+//! Detection is [`gitprompt_core::secrets::find_leaks`], [`gitprompt_core::personal`] and the words
+//! of your own list ([`gitprompt_core::personal::find_terms`], the `private_terms` preference); this
 //! module decides where to look and how many to keep.
 
 mod board;
@@ -16,7 +17,7 @@ use ts_rs::TS;
 
 use gitprompt_core::Json;
 use gitprompt_core::leak::{Found, Mask, Scope, masked};
-use gitprompt_core::personal::{find_personal, sensitive_file};
+use gitprompt_core::personal::{find_personal, find_terms, sensitive_file};
 use gitprompt_core::secrets::find_leaks;
 use gitprompt_store::EventRow;
 
@@ -73,12 +74,21 @@ pub struct Finding {
     pub place: Place,
 }
 
-/// The possible leaks of the turn of `derived`, whose events are `events`; at most [`PER_TURN`],
-/// each id once, in the order of the places above.
-pub fn findings(derived: &Derived, events: &[EventRow]) -> Vec<Finding> {
+/// Your own words as they are looked for: trimmed, lower-cased (matching ignores case), without
+/// blanks, sorted and each once, so the same list in another order or case is the same rules.
+pub fn private_terms(terms: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = terms.iter().map(|t| t.trim().to_lowercase()).filter(|t| !t.is_empty()).collect();
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+/// The possible leaks of the turn of `derived`, whose events are `events`, with the words of your
+/// own list (`terms`); at most [`PER_TURN`], each id once, in the order of the places above.
+pub fn findings(derived: &Derived, events: &[EventRow], terms: &[String]) -> Vec<Finding> {
     let turn = derived.prompt.row.id;
     let mut out: Vec<Finding> = Vec::new();
-    for (place, found) in found(derived, events) {
+    for (place, found) in found(derived, events, terms) {
         let finding = finding(turn, place, found);
         if out.len() >= PER_TURN {
             break;
@@ -91,7 +101,8 @@ pub fn findings(derived: &Derived, events: &[EventRow]) -> Vec<Finding> {
 }
 
 /// Every look-alike of the turn with where it sits, in the order of [`Place`].
-pub(crate) fn found<'a>(derived: &'a Derived, events: &'a [EventRow]) -> Vec<(Place, Found<'a>)> {
+pub(crate) fn found<'a>(derived: &'a Derived, events: &'a [EventRow], terms: &[String]) -> Vec<(Place, Found<'a>)> {
+    let scan = |text: &'a str| scan(text, terms);
     let mut out: Vec<(Place, Found<'a>)> = Vec::new();
     let prompt = derived.prompt.row.prompt.as_deref().map(scan).unwrap_or_default();
     out.extend(prompt.into_iter().map(|f| (Place::Prompt, f)));
@@ -109,14 +120,17 @@ pub(crate) fn found<'a>(derived: &'a Derived, events: &'a [EventRow]) -> Vec<(Pl
     out
 }
 
-/// Secrets, then personal data, in the start of `text`.
-fn scan(text: &str) -> Vec<Found<'_>> {
+/// Secrets, then personal data, then your own words, in the start of `text`.
+fn scan<'t>(text: &'t str, terms: &[String]) -> Vec<Found<'t>> {
     let text = match text.char_indices().nth(SCAN_CHARS) {
         Some((end, _)) => text.get(..end).unwrap_or(text),
         None => text,
     };
     let mut found = find_leaks(text);
     found.extend(find_personal(text));
+    if !terms.is_empty() {
+        found.extend(find_terms(text, terms));
+    }
     found
 }
 

@@ -103,6 +103,22 @@ async fn a_value_on_the_allow_list_is_never_shown() {
 }
 
 #[tokio::test]
+async fn a_word_of_your_own_list_becomes_a_finding_you_can_hide() {
+    let api = api();
+    prompt(&api, "p1", "ship Project Falcon today").await;
+    assert_eq!(api.json("/api/leaks").await["open"], json!([]));
+    let saved = api.put("/api/settings").dashboard().json(json!({"private_terms": "project falcon"})).send().await;
+    assert_eq!(saved.status, 200, "{}", saved.text());
+    let board = api.json("/api/leaks").await;
+    assert_eq!((&board["open"][0]["kind"], &board["open"][0]["masked"]), (&json!("private term"), &json!("Pro…lcon")));
+    let id = ids(&board["open"])[0].clone();
+    assert_eq!(decide(&api, &id, json!("hidden")).await.status, 200);
+    let prompts = api.json("/api/prompts").await;
+    let detail = api.json(&format!("/api/prompts/{}", prompts[0]["id"])).await.to_string();
+    assert!(detail.contains("[hidden private term]") && !detail.contains("Falcon"), "{detail}");
+}
+
+#[tokio::test]
 async fn open_findings_lead_worth_a_look_and_count_in_the_key_figures() {
     let api = api();
     prompt(&api, "p1", &format!("use {}", key())).await;

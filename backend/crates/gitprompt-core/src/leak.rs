@@ -41,13 +41,16 @@ pub enum Mask {
     Hidden,
 }
 
+/// Shortest token shown by its head and tail; a shorter one shows only its first character.
+const TOKEN_ENDS_FROM: usize = 12;
+
 /// The value as it may be shown.
 pub fn masked(mask: Mask, value: &str) -> String {
     let chars: Vec<char> = value.chars().collect();
     let head = |n: usize| chars.iter().take(n).collect::<String>();
     let tail = |n: usize| chars.iter().skip(chars.len().saturating_sub(n)).collect::<String>();
     match mask {
-        Mask::Token if chars.len() >= 12 => format!("{}…{}", head(3), tail(4)),
+        Mask::Token if chars.len() >= TOKEN_ENDS_FROM => format!("{}…{}", head(3), tail(4)),
         Mask::Token => format!("{}…", head(1)),
         Mask::Email => match value.split_once('@') {
             Some((name, domain)) => format!("{}…@{domain}", name.chars().next().unwrap_or('?')),

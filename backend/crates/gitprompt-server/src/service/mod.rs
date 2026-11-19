@@ -40,6 +40,7 @@ use gitprompt_core::preferences::PreferenceFile;
 use gitprompt_core::spec::{Spec, SpecCache, SpecSet};
 use gitprompt_core::{Error, Settings};
 use gitprompt_insights::indexer::Indexer;
+use gitprompt_insights::leaks::private_terms;
 use gitprompt_store::Store;
 
 use crate::bus::Bus;
@@ -80,7 +81,7 @@ struct Inner {
     store: Store,
     /// Source specs, reloaded when a user spec file changes.
     specs: SpecCache,
-    /// The indexer of the current spec set (rebuilt when the set is reloaded).
+    /// The indexer of the current spec set and private terms (rebuilt when either changes).
     indexer: Mutex<Option<(Arc<SpecSet>, Arc<Indexer>)>>,
     preferences: PreferenceFile,
     bus: Bus,
@@ -102,16 +103,19 @@ impl Inner {
         set.get(source).cloned().ok_or_else(|| Error::NotFound(format!("unknown source '{source}'")).into())
     }
 
-    /// The indexer of `set`, built once per spec set.
+    /// The indexer of `set` and of the `private_terms` preference, built once per spec set and
+    /// list (another list is another rules version: the index is rebuilt on the next read).
     fn indexer(&self, set: &Arc<SpecSet>) -> Arc<Indexer> {
+        let terms = private_terms(&self.preferences.effective().private_terms);
         // The slot only ever holds a whole (set, indexer) pair, so a poisoned lock is still valid.
         let mut slot = self.indexer.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some((cached, indexer)) = slot.as_ref()
             && Arc::ptr_eq(cached, set)
+            && indexer.private_terms() == terms.as_slice()
         {
             return Arc::clone(indexer);
         }
-        let indexer = Arc::new(Indexer::new(set.specs.clone()));
+        let indexer = Arc::new(Indexer::new(set.specs.clone()).with_private_terms(&terms));
         *slot = Some((Arc::clone(set), Arc::clone(&indexer)));
         indexer
     }

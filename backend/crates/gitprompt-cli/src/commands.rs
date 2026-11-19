@@ -13,13 +13,12 @@ use gitprompt_core::spec::{Spec, load_specs};
 use gitprompt_core::{Json, Settings};
 use gitprompt_insights::Specs;
 use gitprompt_insights::captures::{self, RecentCapture};
-use gitprompt_insights::indexer::Indexer;
 use gitprompt_server::{AppOptions, Daemon, DaemonOptions, Dashboard};
 use gitprompt_store::{Store, housekeeping};
 
-use crate::Io;
 use crate::http::HttpTransport;
 use crate::print::ago;
+use crate::{Io, index};
 
 /// Why a command failed: one line on stderr, exit 1.
 pub(crate) struct Failure(String);
@@ -125,7 +124,7 @@ pub(crate) fn compact(settings: &Settings, apply: bool, older_than_days: Option<
 pub(crate) fn reindex(settings: &Settings, io: &mut Io<'_>) -> Outcome {
     let store = Store::open(&settings.db_path())?;
     let start = Instant::now();
-    let count = Indexer::new(load_specs(settings)).rebuild(&store)?;
+    let count = index::indexer(settings, load_specs(settings)).rebuild(&store)?;
     // The per-event summary is a cache too (triggers keep it exact); a reindex repairs it as well.
     store.rebuild_event_stats()?;
     writeln!(io.stdout, "Indexed {} prompts in {:.1} s.", grouped(count as u64), start.elapsed().as_secs_f64())?;
@@ -161,7 +160,7 @@ fn recent_captures(settings: &Settings, specs: &Specs, io: &mut Io<'_>) -> Resul
         return Ok(Vec::new());
     }
     let store = Store::open(&db)?;
-    Indexer::new(specs.clone()).ensure(&store)?;
+    index::indexer(settings, specs.clone()).ensure(&store)?;
     Ok(captures::recent(&store, specs)?)
 }
 

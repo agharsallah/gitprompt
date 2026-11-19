@@ -24,6 +24,7 @@
 mod commands;
 mod doctor;
 mod http;
+mod index;
 mod lookup;
 mod print;
 

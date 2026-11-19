@@ -16,6 +16,7 @@ export const DEFAULTS: Preferences = {
 	disabled_sources: [],
 	recall_shortcut: 'CmdOrCtrl+Alt+P',
 	leak_allow: [],
+	private_terms: [],
 	notify_long_turn: true,
 	notify_long_turn_minutes: 10,
 	notify_leaks: true,

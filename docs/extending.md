@@ -118,6 +118,9 @@ Possible leaks are found once per turn, when the turn is indexed (`gitprompt-ins
 - A secret: one named pattern in `KINDS` (`gitprompt-core/src/secrets.rs`; it also hides), and if its shape alone is not enough, a rule in `secrets/plausible.rs` (entropy, placeholders, code that only names a secret).
 - Personal data: one `Detector` in `gitprompt-core/src/personal/mod.rs`: needles (a cheap test), a pattern **without lookaround** (lookaround runs on fancy-regex's slow backtracking engine; check the edges in `check` instead), a `check` that turns look-alikes away (a checksum, example values, the line or the text nearby), a `Mask` and a `Scope` (`Sent`: not in what a tool read back, like a phone number on a fetched page).
 - A sensitive file: one row of `SENSITIVE_FILES` (`personal/files.rs`).
+- Your own words: the `private_terms` preference, found by `personal::find_terms`. The server and
+  the CLI build the `Indexer` `with_private_terms`, and the list is part of its version
+  (`terms_version`; none keeps the old version), so changing it rebuilds the index.
 - Each kind has a table test (matches and near misses) in `gitprompt-core/tests/personal.rs` or `secrets.rs`, and `hashes_ids_versions_and_lock_files_raise_no_alarm` must still pass. A finding you dismissed as not sensitive becomes a near miss there.
 - Bump `CODE_VERSION` (`insights/src/indexer.rs`) so stored findings are recomputed.
 

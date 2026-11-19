@@ -28,7 +28,7 @@ const KEY: &str = "sk-proj-q8Zt2Lw9XkP4vR7mN3cBy6Hd";
 
 fn turn(text: &str, events: &[EventRow]) -> Vec<Finding> {
     let derived = derive(&prompt(text).id(7).build(), events, Some(&spec("claude-code")));
-    findings(&derived, events)
+    findings(&derived, events, &[])
 }
 
 fn seen(findings: &[Finding]) -> Vec<(&str, &str, Place)> {
@@ -106,8 +106,8 @@ fn a_phone_number_counts_where_it_was_sent_not_in_a_page_a_tool_read() {
 }
 
 mod hiding {
-    use super::{EventRow, KEY, derive, event, findings, json, prompt, spec};
-    use gitprompt_insights::leaks::redactor;
+    use super::{EventRow, KEY, Place, derive, event, findings, json, prompt, seen, spec};
+    use gitprompt_insights::leaks::{private_terms, redactor};
     use pretty_assertions::assert_eq;
 
     fn derived(text: &str, events: &[EventRow]) -> gitprompt_insights::derivations::Derived {
@@ -117,14 +117,26 @@ mod hiding {
     #[test]
     fn a_redactor_replaces_the_value_and_never_shows_it() {
         let d = derived(&format!("use {KEY} now"), &[]);
-        let id = findings(&d, &[])[0].id.clone();
-        let hide = redactor(&d, &[], &id).unwrap();
+        let id = findings(&d, &[], &[])[0].id.clone();
+        let hide = redactor(&d, &[], &id, &[]).unwrap();
         assert_eq!(
             hide.apply(&json!({"prompt": format!("use {KEY} now"), "n": 1})),
             json!({"prompt": "use [hidden OpenAI API key] now", "n": 1})
         );
         assert!(!format!("{hide:?}").contains("q8Zt2Lw9XkP4vR7mN3cB"));
-        assert!(redactor(&d, &[], "0000000000000000").is_none(), "another turn's finding");
+        assert!(redactor(&d, &[], "0000000000000000", &[]).is_none(), "another turn's finding");
+    }
+
+    #[test]
+    fn a_word_of_your_own_list_is_found_masked_and_hidden_with_that_list() {
+        let terms = private_terms(&[" Project Falcon ".to_owned(), String::new()]);
+        let d = derived("ship project falcon today", &[]);
+        let found = findings(&d, &[], &terms);
+        assert_eq!(seen(&found), [("private term", "pro…lcon", Place::Prompt)]);
+        assert_eq!(findings(&d, &[], &[]), [], "without the list, nothing");
+        assert!(redactor(&d, &[], &found[0].id, &[]).is_none(), "the value is found again with the list only");
+        let hide = redactor(&d, &[], &found[0].id, &terms).unwrap();
+        assert_eq!(hide.apply(&json!("ship project falcon today")), json!("ship [hidden private term] today"));
     }
 
     #[test]
@@ -134,8 +146,8 @@ mod hiding {
             json!({"tool_name": "Read", "tool_input": {"file_path": "/app/.env"}, "tool_response": {"content": "A=1"}}),
         );
         let d = derived("check the config", std::slice::from_ref(&read));
-        let id = findings(&d, std::slice::from_ref(&read))[0].id.clone();
-        let hide = redactor(&d, std::slice::from_ref(&read), &id).unwrap();
+        let id = findings(&d, std::slice::from_ref(&read), &[])[0].id.clone();
+        let hide = redactor(&d, std::slice::from_ref(&read), &id, &[]).unwrap();
         let other = json!({"tool_input": {"file_path": "/app/main.rs"}, "tool_response": "fn main"});
         assert_eq!(hide.apply(&read.raw)["tool_response"], "[hidden environment file]");
         assert_eq!(hide.apply(&other), other);

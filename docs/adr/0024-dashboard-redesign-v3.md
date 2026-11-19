@@ -78,3 +78,21 @@ Five decisions are built now, one is settled by a test, four are deferred with a
 - **An MCP server now.** Deferred: the CLI gives the same answers and keeps the user in control of what an agent sees.
 - **Team groundwork now (identity columns, sync crate).** Deferred: it changes the architecture map for a feature nobody uses yet; a hosted service would break local-first.
 - **Group phases into chapters without a test.** Rejected: grouping helps only when the names are good.
+
+## Phase 3 thresholds (ticket 33, 2026-11-19)
+
+Every phase 3 threshold is a named constant or a preference, one place per crate. These are the starting values, before the two weeks of use that tune them; a value changed later is noted here with its reason.
+
+| What | Value | Where |
+|---|---|---|
+| Worth a look, Pick up rows | 3, 3 | `insights/src/attention/` (`WORTH_A_LOOK`, `PICK_UP`) |
+| Running, still to pick up | 10 min, 7 days | `attention/pick_up.rs` (`RUNNING_WINDOW`, `PICK_UP_WITHIN`) |
+| A prompt worth a command | 5 sends, 2 sessions, 12 characters | `attention/repeated.rs` |
+| Notifications per kind | 3 per hour | `insights/src/notify/` (`LIMIT`) |
+| Long turn, quiet connector | 10 min, 30 min (preferences) | `core/src/preferences.rs` |
+| Weekly recap | Monday 09:00 (preferences) | `core/src/preferences.rs` |
+| Leak scan per text, findings per turn | 256 K characters, 20 | `insights/src/leaks/` |
+| Key and password entropy | 3.0 and 2.5 bits per character | `core/src/secrets/plausible.rs` |
+| Addresses on a line that make a list | 3 | `core/src/personal/checks.rs` (`LIST_ADDRESSES`) |
+| Headline: stands out, floors | ±50%; $5, 1 h, 30 min redone, 10 commits, 1 leak | `web/src/lib/stories/headline.ts` |
+| Week strip: day that stands out | 1.5 × the median active day | `web/src/lib/overview/week-strip.ts` |

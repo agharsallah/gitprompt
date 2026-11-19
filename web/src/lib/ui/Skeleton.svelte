@@ -1,8 +1,7 @@
 <script lang="ts">
 	/**
 	 * A placeholder shaped like the content that is on its way. Decorative: the region that holds it
-	 * says what is loading (lib/async/Loading.svelte). The shimmer stops under reduced motion, and
-	 * holds still where nothing is fetched yet (`--skeleton-play`, set by Loading).
+	 * says what is loading (lib/async/Loading.svelte). The shimmer stops under reduced motion.
 	 */
 	let {
 		width = '100%',
@@ -50,8 +49,6 @@
 		background-repeat: no-repeat;
 		background-size: 40% 100%;
 		animation: shimmer 1.6s var(--ease-in-out) infinite;
-		/* `paused` inside a region that is not fetching yet (lib/async/Loading.svelte). */
-		animation-play-state: var(--skeleton-play, running);
 	}
 
 	.line {

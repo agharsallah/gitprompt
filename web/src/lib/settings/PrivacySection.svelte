@@ -4,6 +4,7 @@
 	import { OPTIONS as EXPORT_OPTIONS, PRIVATE_DEFAULTS } from '#lib/export/export.ts';
 	import { PreferenceEditor } from '#lib/settings/editor.svelte.ts';
 	import LeakAllowRow from '#lib/settings/LeakAllowRow.svelte';
+	import PrivateTermsRow from '#lib/settings/PrivateTermsRow.svelte';
 	import SettingRow from '#lib/settings/SettingRow.svelte';
 	import Callout from '#lib/ui/Callout.svelte';
 	import Panel from '#lib/ui/Panel.svelte';
@@ -41,6 +42,7 @@
 	</SettingRow>
 
 	<LeakAllowRow {prefs} {editor} />
+	<PrivateTermsRow {prefs} {editor} />
 
 	<SettingRow
 		label="Exports"

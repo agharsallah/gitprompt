@@ -1,5 +1,5 @@
 /**
- * The `leak_allow` preference as one text field: values separated by commas or new lines, each
+ * A list preference (`leak_allow`, `private_terms`) as one text field: values separated by commas or new lines, each
  * trimmed, empty ones dropped, each kept once. Pure, tested in allow.test.ts.
  */
 

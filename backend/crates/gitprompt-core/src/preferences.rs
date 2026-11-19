@@ -85,6 +85,9 @@ pub struct Preferences {
     /// Values that are never a possible leak (your other addresses, a shared test account), on top
     /// of your git email. Env: comma-separated.
     pub leak_allow: Vec<String>,
+    /// Your own private words (a client's name, a project's code name): each whole-word occurrence,
+    /// in any case, is a possible leak. Env: comma-separated.
+    pub private_terms: Vec<String>,
     /// Notify when a turn that ran at least `notify_long_turn_minutes` finishes or fails.
     pub notify_long_turn: bool,
     /// How long a turn runs before its end is worth a notification (1..=1440 minutes).
@@ -120,6 +123,7 @@ impl Default for Preferences {
             disabled_sources: Vec::new(),
             recall_shortcut: shortcut::DEFAULT.to_owned(),
             leak_allow: Vec::new(),
+            private_terms: Vec::new(),
             notify_long_turn: true,
             notify_long_turn_minutes: LONG_TURN_MINUTES,
             notify_leaks: true,
@@ -141,6 +145,7 @@ pub const KEYS: &[&str] = &[
     "disabled_sources",
     "recall_shortcut",
     "leak_allow",
+    "private_terms",
     "notify_long_turn",
     "notify_long_turn_minutes",
     "notify_leaks",
@@ -346,7 +351,7 @@ fn normalize(key: &str, value: &Json) -> std::result::Result<Json, String> {
             boolean(value).map(Json::Bool)
         }
         "notify_long_turn_minutes" | "notify_quiet_connector_minutes" => minutes(value),
-        "disabled_sources" | "leak_allow" => string_list(value),
+        "disabled_sources" | "leak_allow" | "private_terms" => string_list(value),
         "recall_shortcut" => recall_shortcut(value),
         "recap_weekday" => one_of(value, &["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
         "recap_hour" => hour(value),
@@ -422,7 +427,7 @@ fn string_list(value: &Json) -> std::result::Result<Json, String> {
     match value {
         Json::String(text) => Ok(text.split(',').map(str::trim).filter(|item| !item.is_empty()).collect::<Vec<_>>().into()),
         Json::Array(items) if items.iter().all(Json::is_string) => Ok(value.clone()),
-        _ => Err(format!("must be a list of connector ids, got {value}")),
+        _ => Err(format!("must be a list of words (or comma-separated text), got {value}")),
     }
 }
 

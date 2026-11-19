@@ -30,7 +30,7 @@ use gitprompt_core::Error;
 use gitprompt_core::spec::{Pattern, Spec, ToolKind};
 use gitprompt_insights::Specs;
 use gitprompt_insights::derivations::{Derived, derive};
-use gitprompt_insights::indexer::{CODE_VERSION, Indexer, entry, prompt_facts, rules_version, slash, text_hash};
+use gitprompt_insights::indexer::{CODE_VERSION, Indexer, entry, prompt_facts, rules_version, slash, terms_version, text_hash};
 use gitprompt_insights::zone::MachineZone;
 use gitprompt_store::filter::PromptFilter;
 use gitprompt_store::index::{ModelUsage, ToolCalls, UsageTotals, WorkUsage};
@@ -448,6 +448,32 @@ fn a_timezone_change_rebuilds_the_index_and_moves_the_hour() {
     let utc_hour = row(&store, id).hour;
     let east = Indexer::with(specs(), Arc::new(offset_hours(5)), CODE_VERSION);
     assert_eq!((east.ensure(&store).unwrap(), row(&store, id).hour), (1, (utc_hour + 5) % 24));
+}
+
+#[test]
+fn private_terms_are_part_of_the_version_but_not_their_case_order_or_blanks() {
+    let base = indexer();
+    let terms = |list: &[&str]| list.iter().map(|t| (*t).to_owned()).collect::<Vec<String>>();
+    assert_eq!(indexer().with_private_terms(&terms(&[" ", ""])).version(), base.version(), "no words, no rebuild");
+    assert_eq!(terms_version(base.version(), &[]), base.version());
+    let falcon = indexer().with_private_terms(&terms(&["Falcon", "acme"]));
+    assert_ne!(falcon.version(), base.version());
+    assert_eq!(falcon.version(), indexer().with_private_terms(&terms(&["acme ", "falcon", "ACME"])).version());
+    assert_eq!(falcon.private_terms(), ["acme", "falcon"]);
+}
+
+#[test]
+fn a_change_of_private_terms_reindexes_and_finds_the_word() {
+    let store = Store::open_in_memory().unwrap();
+    add_prompt(&store, "Ship Project Falcon today", "p1", Some("s1"));
+    indexer().ensure(&store).unwrap();
+    let kinds = |store: &Store| store.leaks(&PromptFilter::default()).unwrap().into_iter().map(|l| l.kind).collect::<Vec<_>>();
+    assert_eq!(kinds(&store), Vec::<String>::new());
+    let falcon = indexer().with_private_terms(&["project falcon".to_owned()]);
+    assert_eq!(falcon.ensure(&store).unwrap(), 1, "rebuilt");
+    assert_eq!(kinds(&store), ["private term"]);
+    assert_eq!(indexer().ensure(&store).unwrap(), 1, "the word removed: rebuilt again");
+    assert_eq!(kinds(&store), Vec::<String>::new());
 }
 
 #[test]

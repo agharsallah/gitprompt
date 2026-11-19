@@ -704,6 +704,11 @@ recall_shortcut: string,
  */
 leak_allow: Array<string>, 
 /**
+ * Your own private words (a client's name, a project's code name): each whole-word occurrence,
+ * in any case, is a possible leak. Env: comma-separated.
+ */
+private_terms: Array<string>, 
+/**
  * Notify when a turn that ran at least `notify_long_turn_minutes` finishes or fails.
  */
 notify_long_turn: boolean, 
