@@ -88,7 +88,7 @@ pub struct Daemon {
     /// Cancelled once the start-up spool drain is over (done, failed or stopped).
     drained: CancellationToken,
     /// Held (OS lock) while the daemon runs.
-    lock: File,
+    lock: HeldLock,
 }
 
 impl Daemon {
@@ -138,7 +138,7 @@ impl Daemon {
         self.background.await.map_err(joined)?;
         let served = self.server.await.map_err(joined)?;
         drop(self.service); // the store closes with its last handle
-        self.lock.unlock()?;
+        self.lock.0.unlock()?;
         tracing::info!("GitPrompt stopped");
         served.map_err(Into::into)
     }
@@ -205,7 +205,7 @@ async fn drain_spool(service: &Service, spool: LockedSpool, stop: &CancellationT
 
 /// Take the data directory's lock (created with the home if missing); the pid is written for
 /// whoever looks. `AlreadyRunning` when another process holds it.
-fn take_lock(settings: &Settings) -> Result<File, DaemonError> {
+fn take_lock(settings: &Settings) -> Result<HeldLock, DaemonError> {
     settings.token().map_err(ApiError::from)?; // creates the home owner-only, as the app would
     let lock_file = settings.lock_file();
     let mut file = OpenOptions::new().read(true).write(true).create(true).truncate(false).open(&lock_file)?;
@@ -216,7 +216,21 @@ fn take_lock(settings: &Settings) -> Result<File, DaemonError> {
     }
     file.set_len(0)?;
     write!(file, "{}", std::process::id())?;
-    Ok(file)
+    Ok(HeldLock(file))
+}
+
+/// The data directory's lock, released when dropped: also when the start fails after taking it.
+/// Closing the file is not enough for that. A child process being started at that moment (a tool's
+/// version probe, git) holds a copy of the open file until it runs its program, and the lock lives
+/// as long as any copy; unlocking releases it for all of them at once.
+#[derive(Debug)]
+struct HeldLock(File);
+
+impl Drop for HeldLock {
+    fn drop(&mut self) {
+        // Nothing to do about a failure here: the lock goes with the process at the latest.
+        let _ = self.0.unlock();
+    }
 }
 
 /// The start-up summary: where it listens, the data it serves, the dashboard source.
