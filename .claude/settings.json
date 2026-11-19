@@ -91,9 +91,7 @@
       "Bash(git push *)",
       "Bash(just clean)",
       "Bash(gh pr create *)",
-      "WebFetch(domain:docs.anthropic.com)"
-    ],
-    "ask": [
+      "WebFetch(domain:docs.anthropic.com)",
       "Bash(git rebase *)",
       "Bash(git merge *)",
       "Bash(gh pr merge *)",
@@ -107,6 +105,8 @@
       "Bash(pnpm remove *)",
       "Bash(pnpm update *)",
       "Bash(just snapshots)"
+    ],
+    "ask": [
     ],
     "deny": [
       "Read(./.env)",
